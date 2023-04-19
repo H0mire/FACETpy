@@ -2,9 +2,15 @@ from FACET.Facet import Facet
 
 
 def main():
-	f = Facet("Hello")
+	f = Facet("Test")
 	f.printEEG()
 	f.printMessage()
+	print(f.message)
+	f.message = "hello"
+
+
+# function to print hello
+
 
 if __name__ == "__main__":
 	main()
