@@ -1,6 +1,8 @@
 import numpy as np
+import logging, statistics, time, types
 from scipy.signal import find_peaks
 
+FACET = {}
 
 class Facet:
 
@@ -88,9 +90,9 @@ class Facet:
 		self.Triggers = self.find_triggers(self._eeg.event, EventType, TriggerOffset)
 		# Check if triggers are sorted
 		if self.issorted(self.Triggers):
-			error('FACET:unsortedTrigs', 'Triggers are not sorted')
+			logging.error('FACET:unsortedTrigs', 'Triggers are not sorted')
 		# store number of triggers
-		self.NumTriggers = length(self.Triggers)
+		self.NumTriggers = len(self.Triggers)
 
 	def AnalyzeData(self, ChannelDetails=False):
     # set values of optional parameters
@@ -121,7 +123,7 @@ class Facet:
 				tmax = np.max([tmax, cmax])
 				cmean = np.mean(self._eeg.data[i-1, :])
 				tmean = tmean+cmean
-				cstep = mode(diff(unique(self._eeg.data[i-1, :])))
+				cstep = statistics.mode(np.diff(np.unique(self._eeg.data[i-1, :])))
 				print(
 				    f'  {i:2d}:  {self._eeg.chanlocs[i-1].labels:6s}  {cmin:10.2f}  {cmax:10.2f}  {cmean:8.2f}    {cstep:6.4f}')
 			tmean = tmean/self._eeg.nbchan
@@ -399,7 +401,7 @@ class Facet:
 				elif Step == 'ANC':
 					self.RAANC()
 				else:
-					error('FACET:RemoveArtifact:InvalidStep', f'Invalid artifact removal step "{Step}"')
+					logging.error('FACET:RemoveArtifact:InvalidStep', f'Invalid artifact removal step "{Step}"')
 				# done profiling
 				self.ProfileStop(Step)
 
@@ -430,7 +432,10 @@ class Facet:
 		print(self._message)
 
 	def _get_message(self):
-			return self._message
+		return self._message
+	
 	
 
 	message = property(fget=_get_message)
+def notify(self, message): #TODO: Implement
+		return "notified"
