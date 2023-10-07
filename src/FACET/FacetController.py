@@ -26,6 +26,7 @@ class FacetController:
         self._interpolate_volume_gaps = InterpolateVolumeGaps
         self._obs_exclude_channels = OBSExcludeChannels
         self._plot_number = 0
+        self._raw=0
 
     def import_EEG(self, filename):
         self._raw = mne.io.read_raw_edf(filename)
@@ -84,7 +85,7 @@ class FacetController:
 
     def plot_EEG(self):
         self._plot_number += 1
-        self._raw.plot(title=str(self._plot_number))
+        self._raw.plot(title=str(self._plot_number), start=27)
 
     # Remove Artifacts from EEG
     def apply_MNE_AAS_old(self):
@@ -138,8 +139,8 @@ class FacetController:
         diffs = np.diff(times)
         maxDiff = diffs.max()
         print(maxDiff)
-        tmin = 0
-        tmax = maxDiff-0.01
+        tmin = -0.01
+        tmax = maxDiff -0.01
 
         print("tmin: ", tmin)
         print("tmax: ", tmax)
@@ -179,7 +180,7 @@ class FacetController:
             start += event[0]
             minColumn = evoked.data.shape[1]
             stop = start + minColumn
-            corrected_data[:, start:stop] -= (evoked.data*2)
+            corrected_data[:, start:stop] -= evoked.data
 
         raw._data = corrected_data
 
@@ -216,7 +217,7 @@ class FacetController:
         diffs = np.diff(times)
         maxDiff = diffs.max()
         tmin = 0
-        tmax = maxDiff
+        tmax = maxDiff+0.2
 
         # Kanalauswahl
         raw.info["bads"] = ["Status", "EMG", "ECG"]
