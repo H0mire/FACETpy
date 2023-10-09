@@ -27,6 +27,8 @@ class FacetController:
         self._obs_exclude_channels = OBSExcludeChannels
         self._plot_number = 0
         self._raw=0
+        self._tmin=0
+        self._tmax=0
 
     def import_EEG(self, filename):
         self._raw = mne.io.read_raw_edf(filename)
@@ -87,6 +89,21 @@ class FacetController:
         self._plot_number += 1
         self._raw.plot(title=str(self._plot_number), start=27)
 
+    def remove_artifacts(self):        
+        raw = self._raw
+        corrected_data = raw._data.copy()
+        evoked = self.avg_artifact
+        for pos in self._triggers:
+            start, stop = raw.time_as_index([self._tmin, self._tmax], use_rounding=True)
+            start += pos
+            minColumn = evoked.data.shape[1]
+            stop = start + minColumn
+            corrected_data[:evoked.data.shape[0], start:stop] -= evoked.data
+
+        raw._data = corrected_data
+
+        self._raw = raw
+
     # Remove Artifacts from EEG
     def apply_MNE_AAS_old(self):
         raw = self._raw
@@ -141,6 +158,8 @@ class FacetController:
         print(maxDiff)
         tmin = -0.01
         tmax = maxDiff -0.01
+        self._tmin = tmin
+        self._tmax = tmax
 
         print("tmin: ", tmin)
         print("tmax: ", tmax)
@@ -173,18 +192,8 @@ class FacetController:
         evoked = epochs[good_epochs].average()
         #mne plot evoked
         evoked.plot()
-        # Schritt 4: Subtraktion nur in den Bereichen um den Event
-        corrected_data = raw._data.copy()
-        for event in epochs.events:
-            start, stop = raw.time_as_index([tmin, tmax], use_rounding=True)
-            start += event[0]
-            minColumn = evoked.data.shape[1]
-            stop = start + minColumn
-            corrected_data[:, start:stop] -= evoked.data
-
-        raw._data = corrected_data
-
-        self._raw = raw
+        self.avg_artifact = evoked
+        
 
     def highly_correlated_epochs(self, epochs, threshold=0.975):
         """Return list of epochs that are highly correlated to the average."""
@@ -293,22 +302,24 @@ class FacetController:
     def moving_average(self, data, window_size):
         return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
 
-    def pre_processing(self):
-        # Apply highpassfilter
-        self._raw.filter(l_freq=1, h_freq=None)
-        print("Upsampling Data")
-        self._upsample_data()
-
     def downsample(self):
         print("Downsampling Data")
         self._downsample_data()
+        return
+    def upsample(self):
+        print("Upsampling Data")
+        self._upsample_data()
         return
 
     def lowpass(self, h_freq=45):
         # Apply lowpassfilter
         print("Applying lowpassfilter")
-        self._raw.filter(l_freq=1, h_freq=h_freq)
+        self._raw.filter(l_freq=None, h_freq=h_freq)
         return
+    def highpass(self, l_freq=1):
+        # Apply highpassfilter
+        print("Applying highpassfilter")
+        self._raw.filter(l_freq=l_freq, h_freq=None)
 
     def printName(self):
         print(self._name)
