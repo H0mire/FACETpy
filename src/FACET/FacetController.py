@@ -95,7 +95,7 @@ class FacetController:
         maxDiff = np.diff(self._raw.times[self._triggers]).max()
         print(maxDiff)
         # Schritt 1: Epochen erstellen
-        tmin, tmax = 0, maxDiff
+        tmin, tmax = -0.01, maxDiff-0.01
         picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False)
         epochs = mne.Epochs(
             raw,
@@ -216,20 +216,22 @@ class FacetController:
         times = [raw.times[time] for time in event_times]
         diffs = np.diff(times)
         maxDiff = diffs.max()
-        tmin = 0
-        tmax = maxDiff+0.2
+        tmin = -0.01
+        tmax = maxDiff-0.01
 
-        # Kanalauswahl
+        # Schritt 1: Kanalauswahl
         raw.info["bads"] = ["Status", "EMG", "ECG"]
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
+        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+        raw.pick_channels(channels_to_keep)  # raw wird in-place modifiziert
 
         # Epochen erstellen
         epochs = mne.Epochs(
             raw,
             events,
-            picks=eeg_channels,
+            picks=eeg_channels[:],
             tmin=tmin,
             tmax=tmax,
             baseline=None,
@@ -247,25 +249,22 @@ class FacetController:
 
         corrected_data = raw._data.copy()
 
-        overall_mean = raw._data.mean(axis=1, keepdims=True)
+        #overall_mean = raw._data.mean(axis=1, keepdims=True)
         for ch_idx, good_epochs in enumerate(good_epochs_per_channel):
             print("Channel: ", (ch_idx + 1), "/", n_channels)
-            epochs._data[good_epochs, ch_idx] -= overall_mean[ch_idx]
+            #epochs._data[good_epochs, ch_idx] -= overall_mean[ch_idx]
 
-            evoked_data = epochs[good_epochs].average().data
+            evoked = epochs[good_epochs].average()
 
             for event in epochs.events:
                 start, stop = raw.time_as_index([tmin, tmax], use_rounding=True)
                 start += event[0]
-                stop = start + evoked_data.shape[1]
+                stop = start + evoked.data.shape[1]
 
-                # Using moving average on the evoked data
-                evoked_data_smoothed = self.moving_average(
-                    evoked_data[ch_idx], WINDOW_SIZE
-                )
+            
                 corrected_data[
                     ch_idx, start:stop
-                ] -= (evoked_data[ch_idx]*3)  # Using smoothed data for correction
+                ] -= evoked.data[ch_idx]  # Using smoothed data for correction
 
         raw._data = corrected_data
         self._raw = raw
