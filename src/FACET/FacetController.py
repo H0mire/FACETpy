@@ -8,7 +8,6 @@ from scipy.stats import pearsonr
 class FacetController:
     def __init__(
         self,
-        name,
         RelTrigPos,
         Upsample,
         AvgWindow,
@@ -17,7 +16,6 @@ class FacetController:
         InterpolateVolumeGaps,
         OBSExcludeChannels,
     ):
-        self._name = name
         self._rel_trigger_pos = RelTrigPos
         self._upsample = Upsample
         self._avg_window = AvgWindow
@@ -133,7 +131,7 @@ class FacetController:
         raw_ssp.apply_proj()
         self._raw = raw_ssp
 
-    def compute_avg_correlation(self, epochs, channel_index):
+    def compute_avg_correlation_matlab(self, epochs, channel_index):
         n_epochs = len(epochs)
         correlations = []
 

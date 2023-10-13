@@ -3,8 +3,8 @@ import numpy as np
 from .FacetController import FacetController
 class Facet:
 
-    def __init__(self, name, RelTrigPos=0.03, Upsample = 10, AvgWindow=30, SliceTriggers=True, UpsampleCutoff=1, InterpolateVolumeGaps=True, OBSExcludeChannels=[]):
-        self._facetController = FacetController(name, RelTrigPos, Upsample, AvgWindow, SliceTriggers, UpsampleCutoff, InterpolateVolumeGaps, OBSExcludeChannels)
+    def __init__(self, RelTrigPos=0.03, Upsample = 10, AvgWindow=30, SliceTriggers=True, UpsampleCutoff=1, InterpolateVolumeGaps=True, OBSExcludeChannels=[]):
+        self._facetController = FacetController(RelTrigPos, Upsample, AvgWindow, SliceTriggers, UpsampleCutoff, InterpolateVolumeGaps, OBSExcludeChannels)
         self._relTrigPos = RelTrigPos
         self._upsample = Upsample
         self._avg_window = AvgWindow
