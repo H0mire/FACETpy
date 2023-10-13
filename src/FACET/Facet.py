@@ -34,10 +34,11 @@ class Facet:
     def remove_artifacts(self):  
         self._facetController.remove_artifacts()
     def pre_processing(self):
-        print("#TODO: Prefilters etc")
-        self._facetController.pre_processing()
+        self._facetController.highpass(1)
+        self._facetController.upsample()
     def post_processing(self):
-        self._facetController.post_processing()
+        self._facetController.downsample()
+        self._facetController.lowpass(50)
     def cut(self):
         self._facetController.cut()
     def plot_EEG(self):
@@ -47,6 +48,10 @@ class Facet:
         self._facetController.downsample()
     def lowpass(self, h_freq=45):
         self._facetController.lowpass(h_freq=h_freq)
+    def highpass(self, l_freq=1):
+        self._facetController.highpass(l_freq=l_freq)
+    def upsample(self):
+        self._facetController.upsample()
 
     def printName(self):
         self._facetController.printName()
