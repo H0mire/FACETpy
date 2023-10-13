@@ -129,6 +129,7 @@ class FacetController:
         avg_corr = np.mean(correlations)
         return avg_corr
 
+    # Calculating Average Artifact 
     def apply_MNE_AAS(self):
         events = self._events
         raw = (
@@ -168,7 +169,7 @@ class FacetController:
         print("Epochs shape: ", epochs.get_data().shape)
 
         good_epochs = self.highly_correlated_epochs(epochs)
-        # Schritt 3: Durchschnittlichen Artefakt berechnen
+        # Schritt 3: Durchschnittliches Artefakt berechnen
         # evoked = epochs.average()
         evoked = epochs[good_epochs].average()
         #mne plot evoked
