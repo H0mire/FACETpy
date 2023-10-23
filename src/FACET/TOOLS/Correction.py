@@ -99,6 +99,8 @@ class Correction_Framework:
 
         raw._data = corrected_data
 
+        print(raw.ch_names)
+
         self._raw = raw
 
     # Remove Artifacts from EEG

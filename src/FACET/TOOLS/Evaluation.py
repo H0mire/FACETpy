@@ -5,7 +5,7 @@ class Evaluation_Framework:
         self._eeg_to_evaluate = None
         self._eeg_raw_without_artifacts = None
         return
-    
+
     def init_with_correction(self, correction_framework):
         triggers = correction_framework._triggers
         raw = correction_framework.get_raw_eeg().copy()
@@ -20,6 +20,7 @@ class Evaluation_Framework:
                 )
             )
         )
+        print(self._eeg_to_evaluate)
         self._eeg_raw_without_artifacts = self._cutout(raw=raw, 
             tmin=raw.times[triggers[0]],
             tmax=min(
@@ -31,6 +32,8 @@ class Evaluation_Framework:
                 )
           )
         )
+        print(self._eeg_raw_without_artifacts)
+
 
     def _crop(self, raw,  tmin, tmax):
         return raw.copy().crop(tmin=tmin, tmax=tmax)
@@ -55,7 +58,7 @@ class Evaluation_Framework:
     def set_raw_without_artifacts(self, raw_without_artifacts):
         self._eeg_raw_without_artifacts= raw_without_artifacts
     def calculate_SNR(self):
-        if self._eeg_raw_without_artifacts is None or self._eeg_raw_without_artifacts is None:
+        if self._eeg_to_evaluate is None or self._eeg_raw_without_artifacts is None:
             print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
 
