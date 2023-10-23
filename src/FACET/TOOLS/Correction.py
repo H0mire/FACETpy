@@ -12,6 +12,8 @@ class Correction_Framework:
         Upsample
     ):
         self._rel_trigger_pos = Rel_Trig_Pos
+        self._triggers = None
+        self._num_triggers = None
         self._upsample = Upsample
         self._plot_number = 0
         self._raw=0
@@ -55,7 +57,7 @@ class Correction_Framework:
                 self._raw.times[self._triggers[-1]]
                 + (
                     self._raw.times[self._triggers[-1]]
-                    - self._raw.times[self._triggers[len(self._triggers) - 1]]
+                    - self._raw.times[self._triggers[len(self._triggers) - 2]]
                 ),
             ),
         )
@@ -302,18 +304,6 @@ class Correction_Framework:
         # Apply highpassfilter
         print("Applying highpassfilter")
         self._raw.filter(l_freq=l_freq, h_freq=None)
-
-    def printName(self):
-        print(self._name)
-
-    def _check_volume_gaps(self):
-        if not hasattr(self, "_volumeGaps") or not self._volume_gaps:
-            # np.diff berechnet die Differenz zwischen aufeinanderfolgenden Elementen in einem Array
-            # np.ptp (peak to peak) gibt den Bereich (die Differenz zwischen dem Minimum und dem Maximum) eines Arrays zurück
-            if np.ptp(np.diff(self._triggers)) > 3:
-                self._volume_gaps = True
-            else:
-                self._volume_gaps = False
 
     def _derive_art_length(self):
         d = np.diff(

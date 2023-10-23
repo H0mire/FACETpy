@@ -44,10 +44,12 @@ class Facet:
     #TODO: implement better structure
     def init_evaluation_framework(self):
         temp = self._correction.get_raw_eeg()
-        self._evaluation = Evaluation_Framework(temp)
+        self._evaluation = Evaluation_Framework()
+        self._evaluation.init_with_correction(self._correction)
 
     def evaluate_SNR(self):
-        #TODO: Implement
+        SNR = self._evaluation.calculate_SNR()
+        print(SNR)
         return
     def evaluate_MRA(self):
         #TODO: Implement
@@ -64,6 +66,3 @@ class Facet:
         self._correction.highpass(l_freq=l_freq)
     def upsample(self):
         self._correction.upsample()
-
-    def printName(self):
-        self._correction.printName()
