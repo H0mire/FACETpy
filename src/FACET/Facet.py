@@ -1,6 +1,6 @@
 import numpy as np
 
-from .FacetController import FacetController
+from .TOOLS.Correction import FacetController
 class Facet:
 
     def __init__(self, name, RelTrigPos=0.03, Upsample = 10, AvgWindow=30, SliceTriggers=True, UpsampleCutoff=1, InterpolateVolumeGaps=True, OBSExcludeChannels=[]):
