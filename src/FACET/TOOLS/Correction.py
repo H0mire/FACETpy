@@ -8,7 +8,6 @@ from scipy.stats import pearsonr
 class FacetController:
     def __init__(
         self,
-        name,
         RelTrigPos,
         Upsample,
         AvgWindow,
@@ -17,7 +16,6 @@ class FacetController:
         InterpolateVolumeGaps,
         OBSExcludeChannels,
     ):
-        self._name = name
         self._rel_trigger_pos = RelTrigPos
         self._upsample = Upsample
         self._avg_window = AvgWindow
@@ -133,7 +131,7 @@ class FacetController:
         raw_ssp.apply_proj()
         self._raw = raw_ssp
 
-    def compute_avg_correlation(self, epochs, channel_index):
+    def compute_avg_correlation_matlab(self, epochs, channel_index):
         n_epochs = len(epochs)
         correlations = []
 
@@ -146,6 +144,7 @@ class FacetController:
         avg_corr = np.mean(correlations)
         return avg_corr
 
+    # Calculating Average Artifact 
     def apply_MNE_AAS(self):
         events = self._events
         raw = (
@@ -187,7 +186,7 @@ class FacetController:
         print("Epochs shape: ", epochs.get_data().shape)
 
         good_epochs = self.highly_correlated_epochs(epochs)
-        # Schritt 3: Durchschnittlichen Artefakt berechnen
+        # Schritt 3: Durchschnittliches Artefakt berechnen
         # evoked = epochs.average()
         evoked = epochs[good_epochs].average()
         #mne plot evoked
