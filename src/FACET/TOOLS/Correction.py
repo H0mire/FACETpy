@@ -5,32 +5,24 @@ from scipy.stats import pearsonr
 # import inst for mne python
 
 
-class FacetController:
+class Correction_Framework:
     def __init__(
         self,
-        RelTrigPos,
-        Upsample,
-        AvgWindow,
-        SliceTriggers,
-        UpsampleCutoff,
-        InterpolateVolumeGaps,
-        OBSExcludeChannels,
+        Rel_Trig_Pos,
+        Upsample
     ):
-        self._rel_trigger_pos = RelTrigPos
+        self._rel_trigger_pos = Rel_Trig_Pos
         self._upsample = Upsample
-        self._avg_window = AvgWindow
-        self._slice_triggers = SliceTriggers
-        self._upsample_cutoff = UpsampleCutoff
-        self._interpolate_volume_gaps = InterpolateVolumeGaps
-        self._obs_exclude_channels = OBSExcludeChannels
         self._plot_number = 0
         self._raw=0
+        self._raw_orig=0
         self._tmin=0
         self._tmax=0
 
     def import_EEG(self, filename):
         self._raw = mne.io.read_raw_edf(filename)
         self._raw.load_data()
+        self._raw_orig = self._raw.copy()
         print(filename)
 
     def import_EEG_GDF(self, filename):
@@ -68,6 +60,11 @@ class FacetController:
             ),
         )
         return
+    #TODO: Implement better Structure
+    def get_raw_eeg(self):
+        return self._raw
+    def get_raw_orig(self):
+        return self._raw_orig
 
     def find_triggers_with_events(self, regex, idx=0):
         print(self._raw.ch_names)
@@ -130,19 +127,6 @@ class FacetController:
         raw_ssp = raw.copy().add_proj(mne.compute_proj_evoked(evoked))
         raw_ssp.apply_proj()
         self._raw = raw_ssp
-
-    def compute_avg_correlation_matlab(self, epochs, channel_index):
-        n_epochs = len(epochs)
-        correlations = []
-
-        # Berechne die Korrelation für jedes Paar von Epochen
-        for i in range(n_epochs):
-            for j in range(i + 1, n_epochs):
-                corr, _ = pearsonr(epochs[i][channel_index], epochs[j][channel_index])
-                correlations.append(corr)
-
-        avg_corr = np.mean(correlations)
-        return avg_corr
 
     # Calculating Average Artifact 
     def apply_MNE_AAS(self):
