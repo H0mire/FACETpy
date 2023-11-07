@@ -74,12 +74,16 @@ class Evaluation_Framework:
         if "SNR" in measures:
             results.append(self.evaluate_SNR())
         if "MNR" in measures:
-            results.append(self.evaluate_MNR())
+            results.append(self.evaluate_rms())
         if plot:
             #TODO: Plot information
             pass
         return results
-    def evaluate_MNR(self):
+    def evaluate_rms(self):
+        return 0
+    def evaluate_rms2(self):
+        return 0
+    def evaluate_median(self):
         return 0
     def evaluate_SNR(self):
         if self._eeg_to_evaluate is None or self._eeg_raw_without_artifacts is None:
