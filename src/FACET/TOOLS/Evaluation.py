@@ -4,6 +4,7 @@ class Evaluation_Framework:
     def __init__(self):
         self._eeg_to_evaluate = None
         self._eeg_raw_without_artifacts = None
+        self._eeg_list_to_evaluate = []
         return
 
     def init_with_correction(self, correction_framework):
@@ -34,6 +35,17 @@ class Evaluation_Framework:
         )
         print(self._eeg_raw_without_artifacts)
 
+    def add_to_evaluate(self, mne_raw,start_time=0, end_time=None):
+        if not end_time:
+            end_time=0 #TODO: Determine end_time by the last sample of mne_raw eeg data.
+
+        cropped_mne_raw = self._crop(raw=mne_raw,tmin=start_time, tmax=end_time)
+        ref_mne_raw = self._crop(raw=mne_raw, tmin=0, tmax=start_time-1)
+        artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw}
+
+        self._eeg_list_to_evaluate.append(artifact_raw_reference_raw_pair)
+
+        return
 
     def _crop(self, raw,  tmin, tmax):
         return raw.copy().crop(tmin=tmin, tmax=tmax)
@@ -57,7 +69,19 @@ class Evaluation_Framework:
         self._eeg_to_evaluate = to_evaluate
     def set_raw_without_artifacts(self, raw_without_artifacts):
         self._eeg_raw_without_artifacts= raw_without_artifacts
-    def calculate_SNR(self):
+    def evaluate(self, plot=True, measures=[]):
+        results=[]
+        if "SNR" in measures:
+            results.append(self.evaluate_SNR())
+        if "MNR" in measures:
+            results.append(self.evaluate_MNR())
+        if plot:
+            #TODO: Plot information
+            pass
+        return results
+    def evaluate_MNR(self):
+        return 0
+    def evaluate_SNR(self):
         if self._eeg_to_evaluate is None or self._eeg_raw_without_artifacts is None:
             print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return

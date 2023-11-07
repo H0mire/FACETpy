@@ -48,7 +48,7 @@ class Facet:
         self._evaluation.init_with_correction(self._correction)
 
     def evaluate_SNR(self):
-        SNR = self._evaluation.calculate_SNR()
+        SNR = self._evaluation.evaluate_SNR()
         print(SNR)
         return
     def evaluate_MRA(self):
