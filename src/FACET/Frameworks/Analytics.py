@@ -6,8 +6,7 @@ from scipy.stats import pearsonr
 
 
 class Analytics_Framework:
-    def __init__(self, rel_trig_pos):
-        self._rel_trigger_pos = rel_trig_pos
+    def __init__(self):
         self._triggers = None
         self._num_triggers = None
         self._plot_number = 0
@@ -17,7 +16,7 @@ class Analytics_Framework:
             "raw_orig": None,
             "tmin": None,
             "tmax": None,
-            "rel_trigger_pos": rel_trig_pos,
+            "rel_trigger_pos": 0,
             "triggers": None,
             "events": None,
             "num_triggers": None,
@@ -31,7 +30,7 @@ class Analytics_Framework:
             "volume_gaps": None,
         }
 
-    def import_EEG(self, filename):
+    def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10):
         raw = mne.io.read_raw_edf(filename)
         raw.load_data()
         raw_orig = raw.copy()
@@ -42,11 +41,11 @@ class Analytics_Framework:
             "raw_orig": raw_orig,
             "tmin": None,
             "tmax": None,
-            "rel_trigger_pos": self._rel_trigger_pos,
+            "rel_trigger_pos": rel_trig_pos,
             "triggers": None,
             "events": None,
             "num_triggers": None,
-            "upsampling_factor": None,
+            "upsampling_factor": upsampling_factor,
             "time_triggers_start": None,
             "time_triggers_end": None,
             "time_start": time_start,
@@ -58,7 +57,7 @@ class Analytics_Framework:
         print(filename)
         return self._eeg
 
-    def import_EEG_GDF(self, filename):
+    def import_EEG_GDF(self, filename, rel_trig_pos=0, upsampling_factor=10):
         raw = mne.io.read_raw_gdf(filename)
         raw.load_data()
         raw_orig = raw.copy()
@@ -69,11 +68,11 @@ class Analytics_Framework:
             "raw_orig": raw_orig,
             "tmin": None,
             "tmax": None,
-            "rel_trigger_pos": self._rel_trigger_pos,
+            "rel_trigger_pos": rel_trig_pos,
             "triggers": None,
             "events": None,
             "num_triggers": None,
-            "upsampling_factor": None,
+            "upsampling_factor": upsampling_factor,
             "time_triggers_start": None,
             "time_triggers_end": None,
             "time_start": time_start,

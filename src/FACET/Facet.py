@@ -4,17 +4,15 @@ from .Frameworks.Analytics import Analytics_Framework
 
 class Facet:
 
-    def __init__(self, relative_trigger_position=-0.01, upsampling_factor = 10):
-        self._analytics = Analytics_Framework(relative_trigger_position)
+    def __init__(self):
+        self._analytics = Analytics_Framework()
         self._correction = None
         self._evaluation = Evaluation_Framework()
-        self._rel_trig_pos = relative_trigger_position
-        self._upsampling_factor = upsampling_factor
         self._eeg = None
 
-    def import_EEG(self, filename):
-        self._eeg = self._analytics.import_EEG(filename)
-        self._correction = Correction_Framework(self._eeg, self._upsampling_factor)
+    def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10):
+        self._eeg = self._analytics.import_EEG(filename, rel_trig_pos=rel_trig_pos, upsampling_factor=upsampling_factor)
+        self._correction = Correction_Framework(self._eeg)
         return self._eeg
 
     def import_EEG_GDF(self, filename):

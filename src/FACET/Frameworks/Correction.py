@@ -9,11 +9,8 @@ class Correction_Framework:
     def __init__(
         self,
         eeg,
-        upsampling_factor=10,
     ):
         self._eeg=eeg
-        self._eeg["upsampling_factor"] = upsampling_factor
-        self._upsampling_factor = upsampling_factor
         self._plot_number = 0
 
 
@@ -31,6 +28,9 @@ class Correction_Framework:
         return self._eeg["raw"]
     def get_mne_raw_orig(self):
         return self._eeg["raw_orig"]
+    def set_eeg(self, eeg):
+        self._eeg = eeg
+        return
 
     def prepare(self):
         self._upsample_data()
@@ -229,7 +229,7 @@ class Correction_Framework:
         print("Applying highpassfilter")
         self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def _upsample_data(self):
-        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._upsampling_factor)
+        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
     def _downsample_data(self):
         # Resample (downsample) the data
-        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._upsampling_factor)
+        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._eeg["upsampling_factor"])
