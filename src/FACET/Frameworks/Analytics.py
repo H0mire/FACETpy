@@ -5,7 +5,7 @@ from scipy.stats import pearsonr
 # import inst for mne python
 
 
-class Correction_Framework:
+class Analytics_Framework:
     def __init__(self, Rel_Trig_Pos, Upsample):
         self._rel_trigger_pos = Rel_Trig_Pos
         self._triggers = None
@@ -82,6 +82,7 @@ class Correction_Framework:
         }
 
         print(filename)
+        return self._eeg
 
     def export_EEG(self, filename):
         self._eeg["raw"].export(filename, fmt="edf", overwrite=True)
@@ -108,19 +109,6 @@ class Correction_Framework:
 
         print(positions)
 
-    def cut(self):
-        self._raw.crop(
-            tmin=self._time_triggers_start,
-            tmax=min(
-                self._time_end,
-                self._time_triggers_end
-                + (
-                    self._time_triggers_end
-                    - self._raw.times[self._triggers[len(self._triggers) - 2]]
-                ),
-            ),
-        )
-        return
 
     # TODO: Implement better Structure
     def get_mne_raw(self):
@@ -128,6 +116,9 @@ class Correction_Framework:
 
     def get_mne_raw_orig(self):
         return self._eeg["raw_orig"]
+    
+    def get_eeg(self):
+        return self._eeg
 
     def find_triggers_with_events(self, regex, idx=0):
         print(self._raw.ch_names)
@@ -156,7 +147,7 @@ class Correction_Framework:
 
 
     def _derive_art_length(self):
-        d = np.diff(self._triggers)  # trigger distances
+        d = np.diff(self._eeg["triggers"])  # trigger distances
 
         if self._volume_gaps:
             m = np.mean([np.min(d), np.max(d)])  # middle distance
@@ -164,15 +155,15 @@ class Correction_Framework:
             # dv = d[d > m]  # trigger distances belonging to volume triggers
 
             # total length of an artifact
-            self._art_length = np.max(ds)  # use max to avoid gaps between slices
+            self._eeg["art_length"] = np.max(ds)  # use max to avoid gaps between slices
         else:
             # total length of an artifact
-            self._art_length = np.max(d)
-            self._duration_art = self._art_length / self._raw.info["sfreq"]
+            self._eeg["art_length"] = np.max(d)
+            self._eeg["duration_art"] = self._eeg["art_length"] / self._raw.info["sfreq"]
 
     def _filter_annotations(self, regex):
         """Extract specific annotations from an MNE Raw object."""
-        raw = self._raw
+        eeg = self._eeg
         # initialize list to store results
         specific_annotations = []
 
@@ -180,7 +171,7 @@ class Correction_Framework:
         pattern = re.compile(regex)
 
         # loop through each annotation in the raw object
-        for annot in raw.annotations:
+        for annot in eeg["raw"].annotations:
             # check if the annotation description matches the pattern
             if pattern.search(annot["description"]):
                 # if it does, append the annotation (time, duration, description) to our results list

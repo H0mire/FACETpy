@@ -1,22 +1,27 @@
 from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
+from .Frameworks.Analytics import Analytics_Framework
 
 class Facet:
 
     def __init__(self, relative_trigger_position=0.03, upsample = 10):
-        self._correction = Correction_Framework(relative_trigger_position, upsample)
+        self._analytics = Analytics_Framework(relative_trigger_position, upsample)
+        self._correction = Correction_Framework()
         self._evaluation = Evaluation_Framework()
         self._rel_trig_pos = relative_trigger_position
         self._upsample = upsample
+        self._eeg = None
 
     def import_EEG(self, filename):
-        self._correction.import_EEG(filename)
+        self._eeg = self._correction.import_EEG(filename)
+
 
     def import_EEG_GDF(self, filename):
-        self._correction.import_EEG_GDF(filename)
+        self._eeg = self._correction.import_EEG_GDF(filename)
     def export_EEG(self, filename):
         self._correction.export_EEG(filename)
-
+    def get_eeg(self):
+        return self._eeg
     def find_triggers(self, regex):
         self._correction.find_triggers(regex)
         print("finding triggers")
