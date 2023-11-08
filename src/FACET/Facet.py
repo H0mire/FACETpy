@@ -5,6 +5,7 @@ class Facet:
 
     def __init__(self, relative_trigger_position=0.03, upsample = 10):
         self._correction = Correction_Framework(relative_trigger_position, upsample)
+        self._evaluation = Evaluation_Framework()
         self._rel_trig_pos = relative_trigger_position
         self._upsample = upsample
 
@@ -25,9 +26,9 @@ class Facet:
     def prepare(self):
         self._correction.prepare()
     def apply_MNE_AAS(self):
-        #self._facetController.apply_MNE_AAS_old()
+        #self._correction.apply_MNE_AAS_old()
         self._correction.apply_MNE_AAS()
-        #self._facetController.apply_MNE_AAS_slow()
+        #self._correction.apply_MNE_AAS_slow()
     def remove_artifacts(self):  
         self._correction.remove_artifacts()
     def pre_processing(self):
@@ -43,8 +44,7 @@ class Facet:
 
     #TODO: implement better structure
     def init_evaluation_framework(self):
-        temp = self._correction.get_raw_eeg()
-        self._evaluation = Evaluation_Framework()
+        temp = self._correction.get_mne_raw()
         self._evaluation.init_with_correction(self._correction)
 
     def evaluate_SNR(self):
@@ -68,3 +68,7 @@ class Facet:
         self._correction.upsample()
     def get_mne_raw(self):
         return self._correction.get_mne_raw()
+    def add_to_evaluate(self, mne_raw,start_time=0, end_time=None):
+        self._evaluation.add_to_evaluate(mne_raw,start_time=start_time, end_time=end_time)
+    def evaluate(self, plot=True, measures=["SNR"]):
+        self._evaluation.evaluate(plot=plot, measures=measures)

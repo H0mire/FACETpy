@@ -145,6 +145,6 @@ class Evaluation_Framework:
             # Calculate SNR
             snr = np.abs(power_without / power_residual)
 
-            results.append(np.mean(snr))        
+            results.append(np.median(snr))        
 
         return results

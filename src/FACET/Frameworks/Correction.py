@@ -20,11 +20,20 @@ class Correction_Framework:
         self._raw_orig=0
         self._tmin=0
         self._tmax=0
+        self._time_triggers_start=0
+        self._time_triggers_end=0
+        self._time_start=0
+        self._time_end=0
+        self._art_length=0
+        self._duration_art=0
+        self._volume_gaps=False
 
     def import_EEG(self, filename):
         self._raw = mne.io.read_raw_edf(filename)
         self._raw.load_data()
         self._raw_orig = self._raw.copy()
+        self._time_start = self._raw.times[0]
+        self._time_end = self._raw.times[-1]
         print(filename)
 
     def import_EEG_GDF(self, filename):
@@ -47,25 +56,28 @@ class Correction_Framework:
 
         self._triggers = positions
         self._num_triggers = len(positions)
+        self._time_triggers_start = self._raw.times[self._triggers[0]]
+        self._time_triggers_end = self._raw.times[self._triggers[-1]]
+        self._derive_art_length()
+
         print(positions)
 
     def cut(self):
         self._raw.crop(
-            tmin=self._raw.times[self._triggers[0]],
-            tmax=min(
-                self._raw.times[-1],
-                self._raw.times[self._triggers[-1]]
+            tmin=self._time_triggers_start,
+            tmax=min(self._time_end,
+                self._time_triggers_end
                 + (
-                    self._raw.times[self._triggers[-1]]
+                    self._time_triggers_end
                     - self._raw.times[self._triggers[len(self._triggers) - 2]]
                 ),
             ),
         )
         return
     #TODO: Implement better Structure
-    def get_raw_eeg(self):
+    def get_mne_raw(self):
         return self._raw
-    def get_raw_orig(self):
+    def get_mne_raw_orig(self):
         return self._raw_orig
 
     def find_triggers_with_events(self, regex, idx=0):
@@ -78,6 +90,9 @@ class Correction_Framework:
         self._events = filtered_events
         self._triggers = filtered_positions
         self._num_triggers = len(filtered_events)
+        self._time_triggers_start = self._raw.times[self._triggers[0]]
+        self._time_triggers_end = self._raw.times[self._triggers[-1]]
+        self._derive_art_length()
 
     def prepare(self):
         self._upsample_data()
@@ -138,13 +153,9 @@ class Correction_Framework:
         raw = (
             self._raw.copy()
         )  # Erstelle eine Kopie hier, um das Original unverändert zu lassen
-        event_times = [event[0] for event in events]
-        times = [raw.times[time] for time in event_times]
-        diffs = np.diff(times)
-        maxDiff = diffs.max()
-        print(maxDiff)
+        
         tmin = -0.01
-        tmax = maxDiff -0.01
+        tmax = self._duration_art -0.01
         self._tmin = tmin
         self._tmax = tmax
 
@@ -208,12 +219,9 @@ class Correction_Framework:
         raw = (
             self._raw.copy()
         )  # Erstelle eine Kopie, um das Original unverändert zu lassen
-        event_times = [event[0] for event in events]
-        times = [raw.times[time] for time in event_times]
-        diffs = np.diff(times)
-        maxDiff = diffs.max()
+        
         tmin = -0.01
-        tmax = maxDiff-0.01
+        tmax = self._duration_art-0.01
 
         # Schritt 1: Kanalauswahl
         raw.info["bads"] = ["Status", "EMG", "ECG"]
@@ -309,7 +317,7 @@ class Correction_Framework:
 
     def _derive_art_length(self):
         d = np.diff(
-            [trigger * self._upsample for trigger in self._triggers]
+            self._triggers
         )  # trigger distances
 
         if self._volume_gaps:
@@ -322,6 +330,7 @@ class Correction_Framework:
         else:
             # total length of an artifact
             self._art_length = np.max(d)
+            self._duration_art = self._art_length / self._raw.info["sfreq"]
 
     def _filter_annotations(self, regex):
         """Extract specific annotations from an MNE Raw object."""
