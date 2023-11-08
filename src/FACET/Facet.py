@@ -1,5 +1,5 @@
-from .TOOLS.Correction import Correction_Framework
-from .TOOLS.Evaluation import Evaluation_Framework
+from .Frameworks.Correction import Correction_Framework
+from .Frameworks.Evaluation import Evaluation_Framework
 
 class Facet:
 
@@ -66,3 +66,5 @@ class Facet:
         self._correction.highpass(l_freq=l_freq)
     def upsample(self):
         self._correction.upsample()
+    def get_mne_raw(self):
+        return self._correction.get_mne_raw()

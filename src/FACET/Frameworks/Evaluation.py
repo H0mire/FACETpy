@@ -1,10 +1,12 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from operator import itemgetter
 
 class Evaluation_Framework:
     def __init__(self):
         self._eeg_to_evaluate = None
         self._eeg_raw_without_artifacts = None
-        self._eeg_list_to_evaluate = []
+        self._dataset_list_to_evaluate = []
         return
 
     def init_with_correction(self, correction_framework):
@@ -43,7 +45,7 @@ class Evaluation_Framework:
         ref_mne_raw = self._crop(raw=mne_raw, tmin=0, tmax=start_time-1)
         artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw}
 
-        self._eeg_list_to_evaluate.append(artifact_raw_reference_raw_pair)
+        self._dataset_list_to_evaluate.append(artifact_raw_reference_raw_pair)
 
         return
 
@@ -72,13 +74,45 @@ class Evaluation_Framework:
     def evaluate(self, plot=True, measures=[]):
         results=[]
         if "SNR" in measures:
-            results.append(self.evaluate_SNR())
-        if "MNR" in measures:
-            results.append(self.evaluate_rms())
+            results.append({"Measure":"SNR","Values":self.evaluate_SNR(),"Unit":"dB"})
+        if "RMS" in measures:
+            results.append({"Measure":"RMS","Values":self.evaluate_rms(),"Unit":"uV"})
+        if "RMS2" in measures:
+            results.append({"Measure":"RMS","Values":self.evaluate_SNR(),"Unit":"uV"})
+        if "MEDIAN" in measures:
+            results.append({"Measure":"MEDIAN","Values":self.evaluate_SNR(),"Unit":"uV"})
         if plot:
-            #TODO: Plot information
-            pass
+            self.plot(results)
         return results
+    #Plot all results with matplotlib
+    def plot(self, results):
+
+        # Bestimme die Anzahl der Subplots basierend auf der Anzahl der Measures
+        num_subplots = len(results)
+
+        # Erstellen Sie Subplots mit 1 Reihe und so vielen Spalten wie es Measures gibt
+        fig, axs = plt.subplots(1, num_subplots, figsize=(5 * num_subplots, 5))
+
+        # Wenn nur ein Measure vorhanden ist, wird axs nicht als Liste zurückgegeben
+        if num_subplots == 1:
+            axs = [axs]
+
+        # Füllen Sie jeden Subplot
+        for ax, result in zip(axs, results):
+            bars = ax.bar(range(len(result["Values"])), result["Values"])
+            ax.set_title(result["Measure"])
+            ax.set_xlabel('Text')
+            ax.set_ylabel(result["Measure"] + ' in ' + (result['Unit'] if result['Unit'] else ''))
+            for bar in bars:
+                yval = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2, 0, round(yval, 2),
+                        ha='center', va='bottom', fontsize=8, rotation='vertical', color='blue')
+
+        # Anzeigen des gesamten Fensters mit allen Subplots
+        plt.tight_layout()  # Verwendet, um sicherzustellen, dass die Subplots nicht überlappen
+        plt.show()
+
+        return 0
     def evaluate_rms(self):
         return 0
     def evaluate_rms2(self):
@@ -86,22 +120,31 @@ class Evaluation_Framework:
     def evaluate_median(self):
         return 0
     def evaluate_SNR(self):
-        if self._eeg_to_evaluate is None or self._eeg_raw_without_artifacts is None:
+        """
+        Calculates the SNR of the EEG datasets.
+
+        Returns:
+            list: SNR values for each dataset.
+        """
+        if not self._dataset_list_to_evaluate:
             print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
+        results = []
+        for mnepair in self._dataset_list_to_evaluate:
+            # Extracting the data
+            data_to_evaluate = mnepair["raw"].get_data()
+            data_reference = mnepair["ref"].get_data()
 
-        # Extracting the data
-        data_to_evaluate = self._eeg_to_evaluate.get_data()
-        data_without_artifacts = self._eeg_raw_without_artifacts.get_data()
+            # Calculate power of the signal
+            power_corrected = np.var(data_to_evaluate, axis=1)
+            power_without = np.var(data_reference, axis=1)
 
-        # Calculate power of the signal
-        power_corrected = np.var(data_to_evaluate, axis=1)
-        power_without = np.var(data_without_artifacts, axis=1)
+            # Calculate power of the residual (noise)
+            power_residual = power_corrected - power_without
 
-        # Calculate power of the residual (noise)
-        power_residual = power_corrected - power_without
+            # Calculate SNR
+            snr = np.abs(power_without / power_residual)
 
-        # Calculate SNR
-        snr = power_without / power_residual
+            results.append(np.mean(snr))        
 
-        return snr
+        return results
