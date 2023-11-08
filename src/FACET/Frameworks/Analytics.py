@@ -20,6 +20,7 @@ class Analytics_Framework:
             "tmax": None,
             "rel_trigger_pos": Rel_Trig_Pos,
             "triggers": None,
+            "events": None,
             "num_triggers": None,
             "upsample": Upsample,
             "time_triggers_start": None,
@@ -44,6 +45,7 @@ class Analytics_Framework:
             "tmax": None,
             "rel_trigger_pos": self._rel_trigger_pos,
             "triggers": None,
+            "events": None,
             "num_triggers": None,
             "upsample": self._upsample,
             "time_triggers_start": None,
@@ -70,6 +72,7 @@ class Analytics_Framework:
             "tmax": None,
             "rel_trigger_pos": self._rel_trigger_pos,
             "triggers": None,
+            "events": None,
             "num_triggers": None,
             "upsample": self._upsample,
             "time_triggers_start": None,
@@ -88,9 +91,11 @@ class Analytics_Framework:
         self._eeg["raw"].export(filename, fmt="edf", overwrite=True)
 
     def find_triggers(self, regex):
-        # self._raw.add_events(mne.events_from_annotations(self._raw))
+        raw = self._eeg["raw"]
+        #TODO: Filter events by filtered annotations
+        events = mne.events_from_annotations(raw)
+        raw.add_events(events)
         # print(self._filterAnnotations(regex))
-
         annotations = self._filter_annotations(regex)
         positions = []
         for onset, duration, description in annotations:
@@ -99,14 +104,17 @@ class Analytics_Framework:
 
         triggers = positions
         num_triggers = len(positions)
-        time_triggers_start = self._raw.times[self._triggers[0]]
-        time_triggers_end = self._raw.times[self._triggers[-1]]
+        time_triggers_start = raw.times[self._triggers[0]]
+        time_triggers_end = raw.times[self._triggers[-1]]
         self._eeg["triggers"] = triggers
+        self._eeg["events"] = events
         self._eeg["num_triggers"] = num_triggers
         self._eeg["time_triggers_start"] = time_triggers_start
         self._eeg["time_triggers_end"] = time_triggers_end
         self._derive_art_length()
-
+        self._eeg["volume_gaps"] = False
+        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
+        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
         print(positions)
 
 
@@ -121,8 +129,9 @@ class Analytics_Framework:
         return self._eeg
 
     def find_triggers_with_events(self, regex, idx=0):
-        print(self._raw.ch_names)
-        events = mne.find_events(self._raw, stim_channel="Status", initial_event=True)
+        raw = self._eeg["raw"]
+        print(raw.ch_names)
+        events = mne.find_events(raw, stim_channel="Status", initial_event=True)
         pattern = re.compile(regex)
 
         filtered_events = [event for event in events if pattern.search(str(event[2]))]
@@ -130,13 +139,18 @@ class Analytics_Framework:
         _events = filtered_events
         triggers = filtered_positions
         num_triggers = len(filtered_positions)
-        time_triggers_start = self._raw.times[self._triggers[0]]
-        time_triggers_end = self._raw.times[self._triggers[-1]]
+        time_triggers_start = raw.times[self._triggers[0]]
+        time_triggers_end = raw.times[self._triggers[-1]]
         self._eeg["triggers"] = triggers
+        self._eeg["events"] = _events
         self._eeg["num_triggers"] = num_triggers
         self._eeg["time_triggers_start"] = time_triggers_start
         self._eeg["time_triggers_end"] = time_triggers_end
+        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
+        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
         self._derive_art_length()
+        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
+        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
 
     def prepare(self):
         self._upsample_data()

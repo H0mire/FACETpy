@@ -2,6 +2,8 @@ from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
 from .Frameworks.Analytics import Analytics_Framework
 
+from warnings import deprecated
+
 class Facet:
 
     def __init__(self, relative_trigger_position=0.03, upsample = 10):
@@ -23,10 +25,10 @@ class Facet:
     def get_eeg(self):
         return self._eeg
     def find_triggers(self, regex):
-        self._correction.find_triggers(regex)
+        self._analytics.find_triggers(regex)
         print("finding triggers")
     def find_triggers_with_events(self, regex, idx=0):
-        self._correction.find_triggers_with_events(regex, idx=idx)
+        self._analytics.find_triggers_with_events(regex, idx=idx)
         print("finding triggers")
     def prepare(self):
         self._correction.prepare()
@@ -47,18 +49,22 @@ class Facet:
     def plot_EEG(self):
         self._correction.plot_EEG()
 
-    #TODO: implement better structure
+    @deprecated("Not working anymore, use evaluation_framework.add_to_evaluate() instead")
     def init_evaluation_framework(self):
         temp = self._correction.get_mne_raw()
         self._evaluation.init_with_correction(self._correction)
-
+    @deprecated("Use evaluation_framework.evaluate() instead")
     def evaluate_SNR(self):
         SNR = self._evaluation.evaluate_SNR()
         print(SNR)
         return
+    
+    @deprecated("Use evaluation_framework.evaluate() instead")
     def evaluate_MRA(self):
         #TODO: Implement
         return
+    
+    @deprecated("Use evaluation_framework.evaluate() instead")
     def evaluate_RMS(self):
         #TODO: Implement
         return
