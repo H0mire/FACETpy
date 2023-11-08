@@ -13,11 +13,11 @@ class Facet:
         self._eeg = None
 
     def import_EEG(self, filename):
-        self._eeg = self._correction.import_EEG(filename)
+        self._eeg = self._analytics.import_EEG(filename)
 
 
     def import_EEG_GDF(self, filename):
-        self._eeg = self._correction.import_EEG_GDF(filename)
+        self._eeg = self._analytics.import_EEG_GDF(filename)
     def export_EEG(self, filename):
         self._correction.export_EEG(filename)
     def get_eeg(self):
