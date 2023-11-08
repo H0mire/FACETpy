@@ -7,7 +7,7 @@ class Evaluation_Framework:
         self._eeg_list = []
         return
 
-    def add_to_evaluate(self, eeg,start_time=None, end_time=None):
+    def add_to_evaluate(self, eeg,start_time=None, end_time=None, name=None):
         if not end_time:
             end_time=eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
         if not start_time:
@@ -15,7 +15,7 @@ class Evaluation_Framework:
         
         cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time)
         ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time)
-        artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw}
+        artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw, "name":name}
 
         self._eeg_list.append(artifact_raw_reference_raw_pair)
 
@@ -65,12 +65,14 @@ class Evaluation_Framework:
         for ax, result in zip(axs, results):
             bars = ax.bar(range(len(result["Values"])), result["Values"])
             ax.set_title(result["Measure"])
-            ax.set_xlabel('Text')
+            ax.set_xlabel('Methods')
             ax.set_ylabel(result["Measure"] + ' in ' + (result['Unit'] if result['Unit'] else ''))
-            for bar in bars:
+            ax.set_xticklabels([])
+            for key,bar in enumerate(bars):
                 yval = bar.get_height()
-                ax.text(bar.get_x() + bar.get_width()/2, 0, round(yval, 2),
-                        ha='center', va='bottom', fontsize=8, rotation='vertical', color='blue')
+                text = self._eeg_list[key]["name"] if self._eeg_list[key]["name"] else str(round(yval,2))
+                ax.text(bar.get_x() + bar.get_width()/2, -0.05, # -0.05 oder ein anderer kleiner negativer Wert, je nach Skalierung Ihrer Achsen
+                    text,ha='center', va='top', fontsize=20, rotation='horizontal', color='blue')
 
         # Anzeigen des gesamten Fensters mit allen Subplots
         plt.tight_layout()  # Verwendet, um sicherzustellen, dass die Subplots nicht überlappen

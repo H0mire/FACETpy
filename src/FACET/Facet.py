@@ -55,7 +55,7 @@ class Facet:
         self._correction.upsample()
     def get_mne_raw(self):
         return self._correction.get_mne_raw()
-    def add_to_evaluate(self, eeg,start_time=None, end_time=None):
-        self._evaluation.add_to_evaluate(eeg,start_time=start_time, end_time=end_time)
+    def add_to_evaluate(self, eeg,start_time=None, end_time=None, name=None):
+        self._evaluation.add_to_evaluate(eeg,start_time=start_time, end_time=end_time, name=name)
     def evaluate(self, plot=True, measures=["SNR"]):
         self._evaluation.evaluate(plot=plot, measures=measures)
