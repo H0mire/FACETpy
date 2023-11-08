@@ -6,11 +6,10 @@ from scipy.stats import pearsonr
 
 
 class Analytics_Framework:
-    def __init__(self, Rel_Trig_Pos, Upsample):
-        self._rel_trigger_pos = Rel_Trig_Pos
+    def __init__(self, rel_trig_pos):
+        self._rel_trigger_pos = rel_trig_pos
         self._triggers = None
         self._num_triggers = None
-        self._upsample = Upsample
         self._plot_number = 0
 
         self._eeg = {
@@ -18,11 +17,11 @@ class Analytics_Framework:
             "raw_orig": None,
             "tmin": None,
             "tmax": None,
-            "rel_trigger_pos": Rel_Trig_Pos,
+            "rel_trigger_pos": rel_trig_pos,
             "triggers": None,
             "events": None,
             "num_triggers": None,
-            "upsample": Upsample,
+            "upsampling_factor": None,
             "time_triggers_start": None,
             "time_triggers_end": None,
             "time_start": None,
@@ -39,7 +38,7 @@ class Analytics_Framework:
         time_start = raw.times[0]
         time_end = raw.times[-1]
         self._eeg = {
-            "raw": None,
+            "raw": raw,
             "raw_orig": raw_orig,
             "tmin": None,
             "tmax": None,
@@ -47,7 +46,7 @@ class Analytics_Framework:
             "triggers": None,
             "events": None,
             "num_triggers": None,
-            "upsample": self._upsample,
+            "upsampling_factor": None,
             "time_triggers_start": None,
             "time_triggers_end": None,
             "time_start": time_start,
@@ -66,7 +65,7 @@ class Analytics_Framework:
         time_start = raw.times[0]
         time_end = raw.times[-1]
         self._eeg = {
-            "raw": None,
+            "raw": raw,
             "raw_orig": raw_orig,
             "tmin": None,
             "tmax": None,
@@ -74,7 +73,7 @@ class Analytics_Framework:
             "triggers": None,
             "events": None,
             "num_triggers": None,
-            "upsample": self._upsample,
+            "upsampling_factor": None,
             "time_triggers_start": None,
             "time_triggers_end": None,
             "time_start": time_start,
@@ -111,11 +110,10 @@ class Analytics_Framework:
         self._eeg["num_triggers"] = num_triggers
         self._eeg["time_triggers_start"] = time_triggers_start
         self._eeg["time_triggers_end"] = time_triggers_end
-        self._derive_art_length()
         self._eeg["volume_gaps"] = False
-        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
+        self._derive_art_length()
+        self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
         self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
-        print(positions)
 
 
     # TODO: Implement better Structure
@@ -139,17 +137,16 @@ class Analytics_Framework:
         _events = filtered_events
         triggers = filtered_positions
         num_triggers = len(filtered_positions)
-        time_triggers_start = raw.times[self._triggers[0]]
-        time_triggers_end = raw.times[self._triggers[-1]]
+        time_triggers_start = raw.times[triggers[0]]
+        time_triggers_end = raw.times[triggers[-1]]
         self._eeg["triggers"] = triggers
         self._eeg["events"] = _events
         self._eeg["num_triggers"] = num_triggers
-        self._eeg["time_triggers_start"] = time_triggers_start
+        self._eeg["time_triggers_start"] = time_triggers_start - self._eeg["rel_trigger_pos"]
         self._eeg["time_triggers_end"] = time_triggers_end
-        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
-        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
+        self._eeg["volume_gaps"] = False
         self._derive_art_length()
-        self._eeg["tmin"] = self._eeg["rel_trigger_pos"] * self._eeg["duration_art"]
+        self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
         self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
 
     def prepare(self):
@@ -163,7 +160,7 @@ class Analytics_Framework:
     def _derive_art_length(self):
         d = np.diff(self._eeg["triggers"])  # trigger distances
 
-        if self._volume_gaps:
+        if self._eeg["volume_gaps"]:
             m = np.mean([np.min(d), np.max(d)])  # middle distance
             ds = d[d < m]  # trigger distances belonging to slice triggers
             # dv = d[d > m]  # trigger distances belonging to volume triggers
@@ -173,7 +170,7 @@ class Analytics_Framework:
         else:
             # total length of an artifact
             self._eeg["art_length"] = np.max(d)
-            self._eeg["duration_art"] = self._eeg["art_length"] / self._raw.info["sfreq"]
+            self._eeg["duration_art"] = self._eeg["art_length"] / self._eeg["raw"].info["sfreq"]
 
     def _filter_annotations(self, regex):
         """Extract specific annotations from an MNE Raw object."""

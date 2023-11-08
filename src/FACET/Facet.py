@@ -2,26 +2,25 @@ from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
 from .Frameworks.Analytics import Analytics_Framework
 
-from warnings import deprecated
-
 class Facet:
 
-    def __init__(self, relative_trigger_position=0.03, upsample = 10):
-        self._analytics = Analytics_Framework(relative_trigger_position, upsample)
-        self._correction = Correction_Framework()
+    def __init__(self, relative_trigger_position=-0.01, upsampling_factor = 10):
+        self._analytics = Analytics_Framework(relative_trigger_position)
+        self._correction = None
         self._evaluation = Evaluation_Framework()
         self._rel_trig_pos = relative_trigger_position
-        self._upsample = upsample
+        self._upsampling_factor = upsampling_factor
         self._eeg = None
 
     def import_EEG(self, filename):
         self._eeg = self._analytics.import_EEG(filename)
-
+        self._correction = Correction_Framework(self._eeg, self._upsampling_factor)
+        return self._eeg
 
     def import_EEG_GDF(self, filename):
         self._eeg = self._analytics.import_EEG_GDF(filename)
     def export_EEG(self, filename):
-        self._correction.export_EEG(filename)
+        self._analytics.export_EEG(filename)
     def get_eeg(self):
         return self._eeg
     def find_triggers(self, regex):
@@ -48,27 +47,6 @@ class Facet:
         self._correction.cut()
     def plot_EEG(self):
         self._correction.plot_EEG()
-
-    @deprecated("Not working anymore, use evaluation_framework.add_to_evaluate() instead")
-    def init_evaluation_framework(self):
-        temp = self._correction.get_mne_raw()
-        self._evaluation.init_with_correction(self._correction)
-    @deprecated("Use evaluation_framework.evaluate() instead")
-    def evaluate_SNR(self):
-        SNR = self._evaluation.evaluate_SNR()
-        print(SNR)
-        return
-    
-    @deprecated("Use evaluation_framework.evaluate() instead")
-    def evaluate_MRA(self):
-        #TODO: Implement
-        return
-    
-    @deprecated("Use evaluation_framework.evaluate() instead")
-    def evaluate_RMS(self):
-        #TODO: Implement
-        return
-    
     def downsample(self):
         self._correction.downsample()
     def lowpass(self, h_freq=45):
@@ -79,7 +57,7 @@ class Facet:
         self._correction.upsample()
     def get_mne_raw(self):
         return self._correction.get_mne_raw()
-    def add_to_evaluate(self, mne_raw,start_time=0, end_time=None):
-        self._evaluation.add_to_evaluate(mne_raw,start_time=start_time, end_time=end_time)
+    def add_to_evaluate(self, eeg,start_time=None, end_time=None):
+        self._evaluation.add_to_evaluate(eeg,start_time=start_time, end_time=end_time)
     def evaluate(self, plot=True, measures=["SNR"]):
         self._evaluation.evaluate(plot=plot, measures=measures)

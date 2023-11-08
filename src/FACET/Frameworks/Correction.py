@@ -8,9 +8,13 @@ from scipy.stats import pearsonr
 class Correction_Framework:
     def __init__(
         self,
-        eeg
+        eeg,
+        upsampling_factor=10,
     ):
         self._eeg=eeg
+        self._eeg["upsampling_factor"] = upsampling_factor
+        self._upsampling_factor = upsampling_factor
+        self._plot_number = 0
 
 
     def cut(self):
@@ -40,7 +44,7 @@ class Correction_Framework:
         corrected_data = raw._data.copy()
         evoked = self.avg_artifact
         for pos in self._eeg["triggers"]:
-            start, stop = raw.time_as_index([self._tmin, self._tmax], use_rounding=True)
+            start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
             start += pos
             minColumn = evoked.data.shape[1]
             stop = start + minColumn
@@ -133,7 +137,6 @@ class Correction_Framework:
         return chosen
 
     def apply_MNE_AAS_slow(self, WINDOW_SIZE=30):
-        events = self._events
         raw = self._eeg["raw"].copy() # Erstelle eine Kopie, um das Original unverändert zu lassen
 
 
@@ -175,7 +178,7 @@ class Correction_Framework:
             evoked = epochs[good_epochs].average()
 
             for event in epochs.events:
-                start, stop = raw.time_as_index([tmin, tmax], use_rounding=True)
+                start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
                 start += event[0]
                 stop = start + evoked.data.shape[1]
 
@@ -219,14 +222,14 @@ class Correction_Framework:
     def lowpass(self, h_freq=45):
         # Apply lowpassfilter
         print("Applying lowpassfilter")
-        self._raw.filter(l_freq=None, h_freq=h_freq)
+        self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
         return
     def highpass(self, l_freq=1):
         # Apply highpassfilter
         print("Applying highpassfilter")
-        self._raw.filter(l_freq=l_freq, h_freq=None)
+        self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def _upsample_data(self):
-        self._raw.resample(sfreq=self._raw.info["sfreq"] * self._upsample)
+        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._upsampling_factor)
     def _downsample_data(self):
         # Resample (downsample) the data
-        self._raw.resample(sfreq=self._raw.info["sfreq"] / self._upsample)
+        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._upsampling_factor)

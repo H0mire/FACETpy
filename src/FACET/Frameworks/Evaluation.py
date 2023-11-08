@@ -4,48 +4,20 @@ from operator import itemgetter
 
 class Evaluation_Framework:
     def __init__(self):
-        self._eeg_to_evaluate = None
-        self._eeg_raw_without_artifacts = None
-        self._dataset_list_to_evaluate = []
+        self._eeg_list = []
         return
 
-    def init_with_correction(self, correction_framework):
-        triggers = correction_framework._triggers
-        raw = correction_framework.get_raw_eeg().copy()
-        self._eeg_to_evaluate = self._crop(raw = raw, 
-            tmin=raw.times[triggers[0]],
-            tmax=min(
-                raw.times[-1],
-                raw.times[triggers[-1]]
-                + (
-                    raw.times[triggers[-1]]
-                    - raw.times[triggers[len(triggers) - 2]]
-                )
-            )
-        )
-        print(self._eeg_to_evaluate)
-        self._eeg_raw_without_artifacts = self._cutout(raw=raw, 
-            tmin=raw.times[triggers[0]],
-            tmax=min(
-                raw.times[-1],
-                raw.times[triggers[-1]]
-                + (
-                    raw.times[triggers[-1]]
-                    - raw.times[triggers[len(triggers) - 2]]
-                )
-          )
-        )
-        print(self._eeg_raw_without_artifacts)
-
-    def add_to_evaluate(self, mne_raw,start_time=0, end_time=None):
+    def add_to_evaluate(self, eeg,start_time=None, end_time=None):
         if not end_time:
-            end_time=0 #TODO: Determine end_time by the last sample of mne_raw eeg data.
-
-        cropped_mne_raw = self._crop(raw=mne_raw,tmin=start_time, tmax=end_time)
-        ref_mne_raw = self._crop(raw=mne_raw, tmin=0, tmax=start_time-1)
+            end_time=eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
+        if not start_time:
+            start_time=eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
+        
+        cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time)
+        ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time)
         artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw}
 
-        self._dataset_list_to_evaluate.append(artifact_raw_reference_raw_pair)
+        self._eeg_list.append(artifact_raw_reference_raw_pair)
 
         return
 
@@ -53,10 +25,6 @@ class Evaluation_Framework:
         return raw.copy().crop(tmin=tmin, tmax=tmax)
 
     def _cutout(self,raw, tmin, tmax):
-        if self._eeg_raw_without_artifacts is None:
-            print("Please set EEG dataset before removing interval.")
-            return
-
         # Der erste Teil des Datensatzes, vor tmin
         first_part = raw.copy().crop(tmax=tmin)
 
@@ -67,10 +35,6 @@ class Evaluation_Framework:
         first_part.append(second_part)
         return first_part
     
-    def set_to_evaluate(self, to_evaluate):
-        self._eeg_to_evaluate = to_evaluate
-    def set_raw_without_artifacts(self, raw_without_artifacts):
-        self._eeg_raw_without_artifacts= raw_without_artifacts
     def evaluate(self, plot=True, measures=[]):
         results=[]
         if "SNR" in measures:
@@ -126,11 +90,11 @@ class Evaluation_Framework:
         Returns:
             list: SNR values for each dataset.
         """
-        if not self._dataset_list_to_evaluate:
+        if not self._eeg_list:
             print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
         results = []
-        for mnepair in self._dataset_list_to_evaluate:
+        for mnepair in self._eeg_list:
             # Extracting the data
             data_to_evaluate = mnepair["raw"].get_data()
             data_reference = mnepair["ref"].get_data()
