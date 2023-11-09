@@ -31,8 +31,8 @@ class Facet:
         self._correction.prepare()
     def apply_MNE_AAS(self):
         #self._correction.apply_MNE_AAS_old()
-        self._correction.apply_MNE_AAS()
-        #self._correction.apply_MNE_AAS_slow()
+        #self._correction.apply_MNE_AAS()
+        self._correction.apply_MNE_AAS_slow()
     def remove_artifacts(self):  
         self._correction.remove_artifacts()
     def pre_processing(self):

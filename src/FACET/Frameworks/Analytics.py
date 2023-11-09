@@ -12,22 +12,22 @@ class Analytics_Framework:
         self._plot_number = 0
 
         self._eeg = {
-            "raw": None,
-            "raw_orig": None,
-            "tmin": None,
-            "tmax": None,
-            "rel_trigger_pos": 0,
-            "triggers": None,
-            "events": None,
-            "num_triggers": None,
-            "upsampling_factor": None,
-            "time_triggers_start": None,
-            "time_triggers_end": None,
-            "time_start": None,
-            "time_end": None,
-            "art_length": None,
-            "duration_art": None,
-            "volume_gaps": None,
+            "raw": None, # MNE Raw Object
+            "raw_orig": None, # MNE Raw Object unimpaired
+            "tmin": None, # Relative Start Time of Artifact. Often equal to rel_trigger_pos. Often 0
+            "tmax": None, # Relative End Time of Artifact. Often equal to tmin + duration_art
+            "rel_trigger_pos": 0, # Relative Trigger Position. Often 0. Means that the trigger is at the beginning of the artifact
+            "triggers": None, # Trigger Positions in Samples
+            "events": None, # Mne Events 
+            "num_triggers": None, # Number of Triggers
+            "upsampling_factor": None, # Upsampling Factor
+            "time_triggers_start": None, # Time of first Trigger. The start of the first slice of e. g. the fMRI Scan
+            "time_triggers_end": None, # Time of last Trigger.  The start of the last slice of e.g. the fMRI Scan
+            "time_start": None, # Often 0. Time of the first sample
+            "time_end": None, # Time of the last sample
+            "art_length": None, # Length of the artifact in samples
+            "duration_art": None, # Length of the artifact in seconds
+            "volume_gaps": None, # True if there are gaps between the slices of the fMRI Scan
         }
 
     def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10):

@@ -136,7 +136,7 @@ class Correction_Framework:
 
         return chosen
 
-    def apply_MNE_AAS_slow(self, WINDOW_SIZE=30):
+    def apply_MNE_AAS_slow(self):
         raw = self._eeg["raw"].copy() # Erstelle eine Kopie, um das Original unverändert zu lassen
 
 
@@ -174,9 +174,7 @@ class Correction_Framework:
         for ch_idx, good_epochs in enumerate(good_epochs_per_channel):
             print("Channel: ", (ch_idx + 1), "/", n_channels)
             #epochs._data[good_epochs, ch_idx] -= overall_mean[ch_idx]
-
             evoked = epochs[good_epochs].average()
-
             for event in epochs.events:
                 start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
                 start += event[0]
@@ -187,8 +185,7 @@ class Correction_Framework:
                     ch_idx, start:stop
                 ] -= evoked.data[ch_idx]  # Using smoothed data for correction
 
-        raw._data = corrected_data
-        self._eeg["raw"] = raw
+        self._eeg["raw"]._data[:corrected_data.shape[0],:] = corrected_data[:corrected_data.shape[0],:]
 
     def highly_correlated_epochs_new(self, epochs, threshold=0.975):
         """Return list of epochs that are highly correlated to the average."""

@@ -1,4 +1,5 @@
 import numpy as np
+import mne
 import matplotlib.pyplot as plt
 from operator import itemgetter
 
@@ -15,9 +16,9 @@ class Evaluation_Framework:
         
         cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time)
         ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time)
-        artifact_raw_reference_raw_pair = {"raw":cropped_mne_raw,"ref":ref_mne_raw, "name":name}
+        artifact_raw_reference_raw_dict = {"eeg":eeg,"raw":cropped_mne_raw,"ref":ref_mne_raw, "raw_orig":eeg["raw_orig"],"name":name}
 
-        self._eeg_list.append(artifact_raw_reference_raw_pair)
+        self._eeg_list.append(artifact_raw_reference_raw_dict)
 
         return
 
@@ -40,11 +41,11 @@ class Evaluation_Framework:
         if "SNR" in measures:
             results.append({"Measure":"SNR","Values":self.evaluate_SNR(),"Unit":"dB"})
         if "RMS" in measures:
-            results.append({"Measure":"RMS","Values":self.evaluate_rms(),"Unit":"uV"})
+            results.append({"Measure":"RMS Uncorrected to Corrected","Values":self.evaluate_RMS_corrected_ratio(),"Unit":"Ratio"})
         if "RMS2" in measures:
-            results.append({"Measure":"RMS","Values":self.evaluate_SNR(),"Unit":"uV"})
+            results.append({"Measure":"RMS Corrected to Unimpaired","Values":self.evaluate_RMS_residual_ratio(),"Unit":"Ratio"})
         if "MEDIAN" in measures:
-            results.append({"Measure":"MEDIAN","Values":self.evaluate_SNR(),"Unit":"uV"})
+            results.append({"Measure":"MEDIAN","Values":self.calculate_median_imaging_artifact(),"Unit":"uV"})
         if plot:
             self.plot(results)
         return results
@@ -65,41 +66,126 @@ class Evaluation_Framework:
         for ax, result in zip(axs, results):
             bars = ax.bar(range(len(result["Values"])), result["Values"])
             ax.set_title(result["Measure"])
-            ax.set_xlabel('Methods')
             ax.set_ylabel(result["Measure"] + ' in ' + (result['Unit'] if result['Unit'] else ''))
-            ax.set_xticklabels([])
-            for key,bar in enumerate(bars):
-                yval = bar.get_height()
-                text = self._eeg_list[key]["name"] if self._eeg_list[key]["name"] else str(round(yval,2))
-                ax.text(bar.get_x() + bar.get_width()/2, -0.05, # -0.05 oder ein anderer kleiner negativer Wert, je nach Skalierung Ihrer Achsen
-                    text,ha='center', va='top', fontsize=20, rotation='horizontal', color='blue')
+            x_labels = [eeg["name"] for eeg in self._eeg_list]  # Replace with your labels
+            ax.set_xticks(range(len(result["Values"])))
+            ax.set_xticklabels(x_labels, rotation=45)
 
         # Anzeigen des gesamten Fensters mit allen Subplots
         plt.tight_layout()  # Verwendet, um sicherzustellen, dass die Subplots nicht überlappen
         plt.show()
 
         return 0
-    def evaluate_rms(self):
-        return 0
-    def evaluate_rms2(self):
-        return 0
-    def evaluate_median(self):
-        return 0
+    def evaluate_RMS_corrected_ratio(self):
+        """
+        Calculates the RMS of the EEG datasets.
+
+        Returns:
+
+        """
+        if not self._eeg_list:
+            print("Please set both EEG datasets and crop the EEG to evaluate before calculating RMS.")
+            return
+        results = []
+        for mnedict in self._eeg_list:
+            # Extracting the data
+            data_corrected = mnedict["raw"].get_data()
+            data_uncorrected = mnedict["raw_orig"].get_data()
+
+            #TODO: Bugfix for different number of channels
+            if data_corrected.shape[0] != data_uncorrected.shape[0]:
+                data_uncorrected = data_uncorrected[:data_corrected.shape[0],:]
+
+            # Calculate RMS
+            rms_corrected = np.sqrt(np.mean(data_corrected**2, axis=1))
+            rms_uncorrected = np.sqrt(np.mean(data_uncorrected**2, axis=1))
+
+            # Calculate Ratio
+            rms = rms_uncorrected / rms_corrected
+            np.median(rms)
+            results.append(np.median(rms))        
+
+        return results
+    def evaluate_RMS_residual_ratio(self):
+        """
+        Calculates the RMS of the EEG datasets.
+
+        Returns:
+
+        """
+        if not self._eeg_list:
+            print("Please set both EEG datasets and crop the EEG to evaluate before calculating RMS.")
+            return
+        results = []
+        for mnedict in self._eeg_list:
+            # Extracting the data
+            data_corrected = mnedict["raw"].get_data()
+            data_ref = mnedict["ref"].get_data()
+
+            # Calculate RMS
+            rms_corrected = np.sqrt(np.mean(data_corrected**2, axis=1))
+            rms_ref = np.sqrt(np.mean(data_ref**2, axis=1))
+
+            # Calculate Ratio
+            rms = rms_corrected / rms_ref
+            np.median(rms)
+            results.append(np.median(rms))        
+
+        return results
+    def calculate_median_imaging_artifact(self):
+        """
+        Calculates the Median Imaging Artifact for each EEG dataset in eeg_list.
+
+        Returns:
+            list: A list of median imaging artifact values for each dataset.
+        """
+        if not hasattr(self, '_eeg_list') or not self._eeg_list:
+            print("eeg_list is not set or empty.")
+            return
+
+        results = []
+
+        for mne_dict in self._eeg_list:
+            _eeg = mne_dict['eeg']
+            if _eeg['raw'] is None:
+                print("EEG dataset is not set for this mne_dict.")
+                continue
+
+            # Create epochs around the artifact triggers
+            events = np.column_stack((_eeg['triggers'], np.zeros_like(_eeg['triggers']), np.ones_like(_eeg['triggers'])))
+            tmin = _eeg['tmin']  # Start time before the event
+            tmax = _eeg['tmax']  # End time after the event
+            baseline = None  # No baseline correction
+            picks = mne.pick_types(_eeg['raw'].info, meg=False, eeg=True, stim=False, eog=False, exclude='bads')
+
+            epochs = mne.Epochs(_eeg['raw'], events = events, tmin = tmin, tmax = tmax, proj=True,reject=None, picks=picks, baseline=baseline, preload=True)
+            # Calculate the peak-to-peak value for each epoch and channel
+            p2p_values_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data()]
+
+            # Calculate the mean peak-to-peak value per epoch across all channels
+            mean_p2p_per_epoch = [np.mean(epoch_p2p) for epoch_p2p in p2p_values_per_epoch]
+
+            # Calculate the median of these mean values
+            vmed = np.median(mean_p2p_per_epoch)
+
+            results.append(vmed)
+
+        return results
     def evaluate_SNR(self):
         """
         Calculates the SNR of the EEG datasets.
 
         Returns:
-            list: SNR values for each dataset.
+
         """
         if not self._eeg_list:
             print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
         results = []
-        for mnepair in self._eeg_list:
+        for mnedict in self._eeg_list:
             # Extracting the data
-            data_to_evaluate = mnepair["raw"].get_data()
-            data_reference = mnepair["ref"].get_data()
+            data_to_evaluate = mnedict["raw"].get_data()
+            data_reference = mnedict["ref"].get_data()
 
             # Calculate power of the signal
             power_corrected = np.var(data_to_evaluate, axis=1)
