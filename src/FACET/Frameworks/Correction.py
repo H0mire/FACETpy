@@ -41,19 +41,22 @@ class Correction_Framework:
 
     def remove_artifacts(self):        
         raw = self._eeg["raw"]
-        corrected_data = raw._data.copy()
+        raw.info["bads"] = ["Status", "EMG", "ECG"]
+        eeg_channels = mne.pick_types(
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+        corrected_data = raw.copy().pick(channels_to_keep)._data
         evoked = self.avg_artifact
         for pos in self._eeg["triggers"]:
             start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
-            start += pos
+            start += pos 
             minColumn = evoked.data.shape[1]
             stop = start + minColumn
             corrected_data[:evoked.data.shape[0], start:stop] -= evoked.data
 
-        raw._data = corrected_data
-
+        raw._data[:corrected_data.shape[0]] = corrected_data
         print(raw.ch_names)
-
         self._eeg["raw"] = raw
 
     # Remove Artifacts from EEG
@@ -91,7 +94,7 @@ class Correction_Framework:
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        raw.pick_channels(channels_to_keep)  # raw wird in-place modifiziert
+        raw.pick(channels_to_keep)  # raw wird in-place modifiziert
 
         # Schritt 2: Epochen erstellen
         epochs = mne.Epochs(
@@ -107,7 +110,7 @@ class Correction_Framework:
 
         print("Epochs shape: ", epochs.get_data().shape)
 
-        good_epochs = self.highly_correlated_epochs(epochs)
+        good_epochs = self.highly_correlated_epochs_new(epochs)
         # Schritt 3: Durchschnittliches Artefakt berechnen
         # evoked = epochs.average()
         evoked = epochs[good_epochs].average()
@@ -136,9 +139,8 @@ class Correction_Framework:
 
         return chosen
 
-    def apply_MNE_AAS_slow(self):
-        raw = self._eeg["raw"].copy() # Erstelle eine Kopie, um das Original unverändert zu lassen
-
+    def apply_MNE_AAS_new(self):
+        raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
         # Schritt 1: Kanalauswahl
         raw.info["bads"] = ["Status", "EMG", "ECG"]
@@ -146,7 +148,7 @@ class Correction_Framework:
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        raw.pick_channels(channels_to_keep)  # raw wird in-place modifiziert
+        raw.pick(channels_to_keep)  # raw wird in-place modifiziert
 
         # Epochen erstellen
         epochs = mne.Epochs(
@@ -161,31 +163,28 @@ class Correction_Framework:
         )
 
         n_channels = len(eeg_channels)
-        good_epochs_per_channel = []
+        evoked_data = []  # Liste für Daten der einzelnen Evoked-Objekte
+
         original_epochs = epochs.copy()
         for ch_name in epochs.ch_names:
-            epochs_single_channel = original_epochs.copy().pick_channels([ch_name])
+            epochs_single_channel = original_epochs.copy().pick([ch_name])
             good_epochs = self.highly_correlated_epochs_new(epochs_single_channel)
-            good_epochs_per_channel.append(good_epochs)
 
-        corrected_data = raw._data.copy()
+            # Erstellen eines Evoked-Objekts für die guten Epochen dieses Kanals
+            evoked = epochs_single_channel[good_epochs].average()
+            evoked_data.append(evoked.data[0])  # Hinzufügen der Daten zum Array
 
-        #overall_mean = raw._data.mean(axis=1, keepdims=True)
-        for ch_idx, good_epochs in enumerate(good_epochs_per_channel):
-            print("Channel: ", (ch_idx + 1), "/", n_channels)
-            #epochs._data[good_epochs, ch_idx] -= overall_mean[ch_idx]
-            evoked = epochs[good_epochs].average()
-            for event in epochs.events:
-                start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
-                start += event[0]
-                stop = start + evoked.data.shape[1]
+        # Kombinieren der Daten in ein Array
+        combined_data = np.stack(evoked_data, axis=0)
 
-            
-                corrected_data[
-                    ch_idx, start:stop
-                ] -= evoked.data[ch_idx]  # Using smoothed data for correction
+        # Erstellen eines neuen Evoked-Objekts mit den kombinierten Daten
+        combined_evoked = mne.EvokedArray(
+            combined_data,
+            info=original_epochs.info,  # Nutze die Info des letzten Evoked-Objekts
+            tmin=original_epochs.times[0]
+        )
 
-        self._eeg["raw"]._data[:corrected_data.shape[0],:] = corrected_data[:corrected_data.shape[0],:]
+        self.avg_artifact = combined_evoked
 
     def highly_correlated_epochs_new(self, epochs, threshold=0.975):
         """Return list of epochs that are highly correlated to the average."""

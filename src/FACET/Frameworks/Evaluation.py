@@ -13,9 +13,18 @@ class Evaluation_Framework:
             end_time=eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
         if not start_time:
             start_time=eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
-        
-        cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time)
-        ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time)
+        raw = eeg["raw"].copy()
+        print(raw.ch_names)
+        bads = ["Status", "EMG", "ECG"]
+        all_channels = raw.ch_names
+        exclude = [item for i, item in enumerate(all_channels) if item in bads]
+        raw.info["bads"] = exclude
+        eeg_channels = mne.pick_types(
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+        cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time).pick(channels_to_keep)
+        ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time).pick(channels_to_keep)
         artifact_raw_reference_raw_dict = {"eeg":eeg,"raw":cropped_mne_raw,"ref":ref_mne_raw, "raw_orig":eeg["raw_orig"],"name":name}
 
         self._eeg_list.append(artifact_raw_reference_raw_dict)

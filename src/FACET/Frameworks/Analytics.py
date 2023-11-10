@@ -86,7 +86,8 @@ class Analytics_Framework:
         return self._eeg
 
     def export_EEG(self, filename):
-        self._eeg["raw"].export(filename, fmt="edf", overwrite=True)
+        raw = self._eeg["raw"]
+        raw.pick().export(filename, fmt="edf", overwrite=True)
 
     def find_triggers(self, regex):
         raw = self._eeg["raw"]
@@ -112,7 +113,7 @@ class Analytics_Framework:
         self._eeg["volume_gaps"] = False
         self._derive_art_length()
         self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
-        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
+        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"] 
 
 
     # TODO: Implement better Structure
