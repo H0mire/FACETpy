@@ -87,7 +87,7 @@ class Analytics_Framework:
 
     def export_EEG(self, filename):
         raw = self._eeg["raw"]
-        raw.pick().export(filename, fmt="edf", overwrite=True)
+        raw.export(filename, fmt="edf", overwrite=True)
 
     def find_triggers(self, regex):
         raw = self._eeg["raw"]

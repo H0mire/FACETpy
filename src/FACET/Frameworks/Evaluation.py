@@ -54,7 +54,7 @@ class Evaluation_Framework:
         if "RMS2" in measures:
             results.append({"Measure":"RMS Corrected to Unimpaired","Values":self.evaluate_RMS_residual_ratio(),"Unit":"Ratio"})
         if "MEDIAN" in measures:
-            results.append({"Measure":"MEDIAN","Values":self.calculate_median_imaging_artifact(),"Unit":"uV"})
+            results.append({"Measure":"MEDIAN","Values":self.calculate_median_imaging_artifact(),"Unit":"V"})
         if plot:
             self.plot(results)
         return results
