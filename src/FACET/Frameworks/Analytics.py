@@ -1,6 +1,8 @@
 import numpy as np
-import mne, re
+import mne, re, os
+from mne_bids import BIDSPath, write_raw_bids, read_raw_bids
 from scipy.stats import pearsonr
+import numpy as np
 
 # import inst for mne python
 
@@ -30,9 +32,42 @@ class Analytics_Framework:
             "volume_gaps": None, # True if there are gaps between the slices of the fMRI Scan
         }
 
-    def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10):
-        raw = mne.io.read_raw_edf(filename)
+    # a method to export the eeg data as a bids project using mne_bids
+    def export_as_bids(self, event_id): #TODO: Add BIDSPath as parameter. Clean up
+        if "line_freq" not in self._eeg["raw"].info or self._eeg["raw"].info["line_freq"] is None:
+            line_freq = input("Please enter the line frequency: ")
+            self._eeg["raw"].info["line_freq"] = float(line_freq)
+        if "line_freq" not in self._eeg["raw_orig"].info or self._eeg["raw_orig"].info["line_freq"] is None:
+            line_freq = input("Please enter the line frequency: ")
+            self._eeg["raw_orig"].info["line_freq"] = float(line_freq)
+        
+        BIDSPathuncorrected = BIDSPath(
+            subject="subjectid", session="sessionid", task="uncorrected", root="./bids_dir"
+        )
+        BIDSPathcorrected = BIDSPath(
+            subject="subjectid", session="sessionid", task="corrected", root="./bids_dir"
+        )
+        print("Exporting Channels: "+str(self._eeg["raw"].ch_names))
+
+        raw = self._eeg["raw"].copy()
+        raw_orig = self._eeg["raw_orig"].copy()
+        #drop stim channels
+        stim_channels = mne.pick_types(raw.info, meg=False, eeg=False, stim=True)
+        raw.drop_channels([raw.ch_names[ch] for ch in stim_channels])
+        raw_orig.drop_channels([raw_orig.ch_names[ch] for ch in stim_channels])
+
+        if self._eeg["raw_orig"] is not None:
+            write_raw_bids(raw=raw, bids_path=BIDSPathuncorrected, overwrite=True, format="EDF", allow_preload=True, events=self._eeg["events"], event_id=event_id)
+        if self._eeg["raw"] is not None:
+            write_raw_bids(raw=raw_orig, bids_path=BIDSPathcorrected, overwrite=True, format="EDF", allow_preload=True, events=self._eeg["events"], event_id=event_id)
+    
+    def import_from_bids(self, bids_path="./bids_dir", rel_trig_pos=0, upsampling_factor=10, bads=[]):
+        bids_path_i = BIDSPath(subject="subjectid", session="sessionid", task="corrected", root=bids_path)
+        raw = read_raw_bids(bids_path_i)
         raw.load_data()
+        all_channels = raw.ch_names
+        exclude = [item for i, item in enumerate(all_channels) if item in bads]
+        raw.info["bads"] = exclude
         raw_orig = raw.copy()
         time_start = raw.times[0]
         time_end = raw.times[-1]
@@ -53,13 +88,31 @@ class Analytics_Framework:
             "art_length": None,
             "duration_art": None,
             "volume_gaps": None,
+            "BIDSPath": bids_path
         }
-        print(filename)
+        print("Importing EEG with:")
+        print("Channels " + str(raw.ch_names))
+        print(f"Time Start: {time_start}s")
+        print(f"Time End: {time_end}s")
+        print(f"Number of Samples: {raw.n_times}")
+        print(f"Sampling Frequency: {raw.info['sfreq']}Hz")
+        print(bids_path)
         return self._eeg
 
-    def import_EEG_GDF(self, filename, rel_trig_pos=0, upsampling_factor=10):
-        raw = mne.io.read_raw_gdf(filename)
+
+
+    def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10, fmt="edf", bads=[]):
+        if fmt == "edf":
+            raw = mne.io.read_raw_edf(filename)
+        elif fmt == "gdf":
+            raw = mne.io.read_raw_gdf(filename)
+        else:
+            raise ValueError("Format not supported")
         raw.load_data()
+
+        all_channels = raw.ch_names
+        exclude = [item for i, item in enumerate(all_channels) if item in bads]
+        raw.info["bads"] = exclude
         raw_orig = raw.copy()
         time_start = raw.times[0]
         time_end = raw.times[-1]
@@ -81,7 +134,12 @@ class Analytics_Framework:
             "duration_art": None,
             "volume_gaps": None,
         }
-
+        print("Importing EEG with:")
+        print("Channels " + str(raw.ch_names))
+        print(f"Time Start: {time_start}s")
+        print(f"Time End: {time_end}s")
+        print(f"Number of Samples: {raw.n_times}")
+        print(f"Sampling Frequency: {raw.info['sfreq']}Hz")
         print(filename)
         return self._eeg
 
@@ -89,31 +147,45 @@ class Analytics_Framework:
         raw = self._eeg["raw"]
         raw.export(filename, fmt="edf", overwrite=True)
 
-    def find_triggers(self, regex):
+    def find_triggers(self, regex, idx=0):
         raw = self._eeg["raw"]
-        #TODO: Filter events by filtered annotations
-        events = mne.events_from_annotations(raw)
-        raw.add_events(events)
-        # print(self._filterAnnotations(regex))
-        annotations = self._filter_annotations(regex)
-        positions = []
-        for onset, duration, description in annotations:
-            print(f"Onset: {onset}, Duration: {duration}, Description: {description}")
-            positions.append(onset)
+        stim_channels = mne.pick_types(raw.info, meg=False, eeg=False, stim=True)
+        events=[]
+        filtered_events=[]
+        
 
-        triggers = positions
-        num_triggers = len(positions)
-        time_triggers_start = raw.times[self._triggers[0]]
-        time_triggers_end = raw.times[self._triggers[-1]]
+        if len(stim_channels) > 0:
+            print("Stim-Kanäle gefunden:", [raw.ch_names[ch] for ch in stim_channels])
+            events = mne.find_events(raw, stim_channel=raw.ch_names[stim_channels[0]], initial_event=True)
+            pattern = re.compile(regex)
+            filtered_events = [event for event in events if pattern.search(str(event[2]))]
+
+        else:
+            print("No Stim-Channels found.")
+            print()
+            events_obj = mne.events_from_annotations(raw)
+            print(events_obj[1])
+            filtered_events = mne.events_from_annotations(raw, regexp=regex)[0]
+        
+        if len(filtered_events)==0:
+            print("No events found.")
+            return
+        filtered_positions = [event[idx] for event in filtered_events]
+        filtered_events = np.array(filtered_events)
+        triggers = filtered_positions
+        num_triggers = len(filtered_positions)
+        time_triggers_start = raw.times[triggers[0]]
+        time_triggers_end = raw.times[triggers[-1]]
         self._eeg["triggers"] = triggers
-        self._eeg["events"] = events
+        self._eeg["events"] = filtered_events
         self._eeg["num_triggers"] = num_triggers
-        self._eeg["time_triggers_start"] = time_triggers_start
+        self._eeg["time_triggers_start"] = time_triggers_start - self._eeg["rel_trigger_pos"]
         self._eeg["time_triggers_end"] = time_triggers_end
         self._eeg["volume_gaps"] = False
         self._derive_art_length()
         self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
-        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"] 
+        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
+        print("Channels after find trigger: "+str(self._eeg["raw"].ch_names))
 
 
     # TODO: Implement better Structure
@@ -126,35 +198,12 @@ class Analytics_Framework:
     def get_eeg(self):
         return self._eeg
 
-    def find_triggers_with_events(self, regex, idx=0):
-        raw = self._eeg["raw"]
-        print(raw.ch_names)
-        events = mne.find_events(raw, stim_channel="Status", initial_event=True)
-        pattern = re.compile(regex)
-
-        filtered_events = [event for event in events if pattern.search(str(event[2]))]
-        filtered_positions = [event[idx] for event in filtered_events]
-        _events = filtered_events
-        triggers = filtered_positions
-        num_triggers = len(filtered_positions)
-        time_triggers_start = raw.times[triggers[0]]
-        time_triggers_end = raw.times[triggers[-1]]
-        self._eeg["triggers"] = triggers
-        self._eeg["events"] = _events
-        self._eeg["num_triggers"] = num_triggers
-        self._eeg["time_triggers_start"] = time_triggers_start - self._eeg["rel_trigger_pos"]
-        self._eeg["time_triggers_end"] = time_triggers_end
-        self._eeg["volume_gaps"] = False
-        self._derive_art_length()
-        self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
-        self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
-
     def prepare(self):
         self._upsample_data()
 
-    def plot_EEG(self):
+    def plot_EEG(self, start = 0):
         self._plot_number += 1
-        self._raw.plot(title=str(self._plot_number), start=27)
+        self._raw.plot(title=str(self._plot_number), start=start)
 
 
     def _derive_art_length(self):

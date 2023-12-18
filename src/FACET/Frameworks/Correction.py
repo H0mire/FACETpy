@@ -12,6 +12,8 @@ class Correction_Framework:
     ):
         self._eeg=eeg
         self._plot_number = 0
+        self.avg_artifact = None
+        self.avg_artifact_matrix = None
 
 
     def cut(self):
@@ -35,61 +37,50 @@ class Correction_Framework:
     def prepare(self):
         self._upsample_data()
 
-    def plot_EEG(self):
-        self._plot_number += 1
-        self._eeg["raw"].plot(title=str(self._plot_number), start=27)
+    def plot_EEG(self, start=0, title=None):
+        if not title:
+            self._plot_number += 1
+            title = str(self._plot_number)
+        self._eeg["raw"].plot(title=title, start=start)
 
+    #TODO: Better indexing for channels as the first channels might be not eeg channels
     def remove_artifacts(self):        
-        raw = self._eeg["raw"]
-        raw.info["bads"] = ["Status", "EMG", "ECG"]
+        raw = self._eeg["raw"].copy()
+
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        corrected_data = raw.copy().pick(channels_to_keep)._data
-        evoked = self.avg_artifact
-        for pos in self._eeg["triggers"]:
-            start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
-            start += pos 
-            minColumn = evoked.data.shape[1]
-            stop = start + minColumn
-            corrected_data[:evoked.data.shape[0], start:stop] -= evoked.data
+        corrected_data = raw.pick(channels_to_keep)._data
+        if self.avg_artifact_matrix is None:
+            evoked = self.avg_artifact
+            for pos in self._eeg["triggers"]:
+                start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
+                start += pos 
+                minColumn = evoked.data.shape[1]
+                stop = min(start + minColumn, corrected_data.shape[1])
+                corrected_data[:evoked.data.shape[0], start:stop] -= evoked.data[:,:stop-start]
 
-        raw._data[:corrected_data.shape[0]] = corrected_data
-        print(raw.ch_names)
-        self._eeg["raw"] = raw
+            raw._data[:corrected_data.shape[0]] = corrected_data
+            print(raw.ch_names)
+            self._eeg["raw"]._data[:raw._data.shape[0]] = raw._data
+        else:
+            for key, pos in enumerate(self._eeg["triggers"]):
+                start, stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
+                start += pos 
+                minColumn = self.avg_artifact_matrix.shape[2]
+                stop = min(start + minColumn, corrected_data.shape[1])
+                corrected_data[:self.avg_artifact_matrix.shape[0], start:stop] -= self.avg_artifact_matrix[:,key,:stop-start]
 
-    # Remove Artifacts from EEG
-    def apply_MNE_AAS_old(self):
-        raw = self._eeg["raw"]
-        # Schritt 1: Epochen erstellen
-        
-        picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False)
-        epochs = mne.Epochs(
-            raw,
-            self._eeg["events"],
-            picks=picks,
-            tmin=self._eeg["tmin"],
-            tmax=self._eeg["tmax"],
-            baseline=None,
-            reject=None,
-            preload=True,
-        )
-
-        # Schritt 2: Durchschnittlichen Artefakt berechnen
-        evoked = epochs.average()
-
-        # Schritt 4: Subtraktion
-        raw_ssp = raw.copy().add_proj(mne.compute_proj_evoked(evoked))
-        raw_ssp.apply_proj()
-        self._eeg["raw"] = raw_ssp
+            raw._data[:corrected_data.shape[0]] = corrected_data
+            print(raw.ch_names)
+            self._eeg["raw"]._data[:raw._data.shape[0]] = raw._data
 
     # Calculating Average Artifact 
-    def apply_MNE_AAS(self):
+    def apply_MNE_AAS_old(self):
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie hier, um das Original unverändert zu lassen
-
         # Schritt 1: Kanalauswahl
-        raw.info["bads"] = ["Status", "EMG", "ECG"]
+
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
@@ -117,6 +108,8 @@ class Correction_Framework:
         #mne plot evoked
         evoked.plot()
         self.avg_artifact = evoked
+    
+    
         
     def highly_correlated_epochs(self, epochs, threshold=0.975):
         """Return list of epochs that are highly correlated to the average."""
@@ -139,11 +132,9 @@ class Correction_Framework:
 
         return chosen
 
-    def apply_MNE_AAS_new(self):
+    def apply_MNE_AAS(self):
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
-        # Schritt 1: Kanalauswahl
-        raw.info["bads"] = ["Status", "EMG", "ECG"]
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
@@ -162,7 +153,6 @@ class Correction_Framework:
             preload=True,
         )
 
-        n_channels = len(eeg_channels)
         evoked_data = []  # Liste für Daten der einzelnen Evoked-Objekte
 
         original_epochs = epochs.copy()
@@ -184,7 +174,48 @@ class Correction_Framework:
             tmin=original_epochs.times[0]
         )
 
+        combined_evoked.plot()
+
         self.avg_artifact = combined_evoked
+    
+    def apply_MNE_AAS_matrix(self): #TODO: Averaged artefact in window x Epochs around current epoch. Consider using Matrix.
+        raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
+
+        eeg_channels = mne.pick_types(
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+        raw.pick(channels_to_keep)  # raw wird in-place modifiziert
+
+        # Epochen erstellen
+        epochs = mne.Epochs(
+            raw,
+            events=self._eeg["events"],
+            picks=eeg_channels[:],
+            tmin=self._eeg["tmin"],
+            tmax=self._eeg["tmax"],
+            baseline=None,
+            reject=None,
+            preload=True,
+        )
+
+        evoked_data = []  # Liste für Daten der einzelnen Evoked-Objekte
+
+        original_epochs = epochs.copy()
+        for ch_name in epochs.ch_names:
+            epochs_single_channel = original_epochs.copy().pick([ch_name])
+            chosen_matrix = self.highly_correlated_epochs_matrix(epochs_single_channel)
+            art_per_epoch = []
+            for idx in range(len(chosen_matrix)):
+                if np.sum(chosen_matrix[idx]) > 0:
+                    evoked = epochs_single_channel[np.where(chosen_matrix[idx]==1)[0]].average()
+                    art_per_epoch.append(evoked.data[0])
+                else:
+                    art_per_epoch.append(np.zeros(epochs_single_channel[0].data.shape[1]))
+            evoked_data.append(art_per_epoch)  # Hinzufügen der Daten zum Array
+                
+
+        self.avg_artifact_matrix = np.array(evoked_data)
 
     def highly_correlated_epochs_new(self, epochs, threshold=0.975):
         """Return list of epochs that are highly correlated to the average."""
@@ -203,6 +234,20 @@ class Correction_Framework:
                 chosen.append(idx)
 
         return chosen
+    
+    def highly_correlated_epochs_matrix(self, epochs, threshold=0.975, window_size=25):
+        """Return list of epochs that are highly correlated to the average."""
+        n_epochs = len(epochs)
+
+        chosen_matrix = np.zeros((n_epochs, n_epochs))
+
+        for idx in range(0,n_epochs,window_size):
+            candidates = np.arange(idx,min(idx+window_size,n_epochs))
+            chosen = self.highly_correlated_epochs_new(epochs[candidates], threshold=threshold)
+            for i in candidates:
+                chosen_matrix[i, chosen] = 1
+
+        return chosen_matrix
 
     def moving_average(self, data, window_size):
         return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
@@ -226,6 +271,7 @@ class Correction_Framework:
         self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def _upsample_data(self):
         self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
+
     def _downsample_data(self):
         # Resample (downsample) the data
         self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._eeg["upsampling_factor"])

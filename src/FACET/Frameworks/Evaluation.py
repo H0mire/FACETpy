@@ -15,10 +15,7 @@ class Evaluation_Framework:
             start_time=eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
         raw = eeg["raw"].copy()
         print(raw.ch_names)
-        bads = ["Status", "EMG", "ECG"]
-        all_channels = raw.ch_names
-        exclude = [item for i, item in enumerate(all_channels) if item in bads]
-        raw.info["bads"] = exclude
+
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
