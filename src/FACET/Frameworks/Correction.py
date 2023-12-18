@@ -205,14 +205,18 @@ class Correction_Framework:
         for ch_name in epochs.ch_names:
             epochs_single_channel = original_epochs.copy().pick([ch_name])
             chosen_matrix = self.highly_correlated_epochs_matrix(epochs_single_channel)
+            print(f"Averaging Channel {ch_name} Epochs:", end=" ")
             art_per_epoch = []
             for idx in range(len(chosen_matrix)):
+                print(f"{idx}, ", end="")
                 if np.sum(chosen_matrix[idx]) > 0:
-                    evoked = epochs_single_channel[np.where(chosen_matrix[idx]==1)[0]].average()
+                    indices = np.where(chosen_matrix[idx] == 1)[0]
+                    evoked = epochs_single_channel[indices].average()
                     art_per_epoch.append(evoked.data[0])
                 else:
                     art_per_epoch.append(np.zeros(epochs_single_channel[0].data.shape[1]))
             evoked_data.append(art_per_epoch)  # Hinzufügen der Daten zum Array
+            print()
                 
 
         self.avg_artifact_matrix = np.array(evoked_data)
@@ -233,7 +237,7 @@ class Correction_Framework:
                 sum_data += epochs._data[idx]
                 chosen.append(idx)
 
-        return chosen
+        return np.array(chosen)
     
     def highly_correlated_epochs_matrix(self, epochs, threshold=0.975, window_size=25):
         """Return list of epochs that are highly correlated to the average."""
@@ -241,11 +245,11 @@ class Correction_Framework:
 
         chosen_matrix = np.zeros((n_epochs, n_epochs))
 
-        for idx in range(0,n_epochs,window_size):
-            candidates = np.arange(idx,min(idx+window_size,n_epochs))
+        for idx in range(0, n_epochs, window_size):
+            candidates = np.arange(idx, min(idx + window_size, n_epochs))
             chosen = self.highly_correlated_epochs_new(epochs[candidates], threshold=threshold)
-            for i in candidates:
-                chosen_matrix[i, chosen] = 1
+            chosen += idx 
+            chosen_matrix[np.ix_(candidates, chosen)] = 1
 
         return chosen_matrix
 

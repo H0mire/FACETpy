@@ -1,6 +1,7 @@
 from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
 from .Frameworks.Analytics import Analytics_Framework
+import mne
 
 class Facet:
 
@@ -9,6 +10,7 @@ class Facet:
         self._correction = None
         self._evaluation = Evaluation_Framework()
         self._eeg = None
+        mne.set_log_level('ERROR')
     def get_EEG(self):
         return self._eeg
     def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10, bads=[]):
