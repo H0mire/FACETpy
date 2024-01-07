@@ -37,6 +37,8 @@ class Facet:
             self._correction.apply_MNE_AAS_matrix()
         elif method == "normal":
             self._correction.apply_MNE_AAS()
+        elif method == "numpy":
+            self._correction.apply_MNE_AAS_matrix_numpy()
         else:
             raise ValueError("Invalid method parameter")
     def remove_artifacts(self):  
