@@ -197,7 +197,7 @@ class Correction_Framework:
 
         self.avg_artifact = combined_evoked
     
-    def apply_MNE_AAS_matrix(self): #TODO: Implement Numpy Matrix with weighted allen average.
+    def apply_MNE_AAS_matrix(self): #DEPRECATED: Use Numpy Matrix instead
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
         eeg_channels = mne.pick_types(
@@ -239,7 +239,7 @@ class Correction_Framework:
                 
 
         self.avg_artifact_matrix = np.array(evoked_data)
-    def apply_MNE_AAS_matrix_numpy(self): #TODO: Implement Numpy Matrix with weighted allen average.
+    def apply_MNE_AAS_matrix_numpy(self, rel_window_offset=0):
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
         eeg_channels = mne.pick_types(
@@ -264,7 +264,8 @@ class Correction_Framework:
         for idx, ch_name in enumerate(epochs.ch_names):
             print(f"Averaging Channel {ch_name}", end=" ")
             epochs_single_channel = original_epochs.copy().pick([ch_name])
-            chosen_matrix = self.highly_correlated_epochs_matrix_weighted(epochs_single_channel)
+            chosen_matrix = self.highly_correlated_epochs_matrix_weighted(epochs_single_channel, rel_window_offset=rel_window_offset)
+            print(chosen_matrix[:10,:10])
             avg_matrix_3d[idx] = chosen_matrix
             print()
         
@@ -287,6 +288,30 @@ class Correction_Framework:
                 chosen.append(idx)
 
         return np.array(chosen)
+    def highly_correlated_epochs_with_indices(self, full_epochs, epoch_indices, epochs_indices_reference, threshold=0.975):
+        """Return list of epochs that are highly correlated to the average."""
+        #check if vars are set
+        #check if epochs_reference is not empty
+        if len(epochs_indices_reference) == 0:
+            return np.array([])
+        #check if epochs is not empty
+        if len(epoch_indices) == 0:
+            return np.array([])
+        
+        sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
+        chosen = list(epochs_indices_reference)
+        # Check subsequent epochs
+        for idx in epoch_indices:
+            #check if idx is already in chosen
+            if idx in chosen:
+                continue
+            avg_data = sum_data / len(chosen)
+            corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[0, 1]
+            if corr > threshold:
+                sum_data += full_epochs._data[idx]
+                chosen.append(idx)
+
+        return np.array(chosen)
     
     def highly_correlated_epochs_matrix(self, epochs, threshold=0.975, window_size=25):
         """Return list of epochs that are highly correlated to the average."""
@@ -301,19 +326,54 @@ class Correction_Framework:
             chosen_matrix[np.ix_(candidates, chosen)] = 1
 
         return chosen_matrix
-    def highly_correlated_epochs_matrix_weighted(self, epochs, threshold=0.975, window_size=25):
+    def highly_correlated_epochs_matrix_weighted(self, epochs, threshold=0.975, window_size=25, rel_window_offset=0):
         """Return list of epochs that are highly correlated to the average."""
         n_epochs = len(epochs)
 
         chosen_matrix = np.zeros((n_epochs, n_epochs))
 
+        window_offset = int(window_size * rel_window_offset) # Get offset in amount of epochs
+
         for idx in range(0, n_epochs, window_size):
-            candidates = np.arange(idx, min(idx + window_size, n_epochs))
-            chosen = self.highly_correlated_epochs_new(epochs[candidates], threshold=threshold)
-            chosen += idx 
-            chosen_matrix[np.ix_(candidates, chosen)] = 1/len(chosen)
+            offset_idx = idx + window_offset
+
+            reference_indices = np.arange(idx, min(idx+5, n_epochs))
+            candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
+            #remove all negative indices
+            candidates = candidates[candidates >= 0]
+            #calculate offset
+            chosen = self.highly_correlated_epochs_with_indices(epochs, candidates,reference_indices, threshold=threshold)
+            if len(chosen)== 0:
+                continue
+            indices = np.arange(idx, min(idx+window_size, n_epochs))
+            chosen_matrix[np.ix_(indices, chosen)] = 1/len(chosen)
 
         return chosen_matrix
+
+    def highly_correlated_epochs_matrix_weighted_every_epoch_separate(self, epochs, threshold=0.975, window_size=25, rel_window_offset=-0.5):
+        """Return list of epochs that are highly correlated to the average."""
+        n_epochs = len(epochs)
+
+        chosen_matrix = np.zeros((n_epochs, n_epochs))
+        if rel_window_offset > 0:
+            raise ValueError("rel_window_offset must be negative")
+
+        window_offset = int(window_size * rel_window_offset)
+
+        for idx in range(0, n_epochs):
+            offset_idx = idx + window_offset
+            candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
+            #remove all negative indices
+            candidates = candidates[candidates >= 0]
+            include_window_length = 5
+            #calculate offset
+            offset = offset_idx-window_offset if offset_idx < 0 else window_offset*(-1)
+            chosen = self.highly_correlated_epochs_with_reference_epochs(epochs[candidates], threshold=threshold, include_window_length=include_window_length, window_offset=offset)
+            chosen += offset_idx 
+            chosen_matrix[np.ix_([candidates[0]], chosen)] = 1/len(chosen)
+
+        return chosen_matrix
+
 
     def moving_average(self, data, window_size):
         return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
