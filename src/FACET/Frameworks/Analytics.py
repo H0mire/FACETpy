@@ -20,7 +20,7 @@ class Analytics_Framework:
             "tmax": None, # Relative End Time of Artifact. Often equal to tmin + duration_art
             "rel_trigger_pos": 0, # Relative Trigger Position. Often 0. Means that the trigger is at the beginning of the artifact
             "triggers": None, # Trigger Positions in Samples
-            "events": None, # Mne Events 
+            "filtered_events": None, # Mne Events 
             "num_triggers": None, # Number of Triggers
             "upsampling_factor": None, # Upsampling Factor
             "time_triggers_start": None, # Time of first Trigger. The start of the first slice of e. g. the fMRI Scan
@@ -33,19 +33,15 @@ class Analytics_Framework:
         }
 
     # a method to export the eeg data as a bids project using mne_bids
-    def export_as_bids(self, event_id): #TODO: Add BIDSPath as parameter. Clean up
+    def export_as_bids(self, event_id, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"): 
         if "line_freq" not in self._eeg["raw"].info or self._eeg["raw"].info["line_freq"] is None:
             line_freq = input("Please enter the line frequency: ")
             self._eeg["raw"].info["line_freq"] = float(line_freq)
         if "line_freq" not in self._eeg["raw_orig"].info or self._eeg["raw_orig"].info["line_freq"] is None:
             line_freq = input("Please enter the line frequency: ")
             self._eeg["raw_orig"].info["line_freq"] = float(line_freq)
-        
-        BIDSPathuncorrected = BIDSPath(
-            subject="subjectid", session="sessionid", task="uncorrected", root="./bids_dir"
-        )
-        BIDSPathcorrected = BIDSPath(
-            subject="subjectid", session="sessionid", task="corrected", root="./bids_dir"
+        _BIDSPath = BIDSPath(
+            subject=subject, session=session, task=task, root=bids_path
         )
         print("Exporting Channels: "+str(self._eeg["raw"].ch_names))
 
@@ -56,13 +52,11 @@ class Analytics_Framework:
         raw.drop_channels([raw.ch_names[ch] for ch in stim_channels])
         raw_orig.drop_channels([raw_orig.ch_names[ch] for ch in stim_channels])
 
-        if self._eeg["raw_orig"] is not None:
-            write_raw_bids(raw=raw, bids_path=BIDSPathuncorrected, overwrite=True, format="EDF", allow_preload=True, events=self._eeg["events"], event_id=event_id)
         if self._eeg["raw"] is not None:
-            write_raw_bids(raw=raw_orig, bids_path=BIDSPathcorrected, overwrite=True, format="EDF", allow_preload=True, events=self._eeg["events"], event_id=event_id)
+            write_raw_bids(raw=raw_orig, bids_path=_BIDSPath, overwrite=True, format="EDF", allow_preload=True, events=self._eeg["filtered_events"], event_id=event_id)
     
-    def import_from_bids(self, bids_path="./bids_dir", rel_trig_pos=0, upsampling_factor=10, bads=[]):
-        bids_path_i = BIDSPath(subject="subjectid", session="sessionid", task="corrected", root=bids_path)
+    def import_from_bids(self, bids_path="./bids_dir", rel_trig_pos=0, upsampling_factor=10, bads=[], subject="subjectid", session="sessionid", task="corrected"):
+        bids_path_i = BIDSPath(subject=subject, session=session, task=task, root=bids_path)
         raw = read_raw_bids(bids_path_i)
         raw.load_data()
         all_channels = raw.ch_names
@@ -71,6 +65,10 @@ class Analytics_Framework:
         raw_orig = raw.copy()
         time_start = raw.times[0]
         time_end = raw.times[-1]
+
+        #events from annotations
+        events_obj = mne.events_from_annotations(raw)
+
         self._eeg = {
             "raw": raw,
             "raw_orig": raw_orig,
@@ -78,7 +76,8 @@ class Analytics_Framework:
             "tmax": None,
             "rel_trigger_pos": rel_trig_pos,
             "triggers": None,
-            "events": None,
+            "events": events_obj,
+            "filtered_events": None,
             "num_triggers": None,
             "upsampling_factor": upsampling_factor,
             "time_triggers_start": None,
@@ -116,6 +115,7 @@ class Analytics_Framework:
         raw_orig = raw.copy()
         time_start = raw.times[0]
         time_end = raw.times[-1]
+
         self._eeg = {
             "raw": raw,
             "raw_orig": raw_orig,
@@ -124,6 +124,7 @@ class Analytics_Framework:
             "rel_trigger_pos": rel_trig_pos,
             "triggers": None,
             "events": None,
+            "filtered_events": None,
             "num_triggers": None,
             "upsampling_factor": upsampling_factor,
             "time_triggers_start": None,
@@ -134,6 +135,9 @@ class Analytics_Framework:
             "duration_art": None,
             "volume_gaps": None,
         }
+        events = self._try_to_get_events()
+        if events is not None:
+            self._eeg["events"] = events
         print("Importing EEG with:")
         print("Channels " + str(raw.ch_names))
         print(f"Time Start: {time_start}s")
@@ -177,7 +181,7 @@ class Analytics_Framework:
         time_triggers_start = raw.times[triggers[0]]
         time_triggers_end = raw.times[triggers[-1]]
         self._eeg["triggers"] = triggers
-        self._eeg["events"] = filtered_events
+        self._eeg["filtered_events"] = filtered_events
         self._eeg["num_triggers"] = num_triggers
         self._eeg["time_triggers_start"] = time_triggers_start - self._eeg["rel_trigger_pos"]
         self._eeg["time_triggers_end"] = time_triggers_end
@@ -205,6 +209,16 @@ class Analytics_Framework:
         self._plot_number += 1
         self._raw.plot(title=str(self._plot_number), start=start)
 
+    def _try_to_get_events(self):
+        # Check if there are annotations and convert
+        if self._eeg["raw"].annotations:
+            return mne.events_from_annotations(self._eeg["raw"])[0]
+        
+        # Check if there are events
+        if hasattr(self._eeg["raw"], "events"):
+            return self._eeg["raw"].events
+        
+        return None
 
     def _derive_art_length(self):
         d = np.diff(self._eeg["triggers"])  # trigger distances

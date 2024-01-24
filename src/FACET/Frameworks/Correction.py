@@ -1,6 +1,7 @@
 import numpy as np
 import mne, re
 from scipy.stats import pearsonr
+from FACET.helpers.moosmann import single_motion, moving_average, calc_weighted_matrix_by_realignment_parameters_file
 
 # import inst for mne python
 
@@ -52,48 +53,56 @@ class Correction_Framework:
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        corrected_data = raw.pick(channels_to_keep)._data
+        #create array of indicies for each channel by channel name
+        channel_indices = [raw.ch_names.index(ch) for ch in channels_to_keep]
+        #create dict with index as key and channel data as value
+        corrected_data = {i: raw._data[i] for i in channel_indices}
         idx_start, idx_stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
 
         if self.avg_artifact_matrix is not None:
             for key, pos in enumerate(self._eeg["triggers"]):
                 start = idx_start +pos 
                 minColumn = self.avg_artifact_matrix.shape[2]
-                stop = min(start + minColumn, corrected_data.shape[1])
-                corrected_data[:self.avg_artifact_matrix.shape[0], start:stop] -= self.avg_artifact_matrix[:,key,:stop-start]
+                stop = min(start + minColumn, corrected_data[0].shape[0])
+                for i in range(len(channels_to_keep)):
+                    corrected_data[i][start:stop] -= self.avg_artifact_matrix[i,key,:stop-start]
         elif self.avg_artifact_matrix_numpy is not None:
             #iterate through first dimension of matrix
             trigger_offset = self._eeg["tmin"] * self._eeg["raw"].info["sfreq"]
             art_length = self._eeg["duration_art"] * self._eeg["raw"].info["sfreq"]
-            info = mne.create_info(ch_names=["ch1"], sfreq=raw.info['sfreq'], ch_types='eeg')
-            #raw_avg_artifact = mne.EvokedArray(np.empty((1, int(art_length))), info)
-            for ch_id, ch_matrix in enumerate(self.avg_artifact_matrix_numpy):
+            info = mne.create_info(ch_names=channels_to_keep, sfreq=raw.info['sfreq'], ch_types='eeg')
+            raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info)
+            counter = 0
+            for ch_id, ch_matrix in self.avg_artifact_matrix_numpy.items():
+
                 print(f"Removing Artifact from Channel {ch_id}", end=" ")
                 eeg_data_zero_mean = np.array(corrected_data[ch_id]) - np.mean(corrected_data[ch_id])
                 data_split_on_epochs = self.split_vector(eeg_data_zero_mean, np.array(self._eeg["triggers"])+trigger_offset, art_length)
                 avg_artifact = ch_matrix @ data_split_on_epochs
 
-                # raw_avg_artifact.data[0] = avg_artifact[0]
-                # raw_avg_artifact.plot()
+                raw_avg_artifact.data[counter] = avg_artifact[0]
+                counter += 1
 
                 for key, pos in enumerate(self._eeg["triggers"]):
                     start = idx_start+ pos 
                     minColumn = avg_artifact.shape[1]
-                    stop = min(start + minColumn, corrected_data.shape[1])
-                    corrected_data[ch_id, start:stop] -= avg_artifact[key,:stop-start]
+                    stop = min(start + minColumn, corrected_data[ch_id].shape[0])
+                    corrected_data[ch_id][start:stop] -= avg_artifact[key,:stop-start]
                 print()
+            raw_avg_artifact.plot()
         else:
             evoked = self.avg_artifact
             for pos in self._eeg["triggers"]:
                 start = idx_start+pos 
                 minColumn = evoked.data.shape[1]
-                stop = min(start + minColumn, corrected_data.shape[1])
-                corrected_data[:evoked.data.shape[0], start:stop] -= evoked.data[:,:stop-start]
+                stop = min(start + minColumn, corrected_data[0].shape[0])
+                for i in range(len(channels_to_keep)):
+                    corrected_data[i][start:stop] -= evoked.data[i,:stop-start]
             
 
-        raw._data[:corrected_data.shape[0]] = corrected_data
+        for i in corrected_data.keys():
+            self._eeg["raw"]._data[i] = corrected_data[i]
         print(raw.ch_names)
-        self._eeg["raw"]._data[:raw._data.shape[0]] = raw._data
 
     # Calculating Average Artifact 
     def apply_MNE_AAS_old(self):
@@ -109,7 +118,7 @@ class Correction_Framework:
         # Schritt 2: Epochen erstellen
         epochs = mne.Epochs(
             raw,
-            events=self._eeg["events"],
+            events=self._eeg["filtered_events"],
             picks=eeg_channels[:],
             tmin=self._eeg["tmin"],
             tmax=self._eeg["tmax"],
@@ -163,7 +172,7 @@ class Correction_Framework:
         # Epochen erstellen
         epochs = mne.Epochs(
             raw,
-            events=self._eeg["events"],
+            events=self._eeg["filtered_events"],
             picks=eeg_channels[:],
             tmin=self._eeg["tmin"],
             tmax=self._eeg["tmax"],
@@ -209,7 +218,7 @@ class Correction_Framework:
         # Epochen erstellen
         epochs = mne.Epochs(
             raw,
-            events=self._eeg["events"],
+            events=self._eeg["filtered_events"],
             picks=eeg_channels[:],
             tmin=self._eeg["tmin"],
             tmax=self._eeg["tmax"],
@@ -239,7 +248,7 @@ class Correction_Framework:
                 
 
         self.avg_artifact_matrix = np.array(evoked_data)
-    def apply_MNE_AAS_matrix_numpy(self, rel_window_offset=0):
+    def apply_MNE_AAS_matrix_numpy(self, rel_window_offset=0, window_size=25):
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
         eeg_channels = mne.pick_types(
@@ -251,8 +260,7 @@ class Correction_Framework:
         # Epochen erstellen
         epochs = mne.Epochs(
             raw,
-            events=self._eeg["events"],
-            picks=eeg_channels[:],
+            events=self._eeg["filtered_events"],
             tmin=self._eeg["tmin"],
             tmax=self._eeg["tmax"],
             baseline=None,
@@ -260,12 +268,12 @@ class Correction_Framework:
             preload=True,
         )
         original_epochs = epochs.copy()
-        avg_matrix_3d = np.zeros((len(epochs.ch_names), len(epochs), len(epochs)))
-        for idx, ch_name in enumerate(epochs.ch_names):
+        avg_matrix_3d = {}
+        for ch_name in epochs.ch_names:
+            idx = self._eeg["raw"].ch_names.index(ch_name)
             print(f"Averaging Channel {ch_name}", end=" ")
             epochs_single_channel = original_epochs.copy().pick([ch_name])
-            chosen_matrix = self.highly_correlated_epochs_matrix_weighted(epochs_single_channel, rel_window_offset=rel_window_offset)
-            print(chosen_matrix[:10,:10])
+            chosen_matrix = self.highly_correlated_epochs_matrix_weighted(epochs_single_channel, rel_window_offset=rel_window_offset, window_size=window_size)
             avg_matrix_3d[idx] = chosen_matrix
             print()
         
@@ -293,9 +301,6 @@ class Correction_Framework:
         #check if vars are set
         #check if epochs_reference is not empty
         if len(epochs_indices_reference) == 0:
-            return np.array([])
-        #check if epochs is not empty
-        if len(epoch_indices) == 0:
             return np.array([])
         
         sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
@@ -374,13 +379,21 @@ class Correction_Framework:
 
         return chosen_matrix
 
+    def apply_Moosmann(self, file_path, window_size=25, threshold=5):
+        motiondata_struct, weighting_matrix = calc_weighted_matrix_by_realignment_parameters_file(file_path, self._eeg["num_triggers"], window_size, threshold=threshold)
+        #print(weighting_matrix)
+        #determine number of eeg data only channels
+        eeg_channel_indices = mne.pick_types(self._eeg["raw"].info, meg=False, eeg=True, stim=False, exclude='bads')
 
-    def moving_average(self, data, window_size):
-        return np.convolve(data, np.ones(window_size) / window_size, mode="valid")
-    
-    def apply_Moosmann(self):
-        #TODO: Implement Moosmann Algorithm
-        pass
+        avg_artifact_matrix_every_channel = {}
+        #ensure every row in weighting matrix sums up to 1 
+        weighting_matrix = weighting_matrix / np.sum(weighting_matrix, axis=1)[:, np.newaxis]
+        #add weighting matrix to every channel
+        for idx in eeg_channel_indices:
+            avg_artifact_matrix_every_channel[idx] = weighting_matrix
+
+        self.avg_artifact_matrix_numpy=avg_artifact_matrix_every_channel
+        return avg_artifact_matrix_every_channel
 
     def downsample(self):
         print("Downsampling Data")
@@ -404,7 +417,8 @@ class Correction_Framework:
         M = np.zeros((len(Marker), SecLength))
         for i, marker in enumerate(Marker):
             marker = int(marker)
-            M[i, :] = V[marker:(marker + SecLength)]
+            epoch = V[marker:(marker + SecLength)]
+            M[i, :len(epoch)] = epoch
         return M
     def _upsample_data(self):
         self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])

@@ -18,14 +18,14 @@ class TestAnalyticsFramework:
         self.af.pre_processing()
         self.af.find_triggers(r'\b1\b')
         assert self.af._eeg["triggers"] is not None
-        assert self.af._eeg["events"] is not None
+        assert self.af._eeg["filtered_events"] is not None
         assert self.af._eeg["num_triggers"] is not None
         assert self.af._eeg["time_triggers_start"] is not None
         #trigger count should be 840
         assert self.af._eeg["num_triggers"] == 840
         #check if num_triggers is correct
         assert len(self.af._eeg["triggers"]) == self.af._eeg["num_triggers"]
-        assert len(self.af._eeg["events"]) == self.af._eeg["num_triggers"]
+        assert len(self.af._eeg["filtered_events"]) == self.af._eeg["num_triggers"]
 
     def test_plot_EEG(self):
         try:
@@ -47,7 +47,7 @@ class TestAnalyticsFramework:
     def test_artifakt_removal(self):
         #assert number triggers is 840
         self.test_find_triggers()
-        self.af.apply_MNE_AAS(method="new")
+        self.af.apply_AAS(method="new")
         self.af.remove_artifacts()
         self.af.downsample()
         self.af.lowpass(h_freq=40)
