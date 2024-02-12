@@ -3,6 +3,7 @@ FILENAME_EEG = "NiazyFMRI.edf"
 # Unit Test Class
 import pytest, os, edflib
 from src.FACET.Facet import Facet
+from loguru import logger
 
 class TestAnalyticsFramework:
     def setup_method(self):
@@ -55,7 +56,7 @@ class TestAnalyticsFramework:
         #evaluate if the artifact removal was successful
         self.af.add_to_evaluate(self.af.get_eeg(), name="MNE_new")
         results = self.af.evaluate(plot=False,measures=["SNR", "RMS", "RMS2", "MEDIAN"])
-        print(results)
+        logger.info(results)
         for result in results:
             if result["Measure"] == "SNR":
                 assert result["Values"][0] > 3

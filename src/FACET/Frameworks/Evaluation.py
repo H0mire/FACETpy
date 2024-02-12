@@ -2,6 +2,7 @@ import numpy as np
 import mne
 import matplotlib.pyplot as plt
 from operator import itemgetter
+from loguru import logger
 
 class Evaluation_Framework:
     def __init__(self):
@@ -14,7 +15,7 @@ class Evaluation_Framework:
         if not start_time:
             start_time=eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
         raw = eeg["raw"].copy()
-        print(raw.ch_names)
+        logger.info(raw.ch_names)
 
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
@@ -90,7 +91,7 @@ class Evaluation_Framework:
 
         """
         if not self._eeg_list:
-            print("Please set both EEG datasets and crop the EEG to evaluate before calculating RMS.")
+            logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
             return
         results = []
         for mnedict in self._eeg_list:
@@ -120,7 +121,7 @@ class Evaluation_Framework:
 
         """
         if not self._eeg_list:
-            print("Please set both EEG datasets and crop the EEG to evaluate before calculating RMS.")
+            logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
             return
         results = []
         for mnedict in self._eeg_list:
@@ -146,7 +147,7 @@ class Evaluation_Framework:
             list: A list of median imaging artifact values for each dataset.
         """
         if not hasattr(self, '_eeg_list') or not self._eeg_list:
-            print("eeg_list is not set or empty.")
+            logger.error("eeg_list is not set or empty.")
             return
 
         results = []
@@ -154,7 +155,7 @@ class Evaluation_Framework:
         for mne_dict in self._eeg_list:
             _eeg = mne_dict['eeg']
             if _eeg['raw'] is None:
-                print("EEG dataset is not set for this mne_dict.")
+                logger.error("EEG dataset is not set for this mne_dict.")
                 continue
 
             # Create epochs around the artifact triggers
@@ -185,7 +186,7 @@ class Evaluation_Framework:
 
         """
         if not self._eeg_list:
-            print("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
+            logger.error("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
         results = []
         for mnedict in self._eeg_list:

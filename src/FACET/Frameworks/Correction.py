@@ -2,7 +2,7 @@ import numpy as np
 import mne, re
 from scipy.stats import pearsonr
 from FACET.helpers.moosmann import single_motion, moving_average, calc_weighted_matrix_by_realignment_parameters_file
-
+from loguru import logger
 # import inst for mne python
 
 
@@ -84,7 +84,7 @@ class Correction_Framework:
         counter = 0
         for ch_id, ch_matrix in self.avg_artifact_matrix_numpy.items():
 
-            print(f"Removing Artifact from Channel {ch_id}", end=" ")
+            logger.debug(f"Removing Artifact from Channel {ch_id}", end=" ")
             eeg_data_zero_mean = np.array(corrected_data_template[ch_id]) - np.mean(corrected_data_template[ch_id])
             data_split_on_epochs = self.split_vector(eeg_data_zero_mean, np.array(self._eeg["triggers"])+trigger_offset, art_length)
             avg_artifact = ch_matrix @ data_split_on_epochs
@@ -97,7 +97,6 @@ class Correction_Framework:
                 minColumn = avg_artifact.shape[1]
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
                 corrected_data_template[ch_id][start:stop] -= avg_artifact[key,:stop-start]
-            print()
             # raw_avg_artifact.plot()
         for i in corrected_data_template.keys():
             self._eeg["raw"]._data[i] = corrected_data_template[i]
@@ -136,11 +135,10 @@ class Correction_Framework:
         avg_matrix_3d = {}
         for ch_name in epochs.ch_names:
             idx = self._eeg["raw"].ch_names.index(ch_name)
-            print(f"Averaging Channel {ch_name}", end=" ")
+            logger.debug(f"Averaging Channel {ch_name}", end=" ")
             epochs_single_channel = original_epochs.copy().pick([ch_name])
             chosen_matrix = self.calc_chosen_matrix(epochs_single_channel, rel_window_offset=rel_window_position, window_size=window_size)
             avg_matrix_3d[idx] = chosen_matrix
-            print()
         
         self.avg_artifact_matrix_numpy = avg_matrix_3d
         return avg_matrix_3d
@@ -195,7 +193,7 @@ class Correction_Framework:
 
     def apply_Moosmann(self, file_path, window_size=25, threshold=5):
         motiondata_struct, weighting_matrix = calc_weighted_matrix_by_realignment_parameters_file(file_path, self._eeg["num_triggers"], window_size, threshold=threshold)
-        #print(weighting_matrix)
+        logger.debug(weighting_matrix)
         #determine number of eeg data only channels
         eeg_channel_indices = mne.pick_types(self._eeg["raw"].info, meg=False, eeg=True, stim=False, exclude='bads')
 
@@ -210,21 +208,21 @@ class Correction_Framework:
         return avg_artifact_matrix_every_channel
 
     def downsample(self):
-        print("Downsampling Data")
+        logger.info("Downsampling Data")
         self._downsample_data()
         return
     def upsample(self):
-        print("Upsampling Data")
+        logger.info("Upsampling Data")
         self._upsample_data()
         return
     def lowpass(self, h_freq=45):
         # Apply lowpassfilter
-        print("Applying lowpassfilter")
+        logger.info("Applying lowpassfilter")
         self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
         return
     def highpass(self, l_freq=1):
         # Apply highpassfilter
-        print("Applying highpassfilter")
+        logger.info("Applying highpassfilter")
         self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def split_vector(self, V, Marker, SecLength):
         SecLength = int(SecLength)

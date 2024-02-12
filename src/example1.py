@@ -1,5 +1,14 @@
 import os, time
 from FACET.Facet import Facet
+
+from loguru import logger
+
+#logging configuration
+logger.remove()
+logger.add(sys.stderr, level="INFO")
+logger.add("Facet.log", level="DEBUG")
+
+
 os.getcwd()
 os.chdir(os.path.dirname(os.path.abspath("__file__")))
 
@@ -35,9 +44,9 @@ f.apply_AAS(method="mne matrix", rel_window_position=0, window_size=25)
 f.remove_artifacts( )
 eeg = f.get_EEG()
 #print triggers
-#print(eeg["triggers"])
+#logger.debug(eeg["triggers"])
 
 f.downsample()
 f.lowpass(h_freq=40)
 end = time.perf_counter()
-print("Processing took " + str(end - start) + " seconds")
+logger.info("Processing took " + str(end - start) + " seconds")

@@ -2,6 +2,7 @@ from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
 from .Frameworks.Analytics import Analytics_Framework
 import mne
+from loguru import logger
 
 class Facet:
 
@@ -14,6 +15,7 @@ class Facet:
     def get_EEG(self):
         return self._eeg
     def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10, bads=[]):
+        logger.info(f"Importing EEG from {filename}")
         self._eeg = self._analytics.import_EEG(filename, rel_trig_pos=rel_trig_pos, upsampling_factor=upsampling_factor, bads=bads)
         self._correction = Correction_Framework(self._eeg)
         return self._eeg
@@ -23,11 +25,8 @@ class Facet:
     def get_eeg(self):
         return self._eeg
     def find_triggers(self, regex, idx = 0):
+        logger.info("finding triggers")
         self._analytics.find_triggers(regex, idx=idx)
-        print("finding triggers")
-    def find_triggers_with_events(self, regex, idx=0):
-        self._analytics.find_triggers_with_events(regex, idx=idx)
-        print("finding triggers")
     def prepare(self):
         self._correction.prepare()
     def apply_AAS(self, method="numpy", rel_window_position=0, window_size=25):

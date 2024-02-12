@@ -3,6 +3,7 @@ import mne, re, os
 from mne_bids import BIDSPath, write_raw_bids, read_raw_bids
 from scipy.stats import pearsonr
 import numpy as np
+from loguru import logger
 
 # import inst for mne python
 
@@ -38,12 +39,12 @@ class Analytics_Framework:
             line_freq = input("Please enter the line frequency: ")
             self._eeg["raw"].info["line_freq"] = float(line_freq)
         if "line_freq" not in self._eeg["raw_orig"].info or self._eeg["raw_orig"].info["line_freq"] is None:
-            line_freq = input("Please enter the line frequency: ")
+            line_freq = line_freq if line_freq else input("Please enter the line frequency: ")
             self._eeg["raw_orig"].info["line_freq"] = float(line_freq)
         _BIDSPath = BIDSPath(
             subject=subject, session=session, task=task, root=bids_path
         )
-        print("Exporting Channels: "+str(self._eeg["raw"].ch_names))
+        logger.info("Exporting Channels: "+str(self._eeg["raw"].ch_names))
 
         raw = self._eeg["raw"].copy()
         raw_orig = self._eeg["raw_orig"].copy()
@@ -89,13 +90,13 @@ class Analytics_Framework:
             "volume_gaps": None,
             "BIDSPath": bids_path
         }
-        print("Importing EEG with:")
-        print("Channels " + str(raw.ch_names))
-        print(f"Time Start: {time_start}s")
-        print(f"Time End: {time_end}s")
-        print(f"Number of Samples: {raw.n_times}")
-        print(f"Sampling Frequency: {raw.info['sfreq']}Hz")
-        print(bids_path)
+        logger.info("Importing EEG with:")
+        logger.info("Channels " + str(raw.ch_names))
+        logger.info(f"Time Start: {time_start}s")
+        logger.info(f"Time End: {time_end}s")
+        logger.info(f"Number of Samples: {raw.n_times}")
+        logger.info(f"Sampling Frequency: {raw.info['sfreq']}Hz")
+        logger.info(bids_path)
         return self._eeg
 
 
@@ -138,13 +139,13 @@ class Analytics_Framework:
         events = self._try_to_get_events()
         if events is not None:
             self._eeg["events"] = events
-        print("Importing EEG with:")
-        print("Channels " + str(raw.ch_names))
-        print(f"Time Start: {time_start}s")
-        print(f"Time End: {time_end}s")
-        print(f"Number of Samples: {raw.n_times}")
-        print(f"Sampling Frequency: {raw.info['sfreq']}Hz")
-        print(filename)
+        logger.info("Importing EEG with:")
+        logger.info("Channels " + str(raw.ch_names))
+        logger.info(f"Time Start: {time_start}s")
+        logger.info(f"Time End: {time_end}s")
+        logger.info(f"Number of Samples: {raw.n_times}")
+        logger.info(f"Sampling Frequency: {raw.info['sfreq']}Hz")
+        logger.info(filename)
         return self._eeg
 
     def export_EEG(self, filename):
@@ -159,20 +160,19 @@ class Analytics_Framework:
         
 
         if len(stim_channels) > 0:
-            print("Stim-Kanäle gefunden:", [raw.ch_names[ch] for ch in stim_channels])
+            logger.debug("Stim-Kanäle gefunden:", [raw.ch_names[ch] for ch in stim_channels])
             events = mne.find_events(raw, stim_channel=raw.ch_names[stim_channels[0]], initial_event=True)
             pattern = re.compile(regex)
             filtered_events = [event for event in events if pattern.search(str(event[2]))]
 
         else:
-            print("No Stim-Channels found.")
-            print()
+            logger.debug("No Stim-Channels found.")
             events_obj = mne.events_from_annotations(raw)
-            print(events_obj[1])
+            logger.debug(events_obj[1])
             filtered_events = mne.events_from_annotations(raw, regexp=regex)[0]
         
         if len(filtered_events)==0:
-            print("No events found.")
+            logger.error("No events found!")
             return
         filtered_positions = [event[idx] for event in filtered_events]
         filtered_events = np.array(filtered_events)
@@ -189,7 +189,6 @@ class Analytics_Framework:
         self._derive_art_length()
         self._eeg["tmin"] = self._eeg["rel_trigger_pos"]
         self._eeg["tmax"] = self._eeg["tmin"] + self._eeg["duration_art"]
-        print("Channels after find trigger: "+str(self._eeg["raw"].ch_names))
 
 
     # TODO: Implement better Structure
@@ -254,3 +253,18 @@ class Analytics_Framework:
                 )
 
         return specific_annotations
+    
+    def print_analytics(self):
+        logger.info("Analytics:")
+        logger.info(f"Number of Triggers found: {self._num_triggers}")
+        logger.info(f"Art Length: {self._eeg['art_length']}")
+        logger.info(f"Duration of Art in seconds: {self._eeg['duration_art']}")
+
+        # EEG information
+        # print EEG Channels
+        raw = self._eeg["raw"]
+        ch_names = raw.ch_names
+        count_ch = len(ch_names)
+        logger.info("Number of Channels: " + str(count_ch) )
+        logger.info("Channel Names: " + str(ch_names))
+
