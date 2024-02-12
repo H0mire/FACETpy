@@ -30,12 +30,14 @@ class Facet:
     def prepare(self):
         self._correction.prepare()
     def apply_AAS(self, method="numpy", rel_window_position=0, window_size=25):
+        logger.info(f"Applying AAS with method {method}")
         if method == "numpy":
             self._correction.apply_AAS(rel_window_position, window_size=window_size)
         else:
             raise ValueError("Invalid method parameter")
         
     def apply_Moosmann(self, file_path, threshold=5, window_size=25):
+        logger.info(f"Applying Moosmann with {file_path}")
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
     def remove_artifacts(self):  
         self._correction.remove_artifacts()
