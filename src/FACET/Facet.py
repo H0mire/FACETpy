@@ -30,15 +30,15 @@ class Facet:
         print("finding triggers")
     def prepare(self):
         self._correction.prepare()
-    def apply_AAS(self, method="normal", rel_window_offset=0, window_size=25):
+    def apply_AAS(self, method="numpy", rel_window_offset=0, window_size=25):
         if method == "old":
             self._correction.apply_MNE_AAS_old()
-        elif method == "matrix":
+        elif method == "mne matrix":
             self._correction.apply_MNE_AAS_matrix()
-        elif method == "normal":
+        elif method == "mne":
             self._correction.apply_MNE_AAS()
         elif method == "numpy":
-            self._correction.apply_MNE_AAS_matrix_numpy(rel_window_offset, window_size=window_size)
+            self._correction.apply_AAS_matrix_numpy(rel_window_offset, window_size=window_size)
         else:
             raise ValueError("Invalid method parameter")
         

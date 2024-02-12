@@ -89,7 +89,7 @@ class Correction_Framework:
                     stop = min(start + minColumn, corrected_data[ch_id].shape[0])
                     corrected_data[ch_id][start:stop] -= avg_artifact[key,:stop-start]
                 print()
-            raw_avg_artifact.plot()
+            #raw_avg_artifact.plot()
         else:
             evoked = self.avg_artifact
             for pos in self._eeg["triggers"]:
@@ -202,7 +202,7 @@ class Correction_Framework:
             tmin=original_epochs.times[0]
         )
 
-        combined_evoked.plot()
+        #combined_evoked.plot()
 
         self.avg_artifact = combined_evoked
     
@@ -248,7 +248,7 @@ class Correction_Framework:
                 
 
         self.avg_artifact_matrix = np.array(evoked_data)
-    def apply_MNE_AAS_matrix_numpy(self, rel_window_offset=0, window_size=25):
+    def apply_AAS_matrix_numpy(self, rel_window_offset=0, window_size=25):
         raw = self._eeg["raw"].copy()  # Erstelle eine Kopie, um das Original unverändert zu lassen
 
         eeg_channels = mne.pick_types(
