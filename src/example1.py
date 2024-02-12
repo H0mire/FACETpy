@@ -30,7 +30,7 @@ eeg = f.get_EEG()
 
 #f.find_triggers(r'.*TR.*') # Using Fischmeisters data
 
-f.apply_AAS(method="mne matrix", rel_window_offset=0, window_size=25)
+f.apply_AAS(method="mne matrix", rel_window_position=0, window_size=25)
 
 f.remove_artifacts( )
 eeg = f.get_EEG()

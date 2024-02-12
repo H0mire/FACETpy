@@ -30,15 +30,9 @@ class Facet:
         print("finding triggers")
     def prepare(self):
         self._correction.prepare()
-    def apply_AAS(self, method="numpy", rel_window_offset=0, window_size=25):
-        if method == "old":
-            self._correction.apply_MNE_AAS_old()
-        elif method == "mne matrix":
-            self._correction.apply_MNE_AAS_matrix()
-        elif method == "mne":
-            self._correction.apply_MNE_AAS()
-        elif method == "numpy":
-            self._correction.apply_AAS_matrix_numpy(rel_window_offset, window_size=window_size)
+    def apply_AAS(self, method="numpy", rel_window_position=0, window_size=25):
+        if method == "numpy":
+            self._correction.apply_AAS(rel_window_position, window_size=window_size)
         else:
             raise ValueError("Invalid method parameter")
         
@@ -47,9 +41,11 @@ class Facet:
     def remove_artifacts(self):  
         self._correction.remove_artifacts()
     def pre_processing(self):
+        #change to your liking
         self._correction.highpass(1)
         self._correction.upsample()
     def post_processing(self):
+        #change to your liking
         self._correction.downsample()
         self._correction.lowpass(50)
     def cut(self):
@@ -68,8 +64,21 @@ class Facet:
         self._evaluation.add_to_evaluate(eeg,start_time=start_time, end_time=end_time, name=name)
     def evaluate(self, plot=True, measures=["SNR"]):
         return self._evaluation.evaluate(plot=plot, measures=measures)
-    def export_as_bids(self, event_id=None):
-        self._analytics.export_as_bids(event_id=event_id)
+    def export_as_bids(self, event_id=None, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"):
+        self._analytics.export_as_bids(event_id=event_id, bids_path=bids_path, subject=subject, session=session, task=task)
     def import_from_bids(self, bids_path="./bids_dir", rel_trig_pos=0, upsampling_factor=10, bads=[], subject="subjectid", session="sessionid", task="corrected"):
         self._eeg = self._analytics.import_from_bids(bids_path, rel_trig_pos=rel_trig_pos, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
         self._correction = Correction_Framework(self._eeg)
+    
+    def get_correction(self):
+        return self._correction
+    def get_evaluation(self):
+        return self._evaluation
+    def get_analytics(self):
+        return self._analytics
+    def set_correction(self, correction):
+        self._correction = correction
+    def set_evaluation(self, evaluation):
+        self._evaluation = evaluation
+    def set_analytics(self, analytics):
+        self._analytics = analytics
