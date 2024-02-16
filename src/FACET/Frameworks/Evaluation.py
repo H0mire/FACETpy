@@ -9,11 +9,23 @@ class Evaluation_Framework:
         self._eeg_list = []
         return
 
-    def add_to_evaluate(self, eeg,start_time=None, end_time=None, name=None):
+    def add_to_evaluate(self, eeg, start_time=None, end_time=None, name=None):
+        """
+        Add EEG data to the evaluation list.
+
+        Args:
+            eeg (dict): Dictionary containing EEG data.
+            start_time (float, optional): Start time of the data to be evaluated. If not provided, it defaults to the start time of the first trigger.
+            end_time (float, optional): End time of the data to be evaluated. If not provided, it defaults to the end time of the last trigger section.
+            name (str, optional): Name of the evaluation data. Defaults to None.
+
+        Returns:
+            None
+        """
         if not end_time:
-            end_time=eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
+            end_time = eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
         if not start_time:
-            start_time=eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
+            start_time = eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
         raw = eeg["raw"].copy()
         logger.info(raw.ch_names)
 
@@ -21,9 +33,9 @@ class Evaluation_Framework:
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        cropped_mne_raw = self._crop(raw=eeg["raw"],tmin=start_time, tmax=end_time).pick(channels_to_keep)
+        cropped_mne_raw = self._crop(raw=eeg["raw"], tmin=start_time, tmax=end_time).pick(channels_to_keep)
         ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time).pick(channels_to_keep)
-        artifact_raw_reference_raw_dict = {"eeg":eeg,"raw":cropped_mne_raw,"ref":ref_mne_raw, "raw_orig":eeg["raw_orig"],"name":name}
+        artifact_raw_reference_raw_dict = {"eeg": eeg, "raw": cropped_mne_raw, "ref": ref_mne_raw, "raw_orig": eeg["raw_orig"], "name": name}
 
         self._eeg_list.append(artifact_raw_reference_raw_dict)
 
@@ -33,13 +45,10 @@ class Evaluation_Framework:
         return raw.copy().crop(tmin=tmin, tmax=tmax)
 
     def _cutout(self,raw, tmin, tmax):
-        # Der erste Teil des Datensatzes, vor tmin
         first_part = raw.copy().crop(tmax=tmin)
 
-        # Der zweite Teil des Datensatzes, nach tmax
         second_part = raw.copy().crop(tmin=tmax)
 
-        # Die beiden Teile wieder zusammenfügen
         first_part.append(second_part)
         return first_part
     
@@ -56,20 +65,20 @@ class Evaluation_Framework:
         if plot:
             self.plot(results)
         return results
-    #Plot all results with matplotlib
+    # Plot all results with matplotlib
     def plot(self, results):
 
-        # Bestimme die Anzahl der Subplots basierend auf der Anzahl der Measures
+        # Determine the number of subplots based on the number of measures
         num_subplots = len(results)
 
-        # Erstellen Sie Subplots mit 1 Reihe und so vielen Spalten wie es Measures gibt
+        # Create subplots with 1 row and as many columns as there are measures
         fig, axs = plt.subplots(1, num_subplots, figsize=(5 * num_subplots, 5))
 
-        # Wenn nur ein Measure vorhanden ist, wird axs nicht als Liste zurückgegeben
+        # If there is only one measure, axs is not returned as a list
         if num_subplots == 1:
             axs = [axs]
 
-        # Füllen Sie jeden Subplot
+        # Fill each subplot
         for ax, result in zip(axs, results):
             bars = ax.bar(range(len(result["Values"])), result["Values"])
             ax.set_title(result["Measure"])
@@ -78,8 +87,8 @@ class Evaluation_Framework:
             ax.set_xticks(range(len(result["Values"])))
             ax.set_xticklabels(x_labels, rotation=45)
 
-        # Anzeigen des gesamten Fensters mit allen Subplots
-        plt.tight_layout()  # Verwendet, um sicherzustellen, dass die Subplots nicht überlappen
+        # Display the entire window with all subplots
+        plt.tight_layout()  # Used to ensure that the subplots do not overlap
         plt.show()
 
         return 0

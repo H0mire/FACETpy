@@ -1,12 +1,37 @@
+""" Correction Framework Module
+
+This module contains the Correction_Framework class, which is used to correct EEG data.
+
+Author: Janik Michael Müller
+Date: 15.02.2024
+Version: 1.0
+"""
+
 import numpy as np
 import mne, re
 from scipy.stats import pearsonr
-from FACET.helpers.moosmann import single_motion, moving_average, calc_weighted_matrix_by_realignment_parameters_file
+from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
+from FACET.helpers.fastranc import fastranc
 from loguru import logger
+from scipy.signal import filtfilt
 # import inst for mne python
 
 
 class Correction_Framework:
+    """
+    The Correction_Framework class is used to correct EEG data.
+
+    The class contains methods to correct EEG data, such as removing artifacts, applying AAS and Moosmann correction,
+    and preprocessing and postprocessing the data.
+
+    Attributes:
+        _eeg (dict): A dictionary containing the EEG metadata and data
+        _plot_number (int): A counter for the number of plots.
+        avg_artifact (numpy.ndarray): The average artifact matrix.
+        avg_artifact_matrix (dict): A dictionary containing the average artifact matrix for each EEG channel.
+        avg_artifact_matrix_numpy (dict): A dictionary containing the average artifact matrix for each EEG channel as a numpy array.
+    """
+
     def __init__(
         self,
         eeg,
@@ -19,31 +44,74 @@ class Correction_Framework:
 
 
     def cut(self):
+        """
+        Crops the raw EEG data based on the time triggers.
+
+        The method crops the raw EEG data from the start of the time triggers
+        until the minimum of the end time and the sum of the time triggers end
+        and the duration of artifacts.
+
+        Returns:
+            None
+        """
         self._eeg["raw"].crop(
             tmin=self._eeg["time_triggers_start"],
             tmax=min(self._eeg["time_end"],
                 self._eeg["time_triggers_end"]
-                + self._eeg["duration_art"],
+                + self._eeg["duration_art"]
             ),
         )
         return
-    #TODO: Implement better Structure
     def get_mne_raw(self):
-        return self._eeg["raw"]
+            """
+            Returns the raw MNE object.
+
+            Returns:
+                mne.io.Raw: The raw MNE object.
+            """
+            return self._eeg["raw"]
     def get_mne_raw_orig(self):
-        return self._eeg["raw_orig"]
+            """
+            Returns the original raw EEG data.
+
+            Returns:
+                mne.io.Raw: The original raw EEG data.
+            """
+            return self._eeg["raw_orig"]
     def set_eeg(self, eeg):
+        """
+        Sets the EEG data for the Correction object.
+
+        Args:
+            eeg: The EEG data to be set.
+
+        Returns:
+            None
+        """
         self._eeg = eeg
         return
 
     def prepare(self):
+        """
+        Prepares the data for correction by upsampling it.
+        """
         self._upsample_data()
 
     def plot_EEG(self, start=0, title=None):
-        if not title:
-            self._plot_number += 1
-            title = str(self._plot_number)
-        self._eeg["raw"].plot(title=title, start=start)
+            """
+            Plots the raw EEG data.
+
+            Parameters:
+            - start (int): The starting index of the data to be plotted.
+            - title (str): The title of the plot. If not provided, a default title will be used.
+
+            Returns:
+            None
+            """
+            if not title:
+                self._plot_number += 1
+                title = str(self._plot_number)
+            self._eeg["raw"].plot(title=title, start=start)
 
     def remove_artifacts(self, avg_artifact_matrix_numpy=None):
         """
@@ -80,7 +148,7 @@ class Correction_Framework:
         trigger_offset = self._eeg["tmin"] * self._eeg["raw"].info["sfreq"]
         art_length = self._eeg["duration_art"] * self._eeg["raw"].info["sfreq"]
         info = mne.create_info(ch_names=channels_to_keep, sfreq=raw.info['sfreq'], ch_types='eeg')
-        raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info)
+        raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info) # Only for optional plotting
         counter = 0
         for ch_id, ch_matrix in self.avg_artifact_matrix_numpy.items():
 
@@ -144,54 +212,85 @@ class Correction_Framework:
         return avg_matrix_3d
 
     def highly_correlated_epochs_with_indices(self, full_epochs, epoch_indices, epochs_indices_reference, threshold=0.975):
-        """Return list of epochs that are highly correlated to the average."""
-        #check if vars are set
-        #check if epochs_reference is not empty
-        if len(epochs_indices_reference) == 0:
-            return np.array([])
-        
-        sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
-        chosen = list(epochs_indices_reference)
-        # Check subsequent epochs
-        for idx in epoch_indices:
-            #check if idx is already in chosen
-            if idx in chosen:
-                continue
-            avg_data = sum_data / len(chosen)
-            corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[0, 1]
-            if corr > threshold:
-                sum_data += full_epochs._data[idx]
-                chosen.append(idx)
+            """
+            Returns the indices of highly correlated epochs based on a reference set of epochs.
 
-        return np.array(chosen)
+            Parameters:
+            full_epochs (Epochs): The full set of epochs.
+            epoch_indices (list): The indices of epochs to be checked for correlation.
+            epochs_indices_reference (list): The indices of reference epochs.
+            threshold (float, optional): The correlation threshold. Defaults to 0.975.
+
+            Returns:
+            numpy.ndarray: The indices of highly correlated epochs.
+            """
+            #check if epochs_reference is not empty
+            if len(epochs_indices_reference) == 0:
+                return np.array([])
+            
+            sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
+            chosen = list(epochs_indices_reference)
+            # Check subsequent epochs
+            for idx in epoch_indices:
+                #check if idx is already in chosen
+                if idx in chosen:
+                    continue
+                avg_data = sum_data / len(chosen)
+                corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[0, 1]
+                if corr > threshold:
+                    sum_data += full_epochs._data[idx]
+                    chosen.append(idx)
+
+            return np.array(chosen)
     
 
     def calc_chosen_matrix(self, epochs, threshold=0.975, window_size=25, rel_window_offset=0):
-        """Return list of epochs that are highly correlated to the average."""
-        n_epochs = len(epochs)
+            """
+            Calculate the chosen matrix based on the given epochs.
 
-        chosen_matrix = np.zeros((n_epochs, n_epochs))
+            Parameters:
+            epochs (list): List of epochs.
+            threshold (float): Threshold value for correlation.
+            window_size (int): Size of the window for calculating correlations.
+            rel_window_offset (float): Relative offset of the window.
 
-        window_offset = int(window_size * rel_window_offset) # Get offset in amount of epochs
+            Returns:
+            numpy.ndarray: The chosen matrix.
+            """
+            n_epochs = len(epochs)
 
-        for idx in range(0, n_epochs, window_size):
-            offset_idx = idx + window_offset
+            chosen_matrix = np.zeros((n_epochs, n_epochs))
 
-            reference_indices = np.arange(idx, min(idx+5, n_epochs))
-            candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
-            #remove all negative indices
-            candidates = candidates[candidates >= 0]
-            #calculate offset
-            chosen = self.highly_correlated_epochs_with_indices(epochs, candidates,reference_indices, threshold=threshold)
-            if len(chosen)== 0:
-                continue
-            indices = np.arange(idx, min(idx+window_size, n_epochs))
-            chosen_matrix[np.ix_(indices, chosen)] = 1/len(chosen)
+            window_offset = int(window_size * rel_window_offset) # Get offset in amount of epochs
 
-        return chosen_matrix
+            for idx in range(0, n_epochs, window_size):
+                offset_idx = idx + window_offset
+
+                reference_indices = np.arange(idx, min(idx+5, n_epochs))
+                candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
+                #remove all negative indices
+                candidates = candidates[candidates >= 0]
+                chosen = self.highly_correlated_epochs_with_indices(epochs, candidates,reference_indices, threshold=threshold)
+                if len(chosen)== 0:
+                    continue
+                indices = np.arange(idx, min(idx+window_size, n_epochs))
+                chosen_matrix[np.ix_(indices, chosen)] = 1/len(chosen)
+
+            return chosen_matrix
 
 
     def apply_Moosmann(self, file_path, window_size=25, threshold=5):
+        """
+        Apply Moosmann correction to the given file.
+
+        Args:
+            file_path (str): The path to the file.
+            window_size (int, optional): The size of the window for calculating the weighted matrix. Defaults to 25.
+            threshold (int, optional): The threshold for determining artifact segments. Defaults to 5.
+
+        Returns:
+            dict: A dictionary containing the average artifact matrix for each EEG channel.
+        """
         motiondata_struct, weighting_matrix = calc_weighted_matrix_by_realignment_parameters_file(file_path, self._eeg["num_triggers"], window_size, threshold=threshold)
         logger.debug(weighting_matrix)
         #determine number of eeg data only channels
@@ -206,35 +305,122 @@ class Correction_Framework:
 
         self.avg_artifact_matrix_numpy=avg_artifact_matrix_every_channel
         return avg_artifact_matrix_every_channel
+    
+    def AdaptiveNoiseCancellation(self, EEG, Noise):
+        acq_start = self._eeg["time_triggers_start"] * self._eeg["raw"].info["sfreq"]
+        acq_end = acq_start + self._eeg["art_length"]
+
+        Reference = Noise[acq_start:acq_end].T
+        tmpd = filtfilt(self.ANCHPFilterWeights, 1, EEG).T
+        Data = tmpd[acq_start:acq_end].astype(float)
+        Alpha = np.sum(Data * Reference) / np.sum(Reference * Reference)
+        Reference = (Alpha * Reference).astype(float)
+        mu = float(0.05 / (self.ANCFilterOrder * np.var(Reference)))
+
+        # Use the fastranc function for adaptive noise cancellation
+        _, FilteredNoise = fastranc(Reference, Data, self.ANCFilterOrder, mu)
+
+        if np.isinf(np.max(FilteredNoise)):
+            print('Warning: ANC failed, skipping ANC.')
+        else:
+            EEG[acq_start:acq_end] = EEG[acq_start:acq_end] - FilteredNoise.T
+
+        return EEG
 
     def downsample(self):
+        """
+        Downsamples the data.
+
+        This method downsamples the data by performing a downsampling operation on the data.
+        It logs a message indicating that the downsampling is being performed.
+        """
         logger.info("Downsampling Data")
         self._downsample_data()
         return
     def upsample(self):
-        logger.info("Upsampling Data")
-        self._upsample_data()
-        return
+            """
+            Upsamples the data.
+
+            This method performs upsampling on the data.
+
+            Returns:
+                None
+            """
+            logger.info("Upsampling Data")
+            self._upsample_data()
+            return
     def lowpass(self, h_freq=45):
-        # Apply lowpassfilter
-        logger.info("Applying lowpassfilter")
-        self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
-        return
+            """
+            Apply a lowpass filter to the raw EEG data.
+
+            Parameters:
+            - h_freq: float, optional
+                The cutoff frequency for the lowpass filter. Default is 45 Hz.
+
+            Returns:
+            None
+            """
+            # Apply lowpassfilter
+            logger.info("Applying lowpassfilter")
+            self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
+            return
     def highpass(self, l_freq=1):
-        # Apply highpassfilter
-        logger.info("Applying highpassfilter")
+        """
+        Apply a highpass filter to the raw EEG data.
+
+        Args:
+            l_freq (float): The lower cutoff frequency for the highpass filter.
+
+        Returns:
+            None
+        """
+        # Apply highpass filter
+        logger.info("Applying highpass filter")
         self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def split_vector(self, V, Marker, SecLength):
-        SecLength = int(SecLength)
-        M = np.zeros((len(Marker), SecLength))
-        for i, marker in enumerate(Marker):
-            marker = int(marker)
-            epoch = V[marker:(marker + SecLength)]
-            M[i, :len(epoch)] = epoch
-        return M
+            """
+            Splits a vector into multiple sections based on marker positions.
+
+            Parameters:
+            V (numpy.ndarray): The input vector.
+            Marker (list): List of marker positions.
+            SecLength (int): Length of each section.
+
+            Returns:
+            numpy.ndarray: A 2D array containing the split sections of the vector.
+            """
+            SecLength = int(SecLength)
+            M = np.zeros((len(Marker), SecLength))
+            for i, marker in enumerate(Marker):
+                marker = int(marker)
+                epoch = V[marker:(marker + SecLength)]
+                M[i, :len(epoch)] = epoch
+            return M
     def _upsample_data(self):
-        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
+            """
+            Upsamples the raw EEG data.
+
+            This method resamples the raw EEG data by multiplying the sampling frequency
+            with the upsampling factor.
+
+            Parameters:
+                None
+
+            Returns:
+                None
+            """
+            self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
 
     def _downsample_data(self):
-        # Resample (downsample) the data
+        """
+        Resamples (downsamples) the data by reducing the sampling frequency.
+
+        This method resamples the raw EEG data by dividing the sampling frequency
+        by the upsampling factor. The resulting downsampled data is stored in the
+        `_eeg["raw"]` attribute.
+
+        Note:
+            The `_eeg` attribute should be initialized before calling this method.
+
+        """
         self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._eeg["upsampling_factor"])

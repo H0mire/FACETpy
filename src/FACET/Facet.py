@@ -24,9 +24,9 @@ class Facet:
         self._analytics.export_EEG(filename)
     def get_eeg(self):
         return self._eeg
-    def find_triggers(self, regex, idx = 0):
+    def find_triggers(self, regex):
         logger.info("finding triggers")
-        self._analytics.find_triggers(regex, idx=idx)
+        self._analytics.find_triggers(regex)
     def prepare(self):
         self._correction.prepare()
     def apply_AAS(self, method="numpy", rel_window_position=0, window_size=25):
