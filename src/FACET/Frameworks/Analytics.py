@@ -19,14 +19,17 @@ from loguru import logger
 
 
 class Analytics_Framework:
-    def __init__(self):
+    def __init__(self, FACET, eeg = None):
         self._triggers = None
         self._num_triggers = None
         self._plot_number = 0
+        self._FACET = FACET
 
         self._eeg = {
             "raw": None, # MNE Raw Object
-            "raw_orig": None, # MNE Raw Object unimpaired
+            "raw_orig": None, # MNE Raw Object unimpaired,
+            "noise":None, 
+            "trigger_regex":None,
             "tmin": None, # Relative Start Time of Artifact. Often equal to rel_trigger_pos. Often 0
             "tmax": None, # Relative End Time of Artifact. Often equal to tmin + duration_art
             "rel_trigger_pos": 0, # Relative Trigger Position. Often 0. Means that the trigger is at the beginning of the artifact
@@ -42,6 +45,8 @@ class Analytics_Framework:
             "duration_art": None, # Length of the artifact in seconds
             "volume_gaps": None, # True if there are gaps between the slices of the fMRI Scan
         }
+        if eeg:
+            self._eeg=eeg
 
     def export_as_bids(self, event_id, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"): 
             """
@@ -107,10 +112,12 @@ class Analytics_Framework:
             self._eeg = {
                 "raw": raw,
                 "raw_orig": raw_orig,
+                "noise":np.zeros(raw._data.shape),
                 "tmin": None,
                 "tmax": None,
                 "rel_trigger_pos": rel_trig_pos,
                 "triggers": None,
+                "trigger_regex":None,
                 "events": events_obj,
                 "filtered_events": None,
                 "num_triggers": None,
@@ -167,10 +174,12 @@ class Analytics_Framework:
             self._eeg = {
                 "raw": raw,
                 "raw_orig": raw_orig,
+                "noise": np.zeros(raw._data.shape),
                 "tmin": None,
                 "tmax": None,
                 "rel_trigger_pos": rel_trig_pos,
                 "triggers": None,
+                "trigger_regex":None,
                 "events": None,
                 "filtered_events": None,
                 "num_triggers": None,
@@ -236,6 +245,7 @@ class Analytics_Framework:
         num_triggers = len(filtered_positions)
         time_triggers_start = raw.times[triggers[0]]
         time_triggers_end = raw.times[triggers[-1]]
+        self._eeg["trigger_regex"]=regex
         self._eeg["triggers"] = triggers
         self._eeg["filtered_events"] = filtered_events
         self._eeg["num_triggers"] = num_triggers
@@ -335,8 +345,8 @@ class Analytics_Framework:
         if self._eeg["num_triggers"] >= 1:
             # Schätzung der Frequenz der Trigger
             Tr = 1
-            while Tr <= self.NumTriggers:
-                tr_samp_diff = self._eeg["filtered_events"][Tr] - self._eeg["filtered_events"][0]  # Python-Indexierung beginnt bei 0
+            while Tr <= self._eeg["num_triggers"]:
+                tr_samp_diff = self._eeg["triggers"][Tr] - self._eeg["triggers"][0]  # Python-Indexierung beginnt bei 0
                 if tr_samp_diff >= self._eeg["raw"].info["sfreq"]:
                     break
                 Tr += 1
@@ -346,12 +356,14 @@ class Analytics_Framework:
             self._eeg["ANC_HP_Frequency"] = 2
 
         filtorder = round(1.2 * self._eeg["raw"].info["sfreq"] / (self._eeg["ANC_HP_Frequency"] * (1 - trans)))
-        if filtorder % 2 != 0:
+        if filtorder % 2 == 0:
             filtorder += 1
+
 
         f = [0, self._eeg["ANC_HP_Frequency"] * (1 - trans) / nyq, self._eeg["ANC_HP_Frequency"] / nyq, 1]
         a = [0, 0, 1, 1]
         self._eeg["ANC_HP_Filter_Weights"] = firls(filtorder, f, a)
+        self._eeg["ANC_Filter_order"] = int(np.ceil(self._eeg["art_length"] / self._eeg["upsampling_factor"]))
         
 
     def _filter_annotations(self, regex):

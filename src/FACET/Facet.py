@@ -7,9 +7,9 @@ from loguru import logger
 class Facet:
 
     def __init__(self):
-        self._analytics = Analytics_Framework()
+        self._analytics = Analytics_Framework(self)
         self._correction = None
-        self._evaluation = Evaluation_Framework()
+        self._evaluation = Evaluation_Framework(self)
         self._eeg = None
         mne.set_log_level('ERROR')
     def get_EEG(self):
@@ -17,7 +17,7 @@ class Facet:
     def import_EEG(self, filename, rel_trig_pos=0, upsampling_factor=10, bads=[]):
         logger.info(f"Importing EEG from {filename}")
         self._eeg = self._analytics.import_EEG(filename, rel_trig_pos=rel_trig_pos, upsampling_factor=upsampling_factor, bads=bads)
-        self._correction = Correction_Framework(self._eeg)
+        self._correction = Correction_Framework(self,self._eeg)
         return self._eeg
 
     def export_EEG(self, filename):
@@ -49,6 +49,7 @@ class Facet:
         #change to your liking
         self._correction.downsample()
         self._correction.lowpass(50)
+        #self._correction.apply_ANC()
     def cut(self):
         self._correction.cut()
     def plot_EEG(self, start=0, title=None):
@@ -69,7 +70,7 @@ class Facet:
         self._analytics.export_as_bids(event_id=event_id, bids_path=bids_path, subject=subject, session=session, task=task)
     def import_from_bids(self, bids_path="./bids_dir", rel_trig_pos=0, upsampling_factor=10, bads=[], subject="subjectid", session="sessionid", task="corrected"):
         self._eeg = self._analytics.import_from_bids(bids_path, rel_trig_pos=rel_trig_pos, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
-        self._correction = Correction_Framework(self._eeg)
+        self._correction = Correction_Framework(self,self._eeg)
     
     def get_correction(self):
         return self._correction

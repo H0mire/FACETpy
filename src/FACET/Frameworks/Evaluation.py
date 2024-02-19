@@ -5,8 +5,9 @@ from operator import itemgetter
 from loguru import logger
 
 class Evaluation_Framework:
-    def __init__(self):
+    def __init__(self, FACET):
         self._eeg_list = []
+        self._FACET = FACET
         return
 
     def add_to_evaluate(self, eeg, start_time=None, end_time=None, name=None):

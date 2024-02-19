@@ -12,6 +12,7 @@ import mne, re
 from scipy.stats import pearsonr
 from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
 from FACET.helpers.fastranc import fastranc
+from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
 from scipy.signal import filtfilt
 # import inst for mne python
@@ -34,9 +35,11 @@ class Correction_Framework:
 
     def __init__(
         self,
-        eeg,
+        FACET,
+        eeg
     ):
         self._eeg=eeg
+        self._FACET = FACET
         self._plot_number = 0
         self.avg_artifact = None
         self.avg_artifact_matrix = None
@@ -133,11 +136,9 @@ class Correction_Framework:
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
-        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        # create array of indices for each channel by channel name
-        channel_indices = [raw.ch_names.index(ch) for ch in channels_to_keep]
+        channels_to_keep = [raw.ch_names[i] for i in eeg_channels]
         # create dict with index as key and channel data as value
-        corrected_data_template = {i: raw._data[i] for i in channel_indices}
+        corrected_data_template = {i: raw._data[i] for i in eeg_channels}
         idx_start, idx_stop = raw.time_as_index([self._eeg["tmin"], self._eeg["tmax"]], use_rounding=True)
 
         if avg_artifact_matrix_numpy is None:
@@ -149,6 +150,7 @@ class Correction_Framework:
         art_length = self._eeg["duration_art"] * self._eeg["raw"].info["sfreq"]
         info = mne.create_info(ch_names=channels_to_keep, sfreq=raw.info['sfreq'], ch_types='eeg')
         raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info) # Only for optional plotting
+        noise = self._eeg["noise"]
         counter = 0
         for ch_id, ch_matrix in self.avg_artifact_matrix_numpy.items():
 
@@ -164,6 +166,7 @@ class Correction_Framework:
                 start = idx_start+ pos 
                 minColumn = avg_artifact.shape[1]
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
+                noise[ch_id,start:stop] += avg_artifact[key,:stop-start] 
                 corrected_data_template[ch_id][start:stop] -= avg_artifact[key,:stop-start]
             # raw_avg_artifact.plot()
         for i in corrected_data_template.keys():
@@ -306,22 +309,52 @@ class Correction_Framework:
         self.avg_artifact_matrix_numpy=avg_artifact_matrix_every_channel
         return avg_artifact_matrix_every_channel
     
-    def AdaptiveNoiseCancellation(self, EEG, Noise):
-        acq_start = self._eeg["time_triggers_start"] * self._eeg["raw"].info["sfreq"]
-        acq_end = acq_start + self._eeg["art_length"]
+    def apply_ANC(self):
+        """
+        This method utilizes the _anc method to clean the eeg data from each channel
+        """
+    	
+        logger.debug("applying ANC")
+        try:
+            raw = self._eeg["raw"].copy()
+            eeg_channels = mne.pick_types(
+                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+            )
+            channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+            raw.pick(channels_to_keep)  # raw wird in-place modifiziert
+            noise = self._eeg["noise"][eeg_channels]
+
+            _corrected_data = raw._data.copy()
+
+            for key, val in enumerate(raw._data):
+                _corrected_channel_data = self._anc(val, noise[key])
+                _corrected_data[key] = _corrected_channel_data
+            
+            for ch_id, ch_d in enumerate(_corrected_data):
+                ch_name = raw.ch_names[ch_id]
+                ch_id_real = self._eeg["raw"].ch_names.index(ch_name)
+                self._eeg["raw"]._data[ch_id_real] = ch_d
+        except Exception as ex:
+            logger.exception("An exception occured while applying ANC", ex)  
+             
+
+
+    def _anc(self, EEG, Noise):
+        acq_start = int(self._eeg["triggers"][0])
+        acq_end = int(acq_start + self._eeg["art_length"])
 
         Reference = Noise[acq_start:acq_end].T
-        tmpd = filtfilt(self.ANCHPFilterWeights, 1, EEG).T
+        tmpd = filtfilt(self._eeg["ANC_HP_Filter_Weights"], 1, EEG).T
         Data = tmpd[acq_start:acq_end].astype(float)
         Alpha = np.sum(Data * Reference) / np.sum(Reference * Reference)
         Reference = (Alpha * Reference).astype(float)
-        mu = float(0.05 / (self.ANCFilterOrder * np.var(Reference)))
+        mu = float(0.05 / (self._eeg["ANC_Filter_order"] * np.var(Reference)))
 
         # Use the fastranc function for adaptive noise cancellation
-        _, FilteredNoise = fastranc(Reference, Data, self.ANCFilterOrder, mu)
+        _, FilteredNoise = fastranc(Reference, Data, self._eeg["ANC_Filter_order"], mu)
 
         if np.isinf(np.max(FilteredNoise)):
-            print('Warning: ANC failed, skipping ANC.')
+            logger.error('Warning: ANC failed, skipping ANC.')
         else:
             EEG[acq_start:acq_end] = EEG[acq_start:acq_end] - FilteredNoise.T
 
@@ -338,32 +371,32 @@ class Correction_Framework:
         self._downsample_data()
         return
     def upsample(self):
-            """
-            Upsamples the data.
+        """
+        Upsamples the data.
 
-            This method performs upsampling on the data.
+        This method performs upsampling on the data.
 
-            Returns:
-                None
-            """
-            logger.info("Upsampling Data")
-            self._upsample_data()
-            return
-    def lowpass(self, h_freq=45):
-            """
-            Apply a lowpass filter to the raw EEG data.
-
-            Parameters:
-            - h_freq: float, optional
-                The cutoff frequency for the lowpass filter. Default is 45 Hz.
-
-            Returns:
+        Returns:
             None
-            """
-            # Apply lowpassfilter
-            logger.info("Applying lowpassfilter")
-            self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
-            return
+        """
+        logger.info("Upsampling Data")
+        self._upsample_data()
+        return
+    def lowpass(self, h_freq=45):
+        """
+        Apply a lowpass filter to the raw EEG data.
+
+        Parameters:
+        - h_freq: float, optional
+            The cutoff frequency for the lowpass filter. Default is 45 Hz.
+
+        Returns:
+        None
+        """
+        # Apply lowpassfilter
+        logger.info("Applying lowpassfilter")
+        self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
+        return
     def highpass(self, l_freq=1):
         """
         Apply a highpass filter to the raw EEG data.
@@ -378,38 +411,38 @@ class Correction_Framework:
         logger.info("Applying highpass filter")
         self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
     def split_vector(self, V, Marker, SecLength):
-            """
-            Splits a vector into multiple sections based on marker positions.
+        """
+        Splits a vector into multiple sections based on marker positions.
 
-            Parameters:
-            V (numpy.ndarray): The input vector.
-            Marker (list): List of marker positions.
-            SecLength (int): Length of each section.
+        Parameters:
+        V (numpy.ndarray): The input vector.
+        Marker (list): List of marker positions.
+        SecLength (int): Length of each section.
 
-            Returns:
-            numpy.ndarray: A 2D array containing the split sections of the vector.
-            """
-            SecLength = int(SecLength)
-            M = np.zeros((len(Marker), SecLength))
-            for i, marker in enumerate(Marker):
-                marker = int(marker)
-                epoch = V[marker:(marker + SecLength)]
-                M[i, :len(epoch)] = epoch
-            return M
+        Returns:
+        numpy.ndarray: A 2D array containing the split sections of the vector.
+        """
+        SecLength = int(SecLength)
+        M = np.zeros((len(Marker), SecLength))
+        for i, marker in enumerate(Marker):
+            marker = int(marker)
+            epoch = V[marker:(marker + SecLength)]
+            M[i, :len(epoch)] = epoch
+        return M
     def _upsample_data(self):
-            """
-            Upsamples the raw EEG data.
+        """
+        Upsamples the raw EEG data.
 
-            This method resamples the raw EEG data by multiplying the sampling frequency
-            with the upsampling factor.
+        This method resamples the raw EEG data by multiplying the sampling frequency
+        with the upsampling factor.
 
-            Parameters:
-                None
+        Parameters:
+            None
 
-            Returns:
-                None
-            """
-            self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
+        Returns:
+            None
+        """
+        self.resample_data(self._eeg["raw"].info["sfreq"] * self._eeg["upsampling_factor"])
 
     def _downsample_data(self):
         """
@@ -423,4 +456,23 @@ class Correction_Framework:
             The `_eeg` attribute should be initialized before calling this method.
 
         """
-        self._eeg["raw"].resample(sfreq=self._eeg["raw"].info["sfreq"] / self._eeg["upsampling_factor"])
+        self.resample_data(self._eeg["raw"].info["sfreq"] / self._eeg["upsampling_factor"])
+
+    def resample_data(self, sfreq):
+        """
+        Resamples (downsamples) the data by a given sampling frequency.
+
+        Note:
+            The `_eeg` attribute should be initialized before calling this method.
+        """
+        noise_raw=self._eeg["raw"].copy()
+        noise_raw._data = self._eeg["noise"]
+        self._eeg["noise"] = noise_raw.resample(sfreq=sfreq)._data.copy()
+        #unload noise_raw
+        noise_raw = None
+        self._eeg["raw"].resample(sfreq=sfreq)
+        regex = self._eeg["trigger_regex"]
+        if regex:
+            self._FACET._analytics.find_triggers(regex)
+
+
