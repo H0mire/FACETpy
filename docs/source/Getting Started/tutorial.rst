@@ -1,101 +1,68 @@
-.. _setting-up-python-project:
-
-Setting Up a Python Project
-===========================
+Averaged Artifact Subtraction (AAS) Correction in EEG Data
+===========================================================
 
 Introduction
 ------------
 
-In this tutorial, we will guide you through the process of setting up a Python project. This includes creating a project structure, setting up a virtual environment, and managing dependencies.
+This document provides an overview of applying Averaged Artifact Subtraction (AAS) to EEG data using the MNE-Python library. AAS is a technique used to reduce noise and artifacts, such as eye blinks or heartbeats, from EEG recordings, thereby improving the quality of the data for analysis.
 
 Prerequisites
 -------------
 
-Before you begin, make sure you have the following installed on your system:
+Before applying AAS, ensure you have the following:
 
-- Python (version X.X.X or higher)
-- pip (Python package installer)
+- MNE-Python installed in your environment
+- An EEG dataset imported with the analyis Framework
 
-Step 1: Create Project Structure
---------------------------------
+Installation of MNE-Python can be done using pip:
 
-1. Create a new directory for your project:
+.. code-block:: bash
 
-   .. code-block:: bash
+   pip install mne
 
-      $ mkdir my_project
-      $ cd my_project
+Loading Your EEG Data
+---------------------
 
-2. Inside the project directory, create the following structure:
+To begin, load your EEG dataset into an MNE `Raw` object:
 
-   .. code-block:: bash
+.. code-block:: python
 
-      my_project/
-      ├── my_module/
-      │   ├── __init__.py
-      │   └── my_module.py
-      ├── tests/
-      │   ├── __init__.py
-      │   └── test_my_module.py
-      ├── docs/
-      │   ├── source/
-      │   │   └── index.rst
-      │   └── build/
-      ├── README.md
-      ├── requirements.txt
-      └── setup.py
+   import mne
 
-Step 2: Set Up Virtual Environment
-----------------------------------
+   # Path to your EEG file
+   file_path = 'path/to/your/eeg_file.edf'
+   # Event Regex assuming using stim channel
+   event_regex = r'\b1\b'
 
-1. Create a virtual environment for your project:
+   # Loading the EEG data
+   f = new FACET()
+   f.import_EEG(file_path)
 
-   .. code-block:: bash
+Applying Averaged Artifact Subtraction
+--------------------------------------
 
-      $ python -m venv venv
+Once your data is loaded, apply AAS to correct for artifacts:
 
-2. Activate the virtual environment:
+.. code-block:: python
 
-   - On Windows:
+   f.find_triggers(event_regex)
+   f.applyAAS()
+   f.remove_artifacts()
 
-     .. code-block:: bash
 
-        $ venv\Scripts\activate
+Further Processing
+------------------
 
-   - On macOS and Linux:
+After applying AAS, you can proceed with further EEG data processing, such as filtering, epoching, and analysis.
 
-     .. code-block:: bash
+.. code-block:: python
 
-        $ source venv/bin/activate
-
-Step 3: Install Dependencies
-----------------------------
-
-1. Install the required packages listed in the `requirements.txt` file:
-
-   .. code-block:: bash
-
-      $ pip install -r requirements.txt
-
-Step 4: Run Tests
------------------
-
-1. Run the tests to ensure everything is set up correctly:
-
-   .. code-block:: bash
-
-      $ python -m unittest discover -s tests
+   # Example: Applying a band-pass filter
+   f.lowpass()
 
 Conclusion
 ----------
 
-Congratulations! You have successfully set up your Python project. You can now start developing your application.
+Applying Averaged Artifact Subtraction (AAS) is crucial for preparing EEG data for analysis by reducing noise and artifacts. This documentation outlined the steps to apply AAS using MNE-Python, from loading your EEG data to applying the AAS correction.
 
-Next Steps
-----------
-
-- Customize the project structure to fit your needs.
-- Add your code to the appropriate files in the project structure.
-- Update the `README.md` file with project-specific information.
-- Document your project by editing the `index.rst` file in the `docs/source` directory.
-
+For more detailed information on processing EEG data with MNE-Python, refer to the official MNE-Python documentation.
