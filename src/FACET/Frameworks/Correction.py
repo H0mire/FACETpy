@@ -382,7 +382,7 @@ class Correction_Framework:
         return
     
     
-    def filter(self, l_freq=1, h_freq=45):
+    def filter(self, l_freq=None, h_freq=None):
         """
         Apply a highpass filter to the raw EEG data.
 
