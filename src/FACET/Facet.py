@@ -43,12 +43,12 @@ class Facet:
         self._correction.remove_artifacts()
     def pre_processing(self): # Change to your liking
         #change to your liking
-        self._correction.highpass(1)
+        self._correction.filter(l_freq=1)
         self._correction.upsample()
     def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()
-        self._correction.lowpass(50)
+        self._correction.filter(h_freq=45)
         #self._correction.apply_ANC()
     def cut(self):
         self._correction.cut()
