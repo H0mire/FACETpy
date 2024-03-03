@@ -41,11 +41,11 @@ class Facet:
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
     def remove_artifacts(self):  
         self._correction.remove_artifacts()
-    def pre_processing(self):
+    def pre_processing(self): # Change to your liking
         #change to your liking
         self._correction.highpass(1)
         self._correction.upsample()
-    def post_processing(self):
+    def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()
         self._correction.lowpass(50)
@@ -56,10 +56,10 @@ class Facet:
         self._correction.plot_EEG(start=start, title=title)
     def downsample(self):
         self._correction.downsample()
-    def lowpass(self, h_freq=45):
-        self._correction.lowpass(h_freq=h_freq)
-    def highpass(self, l_freq=1):
-        self._correction.highpass(l_freq=l_freq)
+    def lowpass(self, freq=45):
+        self._correction.filter(h_freq=freq, l_freq=None)
+    def highpass(self, freq=1):
+        self._correction.filter(l_freq=freq, h_freq=None)
     def upsample(self):
         self._correction.upsample()
     def add_to_evaluate(self, eeg,start_time=None, end_time=None, name=None):

@@ -109,7 +109,7 @@ class Correction_Framework:
             - title (str): The title of the plot. If not provided, a default title will be used.
 
             Returns:
-            None
+                None
             """
             if not title:
                 self._plot_number += 1
@@ -215,71 +215,71 @@ class Correction_Framework:
         return avg_matrix_3d
 
     def highly_correlated_epochs_with_indices(self, full_epochs, epoch_indices, epochs_indices_reference, threshold=0.975):
-            """
-            Returns the indices of highly correlated epochs based on a reference set of epochs.
+        """
+        Returns the indices of highly correlated epochs based on a reference set of epochs.
 
-            Parameters:
+        Parameters:
             full_epochs (Epochs): The full set of epochs.
             epoch_indices (list): The indices of epochs to be checked for correlation.
             epochs_indices_reference (list): The indices of reference epochs.
             threshold (float, optional): The correlation threshold. Defaults to 0.975.
 
-            Returns:
+        Returns:
             numpy.ndarray: The indices of highly correlated epochs.
-            """
-            #check if epochs_reference is not empty
-            if len(epochs_indices_reference) == 0:
-                return np.array([])
-            
-            sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
-            chosen = list(epochs_indices_reference)
-            # Check subsequent epochs
-            for idx in epoch_indices:
-                #check if idx is already in chosen
-                if idx in chosen:
-                    continue
-                avg_data = sum_data / len(chosen)
-                corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[0, 1]
-                if corr > threshold:
-                    sum_data += full_epochs._data[idx]
-                    chosen.append(idx)
+        """
+        #check if epochs_reference is not empty
+        if len(epochs_indices_reference) == 0:
+            return np.array([])
+        
+        sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
+        chosen = list(epochs_indices_reference)
+        # Check subsequent epochs
+        for idx in epoch_indices:
+            #check if idx is already in chosen
+            if idx in chosen:
+                continue
+            avg_data = sum_data / len(chosen)
+            corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[0, 1]
+            if corr > threshold:
+                sum_data += full_epochs._data[idx]
+                chosen.append(idx)
 
-            return np.array(chosen)
+        return np.array(chosen)
     
 
     def calc_chosen_matrix(self, epochs, threshold=0.975, window_size=25, rel_window_offset=0):
-            """
-            Calculate the chosen matrix based on the given epochs.
+        """
+        Calculate the chosen matrix based on the given epochs.
 
-            Parameters:
+        Parameters:
             epochs (list): List of epochs.
             threshold (float): Threshold value for correlation.
             window_size (int): Size of the window for calculating correlations.
             rel_window_offset (float): Relative offset of the window.
 
-            Returns:
+        Returns:
             numpy.ndarray: The chosen matrix.
-            """
-            n_epochs = len(epochs)
+        """
+        n_epochs = len(epochs)
 
-            chosen_matrix = np.zeros((n_epochs, n_epochs))
+        chosen_matrix = np.zeros((n_epochs, n_epochs))
 
-            window_offset = int(window_size * rel_window_offset) # Get offset in amount of epochs
+        window_offset = int(window_size * rel_window_offset) # Get offset in amount of epochs
 
-            for idx in range(0, n_epochs, window_size):
-                offset_idx = idx + window_offset
+        for idx in range(0, n_epochs, window_size):
+            offset_idx = idx + window_offset
 
-                reference_indices = np.arange(idx, min(idx+5, n_epochs))
-                candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
-                #remove all negative indices
-                candidates = candidates[candidates >= 0]
-                chosen = self.highly_correlated_epochs_with_indices(epochs, candidates,reference_indices, threshold=threshold)
-                if len(chosen)== 0:
-                    continue
-                indices = np.arange(idx, min(idx+window_size, n_epochs))
-                chosen_matrix[np.ix_(indices, chosen)] = 1/len(chosen)
+            reference_indices = np.arange(idx, min(idx+5, n_epochs))
+            candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
+            #remove all negative indices
+            candidates = candidates[candidates >= 0]
+            chosen = self.highly_correlated_epochs_with_indices(epochs, candidates,reference_indices, threshold=threshold)
+            if len(chosen)== 0:
+                continue
+            indices = np.arange(idx, min(idx+window_size, n_epochs))
+            chosen_matrix[np.ix_(indices, chosen)] = 1/len(chosen)
 
-            return chosen_matrix
+        return chosen_matrix
 
 
     def apply_Moosmann(self, file_path, window_size=25, threshold=5):
@@ -308,7 +308,6 @@ class Correction_Framework:
 
         self.avg_artifact_matrix_numpy=avg_artifact_matrix_every_channel
         return avg_artifact_matrix_every_channel
-    
     def apply_ANC(self):
         """
         This method utilizes the _anc method to clean the eeg data from each channel
@@ -373,7 +372,6 @@ class Correction_Framework:
     def upsample(self):
         """
         Upsamples the data.
-
         This method performs upsampling on the data.
 
         Returns:
@@ -382,34 +380,20 @@ class Correction_Framework:
         logger.info("Upsampling Data")
         self._upsample_data()
         return
-    def lowpass(self, h_freq=45):
-        """
-        Apply a lowpass filter to the raw EEG data.
-
-        Parameters:
-        - h_freq: float, optional
-            The cutoff frequency for the lowpass filter. Default is 45 Hz.
-
-        Returns:
-        None
-        """
-        # Apply lowpassfilter
-        logger.info("Applying lowpassfilter")
-        self._eeg["raw"].filter(l_freq=None, h_freq=h_freq)
-        return
-    def highpass(self, l_freq=1):
+    
+    
+    def filter(self, l_freq=1, h_freq=45):
         """
         Apply a highpass filter to the raw EEG data.
 
         Args:
             l_freq (float): The lower cutoff frequency for the highpass filter.
-
         Returns:
             None
         """
         # Apply highpass filter
-        logger.info("Applying highpass filter")
-        self._eeg["raw"].filter(l_freq=l_freq, h_freq=None)
+        logger.debug(f"Applying filter with l_freq={l_freq} and h_freq={h_freq}")
+        self._eeg["raw"].filter(l_freq=l_freq, h_freq=h_freq)
     def split_vector(self, V, Marker, SecLength):
         """
         Splits a vector into multiple sections based on marker positions.
