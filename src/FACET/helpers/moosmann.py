@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+#loguru
+from loguru import logger
+
 def single_motion(transrotdata, p_slomo_threshold, p_trans_rot_scale):
     # p_trans_rot_scale=100;                   # scale factor trans vs rot motion
     # p_slomo_threshold=5;                      #  threshold for motion signal
@@ -52,6 +55,11 @@ def calc_weighted_matrix_by_realignment_parameters_file(rp_file, n_fmri, k, thre
 
     # Beachte Dummy-Scans
     diff_n = n_fmri - n_data
+    if diff_n < 0:
+        logger.error('Number of volumes in the realignment parameter file is larger than the number of volumes in the fMRI data. Please check the realignment parameter file.')
+        #raise error
+        raise ValueError('Number of volumes in the realignment parameter file is larger than the number of volumes in the fMRI data. Please check the realignment parameter file.')
+
     motiondata['both_not_normed'] = np.concatenate((np.zeros(diff_n), motiondata['both_not_normed']))
 
     if np.max(motiondata['both_not_normed']) > 0:
