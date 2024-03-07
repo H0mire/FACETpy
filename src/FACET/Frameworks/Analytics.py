@@ -243,6 +243,7 @@ class Analytics_Framework:
         filtered_events = np.array(filtered_events)
         triggers = filtered_positions
         num_triggers = len(filtered_positions)
+        logger.debug(f"Found {num_triggers} triggers")
         time_triggers_start = raw.times[triggers[0]]
         time_triggers_end = raw.times[triggers[-1]]
         self._eeg["trigger_regex"]=regex
@@ -402,7 +403,7 @@ class Analytics_Framework:
 
         """
         logger.info("Analytics:")
-        logger.info(f"Number of Triggers found: {self._num_triggers}")
+        logger.info(f"Number of Triggers found: {self._eeg['num_triggers']}")
         logger.info(f"Art Length: {self._eeg['art_length']}")
         logger.info(f"Duration of Art in seconds: {self._eeg['duration_art']}")
 

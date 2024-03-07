@@ -18,7 +18,15 @@ Before applying AAS, ensure you have the following:
 Installation of necessary packages can be done using pip:
 
 .. code-block:: bash
+   # Optional: Create a virtual environment
+   pip install virtualenv
+   python -m venv venv
+   # On Windows
+   venv\Scripts\activate.bat
+   # On Unix or MacOS
+   source venv/bin/activate
 
+   # Mandatory: Install the necessary packages
    pip install -r requirements.txt
 
 Loading Your EEG Data
@@ -45,7 +53,7 @@ To begin, load your EEG dataset into FACET object:
    #End Configuration Block
 
    # Loading the EEG data by creating a FACET object and importing the EEG data
-   f = new FACET()
+   f = FACET()
    f.import_EEG(file_path, upsample_factor)
 
 Preprocessing
@@ -84,7 +92,7 @@ Once your triggers are specified, apply AAS to correct for artifacts:
 
 .. code-block:: python
 
-   f.applyAAS()
+   f.apply_AAS()
 
 .. important::
 
@@ -115,6 +123,23 @@ After removing artifacts, you can proceed with further EEG data processing, such
    # Example: Applying a low-pass filter
    f.downsample() # downsampling by upsample factor
    f.lowpass(50)
+
+Plotting the Processed EEG Data
+-------------------------------
+If you want to visualize the processed EEG data, you can use the `plot_EEG` method.
+
+.. code-block:: python
+
+   f.plot_EEG()
+
+Exporting the Processed EEG Data
+--------------------------------
+After processing your EEG data, you may want to export the processed data to a file.
+This can be done using the `export_EEG` method, which takes the file path as an argument.
+
+.. code-block:: python
+
+   f.export_EEG('path/to/your/processed_eeg_file.edf')
 
 Conclusion
 ----------
