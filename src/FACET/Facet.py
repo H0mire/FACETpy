@@ -41,8 +41,8 @@ class Facet:
     def apply_Moosmann(self, file_path, threshold=5, window_size=25):
         logger.info(f"Applying Moosmann with {file_path}")
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
-    def remove_artifacts(self):  
-        self._correction.remove_artifacts()
+    def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):  
+        self._correction.remove_artifacts(avg_artifact_matrix_numpy=avg_artifact_matrix_numpy, plot_artifacts=plot_artifacts, )
     def pre_processing(self): # Change to your liking
         #change to your liking
         self._correction.filter(l_freq=1)

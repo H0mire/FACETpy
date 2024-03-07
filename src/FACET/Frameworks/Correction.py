@@ -116,7 +116,7 @@ class Correction_Framework:
                 title = str(self._plot_number)
             self._eeg["raw"].plot(title=title, start=start)
 
-    def remove_artifacts(self, avg_artifact_matrix_numpy=None):
+    def remove_artifacts(self, avg_artifact_matrix_numpy=None,plot_artifacts=False):
         """
         Remove artifacts from the EEG data.
 
@@ -168,7 +168,7 @@ class Correction_Framework:
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
                 noise[ch_id,start:stop] += avg_artifact[key,:stop-start] 
                 corrected_data_template[ch_id][start:stop] -= avg_artifact[key,:stop-start]
-            # raw_avg_artifact.plot()
+        if plot_artifacts: raw_avg_artifact.plot()
         for i in corrected_data_template.keys():
             self._eeg["raw"]._data[i] = corrected_data_template[i]
 
