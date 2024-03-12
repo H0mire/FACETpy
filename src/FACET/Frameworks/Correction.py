@@ -335,6 +335,8 @@ class Correction_Framework:
                 self._eeg["raw"]._data[ch_id_real] = ch_d
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
+    def align_subsample():
+        return "TODO: Implement"
              
 
 
