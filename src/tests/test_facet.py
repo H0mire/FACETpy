@@ -8,7 +8,7 @@ from loguru import logger
 class TestAnalyticsFramework:
     def setup_method(self):
         self.af = Facet()
-        self.af.import_EEG(FILENAME_EEG, rel_trig_pos=-0.01, bads=['EMG', 'ECG'])
+        self.af.import_EEG(FILENAME_EEG, artifact_to_trigger_offset=-0.01, bads=['EMG', 'ECG'])
 
     def test_import_EEG(self):
         assert self.af._eeg.mne_raw is not None

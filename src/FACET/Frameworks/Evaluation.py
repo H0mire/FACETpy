@@ -24,7 +24,7 @@ class Evaluation_Framework:
             None
         """
         if not end_time:
-            end_time = eeg.time_triggers_end if eeg.time_triggers_end else eeg.data_time_end
+            end_time = eeg.time_last_trigger_end if eeg.time_last_trigger_end else eeg.data_time_end
         if not start_time:
             start_time = eeg.time_first_trigger_start if eeg.time_first_trigger_start else eeg.data_time_start
         raw = eeg.mne_raw.copy()
@@ -156,7 +156,7 @@ class Evaluation_Framework:
         Returns:
             list: A list of median imaging artifact values for each dataset.
         """
-        if not hasattr(self, '_eeg_list') or not self._eeg_eval_dict_list:
+        if not hasattr(self, '_eeg_eval_dict_list') or not self._eeg_eval_dict_list:
             logger.error("eeg_list is not set or empty.")
             return
 
@@ -164,18 +164,18 @@ class Evaluation_Framework:
 
         for mne_dict in self._eeg_eval_dict_list:
             _eeg = mne_dict['eeg']
-            if _eeg['raw'] is None:
+            if _eeg.mne_raw is None:
                 logger.error("EEG dataset is not set for this mne_dict.")
                 continue
 
             # Create epochs around the artifact triggers
-            events = np.column_stack((_eeg['triggers'], np.zeros_like(_eeg['triggers']), np.ones_like(_eeg['triggers'])))
+            events = np.column_stack((_eeg.loaded_triggers, np.zeros_like(_eeg.loaded_triggers), np.ones_like(_eeg.loaded_triggers)))
             tmin = _eeg.get_tmin()  # Start time before the event
             tmax = _eeg.get_tmax()  # End time after the event
             baseline = None  # No baseline correction
-            picks = mne.pick_types(_eeg['raw'].info, meg=False, eeg=True, stim=False, eog=False, exclude='bads')
+            picks = mne.pick_types(_eeg.mne_raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
-            epochs = mne.Epochs(_eeg['raw'], events = events, tmin = tmin, tmax = tmax, proj=True,reject=None, picks=picks, baseline=baseline, preload=True)
+            epochs = mne.Epochs(_eeg.mne_raw, events = events, tmin = tmin, tmax = tmax, proj=True,reject=None, picks=picks, baseline=baseline, preload=True)
             # Calculate the peak-to-peak value for each epoch and channel
             p2p_values_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data()]
 

@@ -18,7 +18,7 @@ class EEG:
     data_time_start= None
     data_time_end= None
     artifact_length= None
-    ariftact_duration= None
+    artifact_duration= None
     volume_gaps= None
     BIDSPath= None
 
@@ -27,9 +27,9 @@ class EEG:
     anc_hp_filter_weights = None #The filter weights of the ANC
     anc_filter_order = None #The filter order of the ANC
 
-    def __init__(self, mne_raw=None, mne_raw_orig=None, anc_hp_frequency=None, estimated_noise=None, artifact_to_trigger_offset=0.0, loaded_triggers=None, last_trigger_search_regex=None, all_events=None, triggers_as_events=None, count_triggers=None, upsampling_factor=None, time_first_trigger_start=None, time_last_trigger_end=None, data_time_start=None, data_time_end=None, artifact_length=None, ariftact_duration=None, volume_gaps=None, BIDSPath=None):
+    def __init__(self, mne_raw=None, mne_raw_orig=None, anc_hp_frequency=None, estimated_noise=None, artifact_to_trigger_offset=0.0, loaded_triggers=None, last_trigger_search_regex=None, all_events=None, triggers_as_events=None, count_triggers=None, upsampling_factor=None, time_first_trigger_start=None, time_last_trigger_end=None, data_time_start=None, data_time_end=None, artifact_length=0, artifact_duration=0, volume_gaps=None, BIDSPath=None):
         self.mne_raw = mne_raw
-        self.mne_raw_orig = mne_raw_orig if mne_raw_orig is not None else mne_raw.copy()
+        self.mne_raw_orig = mne_raw_orig if mne_raw_orig is not None else mne_raw.copy() if mne_raw is not None else None
         self.anc_hp_frequency = anc_hp_frequency
         self.estimated_noise = estimated_noise
         self.artifact_to_trigger_offset = artifact_to_trigger_offset
@@ -44,7 +44,7 @@ class EEG:
         self.data_time_start = data_time_start
         self.data_time_end = data_time_end
         self.artifact_length = artifact_length
-        self.ariftact_duration = ariftact_duration
+        self.artifact_duration = artifact_duration
         self.volume_gaps = volume_gaps
         self.BIDSPath = BIDSPath
 

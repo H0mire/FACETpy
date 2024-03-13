@@ -69,7 +69,7 @@ class Analytics_Framework:
 
             Args:
                 bids_path (str): Path to the BIDS dataset directory. Default is "./bids_dir".
-                rel_trig_pos (int): Relative trigger position. Default is 0.
+                artifact_to_trigger_offset (int): Relative trigger position. Default is 0.
                 upsampling_factor (int): Upsampling factor. Default is 10.
                 bads (list): List of bad channels to exclude. Default is an empty list.
                 subject (str): Subject ID. Default is "subjectid".
@@ -94,7 +94,7 @@ class Analytics_Framework:
                             artifact_to_trigger_offset=artifact_to_trigger_offset,
                             BIDSPath=bids_path_i,
                             upsampling_factor=upsampling_factor,
-                            noise=np.zeros(raw._data.shape),
+                            estimated_noise=np.zeros(raw._data.shape),
                             all_events=events_obj,
                             data_time_start=data_time_start,
                             data_time_end=data_time_end)
@@ -115,7 +115,7 @@ class Analytics_Framework:
 
             Parameters:
             - filename (str): The path to the EEG file.
-            - rel_trig_pos (float): The relative position of the trigger in the data.
+            - artifact_to_trigger_offset (float): The relative position of the trigger in the data.
             - upsampling_factor (int): The factor by which to upsample the data.
             - fmt (str): The format of the EEG file (either "edf" or "gdf").
             - bads (list): A list of bad channels to exclude from the data.
@@ -140,7 +140,7 @@ class Analytics_Framework:
             self._eeg = EEG(mne_raw=raw,
                             artifact_to_trigger_offset=artifact_to_trigger_offset,
                             upsampling_factor=upsampling_factor,
-                            noise=np.zeros(raw._data.shape),
+                            estimated_noise=np.zeros(raw._data.shape),
                             data_time_start=data_time_start,
                             data_time_end=data_time_end)
             events = self._try_to_get_events()
@@ -206,6 +206,8 @@ class Analytics_Framework:
         self._eeg.volume_gaps = False
         self._derive_art_length()
         self._derive_anc_hp_params()
+        self._eeg._tmin = self._eeg.artifact_to_trigger_offset
+        self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
 
 
     def get_mne_raw(self):
@@ -268,7 +270,7 @@ class Analytics_Framework:
         The calculated artifact length is stored in the `_eeg.artifact_length` attribute.
 
         If there are no volume gaps, the duration of the artifact is also calculated and stored
-        in the `_eeg.ariftact_duration` attribute.
+        in the `_eeg.artifact_duration` attribute.
 
         Returns:
             None
@@ -285,7 +287,7 @@ class Analytics_Framework:
         else:
             # total length of an artifact
             self._eeg.artifact_length = np.max(d)
-            self._eeg.ariftact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
+            self._eeg.artifact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
 
             
     def _derive_anc_hp_params(self):
@@ -352,9 +354,9 @@ class Analytics_Framework:
 
         """
         logger.info("Analytics:")
-        logger.info(f"Number of Triggers found: {self._eeg['num_triggers']}")
-        logger.info(f"Art Length: {self._eeg['art_length']}")
-        logger.info(f"Duration of Art in seconds: {self._eeg['duration_art']}")
+        logger.info(f"Number of Triggers found: {self._eeg.count_triggers}")
+        logger.info(f"Art Length: {self._eeg.artifact_length}")
+        logger.info(f"Duration of Art in seconds: {self._eeg.artifact_duration}")
 
         # EEG information
         # print EEG Channels

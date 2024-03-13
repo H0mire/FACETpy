@@ -10,12 +10,12 @@ upsample_factor = 10
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
 #Add relative Trigger Position. Adjust this if the trigger events are not aligned with the artifact occurence
-rel_trigger_pos = -0.01
+artifact_to_trigger_offset = -0.01
 #End Configuration Block
 
 # Loading the EEG data by creating a FACET object and importing the EEG data
 f = Facet()
-f.import_EEG(file_path, upsampling_factor=upsample_factor, bads=unwanted_bad_channels, rel_trig_pos=rel_trigger_pos)
+f.import_EEG(file_path, upsampling_factor=upsample_factor, bads=unwanted_bad_channels, artifact_to_trigger_offset=artifact_to_trigger_offset)
 
 #f.pre_processing()
 f.highpass(1)

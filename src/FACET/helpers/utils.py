@@ -1,4 +1,6 @@
-def split_vector(self, V, Marker, SecLength):
+import numpy as np
+
+def split_vector(V, Marker, SecLength):
         """
         Splits a vector into multiple sections based on marker positions.
 

@@ -62,7 +62,7 @@ class Correction_Framework:
             tmin=self._eeg.time_first_trigger_start,
             tmax=min(self._eeg.data_time_end,
                 self._eeg.time_last_trigger_end
-                + self._eeg.ariftact_duration
+                + self._eeg.artifact_duration
             ),
         )
         return
@@ -148,7 +148,7 @@ class Correction_Framework:
 
         # iterate through first dimension of matrix
         trigger_offset_in_samples = self._eeg.artifact_to_trigger_offset * self._eeg.mne_raw.info["sfreq"]
-        art_length = self._eeg.ariftact_duration * self._eeg.mne_raw.info["sfreq"]
+        art_length = self._eeg.artifact_duration * self._eeg.mne_raw.info["sfreq"]
         info = mne.create_info(ch_names=channels_to_keep, sfreq=raw.info['sfreq'], ch_types='eeg')
         raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info) # Only for optional plotting
         noise = self._eeg.estimated_noise
