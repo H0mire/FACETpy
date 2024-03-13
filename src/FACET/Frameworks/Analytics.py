@@ -69,7 +69,7 @@ class Analytics_Framework:
 
             Args:
                 bids_path (str): Path to the BIDS dataset directory. Default is "./bids_dir".
-                artifact_to_trigger_offset (int): Relative trigger position. Default is 0.
+                artifact_to_trigger_offset (int): artifact to trigger offset in seconds. Default is 0.
                 upsampling_factor (int): Upsampling factor. Default is 10.
                 bads (list): List of bad channels to exclude. Default is an empty list.
                 subject (str): Subject ID. Default is "subjectid".

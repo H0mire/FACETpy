@@ -9,7 +9,7 @@ event_regex = r'\b1\b'
 upsample_factor = 10
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
-#Add relative Trigger Position. Adjust this if the trigger events are not aligned with the artifact occurence
+#Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
 artifact_to_trigger_offset = -0.01
 #End Configuration Block
 

@@ -28,7 +28,7 @@ class Evaluation_Framework:
         if not start_time:
             start_time = eeg.time_first_trigger_start if eeg.time_first_trigger_start else eeg.data_time_start
         raw = eeg.mne_raw.copy()
-        logger.info(raw.ch_names)
+        logger.debug("Channels that will be evaluated: "+ str(raw.ch_names))
 
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"

@@ -65,8 +65,10 @@ class Facet:
     def upsample(self):
         self._correction.upsample()
     def add_to_evaluate(self, eeg,start_time=None, end_time=None, name=None):
+        logger.info("Adding to evaluation...")
         self._evaluation.add_to_evaluate(eeg,start_time=start_time, end_time=end_time, name=name)
     def evaluate(self, plot=True, measures=["SNR"]):
+        logger.info("Evaluating...")
         return self._evaluation.evaluate(plot=plot, measures=measures)
     def export_as_bids(self, event_id=None, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"):
         self._analytics.export_as_bids(event_id=event_id, bids_path=bids_path, subject=subject, session=session, task=task)
