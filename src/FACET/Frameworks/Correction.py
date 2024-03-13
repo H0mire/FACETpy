@@ -336,7 +336,47 @@ class Correction_Framework:
                 self._eeg.mne_raw._data[ch_id_real] = ch_d
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
-    def align_subsample():
+
+    def align_slices(self, ref_trigger):
+        logger.debug("Aligning slices")
+        try:
+            raw = self._eeg.mne_raw.copy()
+            eeg_channels = mne.pick_types(
+                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+            )
+            channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+            raw.pick(channels_to_keep[0])  # raw wird in-place modifiziert
+            trigger_positions = self._eeg.loaded_triggers
+            smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+            smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+            #Extract artifact at the chosen trigger
+            chosen_artifact = raw._data[0][trigger_positions[ref_trigger]+smin:trigger_positions[ref_trigger]+smax]
+
+            #Iterate through all triggers and shift the trigger positions
+            for key, val in enumerate(trigger_positions):
+                if key == ref_trigger:
+                    continue
+                #Extract artifact at the current trigger
+                current_artifact = raw._data[0][val+smin:val+smax]
+                #Calculate the cross correlation
+                corr = np.correlate(chosen_artifact, current_artifact, "valid")
+                #Find the maximum of the cross correlation
+                max_corr = np.argmax(corr)
+                #Shift the trigger position
+                trigger_positions[key] = val + max_corr
+                #TODO: Add search window for cross correlation
+            #Update the trigger positions
+            self._eeg.loaded_triggers = trigger_positions
+            # Update related attributes
+            self._FACET._analytics._derive_art_length()
+            self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
+
+                
+            
+        except Exception as ex:
+            logger.exception("An exception occured while applying ANC", ex)  
+
+    def align_subsample(self):
         return "TODO: Implement"
              
 

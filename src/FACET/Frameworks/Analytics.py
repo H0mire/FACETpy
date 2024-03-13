@@ -284,10 +284,11 @@ class Analytics_Framework:
 
             # total length of an artifact
             self._eeg.artifact_length = np.max(ds)  # use max to avoid gaps between slices
+            
         else:
             # total length of an artifact
             self._eeg.artifact_length = np.max(d)
-            self._eeg.artifact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
+        self._eeg.artifact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
 
             
     def _derive_anc_hp_params(self):
