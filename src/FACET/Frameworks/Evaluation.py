@@ -6,7 +6,7 @@ from loguru import logger
 
 class Evaluation_Framework:
     def __init__(self, FACET):
-        self._eeg_list = []
+        self._eeg_eval_dict_list = []
         self._FACET = FACET
         return
 
@@ -24,21 +24,21 @@ class Evaluation_Framework:
             None
         """
         if not end_time:
-            end_time = eeg["time_triggers_end"] if eeg["time_triggers_end"] else eeg["time_end"]
+            end_time = eeg.time_triggers_end if eeg.time_triggers_end else eeg.data_time_end
         if not start_time:
-            start_time = eeg["time_triggers_start"] if eeg["time_triggers_start"] else eeg["time_start"]
-        raw = eeg["raw"].copy()
+            start_time = eeg.time_first_trigger_start if eeg.time_first_trigger_start else eeg.data_time_start
+        raw = eeg.mne_raw.copy()
         logger.info(raw.ch_names)
 
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
-        cropped_mne_raw = self._crop(raw=eeg["raw"], tmin=start_time, tmax=end_time).pick(channels_to_keep)
-        ref_mne_raw = self._crop(raw=eeg["raw"], tmin=0, tmax=start_time).pick(channels_to_keep)
-        artifact_raw_reference_raw_dict = {"eeg": eeg, "raw": cropped_mne_raw, "ref": ref_mne_raw, "raw_orig": eeg["raw_orig"], "name": name}
+        cropped_mne_raw = self._crop(raw=eeg.mne_raw, tmin=start_time, tmax=end_time).pick(channels_to_keep)
+        ref_mne_raw = self._crop(raw=eeg.mne_raw, tmin=0, tmax=start_time).pick(channels_to_keep)
+        artifact_raw_reference_raw_dict = {"eeg": eeg, "raw": cropped_mne_raw, "ref": ref_mne_raw, "raw_orig": eeg.mne_raw_orig, "name": name}
 
-        self._eeg_list.append(artifact_raw_reference_raw_dict)
+        self._eeg_eval_dict_list.append(artifact_raw_reference_raw_dict)
 
         return
 
@@ -84,7 +84,7 @@ class Evaluation_Framework:
             bars = ax.bar(range(len(result["Values"])), result["Values"])
             ax.set_title(result["Measure"])
             ax.set_ylabel(result["Measure"] + ' in ' + (result['Unit'] if result['Unit'] else ''))
-            x_labels = [eeg["name"] for eeg in self._eeg_list]  # Replace with your labels
+            x_labels = [eval_eeg_ref_dict["name"] for eval_eeg_ref_dict in self._eeg_eval_dict_list]  # Replace with your labels
             ax.set_xticks(range(len(result["Values"])))
             ax.set_xticklabels(x_labels, rotation=45)
 
@@ -100,11 +100,11 @@ class Evaluation_Framework:
         Returns:
 
         """
-        if not self._eeg_list:
+        if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
             return
         results = []
-        for mnedict in self._eeg_list:
+        for mnedict in self._eeg_eval_dict_list:
             # Extracting the data
             data_corrected = mnedict["raw"].get_data()
             data_uncorrected = mnedict["raw_orig"].get_data()
@@ -130,11 +130,11 @@ class Evaluation_Framework:
         Returns:
 
         """
-        if not self._eeg_list:
+        if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
             return
         results = []
-        for mnedict in self._eeg_list:
+        for mnedict in self._eeg_eval_dict_list:
             # Extracting the data
             data_corrected = mnedict["raw"].get_data()
             data_ref = mnedict["ref"].get_data()
@@ -156,13 +156,13 @@ class Evaluation_Framework:
         Returns:
             list: A list of median imaging artifact values for each dataset.
         """
-        if not hasattr(self, '_eeg_list') or not self._eeg_list:
+        if not hasattr(self, '_eeg_list') or not self._eeg_eval_dict_list:
             logger.error("eeg_list is not set or empty.")
             return
 
         results = []
 
-        for mne_dict in self._eeg_list:
+        for mne_dict in self._eeg_eval_dict_list:
             _eeg = mne_dict['eeg']
             if _eeg['raw'] is None:
                 logger.error("EEG dataset is not set for this mne_dict.")
@@ -170,8 +170,8 @@ class Evaluation_Framework:
 
             # Create epochs around the artifact triggers
             events = np.column_stack((_eeg['triggers'], np.zeros_like(_eeg['triggers']), np.ones_like(_eeg['triggers'])))
-            tmin = _eeg['tmin']  # Start time before the event
-            tmax = _eeg['tmax']  # End time after the event
+            tmin = _eeg.get_tmin()  # Start time before the event
+            tmax = _eeg.get_tmax()  # End time after the event
             baseline = None  # No baseline correction
             picks = mne.pick_types(_eeg['raw'].info, meg=False, eeg=True, stim=False, eog=False, exclude='bads')
 
@@ -195,11 +195,11 @@ class Evaluation_Framework:
         Returns:
 
         """
-        if not self._eeg_list:
+        if not self._eeg_eval_dict_list:
             logger.error("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")
             return
         results = []
-        for mnedict in self._eeg_list:
+        for mnedict in self._eeg_eval_dict_list:
             # Extracting the data
             data_to_evaluate = mnedict["raw"].get_data()
             data_reference = mnedict["ref"].get_data()

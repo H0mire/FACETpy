@@ -11,22 +11,22 @@ class TestAnalyticsFramework:
         self.af.import_EEG(FILENAME_EEG, rel_trig_pos=-0.01, bads=['EMG', 'ECG'])
 
     def test_import_EEG(self):
-        assert self.af._eeg["raw"] is not None
-        assert self.af._eeg["raw_orig"] is not None
-        assert self.af._eeg["time_start"] == 0
+        assert self.af._eeg.mne_raw is not None
+        assert self.af._eeg.mne_raw_orig is not None
+        assert self.af._eeg.data_time_start == 0
 
     def test_find_triggers(self):
         self.af.pre_processing()
         self.af.find_triggers(r'\b1\b')
-        assert self.af._eeg["triggers"] is not None
-        assert self.af._eeg["filtered_events"] is not None
-        assert self.af._eeg["num_triggers"] is not None
-        assert self.af._eeg["time_triggers_start"] is not None
+        assert self.af._eeg.loaded_triggers is not None
+        assert self.af._eeg.triggers_as_events is not None
+        assert self.af._eeg.count_triggers is not None
+        assert self.af._eeg.time_first_trigger_start is not None
         #trigger count should be 840
-        assert self.af._eeg["num_triggers"] == 840
+        assert self.af._eeg.count_triggers == 840
         #check if num_triggers is correct
-        assert len(self.af._eeg["triggers"]) == self.af._eeg["num_triggers"]
-        assert len(self.af._eeg["filtered_events"]) == self.af._eeg["num_triggers"]
+        assert len(self.af._eeg.loaded_triggers) == self.af._eeg.count_triggers
+        assert len(self.af._eeg.triggers_as_events) == self.af._eeg.count_triggers
 
     def test_plot_EEG(self):
         try:
@@ -68,7 +68,7 @@ class TestAnalyticsFramework:
                 assert result["Values"][0] < 1
         assert results is not None
         
-        assert self.af._eeg["raw"] is not None
+        assert self.af._eeg.mne_raw is not None
     
 
 #to run this test, run "pytest" in the root directory of the project    

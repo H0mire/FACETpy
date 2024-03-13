@@ -27,7 +27,7 @@ class Facet:
     def find_triggers(self, regex):
         logger.info("finding triggers")
         self._analytics.find_triggers(regex)
-        num_triggers=self._eeg["num_triggers"]
+        num_triggers=self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
     def prepare(self):
         self._correction.prepare()
