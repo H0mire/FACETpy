@@ -350,7 +350,7 @@ class Correction_Framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
 
-    def align_slices(self, ref_trigger):
+    def align_slices(self, ref_trigger): #WARNING: Not working yet
         logger.debug("Aligning slices")
         try:
             raw = self._eeg.mne_raw.copy()
@@ -391,7 +391,7 @@ class Correction_Framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
 
-    def align_subsample(self, ref_trigger):
+    def align_subsample(self, ref_trigger): #WARNING: Not working yet
         #Call _align_subsample for each channel
         for ch_id in range(self._eeg.mne_raw._data.shape[0]):
             self._align_subsample(ch_id, ref_trigger)
