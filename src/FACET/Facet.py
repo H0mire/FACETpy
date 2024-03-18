@@ -47,6 +47,7 @@ class Facet:
         #change to your liking
         self._correction.filter(l_freq=1)
         self._correction.upsample()
+        #self._correction.prepare_ANC()
     def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()

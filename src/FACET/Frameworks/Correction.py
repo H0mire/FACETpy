@@ -15,7 +15,7 @@ from FACET.helpers.fastranc import fastranc
 from FACET.helpers.utils import split_vector
 from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
-from scipy.signal import firls, fftfilt
+from scipy.signal import firls, filtfilt
 from numpy.fft import fft, ifft, fftshift, ifftshift
 # import inst for mne python
 
@@ -414,8 +414,8 @@ class Correction_Framework:
                 fw = firls(100, f, a)
 
                 # High-pass filter using FFT
-                hpeeg = fftfilt(fw, self._eeg.mne_raw._data[ch_id])
-                hpeeg = fftfilt(fw, hpeeg)
+                hpeeg = filtfilt(fw, self._eeg.mne_raw._data[ch_id])
+                hpeeg = filtfilt(fw, hpeeg)
                 hpeeg = np.concatenate((hpeeg[101:], np.zeros(100)))  # undo the shift
             else:
                 hpeeg = self.raeegacq
