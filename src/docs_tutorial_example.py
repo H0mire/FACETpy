@@ -27,23 +27,5 @@ f.remove_artifacts(plot_artifacts=True)
 f.downsample()
 f.lowpass(45)
 f.plot_EEG(start=29)
-f.add_to_evaluate(f.get_EEG(),name="Normal")
-
-f.import_EEG(file_path, upsampling_factor=upsample_factor, bads=unwanted_bad_channels, artifact_to_trigger_offset=artifact_to_trigger_offset)
-
-#f.pre_processing()
-f.highpass(1)
-f.upsample()
-f.find_triggers(event_regex)
-f.get_correction().align_slices(0)
-f.apply_AAS()
-f.remove_artifacts(plot_artifacts=True)
-#f.post_processing()
-f.downsample()
-f.lowpass(45)
-f.add_to_evaluate(f.get_EEG(),name="with alignment")
-
-f.evaluate(plot=True, measures=["SNR", "RMS", "RMS2", "MEDIAN"])
-
 #f.export_EEG('processed_eeg_file.edf')
 input("Press Enter to end the script...")
