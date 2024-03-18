@@ -94,7 +94,6 @@ class Analytics_Framework:
                             artifact_to_trigger_offset=artifact_to_trigger_offset,
                             BIDSPath=bids_path_i,
                             upsampling_factor=upsampling_factor,
-                            estimated_noise=np.zeros(raw._data.shape),
                             all_events=events_obj,
                             data_time_start=data_time_start,
                             data_time_end=data_time_end)
@@ -140,7 +139,6 @@ class Analytics_Framework:
             self._eeg = EEG(mne_raw=raw,
                             artifact_to_trigger_offset=artifact_to_trigger_offset,
                             upsampling_factor=upsampling_factor,
-                            estimated_noise=np.zeros(raw._data.shape),
                             data_time_start=data_time_start,
                             data_time_end=data_time_end)
             events = self._try_to_get_events()
@@ -205,7 +203,7 @@ class Analytics_Framework:
         self._eeg.time_last_trigger_end = time_last_trigger_end
         self._eeg.volume_gaps = False
         self._derive_art_length()
-        self._derive_anc_hp_params()
+        if self._FACET.get_correction().anc_prepared: self._derive_anc_hp_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
         self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
 
@@ -287,7 +285,7 @@ class Analytics_Framework:
             
         else:
             # total length of an artifact
-            self._eeg.artifact_length = np.max(d)
+            self._eeg.artifact_length = np.min(d)
         self._eeg.artifact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
 
             
@@ -364,6 +362,10 @@ class Analytics_Framework:
         raw = self._eeg.mne_raw
         ch_names = raw.ch_names
         count_ch = len(ch_names)
+        logger.info("Time Start: " + str(raw.times[0]) + " s")
+        logger.info("Time End: " + str(raw.times[-1]) + " s")
+        logger.info("Sampling Frequency: " + str(raw.info["sfreq"]) + " Hz")
+        logger.info("Number of Samples: " + str(raw.n_times))
         logger.info("Number of Channels: " + str(count_ch) )
         logger.info("Channel Names: " + str(ch_names))
 

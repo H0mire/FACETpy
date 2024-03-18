@@ -15,7 +15,8 @@ from FACET.helpers.fastranc import fastranc
 from FACET.helpers.utils import split_vector
 from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
-from scipy.signal import filtfilt
+from scipy.signal import firls, fftfilt
+from numpy.fft import fft, ifft, fftshift, ifftshift
 # import inst for mne python
 
 
@@ -45,6 +46,7 @@ class Correction_Framework:
         self.avg_artifact = None
         self.avg_artifact_matrix = None
         self.avg_artifact_matrix_numpy = None
+        self.anc_prepared = False
 
 
     def cut(self):
@@ -95,11 +97,19 @@ class Correction_Framework:
         self._eeg = eeg
         return
 
-    def prepare(self):
+    def prepare_anc(self):
         """
-        Prepares the data for correction by upsampling it.
+        Prepares the ANC (Adaptive Noise Cancellation) by calculating filter weights and initializing the ANC noise data.
+
+        Returns:
+            None
         """
-        self._upsample_data()
+        logger.debug("Preparing ANC")
+        self._eeg.estimated_noise=np.zeros(self._eeg.mne_raw._data.shape)
+        if self._eeg.loaded_triggers: self._FACET._analytics._derive_anc_hp_params()
+        self.anc_prepared = True
+        return
+        
 
     def plot_EEG(self, start=0, title=None):
             """
@@ -167,7 +177,7 @@ class Correction_Framework:
                 start = idx_start+ pos 
                 minColumn = avg_artifact.shape[1]
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
-                noise[ch_id,start:stop] += avg_artifact[key,:stop-start] 
+                if self.anc_prepared: noise[ch_id,start:stop] += avg_artifact[key,:stop-start] 
                 corrected_data_template[ch_id][start:stop] -= avg_artifact[key,:stop-start]
         if plot_artifacts: raw_avg_artifact.plot()
         for i in corrected_data_template.keys():
@@ -315,6 +325,9 @@ class Correction_Framework:
         """
     	
         logger.debug("applying ANC")
+        if not self.anc_prepared:
+            logger.warning("ANC not prepared yet, might not work as expected. Next time run correction.prepare_anc() at the desired point for better results. Preparing ANC now...")
+            self.prepare_anc()
         try:
             raw = self._eeg.mne_raw.copy()
             eeg_channels = mne.pick_types(
@@ -359,7 +372,9 @@ class Correction_Framework:
                 #Extract artifact at the current trigger
                 current_artifact = raw._data[0][val+smin:val+smax]
                 #Calculate the cross correlation
-                corr = np.correlate(chosen_artifact, current_artifact, "valid")
+                corr = np.correlate(chosen_artifact, current_artifact, "full")
+                # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
+                corr = corr[0:3*self._eeg.upsampling_factor] # TODO: Remove that and add a search window
                 #Find the maximum of the cross correlation
                 max_corr = np.argmax(corr)
                 #Shift the trigger position
@@ -376,8 +391,117 @@ class Correction_Framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
 
-    def align_subsample(self):
-        return "TODO: Implement"
+    def align_subsample(self, ref_trigger):
+        #Call _align_subsample for each channel
+        for ch_id in range(self._eeg.mne_raw._data.shape[0]):
+            self._align_subsample(ch_id, ref_trigger)
+        return
+    
+    def _align_subsample(self, ch_id, ref_trigger):
+        max_trig_dist = np.max(np.diff(self._eeg.loaded_triggers))
+        num_samples = max_trig_dist + 20  # Note: this is different from self.num_samples
+
+        # phase shift (-1/2 .. +1/2, below it is multiplied by 2*pi -> -pi..pi)
+        shift_angles = ((np.arange(1, num_samples + 1) - np.floor(num_samples / 2) + 1) / num_samples) * 2 * np.pi
+
+        # if we already have values from a previous run
+        if self.sub_sample_alignment is None:
+            if self._eeg.ssa_hp_frequency is not None and self._eeg.ssa_hp_frequency > 0:
+                nyq = 0.5 * self._eeg.mne_raw.info["sfreq"]
+                f = [0, (self._eeg.ssa_hp_frequency * 0.9) / (nyq * self._eeg.upsampling_factor),
+                     (self._eeg.ssa_hp_frequency * 1.1) / (nyq * self._eeg.upsampling_factor), 1]
+                a = [0, 0, 1, 1]
+                fw = firls(100, f, a)
+
+                # High-pass filter using FFT
+                hpeeg = fftfilt(fw, self._eeg.mne_raw._data[ch_id])
+                hpeeg = fftfilt(fw, hpeeg)
+                hpeeg = np.concatenate((hpeeg[101:], np.zeros(100)))  # undo the shift
+            else:
+                hpeeg = self.raeegacq
+
+            # Split vector into 2D matrix with at least 10 more samples before and
+            # after every artifact
+            eeg_matrix = self.facet.split_vector(hpeeg, self.triggers_up - self.pre_trig - 10, num_samples)
+
+            # Reference for alignment
+            eeg_ref = eeg_matrix[self.align_slices_reference, :]
+
+            self.sub_sample_alignment = np.zeros(self._eeg.count_triggers)
+
+            corrs = np.zeros((self._eeg.count_triggers, 20))
+            shifts = np.zeros((self._eeg.count_triggers, 20))
+
+            # Loop over every epoch
+            for epoch in set(range(1, self._eeg.count_triggers + 1)) - set([ref_trigger]):
+                eeg_m = eeg_matrix[epoch, :]
+                fft_m = fftshift(fft(eeg_m))
+                shift_l = -1
+                shift_m = 0
+                shift_r = 1
+                fft_l = fft_m * np.exp(-1j * shift_angles * shift_l)
+                fft_r = fft_m * np.exp(-1j * shift_angles * shift_r)
+                eeg_l = np.real(ifft(ifftshift(fft_l)))
+                eeg_r = np.real(ifft(ifftshift(fft_r)))
+                corr_l = self.compare(eeg_ref, eeg_l)
+                corr_m = self.compare(eeg_ref, eeg_m)
+                corr_r = self.compare(eeg_ref, eeg_r)
+
+                # save original FFT for later IFFT
+                fft_ori = fft_m
+
+                # iterative optimization
+                for iteration in range(1, 16):
+                    corrs[epoch - 1, iteration - 1] = corr_m
+                    shifts[epoch - 1, iteration - 1] = shift_m
+
+                    if corr_l > corr_r:
+                        corr_r = corr_m
+                        eeg_r = eeg_m
+                        fft_r = fft_m
+                        shift_r = shift_m
+                    else:
+                        corr_l = corr_m
+                        eeg_l = eeg_m
+                        fft_l = fft_m
+                        shift_l = shift_m
+
+                    # Calculate new middle
+                    shift_m = (shift_l + shift_r) / 2
+                    fft_m = fft_ori * np.exp(-1j * shift_angles * shift_m)
+                    eeg_m = np.real(ifft(ifftshift(fft_m)))
+                    corr_m = self.compare(eeg_ref, eeg_m)
+
+                self.sub_sample_alignment[epoch - 1] = shift_m
+
+                # store back improved EEG
+                eeg_matrix[epoch, :] = eeg_m
+        for epoch in set(range(1, self.num_triggers + 1)) - set([self.align_slices_reference]):
+            eeg = self.eeg_matrix[epoch, :]
+            fft = fftshift(fft(eeg))
+            fft *= np.exp(-1j * 2 * np.pi * self.shift_angles * self.sub_sample_alignment[epoch])
+            eeg = np.real(ifft(ifftshift(fft)))
+            # Store back shifted EEG
+            self.eeg_matrix[epoch, :] = eeg
+
+
+        # Join epochs
+        for s in range(self._eeg.count_triggers):
+            start_index = self.loaded_triggers[s] - self.tmin * self._eeg.mne_raw.info["sfreq"]
+            end_index = start_index + self._eeg.artifact_length
+            self.raeegacq[start_index:end_index] = self.eeg_matrix[s, 10:10 + self.art_length]
+
+
+        
+        return "TODO: Bugfixing needed"
+    compare(self, ref, arg):
+        """
+        Compare the reference data to the shifted data.
+        The larger the better. This uses a simple sum of squared differences for comparison.
+        """
+        # result = correlate(ref, arg, mode='valid')[0] # If you prefer cross-correlation
+        result = -np.sum((ref - arg) ** 2)
+        return result
              
 
 
@@ -473,11 +597,12 @@ class Correction_Framework:
         Note:
             The `_eeg` attribute should be initialized before calling this method.
         """
-        noise_raw=self._eeg.mne_raw.copy()
-        noise_raw._data = self._eeg.estimated_noise
-        self._eeg.estimated_noise = noise_raw.resample(sfreq=sfreq)._data.copy()
-        #unload noise_raw
-        noise_raw = None
+        if self.anc_prepared:
+            noise_raw=self._eeg.mne_raw.copy()
+            noise_raw._data = self._eeg.estimated_noise
+            self._eeg.estimated_noise = noise_raw.resample(sfreq=sfreq)._data.copy()
+            #unload noise_raw
+            noise_raw = None
         self._eeg.mne_raw.resample(sfreq=sfreq)
         regex = self._eeg.last_trigger_search_regex
         if regex:
