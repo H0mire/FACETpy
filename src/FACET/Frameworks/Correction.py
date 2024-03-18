@@ -494,7 +494,7 @@ class Correction_Framework:
 
         
         return "TODO: Bugfixing needed"
-    compare(self, ref, arg):
+    def compare(self, ref, arg):
         """
         Compare the reference data to the shifted data.
         The larger the better. This uses a simple sum of squared differences for comparison.
