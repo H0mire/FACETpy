@@ -43,9 +43,31 @@ class Evaluation_Framework:
         return
 
     def _crop(self, raw,  tmin, tmax):
+        """
+        Crop the raw data to the specified time window.
+        
+        Args:
+            raw (mne.io.Raw): Raw data to be cropped.
+            tmin (float): Start time of the crop.
+            tmax (float): End time of the crop.
+
+        Returns:
+            mne.io.Raw: Cropped raw data.
+        """
         return raw.copy().crop(tmin=tmin, tmax=tmax)
 
     def _cutout(self,raw, tmin, tmax):
+        """
+        Cut out the specified time window from the raw data.
+
+        Args:
+            raw (mne.io.Raw): Raw data to be cut out.
+            tmin (float): Start time of the cut out.
+            tmax (float): End time of the cut out.
+
+        Returns:
+            mne.io.Raw: Cut out raw data.
+        """
         first_part = raw.copy().crop(tmax=tmin)
 
         second_part = raw.copy().crop(tmin=tmax)
@@ -54,6 +76,16 @@ class Evaluation_Framework:
         return first_part
     
     def evaluate(self, plot=True, measures=[]):
+        """
+        Evaluate the EEG datasets and calculate the specified measures.
+
+        Args:
+            plot (bool, optional): If True, the results will be plotted. Defaults to True.
+            measures (list, optional): List of measures to be calculated. Defaults to [].
+
+        Returns:
+            list: A list of dictionaries containing the results of the evaluation.
+        """
         results=[]
         if "SNR" in measures:
             results.append({"Measure":"SNR","Values":self.evaluate_SNR(),"Unit":"dB"})
@@ -68,6 +100,15 @@ class Evaluation_Framework:
         return results
     # Plot all results with matplotlib
     def plot(self, results):
+        """
+        Plot the results of the evaluation.
+
+        Args:
+            results (list): List of dictionaries containing the results of the evaluation.
+
+        Returns:
+            int: 0 if successful.
+        """
 
         # Determine the number of subplots based on the number of measures
         num_subplots = len(results)
@@ -98,7 +139,7 @@ class Evaluation_Framework:
         Calculates the RMS of the EEG datasets.
 
         Returns:
-
+            results (list): A list of RMS values for each dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
@@ -128,7 +169,7 @@ class Evaluation_Framework:
         Calculates the RMS of the EEG datasets.
 
         Returns:
-
+            results (list): A list of RMS values for each dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
@@ -193,7 +234,7 @@ class Evaluation_Framework:
         Calculates the SNR of the EEG datasets.
 
         Returns:
-
+            results (list): A list of SNR values for each dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")

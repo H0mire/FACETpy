@@ -285,11 +285,23 @@ class Analytics_Framework:
             
         else:
             # total length of an artifact
-            self._eeg.artifact_length = np.min(d)
+            self._eeg.artifact_length = np.max(d)
         self._eeg.artifact_duration = self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
 
             
     def _derive_anc_hp_params(self):
+        """
+        Derive ANC high-pass filter parameters.
+
+        This method derives the parameters for the ANC high-pass filter based on the trigger frequency
+        and the sampling frequency of the EEG data. The filter order is calculated based on the
+        artifact length and the upsampling factor.
+
+        The calculated filter weights are stored in the `_eeg.anc_hp_filter_weights` attribute.
+
+        Returns:
+            None
+        """
         trans = 0.15
         nyq = 0.5 * self._eeg.mne_raw.info["sfreq"]
 

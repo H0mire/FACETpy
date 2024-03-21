@@ -13,6 +13,7 @@ from scipy.stats import pearsonr
 from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
 from FACET.helpers.fastranc import fastranc
 from FACET.helpers.utils import split_vector
+from FACET.helpers.crosscorr import crosscorrelation
 from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
 from scipy.signal import firls, filtfilt
@@ -97,7 +98,7 @@ class Correction_Framework:
         self._eeg = eeg
         return
 
-    def prepare_anc(self):
+    def prepare_ANC(self):
         """
         Prepares the ANC (Adaptive Noise Cancellation) by calculating filter weights and initializing the ANC noise data.
 
@@ -129,7 +130,7 @@ class Correction_Framework:
 
     def remove_artifacts(self, avg_artifact_matrix_numpy=None,plot_artifacts=False):
         """
-        Remove artifacts from the EEG data.
+        Removes artifacts from the EEG data.
 
         Args:
             avg_artifact_matrix_numpy (numpy.ndarray, optional): The average artifact matrix. If not provided,
@@ -260,7 +261,7 @@ class Correction_Framework:
 
     def calc_chosen_matrix(self, epochs, threshold=0.975, window_size=25, rel_window_offset=0):
         """
-        Calculate the chosen matrix based on the given epochs.
+        Calculates the chosen matrix based on the given epochs.
 
         Parameters:
             epochs (list): List of epochs.
@@ -295,7 +296,7 @@ class Correction_Framework:
 
     def apply_Moosmann(self, file_path, window_size=25, threshold=5):
         """
-        Apply Moosmann correction to the given file.
+        Applies Moosmann correction to the given file.
 
         Args:
             file_path (str): The path to the file.
@@ -321,13 +322,13 @@ class Correction_Framework:
         return avg_artifact_matrix_every_channel
     def apply_ANC(self):
         """
-        This method utilizes the _anc method to clean the eeg data from each channel
+        This method utilizes the _anc method to clean the eeg data from each channel.
         """
     	
         logger.debug("applying ANC")
         if not self.anc_prepared:
             logger.warning("ANC not prepared yet, might not work as expected. Next time run correction.prepare_anc() at the desired point for better results. Preparing ANC now...")
-            self.prepare_anc()
+            self.prepare_ANC()
         try:
             raw = self._eeg.mne_raw.copy()
             eeg_channels = mne.pick_types(
@@ -351,7 +352,17 @@ class Correction_Framework:
             logger.exception("An exception occured while applying ANC", ex)  
 
     def align_slices(self, ref_trigger): #WARNING: Not working yet
+        """
+        Aligns slices based on a reference trigger.
+
+        Args:
+            ref_trigger (int): The reference trigger.
+
+        Returns:
+            None
+        """
         logger.debug("Aligning slices")
+        search_window = 3 * self._eeg.upsampling_factor
         try:
             raw = self._eeg.mne_raw.copy()
             eeg_channels = mne.pick_types(
@@ -363,18 +374,17 @@ class Correction_Framework:
             smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
             smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
             #Extract artifact at the chosen trigger
-            chosen_artifact = raw._data[0][trigger_positions[ref_trigger]+smin:trigger_positions[ref_trigger]+smax]
+            chosen_artifact = raw._data[0][trigger_positions[ref_trigger]+smin:trigger_positions[ref_trigger]+smax+search_window]
 
             #Iterate through all triggers and shift the trigger positions
             for key, val in enumerate(trigger_positions):
                 if key == ref_trigger:
                     continue
                 #Extract artifact at the current trigger
-                current_artifact = raw._data[0][val+smin:val+smax]
+                current_artifact = raw._data[0][val+smin:val+smax+search_window]
                 #Calculate the cross correlation
-                corr = np.correlate(chosen_artifact, current_artifact, "full")
                 # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
-                corr = corr[0:3*self._eeg.upsampling_factor] # TODO: Remove that and add a search window
+                corr = crosscorrelation(chosen_artifact, current_artifact, search_window)
                 #Find the maximum of the cross correlation
                 max_corr = np.argmax(corr)
                 #Shift the trigger position
@@ -392,12 +402,25 @@ class Correction_Framework:
             logger.exception("An exception occured while applying ANC", ex)  
 
     def align_subsample(self, ref_trigger): #WARNING: Not working yet
+        """
+        Aligns subsamples based on a reference trigger.
+        
+        Args:
+            ref_trigger (int): The reference trigger.
+
+        Returns:
+            None
+        """
+
         #Call _align_subsample for each channel
         for ch_id in range(self._eeg.mne_raw._data.shape[0]):
             self._align_subsample(ch_id, ref_trigger)
         return
     
     def _align_subsample(self, ch_id, ref_trigger):
+        """
+        Aligns subsamples based on a reference trigger for a single channel.
+        """
         max_trig_dist = np.max(np.diff(self._eeg.loaded_triggers))
         num_samples = max_trig_dist + 20  # Note: this is different from self.num_samples
 
@@ -555,6 +578,8 @@ class Correction_Framework:
 
         Args:
             l_freq (float): The lower cutoff frequency for the highpass filter.
+            h_freq (float): The higher cutodff frequency for the highpass filter.
+
         Returns:
             None
         """

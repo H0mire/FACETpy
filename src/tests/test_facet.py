@@ -54,7 +54,7 @@ class TestAnalyticsFramework:
         self.af.lowpass(h_freq=40)
         self.af.find_triggers(r'\b1\b')
         #evaluate if the artifact removal was successful
-        self.af.add_to_evaluate(self.af.get_eeg(), name="MNE_new")
+        self.af.add_to_evaluate(self.af.get_EEG(), name="MNE_new")
         results = self.af.evaluate(plot=False,measures=["SNR", "RMS", "RMS2", "MEDIAN"])
         logger.info(results)
         for result in results:

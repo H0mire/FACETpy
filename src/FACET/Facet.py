@@ -22,8 +22,6 @@ class Facet:
 
     def export_EEG(self, filename):
         self._analytics.export_EEG(filename)
-    def get_eeg(self):
-        return self._eeg
     def find_triggers(self, regex):
         logger.info("finding triggers")
         self._analytics.find_triggers(regex)

@@ -17,6 +17,7 @@ EEG data and evaluate the performance of the correction.
    :caption: Contents:
 
    Getting Started/tutorial
+   Getting Started/full_correction_example
    Code/analysis_framework
    Code/correction_framework
    Code/evaluation_framework
