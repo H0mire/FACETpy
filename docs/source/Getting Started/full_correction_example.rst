@@ -71,7 +71,7 @@ To begin, load your EEG dataset into FACET object:
 
    # Loading the EEG data by creating a FACET object and importing the EEG data
    f = FACET()
-   f.import_from_bids(bids_path=bids_path,upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
+   f.import_EEG(path=bids_path,fmt="bids",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
 
 
 Preprocessing
@@ -178,7 +178,7 @@ This can be done using the `export_EEG` method, which takes the file path as an 
 
 .. code-block:: python
 
-   f.export_as_bids(event_id=event_id_description_pairs, bids_path=export_bids_path)
+   f.export_EEG(event_id=event_id_description_pairs, path=export_bids_path, fmt="bids")
 
 Conclusion
 ----------

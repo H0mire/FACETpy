@@ -26,8 +26,8 @@ Date: 15.02.2024
    Methods
    -------
 
-   .. automethod:: export_as_bids
-   .. automethod:: import_from_bids
+   .. automethod:: export_EEG
+   .. automethod:: import_EEG
    .. automethod:: import_EEG
    .. automethod:: export_EEG
    .. automethod:: find_triggers

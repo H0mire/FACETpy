@@ -11,7 +11,7 @@ upsample_factor = 10
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
 #Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
-artifact_to_trigger_offset = -0.01
+artifact_to_trigger_offset = -0.004296875
 #End Configuration Block
 
 # Loading the EEG data by creating a FACET object and importing the EEG data
@@ -25,7 +25,7 @@ f.upsample()
 f.find_triggers(event_regex)
 #f.get_correction().prepare_ANC()
 f.apply_AAS()
-f.remove_artifacts(plot_artifacts=False)
+f.remove_artifacts(plot_artifacts=True)
 #f.post_processing()
 f.downsample()
 f.lowpass(70)

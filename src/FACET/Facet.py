@@ -14,14 +14,14 @@ class Facet:
         mne.set_log_level('ERROR')
     def get_EEG(self):
         return self._eeg
-    def import_EEG(self, filename, artifact_to_trigger_offset=0, upsampling_factor=10, bads=[]):
-        logger.info(f"Importing EEG from {filename}")
-        self._eeg = self._analytics.import_EEG(filename, artifact_to_trigger_offset=artifact_to_trigger_offset, upsampling_factor=upsampling_factor, bads=bads)
+    def import_EEG(self, path,fmt="edf", artifact_to_trigger_offset=0, upsampling_factor=10, bads=[], subject="subject1", session="session1", task="task1"):
+        logger.info(f"Importing EEG from {path}")
+        self._eeg = self._analytics.import_EEG(path, fmt=fmt, artifact_to_trigger_offset=artifact_to_trigger_offset, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
         self._correction = Correction_Framework(self,self._eeg)
         return self._eeg
 
-    def export_EEG(self, filename):
-        self._analytics.export_EEG(filename)
+    def export_EEG(self, path, fmt="edf", subject="subject1", session="session1", task="task1", event_id=None):
+        self._analytics.export_EEG(path, fmt=fmt, subject=subject, session=session, task=task, event_id=event_id)
     def find_triggers(self, regex):
         logger.info("finding triggers")
         self._analytics.find_triggers(regex)
@@ -40,7 +40,7 @@ class Facet:
         logger.info(f"Applying Moosmann with {file_path}")
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
     def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):  
-        self._correction.remove_artifacts(avg_artifact_matrix_numpy=avg_artifact_matrix_numpy, plot_artifacts=plot_artifacts, )
+        self._correction.remove_artifacts(avg_artifact_matrix_numpy=avg_artifact_matrix_numpy, plot_artifacts=plot_artifacts)
     def pre_processing(self): # Change to your liking
         #change to your liking
         self._correction.filter(l_freq=1)
@@ -70,11 +70,6 @@ class Facet:
     def evaluate(self, plot=True, measures=["SNR"]):
         logger.info("Evaluating...")
         return self._evaluation.evaluate(plot=plot, measures=measures)
-    def export_as_bids(self, event_id=None, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"):
-        self._analytics.export_as_bids(event_id=event_id, bids_path=bids_path, subject=subject, session=session, task=task)
-    def import_from_bids(self, bids_path="./bids_dir", artifact_to_trigger_offset=0, upsampling_factor=10, bads=[], subject="subjectid", session="sessionid", task="corrected"):
-        self._eeg = self._analytics.import_from_bids(bids_path, artifact_to_trigger_offset=artifact_to_trigger_offset, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
-        self._correction = Correction_Framework(self,self._eeg)
     
     def get_correction(self):
         return self._correction

@@ -31,84 +31,8 @@ class Analytics_Framework:
         else:
             self._eeg = EEG()
 
-    def export_as_bids(self, event_id, bids_path="./bids_dir", subject="subjectid", session="sessionid", task="corrected"): 
-            """
-            Export the EEG data as BIDS format.
 
-            Parameters:
-            - event_id (dict): Dictionary mapping event names to event IDs.
-            - bids_path (str): Path to the BIDS directory. Default is "./bids_dir".
-            - subject (str): Subject ID. Default is "subjectid".
-            - session (str): Session ID. Default is "sessionid".
-            - task (str): Task name. Default is "corrected".
-            """
-            if "line_freq" not in self._eeg.mne_raw.info or self._eeg.mne_raw.info["line_freq"] is None:
-                line_freq = input("Please enter the line frequency: ")
-                self._eeg.mne_raw.info["line_freq"] = float(line_freq)
-            if "line_freq" not in self._eeg.mne_raw_orig.info or self._eeg.mne_raw_orig.info["line_freq"] is None:
-                line_freq = line_freq if line_freq else input("Please enter the line frequency: ")
-                self._eeg.mne_raw_orig.info["line_freq"] = float(line_freq)
-            _BIDSPath = BIDSPath(
-                subject=subject, session=session, task=task, root=bids_path
-            )
-            logger.info("Exporting Channels: "+str(self._eeg.mne_raw.ch_names))
-
-            raw = self._eeg.mne_raw.copy()
-            raw_orig = self._eeg.mne_raw_orig.copy()
-            #drop stim channels
-            stim_channels = mne.pick_types(raw.info, meg=False, eeg=False, stim=True)
-            raw.drop_channels([raw.ch_names[ch] for ch in stim_channels])
-            raw_orig.drop_channels([raw_orig.ch_names[ch] for ch in stim_channels])
-
-            if self._eeg.mne_raw is not None:
-                write_raw_bids(raw=raw_orig, bids_path=_BIDSPath, overwrite=True, format="EDF", allow_preload=True, events=self._eeg.triggers_as_events, event_id=event_id)
-    
-    def import_from_bids(self, bids_path="./bids_dir", artifact_to_trigger_offset=0, upsampling_factor=10, bads=[], subject="subjectid", session="sessionid", task="corrected"):
-            """
-            Imports EEG data from BIDS dataset.
-
-            Args:
-                bids_path (str): Path to the BIDS dataset directory. Default is "./bids_dir".
-                artifact_to_trigger_offset (int): artifact to trigger offset in seconds. Default is 0.
-                upsampling_factor (int): Upsampling factor. Default is 10.
-                bads (list): List of bad channels to exclude. Default is an empty list.
-                subject (str): Subject ID. Default is "subjectid".
-                session (str): Session ID. Default is "sessionid".
-                task (str): Task name. Default is "corrected".
-
-            Returns:
-                dict: A dictionary containing the imported EEG data and relevant information.
-            """
-            bids_path_i = BIDSPath(subject=subject, session=session, task=task, root=bids_path)
-            raw = read_raw_bids(bids_path_i)
-            raw.load_data()
-            all_channels = raw.ch_names
-            exclude = [item for i, item in enumerate(all_channels) if item in bads]
-            raw.info["bads"] = exclude
-            data_time_start = raw.times[0]
-            data_time_end = raw.times[-1]
-
-            #events from annotations
-            events_obj = mne.events_from_annotations(raw)
-            self._eeg = EEG(mne_raw=raw,
-                            artifact_to_trigger_offset=artifact_to_trigger_offset,
-                            BIDSPath=bids_path_i,
-                            upsampling_factor=upsampling_factor,
-                            all_events=events_obj,
-                            data_time_start=data_time_start,
-                            data_time_end=data_time_end)
-            logger.debug("Importing EEG with:")
-            logger.debug("Channels " + str(raw.ch_names))
-            logger.debug(f"Time Start: {data_time_start}s")
-            logger.debug(f"Time End: {data_time_end}s")
-            logger.debug(f"Number of Samples: {raw.n_times}")
-            logger.debug(f"Sampling Frequency: {raw.info['sfreq']}Hz")
-            logger.debug(bids_path)
-            return self._eeg
-
-
-
-    def import_EEG(self, filename, artifact_to_trigger_offset=0, upsampling_factor=10, fmt="edf", bads=[]):
+    def import_EEG(self, path, artifact_to_trigger_offset=0, upsampling_factor=10, fmt="edf", bads=[], subject="subjectid", session="sessionid", task="corrected"):
             """
             Imports EEG data from a file.
 
@@ -123,9 +47,12 @@ class Analytics_Framework:
             - dict: A dictionary containing the imported EEG data and relevant information.
             """
             if fmt == "edf":
-                raw = mne.io.read_raw_edf(filename)
+                raw = mne.io.read_raw_edf(path)
             elif fmt == "gdf":
-                raw = mne.io.read_raw_gdf(filename)
+                raw = mne.io.read_raw_gdf(path)
+            elif fmt == "bids":
+                bids_path_i = BIDSPath(subject=subject, session=session, task=task, root=path)
+                raw = read_raw_bids(bids_path_i)
             else:
                 raise ValueError("Format not supported")
             raw.load_data()
@@ -144,18 +71,34 @@ class Analytics_Framework:
             events = self._try_to_get_events()
             if events is not None:
                 self._eeg.all_events = events
+            if fmt == "bids":
+                self._eeg.BIDSPath = bids_path_i
             logger.debug("Importing EEG with:")
             logger.debug("Channels " + str(raw.ch_names))
             logger.debug(f"Time Start: {data_time_start}s")
             logger.debug(f"Time End: {data_time_end}s")
             logger.debug(f"Number of Samples: {raw.n_times}")
             logger.debug(f"Sampling Frequency: {raw.info['sfreq']}Hz")
-            logger.debug(filename)
+            logger.debug(path)
             return self._eeg
 
-    def export_EEG(self, filename):
-        raw = self._eeg.mne_raw
-        raw.export(filename, fmt="edf", overwrite=True)
+    def export_EEG(self, path, fmt="edf", subject="subjectid", session="sessionid", task="corrected", event_id=None):
+        if fmt == "bids":
+            _BIDSPath = BIDSPath(
+                subject=subject, session=session, task=task, root=path
+            )
+            logger.info("Exporting Channels: "+str(self._eeg.mne_raw.ch_names))
+
+            raw = self._eeg.mne_raw.copy()
+            #drop stim channels
+            stim_channels = mne.pick_types(raw.info, meg=False, eeg=False, stim=True)
+            raw.drop_channels([raw.ch_names[ch] for ch in stim_channels])
+
+            if self._eeg.mne_raw is not None:
+                write_raw_bids(raw=raw, bids_path=_BIDSPath, overwrite=True, format="EDF", allow_preload=True, events=self._eeg.triggers_as_events, event_id=event_id)
+        else:
+            raw = self._eeg.mne_raw
+            raw.export(path, fmt=fmt, overwrite=True)
 
     def find_triggers(self, regex):
         """
@@ -201,7 +144,7 @@ class Analytics_Framework:
         self._eeg.count_triggers = count_triggers
         self._eeg.time_first_trigger_start = time_first_trigger_start - self._eeg.artifact_to_trigger_offset
         self._eeg.time_last_trigger_end = time_last_trigger_end
-        self._eeg.volume_gaps = False
+        self._check_volume_gaps()
         self._derive_art_length()
         if self._FACET.get_correction().anc_prepared: self._derive_anc_hp_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
@@ -331,6 +274,15 @@ class Analytics_Framework:
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
         self._eeg.anc_filter_order = artifact_length
         
+    def _check_volume_gaps(self):
+        # Due to asynchronous sampling the distances might vary a bit. We
+        # accept one mean value, plus and minus one (gives a range of 2),
+        # plus one more to be a bit more robust.
+        if self._eeg.volume_gaps is None:
+            if np.ptp(np.diff(self._eeg.loaded_triggers)) > 3:
+                self._eeg.volume_gaps = True
+            else:
+                self._eeg.volume_gaps = False
 
     def _filter_annotations(self, regex):
             """Extract specific annotations from an MNE Raw object.

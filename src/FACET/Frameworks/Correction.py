@@ -165,6 +165,8 @@ class Correction_Framework:
         raw_avg_artifact = mne.EvokedArray(np.empty((len(channels_to_keep), int(art_length))), info) # Only for optional plotting
         noise = self._eeg.estimated_noise
         counter = 0
+        aligned_triggers = []
+
         for ch_id, ch_matrix in self.avg_artifact_matrix_numpy.items():
 
             logger.debug(f"Removing Artifact from Channel {ch_id}", end=" ")
@@ -172,10 +174,11 @@ class Correction_Framework:
             data_split_on_epochs = split_vector(eeg_data_zero_mean, np.array(self._eeg.loaded_triggers)+trigger_offset_in_samples, art_length)
             avg_artifact = ch_matrix @ data_split_on_epochs
 
+            if ch_id == 0: aligned_triggers = self._align_triggers_averaged_artifacts(corrected_data_template[0], avg_artifact, search_window=3*self._eeg.upsampling_factor)
             raw_avg_artifact.data[counter] = avg_artifact[0]
             counter += 1
 
-            for key, pos in enumerate(self._eeg.loaded_triggers):
+            for key, pos in enumerate(aligned_triggers):
                 start = idx_start+ pos 
                 minColumn = avg_artifact.shape[1]
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
@@ -376,7 +379,7 @@ class Correction_Framework:
             smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
             smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
             #Extract artifact at the chosen trigger
-            chosen_artifact = raw._data[0][trigger_positions[ref_trigger]+smin:trigger_positions[ref_trigger]+smax+search_window]
+            chosen_artifact = raw._data[0][trigger_positions[ref_trigger]+smin:trigger_positions[ref_trigger]+smax]
 
             #Iterate through all triggers and shift the trigger positions
             for key, val in enumerate(trigger_positions):
@@ -386,11 +389,10 @@ class Correction_Framework:
                 current_artifact = raw._data[0][val+smin:val+smax+search_window]
                 #Calculate the cross correlation
                 # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
-                corr = crosscorrelation(chosen_artifact, current_artifact, search_window)
-                #Find the maximum of the cross correlation
-                max_corr = np.argmax(corr)
+                max_corr = self._find_max_cross_correlation(current_artifact, chosen_artifact, search_window)
+                shift = max_corr - search_window
                 #Shift the trigger position
-                trigger_positions[key] = val + max_corr
+                trigger_positions[key] = val + shift
                 #TODO: Add search window for cross correlation
             #Update the trigger positions
             self._eeg.loaded_triggers = trigger_positions
@@ -550,6 +552,31 @@ class Correction_Framework:
             EEG[acq_start:acq_end] = EEG[acq_start:acq_end] - FilteredNoise.T
 
         return EEG
+    
+    def _align_triggers_averaged_artifacts(self, ch_d, avg_artifact, search_window=None):
+        """
+        Aligns the triggers based on the averaged artifacts.
+
+        Args:
+            ch_d (numpy.ndarray): The EEG data.
+            avg_artifact_matrix_numpy (numpy.ndarray): The average artifact matrix.
+            search_window (int, optional): The search window. Defaults to None.
+
+        Returns:
+            list: The new triggers.
+        """
+        if search_window is None:
+            search_window = 3 * self._eeg.upsampling_factor
+        new_triggers = []
+        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+        smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+        for i in range(self._eeg.count_triggers):
+            base = ch_d[self._eeg.loaded_triggers[i]+smin:self._eeg.loaded_triggers[i]+smax+search_window]
+            Beta = self._find_max_cross_correlation(base,avg_artifact[i,:], search_window)
+            shift = Beta - search_window
+            new_triggers.append(self._eeg.loaded_triggers[i] + shift)
+        return new_triggers
+
 
     def downsample(self):
         """
@@ -572,7 +599,6 @@ class Correction_Framework:
         logger.info("Upsampling Data")
         self._upsample_data()
         return
-    
     
     def filter(self, l_freq=None, h_freq=None):
         """
@@ -617,6 +643,18 @@ class Correction_Framework:
         """
         self.resample_data(self._eeg.mne_raw.info["sfreq"] / self._eeg.upsampling_factor)
 
+    def remove_nans(self):
+        """
+        Removes NaN values from the EEG data.
+
+        This method removes NaN values from the EEG data by replacing them with the mean value
+        of the data.
+
+        Returns:
+            None
+        """
+        self._eeg.mne_raw._data = np.nan_to_num(self._eeg.mne_raw._data, nan=np.nanmean(self._eeg.mne_raw._data))
+
     def resample_data(self, sfreq):
         """
         Resamples (downsamples) the data by a given sampling frequency.
@@ -634,5 +672,26 @@ class Correction_Framework:
         regex = self._eeg.last_trigger_search_regex
         if regex:
             self._FACET._analytics.find_triggers(regex)
+
+    def _find_max_cross_correlation(self, base, compare, search_window):
+        """
+        Finds the maximum cross correlation between two signals.
+
+        Args:
+            base (numpy.ndarray): The base signal.
+            compare (numpy.ndarray): The signal to compare.
+            pos (int): The position of the signal.
+            pre_pos (int): The previous position of the signal.
+            search_window (int): The search window.
+
+        Returns:
+            int: The maximum cross correlation.
+        """
+        #Calculate the cross correlation
+        # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
+        corr = crosscorrelation(base, compare, search_window)
+        #Find the maximum of the cross correlation
+        max_corr = np.argmax(corr)
+        return max_corr
 
 
