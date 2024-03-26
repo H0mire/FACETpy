@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 class EEG:
     mne_raw: None #The MNE raw object storing the EEG data
@@ -56,3 +57,8 @@ class EEG:
         return self._tmin
     def get_tmax(self):
         return self._tmax
+    def copy(self):
+        copied = deepcopy(self)
+        copied.mne_raw = self.mne_raw.copy()
+        copied.mne_raw_orig = self.mne_raw_orig.copy()
+        return copied

@@ -45,16 +45,17 @@ class Facet:
         #change to your liking
         self._correction.filter(l_freq=1)
         self._correction.upsample()
-        #self._correction.prepare_ANC()
+        self._correction.prepare_ANC()
     def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=45)
-        #self._correction.apply_ANC()
+        self._correction.apply_ANC()
     def cut(self):
         self._correction.cut()
-    def plot_EEG(self, start=0, title=None):
-        self._correction.plot_EEG(start=start, title=title)
+    def plot_EEG(self, start=0, title=None, eeg=None):
+        eeg = eeg if eeg is not None else self._eeg
+        self._correction.plot_EEG(start=start, title=title, eeg=eeg)
     def downsample(self):
         self._correction.downsample()
     def lowpass(self, freq=45):

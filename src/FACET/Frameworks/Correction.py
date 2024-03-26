@@ -112,7 +112,7 @@ class Correction_Framework:
         return
         
 
-    def plot_EEG(self, start=0, title=None):
+    def plot_EEG(self, start=0, title=None, eeg=None):
             """
             Plots the raw EEG data.
 
@@ -123,10 +123,11 @@ class Correction_Framework:
             Returns:
                 None
             """
+            eeg = eeg if eeg is not None else self._eeg
             if not title:
                 self._plot_number += 1
                 title = str(self._plot_number)
-            self._eeg.mne_raw.plot(title=title, start=start)
+            eeg.mne_raw.plot(title=title, start=start)
 
     def remove_artifacts(self, avg_artifact_matrix_numpy=None,plot_artifacts=False):
         """
@@ -341,6 +342,7 @@ class Correction_Framework:
             _corrected_data = raw._data.copy()
 
             for key, val in enumerate(raw._data):
+                logger.debug(f"Applying ANC to Channel {channels_to_keep[key]}")
                 _corrected_channel_data = self._anc(val, noise[key])
                 _corrected_data[key] = _corrected_channel_data
             
@@ -530,7 +532,7 @@ class Correction_Framework:
 
     def _anc(self, EEG, Noise):
         acq_start = int(self._eeg.loaded_triggers[0])
-        acq_end = int(acq_start + self._eeg.artifact_length)
+        acq_end = int(self._eeg.loaded_triggers[-1] + self._eeg.artifact_length)
 
         Reference = Noise[acq_start:acq_end].T
         tmpd = filtfilt(self._eeg.anc_hp_filter_weights, 1, EEG).T

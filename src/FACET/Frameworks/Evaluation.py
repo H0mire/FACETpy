@@ -35,7 +35,7 @@ class Evaluation_Framework:
         )
         channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
         cropped_mne_raw = self._crop(raw=eeg.mne_raw, tmin=start_time, tmax=end_time).pick(channels_to_keep)
-        ref_mne_raw = self._crop(raw=eeg.mne_raw, tmin=0, tmax=start_time).pick(channels_to_keep)
+        ref_mne_raw = self._cutout(raw=eeg.mne_raw, tmin=start_time, tmax=end_time).pick(channels_to_keep)
         artifact_raw_reference_raw_dict = {"eeg": eeg, "raw": cropped_mne_raw, "ref": ref_mne_raw, "raw_orig": eeg.mne_raw_orig, "name": name}
 
         self._eeg_eval_dict_list.append(artifact_raw_reference_raw_dict)

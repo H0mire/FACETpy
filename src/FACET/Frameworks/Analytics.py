@@ -302,15 +302,18 @@ class Analytics_Framework:
         Returns:
             None
         """
+
+        sfreq = self._eeg.mne_raw.info["sfreq"]
+        artifact_length = self._eeg.artifact_length
         trans = 0.15
-        nyq = 0.5 * self._eeg.mne_raw.info["sfreq"]
+        nyq = 0.5 * sfreq
 
         if self._eeg.count_triggers >= 1:
             # Schätzung der Frequenz der Trigger
             Tr = 1
             while Tr <= self._eeg.count_triggers:
                 tr_samp_diff = self._eeg.loaded_triggers[Tr] - self._eeg.loaded_triggers[0]  # Python-Indexierung beginnt bei 0
-                if tr_samp_diff >= self._eeg.mne_raw.info["sfreq"]:
+                if tr_samp_diff >= sfreq:
                     break
                 Tr += 1
             # ANC HP cut-off Frequenz ist 25% niedriger als die geschätzte Triggerfrequenz
@@ -318,7 +321,7 @@ class Analytics_Framework:
         else:
             self._eeg.anc_hp_frequency = 2
 
-        filtorder = round(1.2 * self._eeg.mne_raw.info["sfreq"] / (self._eeg.anc_hp_frequency * (1 - trans)))
+        filtorder = round(1.2 * sfreq / (self._eeg.anc_hp_frequency * (1 - trans)))
         if filtorder % 2 == 0:
             filtorder += 1
 
@@ -326,7 +329,7 @@ class Analytics_Framework:
         f = [0, self._eeg.anc_hp_frequency * (1 - trans) / nyq, self._eeg.anc_hp_frequency / nyq, 1]
         a = [0, 0, 1, 1]
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
-        self._eeg.anc_filter_order = int(np.ceil(self._eeg.artifact_length / self._eeg.upsampling_factor))
+        self._eeg.anc_filter_order = artifact_length
         
 
     def _filter_annotations(self, regex):
