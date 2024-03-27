@@ -29,14 +29,14 @@ class Facet:
         logger.info(f"Found {num_triggers} triggers")
     def prepare(self):
         self._correction.prepare()
-    def apply_AAS(self, method="numpy", rel_window_position=0, window_size=25):
+    def apply_AAS(self, method="numpy", rel_window_position=0, window_size=30):
         logger.info(f"Applying AAS with method {method}")
         if method == "numpy":
             self._correction.apply_AAS(rel_window_position, window_size=window_size)
         else:
             raise ValueError("Invalid method parameter")
         
-    def apply_Moosmann(self, file_path, threshold=5, window_size=25):
+    def apply_Moosmann(self, file_path, threshold=5, window_size=30):
         logger.info(f"Applying Moosmann with {file_path}")
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
     def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):  
@@ -45,12 +45,12 @@ class Facet:
         #change to your liking
         self._correction.filter(l_freq=1)
         self._correction.upsample()
-        self._correction.prepare_ANC()
+        #self._correction.prepare_ANC() # Not working yet
     def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()
-        self._correction.filter(h_freq=45)
-        self._correction.apply_ANC()
+        self._correction.filter(h_freq=70)
+        #self._correction.apply_ANC() # Not working yet
     def cut(self):
         self._correction.cut()
     def plot_EEG(self, start=0, title=None, eeg=None):
@@ -70,6 +70,8 @@ class Facet:
     def evaluate(self, plot=True, measures=["SNR"]):
         logger.info("Evaluating...")
         return self._evaluation.evaluate(plot=plot, measures=measures)
+    def align_triggers(self, ref_trigger_index):
+        self._correction.align_triggers(ref_trigger_index)
     
     def get_correction(self):
         return self._correction

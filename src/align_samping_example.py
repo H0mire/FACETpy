@@ -33,7 +33,7 @@ f.import_EEG(file_path, upsampling_factor=upsample_factor, bads=unwanted_bad_cha
 f.highpass(1)
 f.upsample()
 f.find_triggers(event_regex)
-f.get_correction().align_slices(0)
+f.get_correction().align_triggers(0)
 f.apply_AAS()
 f.remove_artifacts(plot_artifacts=True)
 f.downsample()

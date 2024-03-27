@@ -18,7 +18,7 @@ from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
 from scipy.signal import firls, filtfilt
 from numpy.fft import fft, ifft, fftshift, ifftshift
-# import inst for mne python
+# import inst for mne python 
 
 
 class Correction_Framework:
@@ -189,7 +189,7 @@ class Correction_Framework:
             self._eeg.mne_raw._data[i] = corrected_data_template[i]
 
 
-    def apply_AAS(self, rel_window_position=0, window_size=25):
+    def apply_AAS(self, rel_window_position=0, window_size=30):
         """
         Applies the AAS (Artifact Averaging Subtraction) matrix using numpy.
 
@@ -263,7 +263,7 @@ class Correction_Framework:
         return np.array(chosen)
     
 
-    def calc_chosen_matrix(self, epochs, threshold=0.975, window_size=25, rel_window_offset=0):
+    def calc_chosen_matrix(self, epochs, threshold=0.975, window_size=30, rel_window_offset=0):
         """
         Calculates the chosen matrix based on the given epochs.
 
@@ -298,7 +298,7 @@ class Correction_Framework:
         return chosen_matrix
 
 
-    def apply_Moosmann(self, file_path, window_size=25, threshold=5):
+    def apply_Moosmann(self, file_path, window_size=30, threshold=5):
         """
         Applies Moosmann correction to the given file.
 
@@ -356,7 +356,7 @@ class Correction_Framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)  
 
-    def align_slices(self, ref_trigger): #WARNING: Not working yet
+    def align_triggers(self, ref_trigger): #WARNING: Not working yet
         """
         Aligns slices based on a reference trigger.
 
@@ -393,7 +393,6 @@ class Correction_Framework:
                 shift = max_corr - search_window
                 #Shift the trigger position
                 trigger_positions[key] = val + shift
-                #TODO: Add search window for cross correlation
             #Update the trigger positions
             self._eeg.loaded_triggers = trigger_positions
             # Update related attributes
@@ -415,7 +414,7 @@ class Correction_Framework:
         Returns:
             None
         """
-
+        raise "Not working yet."
         #Call _align_subsample for each channel
         for ch_id in range(self._eeg.mne_raw._data.shape[0]):
             self._align_subsample(ch_id, ref_trigger)
@@ -689,6 +688,7 @@ class Correction_Framework:
         """
         #Calculate the cross correlation
         # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
+
         corr = crosscorrelation(base, compare, search_window)
         #Find the maximum of the cross correlation
         max_corr = np.argmax(corr)

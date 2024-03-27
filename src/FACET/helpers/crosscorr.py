@@ -13,12 +13,13 @@ def crosscorrelation(x, y, maxlag, mode='corr'):
     """
     # ensure that x an y are the same length
     len_diff = len(x) - len(y)
+
     if len_diff > 0:
-        # x ist länger, also polstere y auf
-        y = np.pad(y, (len_diff // 2, len_diff - len_diff // 2), mode='constant')
+        # x ist länger, also polstere y nur am Ende auf
+        y = np.pad(y, (0, len_diff), mode='constant')
     elif len_diff < 0:
-        # y ist länger, also polstere x auf
-        x = np.pad(x, (abs(len_diff) // 2, abs(len_diff) - abs(len_diff) // 2), mode='constant')
+        # y ist länger, also polstere x nur am Ende auf
+        x = np.pad(x, (0, abs(len_diff)), mode='constant')
 
 
     py = np.pad(y.conj(), 2*maxlag, mode='constant')

@@ -59,7 +59,7 @@ To begin, load your EEG dataset into FACET object:
    task = "eegfmriNF"
 
    # Now some settings for the AAS
-   window_size = 25
+   window_size = 30
    relative_window_position = -0.5   
    artifact_to_trigger_offset_in_seconds = -6
    moosmann_motion_threshold = 0.8
