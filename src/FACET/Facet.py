@@ -41,6 +41,8 @@ class Facet:
     
     def apply_ANC(self):
         logger.warning("This method is not working yet. Skipping...")
+    def align_triggers(self, ref_trigger_index):
+        self._correction.align_triggers(ref_trigger_index)
         
     def apply_Moosmann(self, file_path, threshold=5, window_size=30):
         logger.info(f"Applying Moosmann with {file_path}")
