@@ -61,7 +61,7 @@ To begin, load your EEG dataset into FACET object:
    # Now some settings for the AAS
    window_size = 30
    relative_window_position = -0.5   
-   artifact_to_trigger_offset_in_seconds = -6
+   artifact_to_trigger_offset_in_seconds = -0.005
    moosmann_motion_threshold = 0.8
    event_id_description_pairs={'trigger':1}
    regex_trigger_annotation_filter = r'\bYour Trigger Tag\b' # Annotations with the description 'trigger' are considered as triggers
@@ -111,7 +111,7 @@ Before applying AAS, you neet to align the triggers so it matches the Slice Grad
 .. code-block:: python
 
    reference_trigger = 0
-   f.align_slices(0)
+   f.align_triggers(0)
 
 Applying Averaged Artifact Subtraction
 --------------------------------------

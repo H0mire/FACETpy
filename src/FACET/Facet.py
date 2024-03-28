@@ -36,6 +36,12 @@ class Facet:
         else:
             raise ValueError("Invalid method parameter")
         
+    def prepare_ANC(self):
+        logger.warning("This method is not working yet. Skipping...")
+    
+    def apply_ANC(self):
+        logger.warning("This method is not working yet. Skipping...")
+        
     def apply_Moosmann(self, file_path, threshold=5, window_size=30):
         logger.info(f"Applying Moosmann with {file_path}")
         self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
