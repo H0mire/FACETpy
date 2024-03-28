@@ -402,7 +402,7 @@ class Correction_Framework:
                 
             
         except Exception as ex:
-            logger.exception("An exception occured while applying ANC", ex)  
+            logger.exception("An exception occured while aligning triggers", ex)  
 
     def align_subsample(self, ref_trigger): #WARNING: Not working yet
         """
