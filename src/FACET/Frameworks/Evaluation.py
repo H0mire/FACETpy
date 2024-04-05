@@ -24,10 +24,10 @@ class Evaluation_Framework:
             None
         """
         if not end_time:
-            end_time = eeg.time_last_trigger_end if eeg.time_last_trigger_end else eeg.data_time_end
+            end_time = eeg.time_last_artifact_end if eeg.time_last_artifact_end else eeg.data_time_end
         if not start_time:
-            start_time = eeg.time_first_trigger_start if eeg.time_first_trigger_start else eeg.data_time_start
-        raw = eeg.mne_raw.copy()
+            start_time = eeg.time_first_artifact_start if eeg.time_first_artifact_start else eeg.data_time_start
+        raw = eeg.mne_raw
         logger.debug("Channels that will be evaluated: "+ str(raw.ch_names))
 
         eeg_channels = mne.pick_types(

@@ -15,6 +15,7 @@ from scipy.signal import firls
 from FACET.EEG_obj import EEG
 import numpy as np
 from loguru import logger
+import scipy.io as sio
 
 # import inst for mne python
 
@@ -136,16 +137,16 @@ class Analytics_Framework:
         triggers = filtered_positions
         count_triggers = len(filtered_positions)
         logger.debug(f"Found {count_triggers} triggers")
-        time_first_trigger_start = raw.times[triggers[0]]
-        time_last_trigger_end = raw.times[triggers[-1]]
+        time_first_artifact_start = raw.times[triggers[0]]
+        time_last_trigger = raw.times[triggers[-1]]
         self._eeg.last_trigger_search_regex=regex
         self._eeg.loaded_triggers = triggers
         self._eeg.triggers_as_events = filtered_events
         self._eeg.count_triggers = count_triggers
-        self._eeg.time_first_trigger_start = time_first_trigger_start - self._eeg.artifact_to_trigger_offset
-        self._eeg.time_last_trigger_end = time_last_trigger_end
+        self._eeg.time_first_artifact_start = time_first_artifact_start + self._eeg.artifact_to_trigger_offset
         self._check_volume_gaps()
         self._derive_art_length()
+        self._eeg.time_last_artifact_end = time_last_trigger + self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
         if self._FACET.get_correction().anc_prepared: self._derive_anc_hp_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
         self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
@@ -272,6 +273,8 @@ class Analytics_Framework:
         f = [0, self._eeg.anc_hp_frequency * (1 - trans) / nyq, self._eeg.anc_hp_frequency / nyq, 1]
         a = [0, 0, 1, 1]
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
+        # load the filter weights from mat file
+        self._eeg.anc_hp_filter_weights = sio.loadmat('FilterWeights.mat')['filtWeights']
         self._eeg.anc_filter_order = artifact_length
         
     def _check_volume_gaps(self):

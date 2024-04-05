@@ -21,7 +21,7 @@ class TestAnalyticsFramework:
         assert self.af._eeg.loaded_triggers is not None
         assert self.af._eeg.triggers_as_events is not None
         assert self.af._eeg.count_triggers is not None
-        assert self.af._eeg.time_first_trigger_start is not None
+        assert self.af._eeg.time_first_artifact_start is not None
         #trigger count should be 840
         assert self.af._eeg.count_triggers == 840
         #check if num_triggers is correct
