@@ -10,14 +10,13 @@ Version: 1.0
 import numpy as np
 import mne
 from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
-#from FACET.helpers.fastranc import fastr_anc
+from FACET.helpers.fastranc import fastr_anc
 from FACET.helpers.utils import split_vector
 from FACET.helpers.crosscorr import crosscorrelation
 from FACET.Frameworks.Analytics import Analytics_Framework
 from loguru import logger
 from scipy.signal import firls, filtfilt
 from numpy.fft import fft, ifft, fftshift, ifftshift
-import matlab.engine
 
 
 # import inst for mne python
@@ -45,7 +44,6 @@ class Correction_Framework:
         self.avg_artifact = None
         self.avg_artifact_matrix = None
         self.avg_artifact_matrix_numpy = None
-        self.anc_prepared = False
 
     def cut(self):
         """
@@ -93,20 +91,6 @@ class Correction_Framework:
             None
         """
         self._eeg = eeg
-        return
-
-    def prepare_ANC(self):
-        """
-        Prepares the ANC (Adaptive Noise Cancellation) by calculating filter weights and initializing the ANC noise data.
-
-        Returns:
-            None
-        """
-        logger.debug("Preparing ANC")
-        self._eeg.estimated_noise = np.zeros(self._eeg.mne_raw._data.shape)
-        if self._eeg.loaded_triggers:
-            self._FACET._analytics._derive_anc_hp_params()
-        self.anc_prepared = True
         return
 
     def plot_EEG(self, start=0, title=None, eeg=None):
@@ -198,8 +182,7 @@ class Correction_Framework:
                 start = idx_start + pos
                 minColumn = avg_artifact.shape[1]
                 stop = min(start + minColumn, corrected_data_template[ch_id].shape[0])
-                if self.anc_prepared:
-                    noise[ch_id, start:stop] += avg_artifact[key, : stop - start]
+                noise[ch_id, start:stop] += avg_artifact[key, : stop - start]
                 corrected_data_template[ch_id][start:stop] -= avg_artifact[
                     key, : stop - start
                 ]
@@ -372,14 +355,7 @@ class Correction_Framework:
         """
 
         logger.debug("applying ANC")
-        if not self.anc_prepared:
-            logger.warning(
-                "ANC not prepared yet, might not work as expected. Next time run correction.prepare_anc() at the desired point for better results. Preparing ANC now..."
-            )
-            self.prepare_ANC()
         try:
-            eng = matlab.engine.start_matlab()
-            eng.addpath(eng.genpath('src/FACET/helpers'))
             raw = self._eeg.mne_raw.copy()
             eeg_channels = mne.pick_types(
                 raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
@@ -392,9 +368,8 @@ class Correction_Framework:
 
             for key, val in enumerate(raw._data):
                 logger.debug(f"Applying ANC to Channel {channels_to_keep[key]}")
-                _corrected_channel_data = self._matlab_engine_anc(eng,val, noise[key])
+                _corrected_channel_data = self._anc(val, noise[key])
                 _corrected_data[key] = _corrected_channel_data
-            eng.quit()
             for ch_id, ch_d in enumerate(_corrected_data):
                 ch_name = raw.ch_names[ch_id]
                 ch_id_real = self._eeg.mne_raw.ch_names.index(ch_name)
@@ -607,75 +582,21 @@ class Correction_Framework:
         result = -np.sum((ref - arg) ** 2)
         return result
 
-    def _matlab_engine_anc(self,eng, EEG, Noise):
-        """
-        This method utilizes the MATLAB engine to apply ANC to the EEG data.
-        """
-        # Convert data to MATLAB format
-        EEG_mat = matlab.double(EEG.tolist())
-        Noise_mat = matlab.double(Noise.tolist())
-        AcqStart = matlab.double(int(self._eeg.mne_raw.time_as_index(
-            self._eeg.time_first_artifact_start, use_rounding=True
-        )[0]))
-        AcqEnd = matlab.double(int(self._eeg.mne_raw.time_as_index(
-            self._eeg.time_last_artifact_end, use_rounding=True
-        )[0]))
-
-        ANCFilterOrder = self._eeg.anc_filter_order
-        ANCFilterWeights = self._eeg.anc_hp_filter_weights
-
-        # Convert filter weights to MATLAB format
-        ANCFilterWeights = matlab.double(ANCFilterWeights.tolist())
-        ANCFilterOrder = matlab.double(int(ANCFilterOrder))
-        
-        # Call the ANC function
-        FilteredNoise = eng.AdaptiveNoiseCancellation(EEG_mat, Noise_mat, AcqStart, AcqEnd, ANCFilterOrder, ANCFilterWeights)
-
-        # Convert result back to numpy array
-        FilteredNoise = np.asarray(FilteredNoise)
-
-        return FilteredNoise
-
-
-    def check_function_exists(self, eng, function_name):
-        
-        try:
-            # Attempt to call the function with no arguments or with dummy arguments
-            # This will throw an error if the function does not exist
-            # You may need to adapt this line if the function requires mandatory arguments
-            eng.eval(function_name)
-            # If no error is thrown, the function exists
-            return True
-        except matlab.engine.MatlabExecutionError as e:
-            # Check the error message to see if it's because the function doesn't exist
-            if "Undefined function" in str(e):
-                return False
-            # If the error is for another reason, re-raise it
-            raise e
-        finally:
-            # Close the MATLAB engine
-            eng.quit()
-
-
-
     def _anc(self, EEG, Noise):
 
         acq_start, acq_end = self._eeg.mne_raw.time_as_index(
             [self._eeg.time_first_artifact_start, self._eeg.time_last_artifact_end],
             use_rounding=True,
         )
-        Reference = Noise[acq_start:acq_end].reshape(-1, 1)
+        Reference = Noise[acq_start:acq_end]
         # plt.plot(Reference[0:self._eeg.artifact_length])
         tmpd = filtfilt(
             self._eeg.anc_hp_filter_weights, 1, EEG, axis=0, padtype="odd"
-        ).reshape(-1, 1)
+        )
         Data = tmpd[acq_start:acq_end].astype(float)
         Alpha = np.sum(Data * Reference) / np.sum(Reference * Reference)
         Reference = (Alpha * Reference).astype(float)
         mu = float(0.05 / (self._eeg.anc_filter_order * np.var(Reference)))
-
-        Data = Data.flatten()
-        Reference = Reference.flatten()
 
         # Use the fastranc function for adaptive noise cancellation
         _, FilteredNoise = fastr_anc(Reference, Data, self._eeg.anc_filter_order, mu)
@@ -753,9 +674,19 @@ class Correction_Framework:
         Returns:
             None
         """
-        # Apply highpass filter
+
         logger.debug(f"Applying filter with l_freq={l_freq} and h_freq={h_freq}")
+        #performant check if the estimated noise is all zeros with any
+        if np.any(self._eeg.estimated_noise):
+            # Apply highpass filter
+
+            noise_raw = self._eeg.mne_raw.copy()
+            noise_raw._data = self._eeg.estimated_noise
+            self._eeg.estimated_noise = noise_raw.filter(l_freq=l_freq, h_freq=h_freq)._data.copy()
+            # unload noise_raw
+            noise_raw = None
         self._eeg.mne_raw.filter(l_freq=l_freq, h_freq=h_freq)
+
 
     def _upsample_data(self):
         """
@@ -811,13 +742,16 @@ class Correction_Framework:
         Note:
             The `_eeg` attribute should be initialized before calling this method.
         """
-        if self.anc_prepared:
-            noise_raw = self._eeg.mne_raw.copy()
+        noise_raw = self._eeg.mne_raw.copy()
+        self._eeg.mne_raw.resample(sfreq=sfreq)
+        #performant check if the estimated noise is all zeros with any
+        if not np.any(self._eeg.estimated_noise):
+            self._eeg.estimated_noise = np.zeros(self._eeg.mne_raw._data.shape)
+        else:
             noise_raw._data = self._eeg.estimated_noise
             self._eeg.estimated_noise = noise_raw.resample(sfreq=sfreq)._data.copy()
             # unload noise_raw
             noise_raw = None
-        self._eeg.mne_raw.resample(sfreq=sfreq)
         regex = self._eeg.last_trigger_search_regex
         if regex:
             self._FACET._analytics.find_triggers(regex)

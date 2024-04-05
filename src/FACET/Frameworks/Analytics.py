@@ -65,6 +65,7 @@ class Analytics_Framework:
             data_time_end = raw.times[-1]
 
             self._eeg = EEG(mne_raw=raw,
+                            estimated_noise=np.zeros(raw._data.shape),
                             artifact_to_trigger_offset=artifact_to_trigger_offset,
                             upsampling_factor=upsampling_factor,
                             data_time_start=data_time_start,
@@ -147,7 +148,7 @@ class Analytics_Framework:
         self._check_volume_gaps()
         self._derive_art_length()
         self._eeg.time_last_artifact_end = time_last_trigger + self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
-        if self._FACET.get_correction().anc_prepared: self._derive_anc_hp_params()
+        self._derive_anc_hp_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
         self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
 
@@ -274,7 +275,7 @@ class Analytics_Framework:
         a = [0, 0, 1, 1]
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
         # load the filter weights from mat file
-        self._eeg.anc_hp_filter_weights = sio.loadmat('FilterWeights.mat')['filtWeights']
+        #self._eeg.anc_hp_filter_weights = sio.loadmat('FilterWeights.mat')['filtWeights'][0]
         self._eeg.anc_filter_order = artifact_length
         
     def _check_volume_gaps(self):

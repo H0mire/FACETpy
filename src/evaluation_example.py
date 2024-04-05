@@ -38,7 +38,7 @@ file_path = 'src/NiazyFMRI.edf'
 # Upsampling factor
 upsample_factor = 10
 
-relative_window_offset = -0.5
+relative_window_offset = 0
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
 #Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
@@ -50,24 +50,20 @@ f.get_EEG().mne_raw.crop(0, 162)
 #f.pre_processing()
 f.highpass(1.5)
 f.upsample()
-f.get_correction().prepare_ANC()
 f.find_triggers(event_regex)
 f.align_triggers(0)
 #f.apply_Moosmann("./src/headmotiondata.tsv")
 f.apply_AAS(rel_window_position=relative_window_offset)
 f.remove_artifacts(plot_artifacts=False)
 #f.post_processing()
-loaded_trigger_positions = f.get_EEG().loaded_triggers
+#loaded_trigger_positions = f.get_EEG().loaded_triggers
 f.downsample()
 f.lowpass(70)
 eeg_without_anc = f.get_EEG().copy()
 f.plot_EEG(start=29, title="Own Implementation without ANC", eeg=eeg_without_anc)
 f.add_to_evaluate(eeg_without_anc, name="Own Implementation without ANC")
-f.get_EEG().loaded_triggers = (np.asarray(loaded_trigger_positions) / upsample_factor).astype(int).tolist()
-temp_estimated_noise=sio.loadmat('all_noise.mat')['all_noise'][:32]
-# add one row of zeros to the estimated noise
-temp_estimated_noise = np.vstack((temp_estimated_noise, np.zeros(temp_estimated_noise.shape[1])))
-f.get_EEG().estimated_noise = temp_estimated_noise
+#f.get_EEG().loaded_triggers = (np.asarray(loaded_trigger_positions) / upsample_factor).astype(int).tolist()
+
 f.get_correction().apply_ANC()
 f.add_to_evaluate(f.get_EEG(), name="Own Implementation with anc")
 f.plot_EEG(start=29, title="Own Implementation with ANC")
