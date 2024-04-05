@@ -742,6 +742,7 @@ class Correction_Framework:
         Note:
             The `_eeg` attribute should be initialized before calling this method.
         """
+        sfreq_old = self._eeg.mne_raw.info["sfreq"]
         noise_raw = self._eeg.mne_raw.copy()
         self._eeg.mne_raw.resample(sfreq=sfreq)
         #performant check if the estimated noise is all zeros with any
@@ -752,9 +753,14 @@ class Correction_Framework:
             self._eeg.estimated_noise = noise_raw.resample(sfreq=sfreq)._data.copy()
             # unload noise_raw
             noise_raw = None
-        regex = self._eeg.last_trigger_search_regex
-        if regex:
-            self._FACET._analytics.find_triggers(regex)
+        if self._eeg.loaded_triggers is None:
+            return
+        # update the trigger positions
+        self._eeg.loaded_triggers = [
+            int(trigger * (sfreq / sfreq_old)) for trigger in self._eeg.loaded_triggers
+        ]
+
+        self._FACET._analytics.derive_parameters()
 
     def _find_max_cross_correlation(self, base, compare, search_window):
         """

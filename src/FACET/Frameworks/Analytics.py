@@ -138,12 +138,17 @@ class Analytics_Framework:
         triggers = filtered_positions
         count_triggers = len(filtered_positions)
         logger.debug(f"Found {count_triggers} triggers")
-        time_first_artifact_start = raw.times[triggers[0]]
-        time_last_trigger = raw.times[triggers[-1]]
         self._eeg.last_trigger_search_regex=regex
         self._eeg.loaded_triggers = triggers
         self._eeg.triggers_as_events = filtered_events
         self._eeg.count_triggers = count_triggers
+
+        self.derive_parameters()
+
+    def derive_parameters(self):
+        triggers = self._eeg.loaded_triggers
+        time_first_artifact_start = self._eeg.mne_raw.times[triggers[0]]
+        time_last_trigger = self._eeg.mne_raw.times[triggers[-1]]
         self._eeg.time_first_artifact_start = time_first_artifact_start + self._eeg.artifact_to_trigger_offset
         self._check_volume_gaps()
         self._derive_art_length()
@@ -151,7 +156,6 @@ class Analytics_Framework:
         self._derive_anc_hp_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
         self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
-
 
     def get_mne_raw(self):
             """

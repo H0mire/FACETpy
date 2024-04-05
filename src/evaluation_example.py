@@ -38,7 +38,7 @@ file_path = 'src/NiazyFMRI.edf'
 # Upsampling factor
 upsample_factor = 10
 
-relative_window_offset = 0
+relative_window_offset = -0.5
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
 #Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
