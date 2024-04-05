@@ -10,7 +10,7 @@ upsample_factor = 10
 #unwanted channels
 unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG']
 #Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
-artifact_to_trigger_offset = -0.01
+artifact_to_trigger_offset = -0.005
 #End Configuration Block
 
 # Loading the EEG data by creating a FACET object and importing the EEG data
@@ -18,18 +18,12 @@ f = Facet()
 f.import_EEG(file_path, upsampling_factor=upsample_factor, bads=unwanted_bad_channels, artifact_to_trigger_offset=artifact_to_trigger_offset)
 f.get_EEG().mne_raw.crop(0, 162)
 f.plot_EEG(start=29)
-#f.pre_processing()
-f.highpass(1)
-f.upsample()
+f.pre_processing()
 f.find_triggers(event_regex)
-f.get_correction().align_triggers(0)
-f.get_correction().prepare_ANC()
+f.align_triggers(0)
 f.apply_AAS()
 f.remove_artifacts(plot_artifacts=False)
 f.post_processing()
-f.downsample()
-f.lowpass(70)
-f.get_correction().apply_ANC()
-#f.plot_EEG(start=29)
+f.plot_EEG(start=29)
 #f.export_EEG('processed_eeg_file.edf')
 input("Press Enter to end the script...")

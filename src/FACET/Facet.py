@@ -37,10 +37,10 @@ class Facet:
             raise ValueError("Invalid method parameter")
         
     def prepare_ANC(self):
-        logger.warning("This method is not working yet. Skipping...")
+        logger.warning("This method is not necessary anymore. Skipping...")
     
     def apply_ANC(self):
-        logger.warning("This method is not working yet. Skipping...")
+        self._correction.apply_ANC()
     def align_triggers(self, ref_trigger_index):
         self._correction.align_triggers(ref_trigger_index)
         
@@ -53,12 +53,11 @@ class Facet:
         #change to your liking
         self._correction.filter(l_freq=1)
         self._correction.upsample()
-        #self._correction.prepare_ANC() # Not working yet
     def post_processing(self): # Change to your liking
         #change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=70)
-        #self._correction.apply_ANC() # Not working yet
+        self._correction.apply_ANC() 
     def cut(self):
         self._correction.cut()
     def plot_EEG(self, start=0, title=None, eeg=None):

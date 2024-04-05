@@ -89,7 +89,6 @@ This can include filtering and resampling.
 
    f.highpass(1)
    f.upsample() # upsampling factor must be specified on importing the EEG data
-   f.prepare_ANC() # prepare the ANC for the AAS
 
 Finding triggers
 ----------------
