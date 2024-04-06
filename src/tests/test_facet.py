@@ -48,7 +48,7 @@ class TestAnalyticsFramework:
     def test_artifakt_removal(self):
         #assert number triggers is 840
         self.test_find_triggers()
-        self.af.apply_AAS(method="numpy")
+        self.af.calc_matrix_AAS(method="numpy")
         self.af.remove_artifacts()
         self.af.downsample()
         self.af.lowpass(h_freq=40)

@@ -29,10 +29,10 @@ class Facet:
         logger.info(f"Found {num_triggers} triggers")
     def prepare(self):
         self._correction.prepare()
-    def apply_AAS(self, method="numpy", rel_window_position=0, window_size=30):
+    def calc_matrix_AAS(self, method="numpy", rel_window_position=0, window_size=30):
         logger.info(f"Applying AAS with method {method}")
         if method == "numpy":
-            self._correction.apply_AAS(rel_window_position, window_size=window_size)
+            self._correction.calc_matrix_AAS(rel_window_position, window_size=window_size)
         else:
             raise ValueError("Invalid method parameter")
         
@@ -44,9 +44,9 @@ class Facet:
     def align_triggers(self, ref_trigger_index):
         self._correction.align_triggers(ref_trigger_index)
         
-    def apply_Moosmann(self, file_path, threshold=5, window_size=30):
+    def calc_matrix_motion(self, file_path, threshold=5, window_size=30):
         logger.info(f"Applying Moosmann with {file_path}")
-        self._correction.apply_Moosmann(file_path=file_path, threshold=threshold, window_size=window_size)
+        self._correction.calc_matrix_motion(file_path=file_path, threshold=threshold, window_size=window_size)
     def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):  
         self._correction.remove_artifacts(avg_artifact_matrix_numpy=avg_artifact_matrix_numpy, plot_artifacts=plot_artifacts)
     def pre_processing(self): # Change to your liking

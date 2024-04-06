@@ -26,7 +26,7 @@ f.pre_processing()
 f.find_triggers(event_regex)
 f2.find_triggers(event_regex)
 f.align_triggers(0)
-f.apply_AAS()
+f.calc_matrix_AAS()
 f.remove_artifacts(plot_artifacts=False)
 f.post_processing()
 

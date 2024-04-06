@@ -92,7 +92,7 @@ Once your triggers are specified, apply AAS to correct for artifacts:
 
 .. code-block:: python
 
-   f.apply_AAS()
+   f.calc_matrix_AAS()
 
 .. important::
 
