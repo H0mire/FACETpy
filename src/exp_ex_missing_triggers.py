@@ -22,7 +22,15 @@ f.pre_processing()
 f.find_triggers(event_regex)
 
 #remove first trigger from loaded_triggers to simulate missing trigger
-#f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[1:]
+f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[15:830]
+f.find_missing_triggers()
+#remove the 4th trigger from loaded_triggers to simulate missing trigger
+#f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[0:21] + f.get_EEG().loaded_triggers[22:840]
+#f.find_missing_triggers()
+
+
+#print count triggers total
+print(f.get_EEG().count_triggers)
 
 f.align_triggers(0)
 f.calc_matrix_AAS()

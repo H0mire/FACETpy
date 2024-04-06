@@ -11,8 +11,6 @@ class EEG:
     loaded_triggers= None
     last_trigger_search_regex=None
     all_events= None
-    triggers_as_events= None
-    count_triggers= None
     upsampling_factor= None
     time_first_artifact_start= None
     time_last_artifact_end= None
@@ -28,7 +26,7 @@ class EEG:
     anc_hp_filter_weights = None #The filter weights of the ANC
     anc_filter_order = None #The filter order of the ANC
 
-    def __init__(self, mne_raw=None, mne_raw_orig=None, anc_hp_frequency=None, estimated_noise=None, artifact_to_trigger_offset=0.0, loaded_triggers=None, last_trigger_search_regex=None, all_events=None, triggers_as_events=None, count_triggers=None, upsampling_factor=None, time_first_artifact_start=None, time_last_artifact_end=None, data_time_start=None, data_time_end=None, artifact_length=0, artifact_duration=0, volume_gaps=None, BIDSPath=None):
+    def __init__(self, mne_raw=None, mne_raw_orig=None, anc_hp_frequency=None, estimated_noise=None, artifact_to_trigger_offset=0.0, loaded_triggers=None, last_trigger_search_regex=None, all_events=None, upsampling_factor=None, time_first_artifact_start=None, time_last_artifact_end=None, data_time_start=None, data_time_end=None, artifact_length=0, artifact_duration=0, volume_gaps=None, BIDSPath=None):
         self.mne_raw = mne_raw
         self.mne_raw_orig = mne_raw_orig if mne_raw_orig is not None else mne_raw.copy() if mne_raw is not None else None
         self.anc_hp_frequency = anc_hp_frequency
@@ -37,8 +35,6 @@ class EEG:
         self.loaded_triggers = loaded_triggers
         self.last_trigger_search_regex = last_trigger_search_regex
         self.all_events = all_events
-        self.triggers_as_events = triggers_as_events
-        self.count_triggers = count_triggers
         self.upsampling_factor = upsampling_factor
         self.time_first_artifact_start = time_first_artifact_start
         self.time_last_artifact_end = time_last_artifact_end
@@ -53,10 +49,29 @@ class EEG:
         self._tmin = self.artifact_to_trigger_offset
         self._tmax = self.artifact_to_trigger_offset + self.artifact_duration
 
+    @property
+    def triggers_as_events(self):
+        if self.loaded_triggers is None:
+            return None
+
+        events = []
+        for trigger in self.loaded_triggers:
+            events.append((trigger, 0, 1))
+
+        return np.array(events, dtype=np.int32)
+
+    @property
+    def count_triggers(self):
+        if self.loaded_triggers is None:
+            return 0
+        return len(self.loaded_triggers)
+
     def get_tmin(self):
         return self._tmin
+
     def get_tmax(self):
         return self._tmax
+
     def copy(self):
         copied = deepcopy(self)
         copied.mne_raw = self.mne_raw.copy()

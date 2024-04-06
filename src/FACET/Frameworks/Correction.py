@@ -159,7 +159,14 @@ class Correction_Framework:
                 np.array(self._eeg.loaded_triggers) + trigger_offset_in_samples,
                 art_length,
             )
+            #check if the number of epochs in matrix is equal to the number of triggers
+            if len(ch_matrix) != len(self._eeg.loaded_triggers):
+                #remove the last epoch from data_split_on_epochs
+                data_split_on_epochs = data_split_on_epochs[:-1]
             avg_artifact = ch_matrix @ data_split_on_epochs
+            if len(ch_matrix) != len(self._eeg.loaded_triggers):
+                #copy last artifact to the end of the avg_artifact
+                avg_artifact = np.append(avg_artifact, avg_artifact[-1].reshape(1,-1), axis=0)
             artifacts.append(avg_artifact)
 
             if plot_artifacts: raw_avg_artifact.data[counter] = avg_artifact[0]
@@ -209,7 +216,7 @@ class Correction_Framework:
                 noise[ch_id, start:stop] += avg_artifact
                 raw._data[ch_id][start:stop] -= avg_artifact
 
-    def calc_matrix_AAS(self, rel_window_position=0, window_size=30):
+    def calc_matrix_AAS(self, rel_window_position=0, window_size=30, channels=None):
         """
         Applies the AAS (Artifact Averaging Subtraction) matrix using numpy.
 
@@ -227,7 +234,8 @@ class Correction_Framework:
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
-        channels_to_keep = [raw.ch_names[i] for i in eeg_channels[:]]
+        if channels is None: channels_to_average = [raw.ch_names[i] for i in eeg_channels[:]]
+        else: channels_to_average = [raw.ch_names[i] for i in channels[:]]
         # Epochen erstellen
         epochs = mne.Epochs(
             raw,
@@ -237,10 +245,13 @@ class Correction_Framework:
             baseline=None,
             reject=None,
             preload=True,
-            picks=eeg_channels,
+            picks=eeg_channels
         )
+        if len(epochs) != len(self._eeg.loaded_triggers):
+            #Because of possible bad triggers, we need to check if the number of epochs is equal to the number of triggers
+            logger.warning("Number of epochs is not equal to the number of triggers. Please check your data. Imcomplete data?")
         avg_matrix_3d = {}
-        for key, ch_name in enumerate(channels_to_keep):
+        for key, ch_name in enumerate(channels_to_average):
             idx = self._eeg.mne_raw.ch_names.index(ch_name)
             logger.debug(f"Averaging Channel {idx}:{ch_name}", end=" ")
             epochs_single_channel = epochs.copy().pick(key) #TODO: Since it is a copy, it is not memory efficient, consider changing it to a data array
@@ -385,7 +396,7 @@ class Correction_Framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)
 
-    def align_triggers(self, ref_trigger):  # WARNING: Not working yet
+    def align_triggers(self, ref_trigger, save=False, search_window = None):  # WARNING: Not working yet
         """
         Aligns slices based on a reference trigger.
 
@@ -396,7 +407,8 @@ class Correction_Framework:
             None
         """
         logger.debug("Aligning triggers")
-        search_window = 3 * self._eeg.upsampling_factor
+        if search_window is None:
+            search_window = 3 * self._eeg.upsampling_factor
         try:
             raw = self._eeg.mne_raw
             eeg_channels = mne.pick_types(
@@ -426,6 +438,15 @@ class Correction_Framework:
             # Update related attributes
             self._FACET._analytics._derive_art_length()
             self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
+            if save:
+                #replace the triggers as events in the raw object
+                self._eeg.mne_raw.annotations = mne.Annotations(
+                    onset=self._eeg.loaded_triggers/self._eeg.mne_raw.info["sfreq"],
+                    duration=np.zeros(len(self._eeg.loaded_triggers)),
+                    description=["Trigger"]*len(self._eeg.loaded_triggers)
+                )
+                
+
 
         except Exception as ex:
             logger.exception("An exception occured while aligning triggers", ex)

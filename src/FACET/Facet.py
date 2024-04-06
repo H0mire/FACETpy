@@ -27,6 +27,11 @@ class Facet:
         self._analytics.find_triggers(regex)
         num_triggers=self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
+
+    def find_missing_triggers(self):
+        logger.info("Finding missing triggers...")
+        self._analytics.find_missing_triggers()
+        
     def prepare(self):
         self._correction.prepare()
     def calc_matrix_AAS(self, method="numpy", rel_window_position=0, window_size=30):

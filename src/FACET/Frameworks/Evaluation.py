@@ -54,6 +54,12 @@ class Evaluation_Framework:
         Returns:
             mne.io.Raw: Cropped raw data.
         """
+        #check if tmax is in the data
+        if tmax > raw.times[-1]:
+            tmax = raw.times[-1]
+        #ensure that tmin is smaller than tmax
+        if tmin >= tmax:
+            return raw.copy().crop(tmin=0, tmax=0)
         return raw.copy().crop(tmin=tmin, tmax=tmax)
 
     def _cutout(self,raw, tmin, tmax):
@@ -68,6 +74,10 @@ class Evaluation_Framework:
         Returns:
             mne.io.Raw: Cut out raw data.
         """
+        #check if tmax is in the data
+        if tmax > raw.times[-1]:
+            tmax = raw.times[-1]
+
         first_part = raw.copy().crop(tmax=tmin)
 
         second_part = raw.copy().crop(tmin=tmax)
