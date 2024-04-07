@@ -44,14 +44,14 @@ class Analysis_Framework:
             Imports EEG data from a file, supporting various formats, and loads it into the EEG object.
 
             Parameters:
-            - filename (str): The path to the EEG file.
-            - artifact_to_trigger_offset (float): The relative position of the trigger in the data.
-            - upsampling_factor (int): The factor by which to upsample the data.
-            - fmt (str): The format of the EEG file (either "edf" or "gdf").
-            - bads (list): A list of bad channels to exclude from the data.
+                filename (str): The path to the EEG file.
+                artifact_to_trigger_offset (float): The relative position of the trigger in the data.
+                upsampling_factor (int): The factor by which to upsample the data.
+                fmt (str): The format of the EEG file (either "edf" or "gdf").
+                bads (list): A list of bad channels to exclude from the data.
 
             Returns:
-            - EEG: The EEG object containing the imported data and metadata.
+                EEG: The EEG object containing the imported data and metadata.
             """
             if fmt == "edf":
                 raw = mne.io.read_raw_edf(path)
@@ -163,11 +163,11 @@ class Analysis_Framework:
         Calculates various parameters based on the loaded triggers, including artifact start times and durations.
 
         Derives:
-        - time_first_artifact_start
-        - time_last_artifact_end
-        - artifact_length
-        - artifact_duration
-        - ANC high-pass filter parameters
+            time_first_artifact_start
+            time_last_artifact_end
+            artifact_length
+            artifact_duration
+            ANC high-pass filter parameters
         """
         triggers = self._eeg.loaded_triggers
         time_first_artifact_start = self._eeg.mne_raw.times[triggers[0]]
@@ -272,7 +272,7 @@ class Analysis_Framework:
 
         This method adds triggers to the EEG data based on the provided trigger positions.
 
-        Args:
+        Parameters:
             triggers (list): List of trigger positions.
 
         Returns:
@@ -377,7 +377,7 @@ class Analysis_Framework:
         """
         Add annotations to the EEG data.
 
-        Args:
+        Parameters:
             annotations (list): List of annotations to add.
 
         Returns:
@@ -493,7 +493,7 @@ class Analysis_Framework:
             """
             Extract specific annotations from an MNE Raw object.
 
-            Args:
+            Parameters:
                 regex (str): Regular expression pattern to match the annotation description.
 
             Returns:

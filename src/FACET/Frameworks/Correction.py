@@ -92,7 +92,7 @@ class Correction_Framework:
         """
         Sets the EEG data for the Correction object.
 
-        Args:
+        Parameters:
             eeg: The EEG data to be set.
 
         Returns:
@@ -348,7 +348,7 @@ class Correction_Framework:
         """
         Applies Moosmann correction to the given file.
 
-        Args:
+        Parameters:
             file_path (str): The path to the file.
             window_size (int, optional): The size of the window for calculating the weighted matrix. Defaults to 25.
             threshold (int, optional): The threshold for determining artifact segments. Defaults to 5.
@@ -403,7 +403,7 @@ class Correction_Framework:
         """
         Aligns slices based on a reference trigger.
 
-        Args:
+        Parameters:
             ref_trigger (int): The reference trigger.
 
         Returns:
@@ -458,7 +458,7 @@ class Correction_Framework:
         """
         Aligns the trigger based on a reference artifact.
 
-        Args:
+        Parameters:
             template (numpy.ndarray): The template artifact.
             reference (numpy.ndarray): The reference artifact.
 
@@ -481,7 +481,7 @@ class Correction_Framework:
         """
         Aligns subsamples based on a reference trigger.
 
-        Args:
+        Parameters:
             ref_trigger (int): The reference trigger.
 
         Returns:
@@ -670,7 +670,7 @@ class Correction_Framework:
         """
         Aligns the triggers based on the averaged artifacts.
 
-        Args:
+        Parameters:
             ch_d (numpy.ndarray): The EEG data.
             avg_artifact_matrix_numpy (numpy.ndarray): The average artifact matrix.
             search_window (int, optional): The search window. Defaults to None.
@@ -820,7 +820,7 @@ class Correction_Framework:
         """
         Finds the maximum cross correlation between two signals.
 
-        Args:
+        Parameters:
             base (numpy.ndarray): The base signal.
             compare (numpy.ndarray): The signal to compare.
             pos (int): The position of the signal.
