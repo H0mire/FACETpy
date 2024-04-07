@@ -17,25 +17,22 @@ elif sys.platform.startswith('win'):
 else:
     raise OSError("Unsupported operating system")
 
+fastranc = None
 try:
     lib = CDLL(lib_path)
+    fastranc = lib.fastranc
+    fastranc.argtypes = [
+        POINTER(c_double),
+        POINTER(c_double),
+        c_int,
+        c_double,
+        POINTER(c_double),
+        POINTER(c_double),
+        c_int,
+    ]
+    fastranc.restype = None
 except:
     logger.error("File not found! Check your Project Files")
-
-# Definieren des Funktionsprototyps in Python
-# Hier nehmen wir an, dass die Funktion in der C-Bibliothek `fastranc_wrapper` heißt,
-# passen Sie den Namen entsprechend an, falls er anders ist.
-fastranc = lib.fastranc
-fastranc.argtypes = [
-    POINTER(c_double),
-    POINTER(c_double),
-    c_int,
-    c_double,
-    POINTER(c_double),
-    POINTER(c_double),
-    c_int,
-]
-fastranc.restype = None
 
 
 def fastr_anc(refs_array, d_array, N_value, mu_value):
