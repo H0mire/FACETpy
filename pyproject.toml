@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
 authors = ["Janik Michael Mueller <janik.michael.mueller@gmail.com>"]
 license = "GNUv3"
-readme = "README.md"
+readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.11"
