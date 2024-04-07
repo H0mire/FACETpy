@@ -1,6 +1,7 @@
 import numpy as np
 from ctypes import CDLL, c_int, c_double, POINTER
 import sys
+from loguru import logger
 
 # set current path to the path the file is in and then change back to the original path
 import os
@@ -15,7 +16,11 @@ elif sys.platform.startswith('win'):
     lib_path = path + '/fastranc.dll'  # Windows
 else:
     raise OSError("Unsupported operating system")
-lib = CDLL(lib_path)
+
+try:
+    lib = CDLL(lib_path)
+except:
+    logger.error("File not found! Check your Project Files")
 
 # Definieren des Funktionsprototyps in Python
 # Hier nehmen wir an, dass die Funktion in der C-Bibliothek `fastranc_wrapper` heißt,
