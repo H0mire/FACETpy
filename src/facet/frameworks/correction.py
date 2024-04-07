@@ -1,7 +1,7 @@
 """
-Correction Framework Module
+Correction framework Module
 
-This module contains the Correction_Framework class, which is used to correct EEG data.
+This module contains the correction_framework class, which is used to correct EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -22,9 +22,9 @@ from numpy.fft import ifft, fftshift, ifftshift
 # import inst for mne python
 
 
-class Correction_Framework:
+class correction_framework:
     """
-    The Correction_Framework class is used to correct EEG data.
+    The correction_framework class is used to correct EEG data.
 
     The class contains methods to correct EEG data, such as removing artifacts, applying Adaptive Autoregressive Models (AAR) and Moosmann correction,
     and preprocessing and postprocessing the data.
@@ -39,7 +39,7 @@ class Correction_Framework:
 
     def __init__(self, facet, eeg):
         """
-        Initializes the Correction_Framework class with necessary components for EEG correction.
+        Initializes the correction_framework class with necessary components for EEG correction.
 
         Parameters:
             facet: A reference to a facet class instance, providing access to facet's functionalities.

@@ -1,7 +1,7 @@
 """
-Evaulation Framework Module
+Evaulation framework Module
 
-This module contains the Evaluation_Framework class, which is used to evaluate EEG data.
+This module contains the evaluation_framework class, which is used to evaluate EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from loguru import logger
 
 
-class Evaluation_Framework:
+class evaluation_framework:
     def __init__(self, facet):
         """
-        Initializes the Evaluation_Framework class.
+        Initializes the evaluation_framework class.
 
         Parameters:
             facet (facet class instance): An instance of the facet class.

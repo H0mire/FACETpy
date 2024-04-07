@@ -1,4 +1,4 @@
-Analysis Framework Module
+Analysis framework Module
 =========================
 
 .. module:: Analysis
@@ -9,7 +9,7 @@ Analysis Framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: facet.Frameworks.Analysis
+.. automodule:: facet.frameworks.Analysis
 	:members:
 	:undoc-members:
 	:show-inheritance:

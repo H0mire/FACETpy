@@ -1,4 +1,4 @@
-Correction Framework Module
+Correction framework Module
 ===========================
 
 .. module:: Correction
@@ -9,7 +9,7 @@ Correction Framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: facet.Frameworks.Correction
+.. automodule:: facet.frameworks.Correction
 	:members:
 	:undoc-members:
 	:show-inheritance:

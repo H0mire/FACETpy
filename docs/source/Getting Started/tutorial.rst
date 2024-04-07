@@ -12,7 +12,7 @@ Before applying AAS, ensure you have the following:
 
 - MNE-Python installed in your environment.
 - The rest of the necessary packages installed.
-- An EEG dataset imported with the analysis Framework
+- An EEG dataset imported with the analysis framework
 
 You can install the necessary packages using pip:
 

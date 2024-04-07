@@ -1,6 +1,6 @@
-""" Analysis Framework Module
+""" Analysis framework Module
 
-This module contains the Analysis_Framework class, which provides methods for importing, exporting, and analyzing EEG data.
+This module contains the analysis_framework class, which provides methods for importing, exporting, and analyzing EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -20,10 +20,10 @@ from loguru import logger
 # import inst for mne python
 
 
-class Analysis_Framework:
+class analysis_framework:
     def __init__(self, facet, eeg=None):
         """
-        Initializes an instance of the Analysis_Framework class.
+        Initializes an instance of the analysis_framework class.
 
         Parameters:
             facet (facet.facet): A reference to an instance of a facet class (or similar) that provides additional functionality for EEG data processing.

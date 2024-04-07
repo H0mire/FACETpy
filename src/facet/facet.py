@@ -1,6 +1,6 @@
-from .Frameworks.Correction import Correction_Framework
-from .Frameworks.Evaluation import Evaluation_Framework
-from .Frameworks.Analysis import Analysis_Framework
+from .frameworks.correction import correction_framework
+from .frameworks.evaluation import evaluation_framework
+from .frameworks.analysis import analysis_framework
 import mne
 from loguru import logger
 
@@ -8,9 +8,9 @@ from loguru import logger
 class facet:
 
     def __init__(self):
-        self._analysis = Analysis_Framework(self)
+        self._analysis = analysis_framework(self)
         self._correction = None
-        self._evaluation = Evaluation_Framework(self)
+        self._evaluation = evaluation_framework(self)
         self._eeg = None
         mne.set_log_level("ERROR")
 
@@ -39,7 +39,7 @@ class facet:
             session=session,
             task=task,
         )
-        self._correction = Correction_Framework(self, self._eeg)
+        self._correction = correction_framework(self, self._eeg)
         return self._eeg
 
     def export_eeg(
