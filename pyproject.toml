@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "facet"
+version = "0.1.0"
+description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
+authors = ["Janik Michael Mueller <janik.michael.mueller@gmail.com>"]
+license = "GNUv3"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+EDFlib-Python = "1.0.8"
+loguru = "0.7.2"
+matplotlib = "3.8.2"
+mne = "1.6.0"
+mne-bids = "0.14"
+numpy = "1.26.3"
+pandas = "2.2.0"
+scipy = "1.11.4"
+notebook = "^7.1.2"
+
+
+[tool.poetry.group.dev.dependencies]
+sphinx = "^7.2.6"
+sphinx-rtd-theme = "^2.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
