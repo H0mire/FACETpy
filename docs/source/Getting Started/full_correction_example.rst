@@ -3,36 +3,39 @@ Getting Started: Full Averaged Artifact Subtraction (AAS) Correction of BIDS EEG
 
 Introduction
 ------------
-
 This document explains how to use the facet framework to its full extent. It describes how to import EEG data with a BIDS structure, apply alignment, and apply Averaged Artifact Subtraction (AAS) to correct for artifacts. This document assumes you have already installed facet and have a basic understanding of how to use it.
 
 Prerequisites
 -------------
-
 Before applying AAS, ensure you have the following:
 
-- MNE-Python installed in your environment.
-- The rest of the necessary packages installed.
-- An EEG dataset imported with the analysis framework
+- Python 3.10 or above installed on your computer
+- All the required packages installed
+- Enough memory for working with the eeg dataset
 
-You can install the necessary packages using pip:
+You can install the required packages using poetry (Recommended):
 
 .. code-block:: bash
    
+   poetry install
+   poetry shell
+
+Or you can use pip and venv:
+
+.. code-block:: bash
+
    # Optional: Create a virtual environment
-   pip install virtualenv
    python -m venv venv
    # On Windows
-   venv\Scripts\activate.bat
+   .\venv\Scripts\activate.bat
    # On Unix or MacOS
    source venv/bin/activate
 
-   # Mandatory: Install the necessary packages
+   # Mandatory: Install the required packages
    pip install -r requirements.txt
 
 Loading Your EEG Data
 ---------------------
-
 .. note::
    
    This tutorial is based on the default/stock facet object implementation. The facet Object is intended to be individualized to the user's needs.
@@ -46,7 +49,7 @@ To begin, load your EEG dataset into a facet object:
    # It is advised to add a configuration block here, to keep an overview of the settings used for the analysis.
    # Begin Configuration Block
    # Path to your BIDS dataset
-   bids_path = "F:\EEG Datasets\openneuro\FMRIWITHMOTION"
+   bids_path = "/path/to/your/bids"
    # Annotations with the description 'Your Trigger Tag' are considered as triggers
    regex_trigger_annotation_filter = r'\bYour Trigger Tag\b'
    # Upsampling factor
@@ -94,8 +97,7 @@ This can include filtering and resampling.
 
 Finding Triggers
 ----------------
-
-Before applying AAS, you need to specify which events in your EEG data will be used as triggers.
+efore applying AAS, you need to specify which events in your EEG data will be used as triggers.
 This is done using the `find_triggers` method, which takes an event Regular Expression as an argument.
 The event regex is a Regular Expression that matches the events you want to use as triggers.
 
@@ -105,32 +107,30 @@ If your Dataset contains a Stim Channel (Channel that contains event information
 
 .. code-block:: python
 
-   f.find_triggers(event_regex)
+   f.find_triggers(regex_trigger_annotation_filter)
    f.find_missing_triggers()
 
 .. note::
 
-   If there are triggers missing, you can either add them with the `add_trigger` method or detect them automatically with the `find_missing_triggers` method.
+   If there are triggers missing, you can either add them with the `f.get_analysis().add_triggers` method or detect them automatically with the `f.find_missing_triggers` method.
 
 Aligning Triggers
 -----------------
-
-Before applying AAS, you need to align the triggers so they match the Slice Gradient artifact.
+Before applying AAS, you need to align the triggers so they match their Slice Gradient artifacts.
 
 .. code-block:: python
 
    reference_trigger = 0
    f.align_triggers(reference_trigger)
+   f.get_correction.align_subsample(reference_trigger)
 
 Applying Averaged Artifact Subtraction
 --------------------------------------
-
 After preprocessing your EEG data and aligning the triggers, you can apply Averaged Artifact Subtraction (AAS) to remove artifacts from the EEG data.
 AAS includes the following steps:
 
 Calculating Averaged Artifact Matrix
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 Before you can remove artifacts, you must calculate the average artifact matrix. This can be done 
 after your triggers are loaded.
 
@@ -145,7 +145,6 @@ after your triggers are loaded.
 
 Removing Artifacts
 ^^^^^^^^^^^^^^^^^^
-
 After calculating the average artifact, you can remove the average artifact from the EEG data:
 
 .. code-block:: python
@@ -156,7 +155,6 @@ With that, the AAS correction is done. You can now proceed with further processi
 
 Further Processing
 ------------------
-
 After removing artifacts, you can proceed with further EEG data processing, such as filtering, adaptive noise cancellation, and downsampling.
 
 .. note::
@@ -201,7 +199,6 @@ This can be done using the `export_eeg` method, which takes the file path as an 
 
 Conclusion
 ----------
-
 Applying Averaged Artifact Subtraction (AAS) is crucial for preparing EEG data for analysis by reducing noise and artifacts. This documentation outlined the steps to apply AAS using facet, from loading your EEG data to applying the AAS correction.
 
 For more detailed information on processing EEG data with MNE-Python, refer to the official MNE-Python documentation.
