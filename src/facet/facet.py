@@ -74,13 +74,19 @@ class facet:
         self._correction.prepare()
 
     def calc_matrix_aas(self, method="numpy", rel_window_position=0, window_size=30):
-        logger.info(f"Applying AAS with method {method}")
+        logger.info(f"Calculating matrix with allen et al. averaging method {method}")
         if method == "numpy":
             self._correction.calc_matrix_aas(
                 rel_window_position, window_size=window_size
             )
         else:
             raise ValueError("Invalid method parameter")
+        
+    def calc_matrix_motion(self, file_path, threshold=5, window_size=30):
+        logger.info(f"Calculating Matrix with motiondata in {file_path}")
+        self._correction.calc_matrix_motion(
+            file_path=file_path, threshold=threshold, window_size=window_size
+        )
 
     def prepare_ANC(self):
         logger.warning("This method is not necessary anymore. Skipping...")
@@ -90,12 +96,6 @@ class facet:
 
     def align_triggers(self, ref_trigger_index):
         self._correction.align_triggers(ref_trigger_index)
-
-    def calc_matrix_motion(self, file_path, threshold=5, window_size=30):
-        logger.info(f"Applying Moosmann with {file_path}")
-        self._correction.calc_matrix_motion(
-            file_path=file_path, threshold=threshold, window_size=window_size
-        )
 
     def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):
         self._correction.remove_artifacts(
