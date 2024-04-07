@@ -4,7 +4,7 @@ from FACET.Facet import Facet
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
 # Path to your EEG file
-file_path = "src/NiazyFMRI.edf"
+file_path = "examples/datasets/NiazyFMRI.edf"
 # Event Regex assuming using stim channel
 event_regex = r"\b1\b"
 # Upsampling factor
@@ -29,8 +29,6 @@ f.pre_processing()
 f.find_triggers(event_regex)
 
 # remove first trigger from loaded_triggers to simulate missing trigger
-f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[15:830]
-f.find_missing_triggers()
 
 # generate 10 random numbers between 0 and 839
 missing_triggers = random.sample(range(0, 839), 10)
@@ -38,6 +36,8 @@ missing_triggers = random.sample(range(0, 839), 10)
 for i in missing_triggers:
     f.get_EEG().loaded_triggers.pop(i)
 
+f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[15:830]
+f.find_missing_triggers()
 # print count triggers total
 print(f.get_EEG().count_triggers)
 
