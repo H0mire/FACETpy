@@ -4,7 +4,7 @@ Analysis Framework Module
 .. module:: Analysis
    :synopsis: Provides methods for importing, exporting, and analyzing EEG data.
 
-.. moduleauthor:: Janik Michael Müller <janikmichael.mueller@gmail.com>
+.. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
 
 Version: 1.0
 Date: 15.02.2024

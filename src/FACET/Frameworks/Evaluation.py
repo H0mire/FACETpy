@@ -11,7 +11,6 @@ Version: 1.0
 import numpy as np
 import mne
 import matplotlib.pyplot as plt
-from operator import itemgetter
 from loguru import logger
 
 class Evaluation_Framework:

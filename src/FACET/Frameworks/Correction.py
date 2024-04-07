@@ -14,10 +14,9 @@ from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameter
 from FACET.helpers.fastranc import fastr_anc
 from FACET.helpers.utils import split_vector
 from FACET.helpers.crosscorr import crosscorrelation
-from FACET.Frameworks.Analysis import Analysis_Framework
 from loguru import logger
 from scipy.signal import firls, filtfilt
-from numpy.fft import fft, ifft, fftshift, ifftshift
+from numpy.fft import ifft, fftshift, ifftshift
 
 
 # import inst for mne python

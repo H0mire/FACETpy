@@ -4,7 +4,7 @@ Correction Framework Module
 .. module:: Correction
    :synopsis: Provides methods for the correction of data.
 
-.. moduleauthor:: Janik Michael Müller <janikmichael.mueller@gmail.com>
+.. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
 
 Version: 1.0
 Date: 15.02.2024

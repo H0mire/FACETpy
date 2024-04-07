@@ -15,8 +15,6 @@ from scipy.signal import firls
 from FACET.EEG_obj import EEG
 import numpy as np
 from loguru import logger
-import scipy.io as sio
-
 # import inst for mne python
 
 

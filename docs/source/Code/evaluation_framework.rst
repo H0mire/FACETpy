@@ -3,7 +3,7 @@ Evaluation Framework Module
 
 .. module:: Evaluation
    :synopsis: Provides methods for evaluating the eeg data.
-.. moduleauthor:: Janik Michael Müller <janikmichael.mueller@gmail.com>
+.. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
 
 Version: 1.0
 Date: 15.02.2024
