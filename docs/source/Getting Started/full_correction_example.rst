@@ -97,7 +97,7 @@ This can include filtering and resampling.
 
 Finding Triggers
 ----------------
-efore applying AAS, you need to specify which events in your EEG data will be used as triggers.
+Before applying AAS, you need to specify which events in your EEG data will be used as triggers.
 This is done using the `find_triggers` method, which takes an event Regular Expression as an argument.
 The event regex is a Regular Expression that matches the events you want to use as triggers.
 
@@ -122,7 +122,7 @@ Before applying AAS, you need to align the triggers so they match their Slice Gr
 
    reference_trigger = 0
    f.align_triggers(reference_trigger)
-   f.get_correction.align_subsample(reference_trigger)
+   f.get_correction().align_subsample(reference_trigger)
 
 Applying Averaged Artifact Subtraction
 --------------------------------------
