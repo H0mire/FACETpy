@@ -5,15 +5,14 @@ import sys
 # set current path to the path the file is in and then change back to the original path
 import os
 
-path = os.path.abspath(os.getcwd())
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
+path = os.path.dirname(os.path.abspath(__file__))
 
 
 # Erkennen des Betriebssystems
 if sys.platform.startswith('linux'):
-    lib_path = './libfastranc.so'  # Linux
+    lib_path = path + '/libfastranc.so'  # Linux
 elif sys.platform.startswith('win'):
-    lib_path = 'fastranc.dll'  # Windows
+    lib_path = path + '/fastranc.dll'  # Windows
 else:
     raise OSError("Unsupported operating system")
 lib = CDLL(lib_path)
@@ -56,5 +55,3 @@ def fastr_anc(refs_array, d_array, N_value, mu_value):
     return out_array, y_array
 
 
-# Change back to the original path
-os.chdir(path)
