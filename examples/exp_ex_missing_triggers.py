@@ -17,14 +17,14 @@ artifact_to_trigger_offset = -0.005
 
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
-f.import_EEG(
+f.import_eeg(
     file_path,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
-f.get_EEG().mne_raw.crop(0, 162)
-f.plot_EEG(start=29)
+f.get_eeg().mne_raw.crop(0, 162)
+f.plot_eeg(start=29)
 f.pre_processing()
 f.find_triggers(event_regex)
 
@@ -34,17 +34,17 @@ f.find_triggers(event_regex)
 missing_triggers = random.sample(range(0, 839), 10)
 # remove triggers from loaded_triggers to simulate missing triggers
 for i in missing_triggers:
-    f.get_EEG().loaded_triggers.pop(i)
+    f.get_eeg().loaded_triggers.pop(i)
 
-f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[15:830]
+f.get_eeg().loaded_triggers = f.get_eeg().loaded_triggers[15:830]
 f.find_missing_triggers()
 # print count triggers total
-print(f.get_EEG().count_triggers)
+print(f.get_eeg().count_triggers)
 
 f.align_triggers(0)
-f.calc_matrix_AAS()
+f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
 f.post_processing()
-f.plot_EEG(start=29)
-# f.export_EEG('processed_eeg_file.edf')
+f.plot_eeg(start=29)
+# f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")

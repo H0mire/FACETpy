@@ -1,5 +1,5 @@
 
-FILENAME_EEG = "NiazyFMRI.edf"
+FILENAME_eeg = "NiazyFMRI.edf"
 # Unit Test Class
 import pytest, os, edflib
 from src.facet.facet import facet
@@ -8,9 +8,9 @@ from loguru import logger
 class TestAnalysisFramework:
     def setup_method(self):
         self.af = facet()
-        self.af.import_EEG(FILENAME_EEG, artifact_to_trigger_offset=-0.01, bads=['EMG', 'ECG'])
+        self.af.import_eeg(FILENAME_eeg, artifact_to_trigger_offset=-0.01, bads=['EMG', 'ECG'])
 
-    def test_import_EEG(self):
+    def test_import_eeg(self):
         assert self.af._eeg.mne_raw is not None
         assert self.af._eeg.mne_raw_orig is not None
         assert self.af._eeg.data_time_start == 0
@@ -28,16 +28,16 @@ class TestAnalysisFramework:
         assert len(self.af._eeg.loaded_triggers) == self.af._eeg.count_triggers
         assert len(self.af._eeg.triggers_as_events) == self.af._eeg.count_triggers
 
-    def test_plot_EEG(self):
+    def test_plot_eeg(self):
         try:
-            self.af.plot_EEG()
+            self.af.plot_eeg()
         except:
-            pytest.fail("plot_EEG raised ExceptionType unexpectedly!")
+            pytest.fail("plot_eeg raised ExceptionType unexpectedly!")
         assert True
         # Add an assertion here if possible
 
-    def test_export_EEG(self):
-        self.af.export_EEG("exported_filename.edf")
+    def test_export_eeg(self):
+        self.af.export_eeg("exported_filename.edf")
         # assert file exists
         assert os.path.isfile("exported_filename.edf")
 
@@ -48,13 +48,13 @@ class TestAnalysisFramework:
     def test_artifakt_removal(self):
         #assert number triggers is 840
         self.test_find_triggers()
-        self.af.calc_matrix_AAS(method="numpy")
+        self.af.calc_matrix_aas(method="numpy")
         self.af.remove_artifacts()
         self.af.downsample()
         self.af.lowpass(h_freq=40)
         self.af.find_triggers(r'\b1\b')
         #evaluate if the artifact removal was successful
-        self.af.add_to_evaluate(self.af.get_EEG(), name="MNE_new")
+        self.af.add_to_evaluate(self.af.get_eeg(), name="MNE_new")
         results = self.af.evaluate(plot=False,measures=["SNR", "RMS", "RMS2", "MEDIAN"])
         logger.info(results)
         for result in results:

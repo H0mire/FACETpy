@@ -38,7 +38,7 @@ class Analysis_Framework:
         else:
             self._eeg = EEG()
 
-    def import_EEG(
+    def import_eeg(
         self,
         path,
         artifact_to_trigger_offset=0,
@@ -103,7 +103,7 @@ class Analysis_Framework:
         logger.debug(path)
         return self._eeg
 
-    def export_EEG(
+    def export_eeg(
         self,
         path,
         fmt="edf",
@@ -118,7 +118,7 @@ class Analysis_Framework:
         Parameters:
             path (str): The destination path for the exported file.
             fmt (str, optional): The format of the exported EEG file. (e.g., "edf", "bdf", "fif", "bids")
-            Other parameters are similar to import_EEG, relevant for BIDS format.
+            Other parameters are similar to import_eeg, relevant for BIDS format.
         """
         if fmt == "bids":
             _BIDSPath = BIDSPath(subject=subject, session=session, task=task, root=path)
@@ -247,7 +247,7 @@ class Analysis_Framework:
         """
         return self._eeg
 
-    def plot_EEG(self, start=0):
+    def plot_eeg(self, start=0):
         """
         Plots the EEG data starting from a specified time.
 
@@ -365,7 +365,7 @@ class Analysis_Framework:
                     "Volume gaps are detected or flag is manually set to True. Results may be inaccurate"
                 )
             logger.debug("Generating template from reference channel...")
-            _3d_matrix = self._facet._correction.calc_matrix_AAS(channels=[ref_channel])
+            _3d_matrix = self._facet._correction.calc_matrix_aas(channels=[ref_channel])
             template = self._facet._correction.calc_avg_artifact(_3d_matrix)[0][0]
             # iterate through the trigger positions check for each trigger if the next trigger is within the artifact length with a threshold of 1.9*artifactlength
             logger.debug("Checking holes in the trigger positions...")

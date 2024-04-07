@@ -16,7 +16,7 @@ artifact_to_trigger_offset = -0.01
 
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
-f.import_EEG(
+f.import_eeg(
     file_path,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
@@ -27,11 +27,11 @@ f.import_EEG(
 f.highpass(1)
 f.upsample()
 f.find_triggers(event_regex)
-f.calc_matrix_AAS()
+f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=True)
 # f.post_processing()
 f.downsample()
 f.lowpass(45)
-f.plot_EEG(start=29)
-# f.export_EEG('processed_eeg_file.edf')
+f.plot_eeg(start=29)
+# f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")

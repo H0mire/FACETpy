@@ -100,7 +100,7 @@ class Correction_Framework:
         self._eeg = eeg
         return
 
-    def plot_EEG(self, start=0, title=None, eeg=None):
+    def plot_eeg(self, start=0, title=None, eeg=None):
         """
         Plots the raw EEG data.
 
@@ -202,7 +202,7 @@ class Correction_Framework:
         if avg_artifact_matrix_numpy is None:
             if self.avg_artifact_matrix_numpy is None:
                 raise ValueError(
-                    "No artifact matrix found. Please provide an artifact matrix by passing it as an argument or by calling the calc_matrix_AAS method before calling remove_artifacts."
+                    "No artifact matrix found. Please provide an artifact matrix by passing it as an argument or by calling the calc_matrix_aas method before calling remove_artifacts."
                 )
             avg_artifact_matrix_numpy = self.avg_artifact_matrix_numpy
         raw = self._eeg.mne_raw
@@ -228,7 +228,7 @@ class Correction_Framework:
                 noise[ch_id, start:stop] += avg_artifact
                 raw._data[ch_id][start:stop] -= avg_artifact
 
-    def calc_matrix_AAS(self, rel_window_position=0, window_size=30, channels=None):
+    def calc_matrix_aas(self, rel_window_position=0, window_size=30, channels=None):
         """
         Applies the Adaptive Artifact Subtraction (AAS) matrix using numpy.
 

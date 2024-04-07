@@ -19,37 +19,37 @@ artifact_to_trigger_offset = -0.004296875
 
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
-f.import_EEG(
+f.import_eeg(
     file_path,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
 f2 = facet()
-f2.import_EEG(
+f2.import_eeg(
     file_path2,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
 
-f.get_EEG().mne_raw.crop(0, 162)
-f2.get_EEG().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw.crop(0, 162)
+f2.get_eeg().mne_raw.crop(0, 162)
 f.pre_processing()
 f.find_triggers(event_regex)
 f2.find_triggers(event_regex)
 f.align_triggers(0)
-f.calc_matrix_AAS()
+f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
 f.post_processing()
 
-f.plot_EEG(start=29, title="Own")
-f.add_to_evaluate(f.get_EEG(), name="Own")
+f.plot_eeg(start=29, title="Own")
+f.add_to_evaluate(f.get_eeg(), name="Own")
 
 f2.lowpass(70)
-f2.plot_EEG(start=29, title="Matlab")
-f.add_to_evaluate(f2.get_EEG(), name="Matlab")
+f2.plot_eeg(start=29, title="Matlab")
+f.add_to_evaluate(f2.get_eeg(), name="Matlab")
 
 f.evaluate(measures=["SNR", "RMS", "RMS2", "MEDIAN"])
-# f.export_EEG('processed_eeg_file.edf')
+# f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")

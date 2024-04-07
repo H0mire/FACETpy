@@ -14,10 +14,10 @@ class facet:
         self._eeg = None
         mne.set_log_level("ERROR")
 
-    def get_EEG(self):
+    def get_eeg(self):
         return self._eeg
 
-    def import_EEG(
+    def import_eeg(
         self,
         path,
         fmt="edf",
@@ -29,7 +29,7 @@ class facet:
         task="task1",
     ):
         logger.info(f"Importing EEG from {path}")
-        self._eeg = self._analysis.import_EEG(
+        self._eeg = self._analysis.import_eeg(
             path,
             fmt=fmt,
             artifact_to_trigger_offset=artifact_to_trigger_offset,
@@ -42,7 +42,7 @@ class facet:
         self._correction = Correction_Framework(self, self._eeg)
         return self._eeg
 
-    def export_EEG(
+    def export_eeg(
         self,
         path,
         fmt="edf",
@@ -51,7 +51,7 @@ class facet:
         task="task1",
         event_id=None,
     ):
-        self._analysis.export_EEG(
+        self._analysis.export_eeg(
             path,
             fmt=fmt,
             subject=subject,
@@ -73,10 +73,10 @@ class facet:
     def prepare(self):
         self._correction.prepare()
 
-    def calc_matrix_AAS(self, method="numpy", rel_window_position=0, window_size=30):
+    def calc_matrix_aas(self, method="numpy", rel_window_position=0, window_size=30):
         logger.info(f"Applying AAS with method {method}")
         if method == "numpy":
-            self._correction.calc_matrix_AAS(
+            self._correction.calc_matrix_aas(
                 rel_window_position, window_size=window_size
             )
         else:
@@ -117,9 +117,9 @@ class facet:
     def cut(self):
         self._correction.cut()
 
-    def plot_EEG(self, start=0, title=None, eeg=None):
+    def plot_eeg(self, start=0, title=None, eeg=None):
         eeg = eeg if eeg is not None else self._eeg
-        self._correction.plot_EEG(start=start, title=title, eeg=eeg)
+        self._correction.plot_eeg(start=start, title=title, eeg=eeg)
 
     def downsample(self):
         self._correction.downsample()

@@ -30,18 +30,18 @@ event_regex = r"\b1\b"
 
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
-f.import_EEG(file_path_edf_without_anc)
-f.get_EEG().mne_raw.crop(0, 162)
+f.import_eeg(file_path_edf_without_anc)
+f.get_eeg().mne_raw.crop(0, 162)
 f.find_triggers(event_regex)
 f.lowpass(70)
-f.add_to_evaluate(f.get_EEG(), name="Without ANC")
-f.plot_EEG(start=29, title="Without ANC")
+f.add_to_evaluate(f.get_eeg(), name="Without ANC")
+f.plot_eeg(start=29, title="Without ANC")
 
-f.import_EEG(file_path_edf_with_anc)
-f.get_EEG().mne_raw.crop(0, 162)
+f.import_eeg(file_path_edf_with_anc)
+f.get_eeg().mne_raw.crop(0, 162)
 f.find_triggers(event_regex)
-f.add_to_evaluate(f.get_EEG(), name="With ANC")
-f.plot_EEG(start=29, title="With ANC")
+f.add_to_evaluate(f.get_eeg(), name="With ANC")
+f.plot_eeg(start=29, title="With ANC")
 
 # Own implementation
 file_path = "src/NiazyFMRI.edf"
@@ -56,33 +56,33 @@ unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 artifact_to_trigger_offset = -0.005
 # End Configuration Block
 # Loading the EEG data by creating a facet object and importing the EEG data
-f.import_EEG(
+f.import_eeg(
     file_path,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
-f.get_EEG().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw.crop(0, 162)
 # f.pre_processing()
 f.highpass(1.5)
 f.upsample()
 f.find_triggers(event_regex)
 f.align_triggers(0)
 # f.calc_matrix_motion("./src/headmotiondata.tsv")
-f.calc_matrix_AAS(rel_window_position=relative_window_offset)
+f.calc_matrix_aas(rel_window_position=relative_window_offset)
 f.remove_artifacts(plot_artifacts=False)
 # f.post_processing()
-# loaded_trigger_positions = f.get_EEG().loaded_triggers
+# loaded_trigger_positions = f.get_eeg().loaded_triggers
 f.downsample()
 f.lowpass(70)
-eeg_without_anc = f.get_EEG().copy()
-f.plot_EEG(start=29, title="Own Implementation without ANC", eeg=eeg_without_anc)
+eeg_without_anc = f.get_eeg().copy()
+f.plot_eeg(start=29, title="Own Implementation without ANC", eeg=eeg_without_anc)
 f.add_to_evaluate(eeg_without_anc, name="Own Implementation without ANC")
-# f.get_EEG().loaded_triggers = (np.asarray(loaded_trigger_positions) / upsample_factor).astype(int).tolist()
+# f.get_eeg().loaded_triggers = (np.asarray(loaded_trigger_positions) / upsample_factor).astype(int).tolist()
 
 f.get_correction().apply_ANC()
-f.add_to_evaluate(f.get_EEG(), name="Own Implementation with anc")
-f.plot_EEG(start=29, title="Own Implementation with ANC")
+f.add_to_evaluate(f.get_eeg(), name="Own Implementation with anc")
+f.plot_eeg(start=29, title="Own Implementation with ANC")
 
 logger.info(f.evaluate(plot=True, measures=["SNR", "RMS", "RMS2", "MEDIAN"]))
 

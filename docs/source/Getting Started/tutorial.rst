@@ -64,7 +64,7 @@ To begin, load your EEG dataset into a facet object:
 
    # Loading the EEG data by creating a facet object and importing the EEG data
    f = facet()
-   f.import_EEG(path=edf_file_path,fmt="edf",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels)
+   f.import_eeg(path=edf_file_path,fmt="edf",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels)
 
 .. important::
 
@@ -131,7 +131,7 @@ after your triggers are loaded.
 
 .. code-block:: python
 
-   f.calc_matrix_AAS()
+   f.calc_matrix_aas()
 
 .. important::
 
@@ -169,11 +169,11 @@ After removing artifacts, you can proceed with further EEG data processing, such
 
 Plotting the Processed EEG Data
 -------------------------------
-If you want to visualize the processed EEG data, you can use the `plot_EEG` method.
+If you want to visualize the processed EEG data, you can use the `plot_eeg` method.
 
 .. code-block:: python
 
-   f.plot_EEG()
+   f.plot_eeg()
 
 Evaluating the Processed EEG Data
 ---------------------------------
@@ -181,18 +181,18 @@ If you want to evaluate the processed EEG data, you can add the EEG data to the 
 
 .. code-block:: python
 
-   f.add_to_evaluate(f.get_EEG(), name="Corrected EEG")
+   f.add_to_evaluate(f.get_eeg(), name="Corrected EEG")
    results = f.evaluate(plot=true, measures=evaluation_measures)
    print(results) # Print the evaluation results if you want to see detailed figures
 
 Exporting the Processed EEG Data
 --------------------------------
 After processing your EEG data, you may want to export the processed data to a file.
-This can be done using the `export_EEG` method, which takes the file path as an argument.
+This can be done using the `export_eeg` method, which takes the file path as an argument.
 
 .. code-block:: python
 
-   f.export_EEG(path=export_file_path, fmt="edf")
+   f.export_eeg(path=export_file_path, fmt="edf")
 
 Conclusion
 ----------
