@@ -1,6 +1,6 @@
-from .frameworks.correction import correction_framework
-from .frameworks.evaluation import evaluation_framework
-from .frameworks.analysis import analysis_framework
+from .frameworks.correction import CorrectionFramework
+from .frameworks.evaluation import EvaluationFramework
+from .frameworks.analysis import AnalysisFramework
 import mne
 from loguru import logger
 
@@ -8,9 +8,9 @@ from loguru import logger
 class facet:
 
     def __init__(self):
-        self._analysis = analysis_framework(self)
+        self._analysis = AnalysisFramework(self)
         self._correction = None
-        self._evaluation = evaluation_framework(self)
+        self._evaluation = EvaluationFramework(self)
         self._eeg = None
         mne.set_log_level("ERROR")
 
@@ -39,7 +39,7 @@ class facet:
             session=session,
             task=task,
         )
-        self._correction = correction_framework(self, self._eeg)
+        self._correction = CorrectionFramework(self, self._eeg)
         return self._eeg
 
     def export_eeg(
@@ -81,7 +81,7 @@ class facet:
             )
         else:
             raise ValueError("Invalid method parameter")
-        
+
     def calc_matrix_motion(self, file_path, threshold=5, window_size=30):
         logger.info(f"Calculating Matrix with motiondata in {file_path}")
         self._correction.calc_matrix_motion(

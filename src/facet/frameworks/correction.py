@@ -1,7 +1,7 @@
 """
 Correction framework Module
 
-This module contains the correction_framework class, which is used to correct EEG data.
+This module contains the CorrectionFramework class, which is used to correct EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -15,22 +15,22 @@ from facet.helpers.fastranc import fastr_anc
 from facet.helpers.utils import split_vector
 from facet.helpers.crosscorr import crosscorrelation
 from loguru import logger
-from scipy.signal import firls, filtfilt
+from scipy.signal import firls, filtfilt, fftconvolve
 from numpy.fft import ifft, fftshift, ifftshift
 
 
 # import inst for mne python
 
 
-class correction_framework:
+class CorrectionFramework:
     """
-    The correction_framework class is used to correct EEG data.
+    The CorrectionFramework class is used to correct EEG data.
 
     The class contains methods to correct EEG data, such as removing artifacts, applying Adaptive Autoregressive Models (AAR) and Moosmann correction,
     and preprocessing and postprocessing the data.
 
     Attributes:
-        _eeg (facet.EEG_obj): A dictionary containing the EEG metadata and data.
+        _eeg (facet.eeg_obj): A dictionary containing the EEG metadata and data.
         _plot_number (int): A counter for the number of plots generated.
         avg_artifact (numpy.ndarray): The average artifact matrix.
         avg_artifact_matrix (dict): A dictionary containing the average artifact matrix for each EEG channel.
@@ -39,7 +39,7 @@ class correction_framework:
 
     def __init__(self, facet, eeg):
         """
-        Initializes the correction_framework class with necessary components for EEG correction.
+        Initializes the CorrectionFramework class with necessary components for EEG correction.
 
         Parameters:
             facet: A reference to a facet class instance, providing access to facet's functionalities.
@@ -107,7 +107,7 @@ class correction_framework:
         Parameters:
             start (int): The starting index of the data to be plotted.
             title (str, optional): The title of the plot. If not provided, a default title will be used.
-            eeg (facet.EEG_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
+            eeg (facet.eeg_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
         """
         eeg = eeg if eeg is not None else self._eeg
         if not title:
@@ -418,7 +418,6 @@ class correction_framework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)
 
-    # WARNING: Not working yet
     def align_triggers(self, ref_trigger, save=False, search_window=None):
         """
         Aligns slices based on a reference trigger.
@@ -497,7 +496,7 @@ class correction_framework:
         # Shift the trigger position
         return trigger_pos + shift
 
-    def align_subsample(self, ref_trigger):  # WARNING: Not working yet
+    def align_subsample(self, ref_trigger):  # WIP
         """
         Aligns subsamples based on a reference trigger.
 
@@ -507,14 +506,143 @@ class correction_framework:
         Returns:
             None
         """
-        raise "Not working yet."
+        logger.info("Aligning subsamples")
+        eeg_channels = mne.pick_types(
+            self._eeg.mne_raw.info,
+            meg=False,
+            eeg=True,
+            stim=False,
+            eog=False,
+            exclude="bads",
+        )
+        self.sub_sample_alignment = None
         # Call _align_subsample for each channel
-        for ch_id in range(self._eeg.mne_raw._data.shape[0]):
+        for ch_id in eeg_channels:
+            logger.debug(
+                f"Aligning subsamples for Channel {ch_id}:{self._eeg.mne_raw.ch_names[ch_id]}"
+            )
             self._align_subsample(ch_id, ref_trigger)
         return
 
+    def _align_subsample(self, ch_id, ref_trigger):  # WARNING: Not working yet
+        """
+        Aligns subsamples based on a reference trigger for a single channel.
+        """
+        # Maximum distance between triggers
+        max_trig_dist = np.max(np.diff(self._eeg.loaded_triggers))
+        num_samples = max_trig_dist + 20
+        acq_start = int(
+            self._eeg.time_first_artifact_start * self._eeg.mne_raw.info["sfreq"] - 10
+        )
+        acq_end = int(
+            self._eeg.time_last_artifact_end * self._eeg.mne_raw.info["sfreq"] + 10
+        )
+        raeeg_acq = self._eeg.mne_raw._data[ch_id][acq_start:acq_end]
+        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
 
-    def compare(self, ref, arg):
+        # Phase shift
+        shift_angles = (
+            np.arange(1, num_samples + 1) - np.floor(num_samples / 2) + 1
+        ) / num_samples
+
+        # Initial filter setup if conditions are met
+        if self.sub_sample_alignment is None:
+            logger.debug("Initial filter setup")
+            if self._eeg.ssa_hp_frequency and self._eeg.ssa_hp_frequency > 0:
+                nyq = 0.5 * self._eeg.mne_raw.info["sfreq"]
+                f = [
+                    0,
+                    (self._eeg.ssa_hp_frequency * 0.9)
+                    / (nyq * self._eeg.upsampling_factor),
+                    (self._eeg.ssa_hp_frequency * 1.1)
+                    / (nyq * self._eeg.upsampling_factor),
+                    1,
+                ]
+                a = [0, 0, 1, 1]
+                fw = firls(101, f, a)
+
+                # HPEEG signal filtering
+                # Original MATLAB code used fftfilt which is equivalent to scipy's fftconvolve in "same" mode
+                hpeeg = fftconvolve(raeeg_acq, fw, mode="same")
+                hpeeg = np.concatenate(
+                    [hpeeg[100:], np.zeros(100)]
+                )  # Adjusting the shift
+            else:
+                hpeeg = raeeg_acq
+
+            eeg_matrix = split_vector(
+                hpeeg,
+                np.array(self._eeg.loaded_triggers) + smin - 10 - acq_start,
+                num_samples,
+            )
+            eeg_ref = eeg_matrix[ref_trigger, :]
+
+            self.sub_sample_alignment = np.zeros(self._eeg.count_triggers)
+            corrs = np.zeros((self._eeg.count_triggers, 20))
+            shifts = np.zeros((self._eeg.count_triggers, 20))
+
+            # Loop over every epoch, skipping the reference epoch
+            for epoch in set(range(1, self._eeg.count_triggers + 1)) - {ref_trigger}:
+                eeg_m = eeg_matrix[
+                    epoch - 1, :
+                ]  # Adjusting index for Python's 0-based indexing
+                fft_m = np.fft.fftshift(np.fft.fft(eeg_m))
+                shift_l, shift_m, shift_r = -1, 0, 1
+                fft_l = fft_m * np.exp(-1j * 2 * np.pi * shift_angles * shift_l)
+                fft_r = fft_m * np.exp(-1j * 2 * np.pi * shift_angles * shift_r)
+                eeg_l = np.real(np.fft.ifft(np.fft.ifftshift(fft_l)))
+                eeg_r = np.real(np.fft.ifft(np.fft.ifftshift(fft_r)))
+                corr_l = self._compare(eeg_ref, eeg_l)
+                corr_m = self._compare(eeg_ref, eeg_m)
+                corr_r = self._compare(eeg_ref, eeg_r)
+
+                fft_ori = fft_m  # Save original FFT for later IFFT
+
+                # Iterative optimization
+                for iteration in range(15):
+                    corrs[epoch - 1, iteration] = corr_m
+                    shifts[epoch - 1, iteration] = shift_m
+
+                    if corr_l > corr_r:
+                        corr_r, eeg_r, fft_r, shift_r = corr_m, eeg_m, fft_m, shift_m
+                    else:
+                        corr_l, eeg_l, fft_l, shift_l = corr_m, eeg_m, fft_m, shift_m
+
+                    shift_m = (shift_l + shift_r) / 2
+                    fft_m = fft_ori * np.exp(-1j * 2 * np.pi * shift_angles * shift_m)
+                    eeg_m = np.real(np.fft.ifft(np.fft.ifftshift(fft_m)))
+                    corr_m = self._compare(eeg_ref, eeg_m)
+
+                self.sub_sample_alignment[epoch - 1] = shift_m
+                eeg_matrix[epoch - 1, :] = eeg_m
+
+        logger.debug("Applying subsample alignment")
+        # Assuming split_vector and other utility methods are defined similarly to the MATLAB version
+        eeg_matrix = split_vector(
+            self._eeg.mne_raw._data[ch_id],
+            np.array(self._eeg.loaded_triggers) + smin - 10,
+            num_samples,
+        )
+
+        # Apply calculated alignments to all epochs
+        for epoch in set(range(1, self._eeg.count_triggers + 1)) - {ref_trigger}:
+            eeg = eeg_matrix[epoch - 1, :]
+            fft = np.fft.fftshift(np.fft.fft(eeg))
+            fft *= np.exp(
+                -1j * 2 * np.pi * shift_angles * self.sub_sample_alignment[epoch - 1]
+            )
+            eeg = np.real(np.fft.ifft(np.fft.ifftshift(fft)))
+            eeg_matrix[epoch - 1, :] = eeg
+
+        # Joining epochs back into the main signal
+        for tr_id, tr_pos in enumerate(self._eeg.loaded_triggers):
+            start_index = tr_pos + smin
+            end_index = start_index + self._eeg.artifact_length
+            self._eeg.mne_raw._data[ch_id][start_index:end_index] = eeg_matrix[
+                tr_id, 10 : 10 + self._eeg.artifact_length
+            ]
+
+    def _compare(self, ref, arg):
         """
         Compare the reference data to the shifted data.
         The larger the better. This uses a simple sum of squared differences for comparison.

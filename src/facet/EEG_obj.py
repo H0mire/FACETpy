@@ -26,6 +26,7 @@ class EEG:
     anc_hp_frequency = None  # The highpass frequency of the ANC
     anc_hp_filter_weights = None  # The filter weights of the ANC
     anc_filter_order = None  # The filter order of the ANC
+    ssa_hp_frequency = None  # The highpass frequency of the SSA
 
     def __init__(
         self,

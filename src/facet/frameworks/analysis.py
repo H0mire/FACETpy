@@ -1,6 +1,6 @@
 """ Analysis framework Module
 
-This module contains the analysis_framework class, which provides methods for importing, exporting, and analyzing EEG data.
+This module contains the AnalysisFramework class, which provides methods for importing, exporting, and analyzing EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -13,21 +13,21 @@ import re
 from mne_bids import BIDSPath, write_raw_bids, read_raw_bids
 from scipy.stats import pearsonr
 from scipy.signal import firls
-from facet.EEG_obj import EEG
+from facet.eeg_obj import EEG
 import numpy as np
 from loguru import logger
 
 # import inst for mne python
 
 
-class analysis_framework:
+class AnalysisFramework:
     def __init__(self, facet, eeg=None):
         """
-        Initializes an instance of the analysis_framework class.
+        Initializes an instance of the AnalysisFramework class.
 
         Parameters:
             facet (facet.facet): A reference to an instance of a facet class (or similar) that provides additional functionality for EEG data processing.
-            eeg (facet.EEG_obj, optional): An instance of an EEG object. If not provided, a new EEG object is created.
+            eeg (facet.eeg_obj, optional): An instance of an EEG object. If not provided, a new EEG object is created.
         """
         self._loaded_triggers = None
         self._plot_number = 0
