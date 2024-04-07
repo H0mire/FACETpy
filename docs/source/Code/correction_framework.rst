@@ -1,7 +1,7 @@
-Correction framework Module
+Correction Framework Module
 ===========================
 
-.. module:: Correction
+.. module:: correction
    :synopsis: Provides methods for the correction of data.
 
 .. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
@@ -9,7 +9,7 @@ Correction framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: facet.frameworks.Correction
+.. automodule:: facet.frameworks.correction
 	:members:
 	:undoc-members:
 	:show-inheritance:

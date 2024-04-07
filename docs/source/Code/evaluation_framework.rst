@@ -1,14 +1,14 @@
-Evaluation framework Module
+Evaluation Framework Module
 ===========================
 
-.. module:: Evaluation
+.. module:: evaluation
    :synopsis: Provides methods for evaluating the eeg data.
 .. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
 
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: facet.frameworks.Evaluation
+.. automodule:: facet.frameworks.evaluation
 	:members:
 	:undoc-members:
 	:show-inheritance:

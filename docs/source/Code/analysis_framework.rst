@@ -1,7 +1,7 @@
-Analysis framework Module
+Analysis Framework Module
 =========================
 
-.. module:: Analysis
+.. module:: analysis
    :synopsis: Provides methods for importing, exporting, and analyzing EEG data.
 
 .. moduleauthor:: Janik Michael Müller <janik.michael.mueller@gmail.com>
@@ -9,7 +9,7 @@ Analysis framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: facet.frameworks.Analysis
+.. automodule:: facet.frameworks.analysis
 	:members:
 	:undoc-members:
 	:show-inheritance:
