@@ -5,7 +5,7 @@ import pytest, os, edflib
 from src.FACET.Facet import Facet
 from loguru import logger
 
-class TestAnalyticsFramework:
+class TestAnalysisFramework:
     def setup_method(self):
         self.af = Facet()
         self.af.import_EEG(FILENAME_EEG, artifact_to_trigger_offset=-0.01, bads=['EMG', 'ECG'])

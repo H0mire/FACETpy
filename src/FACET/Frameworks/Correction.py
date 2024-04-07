@@ -1,4 +1,5 @@
-""" Correction Framework Module
+"""
+Correction Framework Module
 
 This module contains the Correction_Framework class, which is used to correct EEG data.
 
@@ -13,7 +14,7 @@ from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameter
 from FACET.helpers.fastranc import fastr_anc
 from FACET.helpers.utils import split_vector
 from FACET.helpers.crosscorr import crosscorrelation
-from FACET.Frameworks.Analytics import Analytics_Framework
+from FACET.Frameworks.Analysis import Analysis_Framework
 from loguru import logger
 from scipy.signal import firls, filtfilt
 from numpy.fft import fft, ifft, fftshift, ifftshift
@@ -26,18 +27,25 @@ class Correction_Framework:
     """
     The Correction_Framework class is used to correct EEG data.
 
-    The class contains methods to correct EEG data, such as removing artifacts, applying AAS and Moosmann correction,
+    The class contains methods to correct EEG data, such as removing artifacts, applying Adaptive Autoregressive Models (AAR) and Moosmann correction,
     and preprocessing and postprocessing the data.
 
     Attributes:
-        _eeg (dict): A dictionary containing the EEG metadata and data
-        _plot_number (int): A counter for the number of plots.
+        _eeg (FACET.EEG_obj): A dictionary containing the EEG metadata and data.
+        _plot_number (int): A counter for the number of plots generated.
         avg_artifact (numpy.ndarray): The average artifact matrix.
         avg_artifact_matrix (dict): A dictionary containing the average artifact matrix for each EEG channel.
         avg_artifact_matrix_numpy (dict): A dictionary containing the average artifact matrix for each EEG channel as a numpy array.
     """
 
     def __init__(self, FACET, eeg):
+        """
+        Initializes the Correction_Framework class with necessary components for EEG correction.
+        
+        Parameters:
+            FACET: A reference to a FACET class instance, providing access to FACET's functionalities.
+            eeg: An EEG data structure, including metadata and raw EEG data.
+        """
         self._eeg = eeg
         self._FACET = FACET
         self._plot_number = 0
@@ -98,11 +106,9 @@ class Correction_Framework:
         Plots the raw EEG data.
 
         Parameters:
-        - start (int): The starting index of the data to be plotted.
-        - title (str): The title of the plot. If not provided, a default title will be used.
-
-        Returns:
-            None
+            start (int): The starting index of the data to be plotted.
+            title (str, optional): The title of the plot. If not provided, a default title will be used.
+            eeg (FACET.EEG_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
         """
         eeg = eeg if eeg is not None else self._eeg
         if not title:
@@ -114,16 +120,14 @@ class Correction_Framework:
         """
         Calculates the average artifact for each channel.
 
-        Args:
+        Parameters:
             avg_artifact_matrix_numpy (numpy.ndarray, optional): The average artifact matrix. If not provided,
                 it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
                 a ValueError will be raised.
+            plot_artifacts (bool, optional): Whether to plot the artifacts. Defaults to False.
 
         Raises:
             ValueError: If no artifact matrix is found.
-
-        Returns:
-            None
         """
         logger.debug("Calculating Average Artifacts")
         raw = self._eeg.mne_raw
@@ -180,16 +184,14 @@ class Correction_Framework:
         """
         Removes artifacts from the EEG data.
 
-        Args:
+        Parameters:
             avg_artifact_matrix_numpy (numpy.ndarray, optional): The average artifact matrix. If not provided,
                 it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
                 a ValueError will be raised.
+            plot_artifacts (bool, optional): Whether to plot the artifacts. Defaults to False.
 
         Raises:
             ValueError: If no artifact matrix is found.
-
-        Returns:
-            None
         """
         if avg_artifact_matrix_numpy is None:
             if self.avg_artifact_matrix_numpy is None:
@@ -218,12 +220,13 @@ class Correction_Framework:
 
     def calc_matrix_AAS(self, rel_window_position=0, window_size=30, channels=None):
         """
-        Applies the AAS (Artifact Averaging Subtraction) matrix using numpy.
+        Applies the Adaptive Artifact Subtraction (AAS) matrix using numpy.
 
-        Args:
-            rel_window_offset (int): Relative window offset for artifact averaging.
-            window_size (int): Size of the window for artifact averaging.
-
+        Parameters:
+            rel_window_position (int, optional): Relative window position for artifact averaging.
+            window_size (int, optional): Size of the window for artifact averaging. Defaults to 30.
+            channels (list, optional): Channels to average. If None, all EEG channels are used.
+        
         Returns:
             dict: A dictionary containing the averaged artifact matrix for each channel.
         """
@@ -378,7 +381,7 @@ class Correction_Framework:
 
     def apply_ANC(self):
         """
-        This method utilizes the _anc method to clean the eeg data from each channel.
+        Applies Adaptive Noise Cancellation (ANC) to clean the EEG data from each channel.
         """
 
         logger.debug("applying ANC")
@@ -436,7 +439,7 @@ class Correction_Framework:
             # Update the trigger positions
             self._eeg.loaded_triggers = trigger_positions
             # Update related attributes
-            self._FACET._analytics._derive_art_length()
+            self._FACET._analysis._derive_art_length()
             self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
             if save:
                 #replace the triggers as events in the raw object
@@ -628,7 +631,16 @@ class Correction_Framework:
         return result
 
     def _anc(self, EEG, Noise):
+        """
+        Internal method for Adaptive Noise Cancellation.
 
+        Parameters:
+            EEG (numpy.ndarray): The EEG data to be cleaned.
+            Noise (numpy.ndarray): The noise data used as reference for ANC.
+
+        Returns:
+            numpy.ndarray: The cleaned EEG data.
+        """
         acq_start, acq_end = self._eeg.mne_raw.time_as_index(
             [self._eeg.time_first_artifact_start, self._eeg.time_last_artifact_end],
             use_rounding=True,
@@ -710,14 +722,11 @@ class Correction_Framework:
 
     def filter(self, l_freq=None, h_freq=None):
         """
-        Apply a highpass filter to the raw EEG data.
+        Applies a bandpass filter to the raw EEG data.
 
-        Args:
-            l_freq (float): The lower cutoff frequency for the highpass filter.
-            h_freq (float): The higher cutodff frequency for the highpass filter.
-
-        Returns:
-            None
+        Parameters:
+            l_freq (float, optional): The lower cutoff frequency for the bandpass filter. If None, no lower cutoff is applied.
+            h_freq (float, optional): The higher cutoff frequency for the bandpass filter. If None, no higher cutoff is applied.
         """
 
         logger.debug(f"Applying filter with l_freq={l_freq} and h_freq={h_freq}")
@@ -782,10 +791,10 @@ class Correction_Framework:
 
     def resample_data(self, sfreq):
         """
-        Resamples (downsamples) the data by a given sampling frequency.
+        Resamples the EEG data to a specified sampling frequency.
 
-        Note:
-            The `_eeg` attribute should be initialized before calling this method.
+        Parameters:
+            sfreq (float): The target sampling frequency.
         """
         sfreq_old = self._eeg.mne_raw.info["sfreq"]
         noise_raw = self._eeg.mne_raw.copy() # TODO: Consider changing estimated_noise to a mne object, to avoid copying
@@ -805,7 +814,7 @@ class Correction_Framework:
             int(trigger * (sfreq / sfreq_old)) for trigger in self._eeg.loaded_triggers
         ]
 
-        self._FACET._analytics.derive_parameters()
+        self._FACET._analysis.derive_parameters()
 
     def _find_max_cross_correlation(self, base, compare, search_window):
         """

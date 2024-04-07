@@ -1,10 +1,10 @@
-Getting started: Full Averaged Artifact Subtraction (AAS) Correction of BIDS EEG Data
-====================================================================================
+Getting Started: Full Averaged Artifact Subtraction (AAS) Correction of BIDS EEG Data
+=====================================================================================
 
 Introduction
 ------------
 
-This document explains how to use the FACET framework to full extend. It tells how to import EEG data from BIDS, apply alignment, and apply Averaged Artifact Subtraction (AAS) to correct for artifacts. This document assumes you have already installed FACET and have a basic understanding of how to use it.
+This document explains how to use the FACET framework to its full extent. It describes how to import EEG data with a BIDS structure, apply alignment, and apply Averaged Artifact Subtraction (AAS) to correct for artifacts. This document assumes you have already installed FACET and have a basic understanding of how to use it.
 
 Prerequisites
 -------------
@@ -12,10 +12,10 @@ Prerequisites
 Before applying AAS, ensure you have the following:
 
 - MNE-Python installed in your environment.
-- Having installed the rest of the necessary packages.
-- An EEG dataset imported with the analyis Framework
+- The rest of the necessary packages installed.
+- An EEG dataset imported with the analysis Framework
 
-Installation of necessary packages can be done using pip:
+You can install the necessary packages using pip:
 
 .. code-block:: bash
    
@@ -35,20 +35,20 @@ Loading Your EEG Data
 
 .. note::
    
-   This tutorial is based on the default/stock FACET object implementation. The FACET Object is intented to be individualized to the user's needs.
+   This tutorial is based on the default/stock FACET object implementation. The FACET Object is intended to be individualized to the user's needs.
    To access all functionalities (if not already provided) of the FACET Tool, either edit/expand the `src/FACET/Facet.py` file or directly access the frameworks by e.g. `f.get_correction()` for the correction framework instance.
 
-To begin, load your EEG dataset into FACET object:
+To begin, load your EEG dataset into a FACET object:
 
 .. code-block:: python
    
    from src.FACET.Facet import Facet
-   #It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
-   #Begin Configuration Block
+   # It is advised to add a configuration block here, to keep an overview of the settings used for the analysis.
+   # Begin Configuration Block
    # Path to your BIDS dataset
    bids_path = "F:\EEG Datasets\openneuro\FMRIWITHMOTION"
-   # Event Regex assuming using stim channel
-   event_regex = r'\b1\b'
+   # Annotations with the description 'Your Trigger Tag' are considered as triggers
+   regex_trigger_annotation_filter = r'\bYour Trigger Tag\b'
    # Upsampling factor
    upsample_factor = 10
    # Assuming you want to use the same path for exporting the data
@@ -62,17 +62,19 @@ To begin, load your EEG dataset into FACET object:
    window_size = 30
    relative_window_position = -0.5   
    artifact_to_trigger_offset_in_seconds = -0.005
-   moosmann_motion_threshold = 0.8
    event_id_description_pairs={'trigger':1}
-   regex_trigger_annotation_filter = r'\bYour Trigger Tag\b' # Annotations with the description 'trigger' are considered as triggers
    unwanted_bad_channels = ['EKG', 'EMG', 'EOG', 'ECG'] # Channels with these names are considered as bad channels and not considered in the processing
    evaluation_measures=["SNR", "RMS", "RMS2", "MEDIAN"] # Evaluation measures to be used for the evaluation of the AAS
-   #End Configuration Block
+   # End Configuration Block
 
    # Loading the EEG data by creating a FACET object and importing the EEG data
-   f = FACET()
+   f = Facet()
    f.import_EEG(path=bids_path,fmt="bids",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
 
+.. important::
+
+   Please make sure that the path to your BIDS dataset is correct and that the dataset is structured according to the BIDS standard.
+   Also, make sure that you have enough memory available to load the dataset and conside that the upscaled dataset will require more memory. So choose the upsampling factor wisely.
 
 Preprocessing
 -------------
@@ -88,35 +90,49 @@ This can include filtering and resampling.
 .. code-block:: python
 
    f.highpass(1)
-   f.upsample() # upsampling factor must be specified on importing the EEG data
+   f.upsample() # upsampling factor must be specified when importing the EEG data
 
-Finding triggers
+Finding Triggers
 ----------------
 
 Before applying AAS, you need to specify which events in your EEG data will be used as triggers.
-This is done using the `find_triggers` method, which takes an event regex as an argument.
-The event regex is a regular expression that matches the events you want to use as triggers.
+This is done using the `find_triggers` method, which takes an event Regular Expression as an argument.
+The event regex is a Regular Expression that matches the events you want to use as triggers.
 
+`find_triggers` automatically detects if the Dataset contains Annotations or a Stim Channel and uses the provided regex to find the triggers.
+If your Dataset contains Annotations, the provided Regular Expression should contain the annotation description you want to use as triggers.
+If your Dataset contains a Stim Channel (Channel that contains event information), the provided regex should contain the event_id you want to use as triggers. e.g. \b1\b for event_id 1.
 
 .. code-block:: python
 
    f.find_triggers(event_regex)
+   f.find_missing_triggers()
+
+.. note::
+
+   If there are triggers missing, you can either add them with the `add_trigger` method or detect them automatically with the `find_missing_triggers` method.
 
 Aligning Triggers
 -----------------
 
-Before applying AAS, you neet to align the triggers so it matches the Slice Gradient artifact.
+Before applying AAS, you need to align the triggers so they match the Slice Gradient artifact.
 
 .. code-block:: python
 
    reference_trigger = 0
-   f.align_triggers(0)
+   f.align_triggers(reference_trigger)
 
 Applying Averaged Artifact Subtraction
 --------------------------------------
 
-Before you can remove artifacts you must calculate the average artifact. This is done 
-Once your triggers are specified, apply AAS to correct for artifacts:
+After preprocessing your EEG data and aligning the triggers, you can apply Averaged Artifact Subtraction (AAS) to remove artifacts from the EEG data.
+AAS includes the following steps:
+
+Calculating Averaged Artifact Matrix
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before you can remove artifacts, you must calculate the average artifact matrix. This can be done 
+after your triggers are loaded.
 
 .. code-block:: python
 
@@ -124,10 +140,11 @@ Once your triggers are specified, apply AAS to correct for artifacts:
 
 .. important::
 
-   This only calculates the average artifact. To remove the average artifact from the EEG data, you must call the `f.remove_artifacts` method.
+   This only calculates the average artifact matrix. To calculate and remove the average artifact from the EEG data, you must call the `f.remove_artifacts` method.
+   If you need the calculated average artifact itself (not the matrix), you can calculate it with `f.get_correction().calc_avg_artifact()`. But this is automatically done when calling `f.remove_artifacts()`.
 
 Removing Artifacts
-------------------
+^^^^^^^^^^^^^^^^^^
 
 After calculating the average artifact, you can remove the average artifact from the EEG data:
 
@@ -135,10 +152,12 @@ After calculating the average artifact, you can remove the average artifact from
 
    f.remove_artifacts()
 
+With that, the AAS correction is done. You can now proceed with further processing of the EEG data.
+
 Further Processing
 ------------------
 
-After removing artifacts, you can proceed with further EEG data processing, such as filtering, adaptive noise cancelation, and downsampling.
+After removing artifacts, you can proceed with further EEG data processing, such as filtering, adaptive noise cancellation, and downsampling.
 
 .. note::
 
@@ -150,8 +169,8 @@ After removing artifacts, you can proceed with further EEG data processing, such
 
    # Example: Applying a low-pass filter
    f.downsample() # downsampling by upsample factor
-   f.lowpass(50)
-   f.apply_ANC() # apply the ANC to the EEG data
+   f.lowpass(70)
+   f.apply_ANC() # apply the ANC to the EEG data. This may take some time. If you want keep track of the progress, you can set the logger level to DEBUG
 
 Plotting the Processed EEG Data
 -------------------------------
@@ -163,12 +182,13 @@ If you want to visualize the processed EEG data, you can use the `plot_EEG` meth
 
 Evaluating the Processed EEG Data
 ---------------------------------
-If you want to evaluate the processed EEG data, you add the eeg data to the evaluation framework and call the `evaluate` method.
+If you want to evaluate the processed EEG data, you can add the EEG data to the evaluation framework and call the `evaluate` method.
 
 .. code-block:: python
 
    f.add_to_evaluate(f.get_EEG(), name="Corrected EEG")
-   f.evaluate(plot=true, measures=evaluation_measures)
+   results = f.evaluate(plot=true, measures=evaluation_measures)
+   print(results) # Print the evaluation results if you want to see detailed figures
 
 Exporting the Processed EEG Data
 --------------------------------

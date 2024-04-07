@@ -1,6 +1,6 @@
-""" Analytics Framework Module
+""" Analysis Framework Module
 
-This module contains the Analytics_Framework class, which provides methods for importing, exporting, and analyzing EEG data.
+This module contains the Analysis_Framework class, which provides methods for importing, exporting, and analyzing EEG data.
 
 Author: Janik Michael Müller
 Date: 15.02.2024
@@ -20,8 +20,15 @@ import scipy.io as sio
 # import inst for mne python
 
 
-class Analytics_Framework:
+class Analysis_Framework:
     def __init__(self, FACET, eeg = None):
+        """
+        Initializes an instance of the Analysis_Framework class.
+
+        Parameters:
+            FACET (FACET.Facet): A reference to an instance of a FACET class (or similar) that provides additional functionality for EEG data processing.
+            eeg (FACET.EEG_obj, optional): An instance of an EEG object. If not provided, a new EEG object is created.
+        """
         self._loaded_triggers = None
         self._plot_number = 0
         self._FACET = FACET
@@ -34,7 +41,7 @@ class Analytics_Framework:
 
     def import_EEG(self, path, artifact_to_trigger_offset=0, upsampling_factor=10, fmt="edf", bads=[], subject="subjectid", session="sessionid", task="corrected"):
             """
-            Imports EEG data from a file.
+            Imports EEG data from a file, supporting various formats, and loads it into the EEG object.
 
             Parameters:
             - filename (str): The path to the EEG file.
@@ -44,7 +51,7 @@ class Analytics_Framework:
             - bads (list): A list of bad channels to exclude from the data.
 
             Returns:
-            - dict: A dictionary containing the imported EEG data and relevant information.
+            - EEG: The EEG object containing the imported data and metadata.
             """
             if fmt == "edf":
                 raw = mne.io.read_raw_edf(path)
@@ -84,6 +91,14 @@ class Analytics_Framework:
             return self._eeg
 
     def export_EEG(self, path, fmt="edf", subject="subjectid", session="sessionid", task="corrected", event_id=None):
+        """
+        Exports the EEG data to a file.
+
+        Parameters:
+            path (str): The destination path for the exported file.
+            fmt (str, optional): The format of the exported EEG file. (e.g., "edf", "bdf", "fif", "bids")
+            Other parameters are similar to import_EEG, relevant for BIDS format.
+        """
         if fmt == "bids":
             _BIDSPath = BIDSPath(
                 subject=subject, session=session, task=task, root=path
@@ -103,10 +118,13 @@ class Analytics_Framework:
 
     def find_triggers(self, regex):
         """
-            Find triggers in the raw EEG data based on a regular expression.
+            Finds triggers in the EEG data based on a regular expression matching trigger values.
 
-            Args:
-                regex (str): Regular expression pattern to match against trigger values.
+            It automatically detects whether the trigger values are stored in the EEG data like a Stim Channel or in annotations.
+            It also derives some parameters like the time of the first artifact start, the time of the last trigger, the artifact length, and the ANC high-pass filter parameters.
+
+            Parameters:
+                regex (str): The regular expression pattern to match against trigger values.
 
             Returns:
                 None
@@ -141,6 +159,16 @@ class Analytics_Framework:
         self.derive_parameters()
 
     def derive_parameters(self):
+        """
+        Calculates various parameters based on the loaded triggers, including artifact start times and durations.
+
+        Derives:
+        - time_first_artifact_start
+        - time_last_artifact_end
+        - artifact_length
+        - artifact_duration
+        - ANC high-pass filter parameters
+        """
         triggers = self._eeg.loaded_triggers
         time_first_artifact_start = self._eeg.mne_raw.times[triggers[0]]
         time_last_trigger = self._eeg.mne_raw.times[triggers[-1]]
@@ -153,17 +181,17 @@ class Analytics_Framework:
         self._eeg._tmax = self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
 
     def get_mne_raw(self):
-            """
-            Returns the raw EEG data.
+        """
+        Returns the raw EEG data.
 
-            Returns:
-                mne.io.Raw: The raw EEG data.
-            """
-            return self._eeg.mne_raw
+        Returns:
+            mne.io.Raw: The raw EEG data.
+        """
+        return self._eeg.mne_raw
 
     def get_mne_raw_orig(self):
         """
-        Returns the original raw EEG data.
+        Returns the original raw MNE object, prior to any processing.
 
         Returns:
             mne.io.Raw: The original raw EEG data.
@@ -171,24 +199,30 @@ class Analytics_Framework:
         return self._eeg.mne_raw_orig
     
     def get_eeg(self):
-            """
-            Returns the EEG data associated with this instance.
+        """
+        Returns the EEG data object associated with this instance.
 
-            Returns:
-                The EEG data.
-            """
-            return self._eeg
+        Returns:
+            The EEG data object.
+        """
+        return self._eeg
 
     def plot_EEG(self, start = 0):
+        """
+        Plots the EEG data starting from a specified time.
+
+        Parameters:
+            start (int, optional): The start time (in seconds) for the plot.
+        """
         self._plot_number += 1
         self._raw.plot(title=str(self._plot_number), start=start)
 
     def _try_to_get_events(self):
         """
-        Tries to retrieve the events from the raw EEG data.
+        Tries to extract events from the EEG data, either from annotations or explicit event objects.
 
         Returns:
-            events (ndarray or None): The events extracted from the raw EEG data, or None if no events are found.
+            An array of events or None if no events are found.
         """
         # Check if there are annotations and convert
         if self._eeg.mne_raw.annotations:
@@ -266,12 +300,14 @@ class Analytics_Framework:
 
     def find_missing_triggers(self, mode="auto", ref_channel=0):
         """
-        Find missing triggers in the EEG data.
+        Attempts to identify and add missing triggers in the EEG data.
 
-        This method finds missing triggers in the EEG data based on the calculated artifact length.
+        Parameters:
+            mode (str, optional): The mode for finding missing triggers, default is "auto".
+            ref_channel (int, optional): The reference channel to use.
 
         Returns:
-            None
+            list: A list of the missing trigger positions.
         """
         missing_triggers = []
         if mode == "auto":
@@ -341,8 +377,6 @@ class Analytics_Framework:
         """
         Add annotations to the EEG data.
 
-        This method adds annotations to the EEG data based on the provided annotations.
-        
         Args:
             annotations (list): List of annotations to add.
 
@@ -372,8 +406,10 @@ class Analytics_Framework:
 
         This method checks if a given position based on a template with a correlation threshold of 0.9
 
-        Args:
+        Parameters:
             position (int): The position to check.
+            template: The artifact template for comparison.
+            threshold (float, optional): The correlation threshold to determine if a position is an artifact.
 
         Returns:
             bool: True if the position is an artifact, False otherwise.
@@ -429,11 +465,21 @@ class Analytics_Framework:
         f = [0, self._eeg.anc_hp_frequency * (1 - trans) / nyq, self._eeg.anc_hp_frequency / nyq, 1]
         a = [0, 0, 1, 1]
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
-        # load the filter weights from mat file
-        #self._eeg.anc_hp_filter_weights = sio.loadmat('FilterWeights.mat')['filtWeights'][0]
         self._eeg.anc_filter_order = artifact_length
         
     def _check_volume_gaps(self):
+        """
+        Check for volume gaps in the EEG data.
+
+        This method checks for volume gaps in the EEG data by analyzing the trigger distances
+        between consecutive triggers. If the difference between the minimum and maximum
+        trigger distance is greater than 3, volume gaps are assumed.
+
+        The result is stored in the `_eeg.volume_gaps` attribute.
+
+        Returns:
+            None
+        """
         # Due to asynchronous sampling the distances might vary a bit. We
         # accept one mean value, plus and minus one (gives a range of 2),
         # plus one more to be a bit more robust.
@@ -444,7 +490,8 @@ class Analytics_Framework:
                 self._eeg.volume_gaps = False
 
     def _filter_annotations(self, regex):
-            """Extract specific annotations from an MNE Raw object.
+            """
+            Extract specific annotations from an MNE Raw object.
 
             Args:
                 regex (str): Regular expression pattern to match the annotation description.
@@ -472,13 +519,13 @@ class Analytics_Framework:
     
     def print_analytics(self):
         """
-        Prints analytics information.
+        Prints analysis information.
 
-        This method logs various analytics information, including the number of triggers found,
+        This method logs various analysis information, including the number of triggers found,
         art length, duration of art in seconds, number of channels, and channel names.
 
         """
-        logger.info("Analytics:")
+        logger.info("Analysis:")
         logger.info(f"Number of Triggers found: {self._eeg.count_triggers}")
         logger.info(f"Art Length: {self._eeg.artifact_length}")
         logger.info(f"Duration of Art in seconds: {self._eeg.artifact_duration}")

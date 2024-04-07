@@ -2,7 +2,7 @@ Correction Framework Module
 ===========================
 
 .. module:: Correction
-   :synopsis: Provides methods for importing, exporting, and analyzing EEG data.
+   :synopsis: Provides methods for the correction of data.
 
 .. moduleauthor:: Janik Michael Müller <janikmichael.mueller@gmail.com>
 

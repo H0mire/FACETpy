@@ -6,6 +6,12 @@ from loguru import logger
 
 class Evaluation_Framework:
     def __init__(self, FACET):
+        """
+        Initializes the Evaluation_Framework class.
+        
+        Parameters:
+            FACET (FACET class instance): An instance of the FACET class.
+        """
         self._eeg_eval_dict_list = []
         self._FACET = FACET
         return
@@ -14,11 +20,11 @@ class Evaluation_Framework:
         """
         Add EEG data to the evaluation list.
 
-        Args:
-            eeg (dict): Dictionary containing EEG data.
-            start_time (float, optional): Start time of the data to be evaluated. If not provided, it defaults to the start time of the first trigger.
-            end_time (float, optional): End time of the data to be evaluated. If not provided, it defaults to the end time of the last trigger section.
-            name (str, optional): Name of the evaluation data. Defaults to None.
+        Parameters:
+            eeg (FACET.EEG_obj): The EEG data to be evaluated.
+            start_time (float, optional): Start time of the data to be evaluated.
+            end_time (float, optional): End time of the data to be evaluated.
+            name (str, optional): Name of the evaluation dataset.
 
         Returns:
             None
@@ -44,15 +50,15 @@ class Evaluation_Framework:
 
     def _crop(self, raw,  tmin, tmax):
         """
-        Crop the raw data to the specified time window.
-        
-        Args:
-            raw (mne.io.Raw): Raw data to be cropped.
-            tmin (float): Start time of the crop.
-            tmax (float): End time of the crop.
+        Crop the raw EEG data to a specified time window.
+
+        Parameters:
+            raw (mne.io.Raw): The raw EEG data.
+            tmin (float): The start time of the crop window.
+            tmax (float): The end time of the crop window.
 
         Returns:
-            mne.io.Raw: Cropped raw data.
+            mne.io.Raw: The cropped raw EEG data.
         """
         #check if tmax is in the data
         if tmax > raw.times[-1]:
@@ -64,15 +70,15 @@ class Evaluation_Framework:
 
     def _cutout(self,raw, tmin, tmax):
         """
-        Cut out the specified time window from the raw data.
+        Cut out a specified time window from the raw EEG data.
 
-        Args:
-            raw (mne.io.Raw): Raw data to be cut out.
-            tmin (float): Start time of the cut out.
-            tmax (float): End time of the cut out.
+        Parameters:
+            raw (mne.io.Raw): The raw EEG data.
+            tmin (float): The start time of the window to cut out.
+            tmax (float): The end time of the window to cut out.
 
         Returns:
-            mne.io.Raw: Cut out raw data.
+            mne.io.Raw: The raw EEG data with the specified window removed.
         """
         #check if tmax is in the data
         if tmax > raw.times[-1]:
@@ -87,14 +93,14 @@ class Evaluation_Framework:
     
     def evaluate(self, plot=True, measures=[]):
         """
-        Evaluate the EEG datasets and calculate the specified measures.
+        Evaluate the EEG datasets based on specified measures.
 
-        Args:
-            plot (bool, optional): If True, the results will be plotted. Defaults to True.
-            measures (list, optional): List of measures to be calculated. Defaults to [].
+        Parameters:
+            plot (bool, optional): Whether to plot the results. Defaults to True.
+            measures (list, optional): A list of measures to calculate. Defaults to an empty list.
 
         Returns:
-            list: A list of dictionaries containing the results of the evaluation.
+            list: A list of dictionaries containing the results of the evaluation for each measure.
         """
         results=[]
         if "SNR" in measures:
@@ -111,10 +117,10 @@ class Evaluation_Framework:
     # Plot all results with matplotlib
     def plot(self, results):
         """
-        Plot the results of the evaluation.
+        Plot the evaluation results.
 
-        Args:
-            results (list): List of dictionaries containing the results of the evaluation.
+        Parameters:
+            results (list): A list of dictionaries containing the evaluation results.
 
         Returns:
             int: 0 if successful.
@@ -146,10 +152,10 @@ class Evaluation_Framework:
         return 0
     def evaluate_RMS_corrected_ratio(self):
         """
-        Calculates the RMS of the EEG datasets.
+        Calculate the ratio of the Root Mean Square (RMS) values before and after correction.
 
         Returns:
-            results (list): A list of RMS values for each dataset.
+            list: A list containing the RMS ratios for each evaluated dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
@@ -176,10 +182,10 @@ class Evaluation_Framework:
         return results
     def evaluate_RMS_residual_ratio(self):
         """
-        Calculates the RMS of the EEG datasets.
+        Calculate the ratio of the Root Mean Square (RMS) values of the corrected data to the unimpaired reference.
 
         Returns:
-            results (list): A list of RMS values for each dataset.
+            list: A list containing the RMS ratios for each evaluated dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set at least one EEG dataset and crop the EEG to evaluate before calculating RMS.")
@@ -202,10 +208,10 @@ class Evaluation_Framework:
         return results
     def calculate_median_imaging_artifact(self):
         """
-        Calculates the Median Imaging Artifact for each EEG dataset in eeg_list.
+        Calculate the median imaging artifact value for each evaluated EEG dataset.
 
         Returns:
-            list: A list of median imaging artifact values for each dataset.
+            list: A list containing the median imaging artifact values for each dataset.
         """
         if not hasattr(self, '_eeg_eval_dict_list') or not self._eeg_eval_dict_list:
             logger.error("eeg_list is not set or empty.")
@@ -241,10 +247,10 @@ class Evaluation_Framework:
         return results
     def evaluate_SNR(self):
         """
-        Calculates the SNR of the EEG datasets.
+        Calculate the Signal-to-Noise Ratio (SNR) for each evaluated EEG dataset.
 
         Returns:
-            results (list): A list of SNR values for each dataset.
+            list: A list containing the SNR values for each dataset.
         """
         if not self._eeg_eval_dict_list:
             logger.error("Please set both EEG datasets and crop the EEG to evaluate before calculating SNR.")

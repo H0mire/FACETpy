@@ -1,13 +1,13 @@
 from .Frameworks.Correction import Correction_Framework
 from .Frameworks.Evaluation import Evaluation_Framework
-from .Frameworks.Analytics import Analytics_Framework
+from .Frameworks.Analysis import Analysis_Framework
 import mne
 from loguru import logger
 
 class Facet:
 
     def __init__(self):
-        self._analytics = Analytics_Framework(self)
+        self._analysis = Analysis_Framework(self)
         self._correction = None
         self._evaluation = Evaluation_Framework(self)
         self._eeg = None
@@ -16,21 +16,21 @@ class Facet:
         return self._eeg
     def import_EEG(self, path,fmt="edf", artifact_to_trigger_offset=0, upsampling_factor=10, bads=[], subject="subject1", session="session1", task="task1"):
         logger.info(f"Importing EEG from {path}")
-        self._eeg = self._analytics.import_EEG(path, fmt=fmt, artifact_to_trigger_offset=artifact_to_trigger_offset, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
+        self._eeg = self._analysis.import_EEG(path, fmt=fmt, artifact_to_trigger_offset=artifact_to_trigger_offset, upsampling_factor=upsampling_factor, bads=bads, subject=subject, session=session, task=task)
         self._correction = Correction_Framework(self,self._eeg)
         return self._eeg
 
     def export_EEG(self, path, fmt="edf", subject="subject1", session="session1", task="task1", event_id=None):
-        self._analytics.export_EEG(path, fmt=fmt, subject=subject, session=session, task=task, event_id=event_id)
+        self._analysis.export_EEG(path, fmt=fmt, subject=subject, session=session, task=task, event_id=event_id)
     def find_triggers(self, regex):
         logger.info("finding triggers")
-        self._analytics.find_triggers(regex)
+        self._analysis.find_triggers(regex)
         num_triggers=self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
 
     def find_missing_triggers(self):
         logger.info("Finding missing triggers...")
-        self._analytics.find_missing_triggers()
+        self._analysis.find_missing_triggers()
         
     def prepare(self):
         self._correction.prepare()
@@ -89,11 +89,11 @@ class Facet:
         return self._correction
     def get_evaluation(self):
         return self._evaluation
-    def get_analytics(self):
-        return self._analytics
+    def get_analysis(self):
+        return self._analysis
     def set_correction(self, correction):
         self._correction = correction
     def set_evaluation(self, evaluation):
         self._evaluation = evaluation
-    def set_analytics(self, analytics):
-        self._analytics = analytics
+    def set_analysis(self, analysis):
+        self._analysis = analysis
