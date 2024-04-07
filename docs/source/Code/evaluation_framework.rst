@@ -8,7 +8,7 @@ Evaluation Framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: FACET.Frameworks.Evaluation
+.. automodule:: facet.Frameworks.Evaluation
 	:members:
 	:undoc-members:
 	:show-inheritance:

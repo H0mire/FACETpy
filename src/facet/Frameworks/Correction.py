@@ -10,10 +10,10 @@ Version: 1.0
 
 import numpy as np
 import mne
-from FACET.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
-from FACET.helpers.fastranc import fastr_anc
-from FACET.helpers.utils import split_vector
-from FACET.helpers.crosscorr import crosscorrelation
+from facet.helpers.moosmann import calc_weighted_matrix_by_realignment_parameters_file
+from facet.helpers.fastranc import fastr_anc
+from facet.helpers.utils import split_vector
+from facet.helpers.crosscorr import crosscorrelation
 from loguru import logger
 from scipy.signal import firls, filtfilt
 from numpy.fft import ifft, fftshift, ifftshift
@@ -30,23 +30,23 @@ class Correction_Framework:
     and preprocessing and postprocessing the data.
 
     Attributes:
-        _eeg (FACET.EEG_obj): A dictionary containing the EEG metadata and data.
+        _eeg (facet.EEG_obj): A dictionary containing the EEG metadata and data.
         _plot_number (int): A counter for the number of plots generated.
         avg_artifact (numpy.ndarray): The average artifact matrix.
         avg_artifact_matrix (dict): A dictionary containing the average artifact matrix for each EEG channel.
         avg_artifact_matrix_numpy (dict): A dictionary containing the average artifact matrix for each EEG channel as a numpy array.
     """
 
-    def __init__(self, FACET, eeg):
+    def __init__(self, facet, eeg):
         """
         Initializes the Correction_Framework class with necessary components for EEG correction.
 
         Parameters:
-            FACET: A reference to a FACET class instance, providing access to FACET's functionalities.
+            facet: A reference to a facet class instance, providing access to facet's functionalities.
             eeg: An EEG data structure, including metadata and raw EEG data.
         """
         self._eeg = eeg
-        self._FACET = FACET
+        self._facet = facet
         self._plot_number = 0
         self.avg_artifact = None
         self.avg_artifact_matrix = None
@@ -107,7 +107,7 @@ class Correction_Framework:
         Parameters:
             start (int): The starting index of the data to be plotted.
             title (str, optional): The title of the plot. If not provided, a default title will be used.
-            eeg (FACET.EEG_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
+            eeg (facet.EEG_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
         """
         eeg = eeg if eeg is not None else self._eeg
         if not title:
@@ -459,7 +459,7 @@ class Correction_Framework:
             # Update the trigger positions
             self._eeg.loaded_triggers = trigger_positions
             # Update related attributes
-            self._FACET._analysis._derive_art_length()
+            self._facet._analysis._derive_art_length()
             self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
             if save:
                 # replace the triggers as events in the raw object
@@ -834,7 +834,7 @@ class Correction_Framework:
             int(trigger * (sfreq / sfreq_old)) for trigger in self._eeg.loaded_triggers
         ]
 
-        self._FACET._analysis.derive_parameters()
+        self._facet._analysis.derive_parameters()
 
     def _find_max_cross_correlation(self, base, compare, search_window):
         """

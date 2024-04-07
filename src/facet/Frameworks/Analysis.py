@@ -13,7 +13,7 @@ import re
 from mne_bids import BIDSPath, write_raw_bids, read_raw_bids
 from scipy.stats import pearsonr
 from scipy.signal import firls
-from FACET.EEG_obj import EEG
+from facet.EEG_obj import EEG
 import numpy as np
 from loguru import logger
 
@@ -21,17 +21,17 @@ from loguru import logger
 
 
 class Analysis_Framework:
-    def __init__(self, FACET, eeg=None):
+    def __init__(self, facet, eeg=None):
         """
         Initializes an instance of the Analysis_Framework class.
 
         Parameters:
-            FACET (FACET.Facet): A reference to an instance of a FACET class (or similar) that provides additional functionality for EEG data processing.
-            eeg (FACET.EEG_obj, optional): An instance of an EEG object. If not provided, a new EEG object is created.
+            facet (facet.facet): A reference to an instance of a facet class (or similar) that provides additional functionality for EEG data processing.
+            eeg (facet.EEG_obj, optional): An instance of an EEG object. If not provided, a new EEG object is created.
         """
         self._loaded_triggers = None
         self._plot_number = 0
-        self._FACET = FACET
+        self._facet = facet
 
         if eeg:
             self._eeg = eeg
@@ -365,8 +365,8 @@ class Analysis_Framework:
                     "Volume gaps are detected or flag is manually set to True. Results may be inaccurate"
                 )
             logger.debug("Generating template from reference channel...")
-            _3d_matrix = self._FACET._correction.calc_matrix_AAS(channels=[ref_channel])
-            template = self._FACET._correction.calc_avg_artifact(_3d_matrix)[0][0]
+            _3d_matrix = self._facet._correction.calc_matrix_AAS(channels=[ref_channel])
+            template = self._facet._correction.calc_avg_artifact(_3d_matrix)[0][0]
             # iterate through the trigger positions check for each trigger if the next trigger is within the artifact length with a threshold of 1.9*artifactlength
             logger.debug("Checking holes in the trigger positions...")
             for i in range(len(self._eeg.loaded_triggers) - 1):
@@ -374,7 +374,7 @@ class Analysis_Framework:
                     self._eeg.loaded_triggers[i + 1] - self._eeg.loaded_triggers[i]
                     > self._eeg.artifact_length * 1.9
                 ):
-                    new_trigger = self._FACET._correction._align_trigger(
+                    new_trigger = self._facet._correction._align_trigger(
                         self._eeg.loaded_triggers[i] + self._eeg.artifact_length,
                         template,
                         search_window,
@@ -397,7 +397,7 @@ class Analysis_Framework:
             # now check iteratively if triggers are missing at the beginning and end of the data by checking if first trigger - artifact length is an artifact and if last trigger + artifact length is an artifact
             # adding at the beginning and the end as long as the triggers are artifacts
             temp_pos = self._eeg.loaded_triggers[0] - self._eeg.artifact_length
-            new_pos = self._FACET._correction._align_trigger(
+            new_pos = self._facet._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
             count = 0
@@ -405,20 +405,20 @@ class Analysis_Framework:
                 missing_triggers.insert(0, new_pos)
                 count += 1
                 temp_pos = new_pos - self._eeg.artifact_length
-                new_pos = self._FACET._correction._align_trigger(
+                new_pos = self._facet._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the beginning of the data")
             count = 0
             temp_pos = self._eeg.loaded_triggers[-1] + self._eeg.artifact_length
-            new_pos = self._FACET._correction._align_trigger(
+            new_pos = self._facet._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
             while self._is_artifact(new_pos, template):
                 missing_triggers.append(new_pos)
                 count += 1
                 temp_pos = new_pos + self._eeg.artifact_length
-                new_pos = self._FACET._correction._align_trigger(
+                new_pos = self._facet._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the end of the data")
@@ -427,9 +427,9 @@ class Analysis_Framework:
                 logger.info("No missing triggers found. Finishing...")
                 return []
             logger.debug("Now aligning the missing triggers...")
-            # align all missing triggers with self._FACET._correction._align_trigger
+            # align all missing triggers with self._facet._correction._align_trigger
             for i in range(len(missing_triggers)):
-                missing_triggers[i] = self._FACET._correction._align_trigger(
+                missing_triggers[i] = self._facet._correction._align_trigger(
                     missing_triggers[i], template, search_window, ref_channel
                 )
             # add the missing triggers as annotations with description "missing_trigger"
@@ -495,7 +495,7 @@ class Analysis_Framework:
         Returns:
             bool: True if the position is an artifact, False otherwise.
         """
-        new_position = self._FACET._correction._align_trigger(
+        new_position = self._facet._correction._align_trigger(
             position, template, 3 * self._eeg.upsampling_factor, 0
         )
         smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])

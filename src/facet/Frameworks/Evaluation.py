@@ -15,15 +15,15 @@ from loguru import logger
 
 
 class Evaluation_Framework:
-    def __init__(self, FACET):
+    def __init__(self, facet):
         """
         Initializes the Evaluation_Framework class.
 
         Parameters:
-            FACET (FACET class instance): An instance of the FACET class.
+            facet (facet class instance): An instance of the facet class.
         """
         self._eeg_eval_dict_list = []
-        self._FACET = FACET
+        self._facet = facet
         return
 
     def add_to_evaluate(self, eeg, start_time=None, end_time=None, name=None):
@@ -31,7 +31,7 @@ class Evaluation_Framework:
         Add EEG data to the evaluation list.
 
         Parameters:
-            eeg (FACET.EEG_obj): The EEG data to be evaluated.
+            eeg (facet.EEG_obj): The EEG data to be evaluated.
             start_time (float, optional): Start time of the data to be evaluated.
             end_time (float, optional): End time of the data to be evaluated.
             name (str, optional): Name of the evaluation dataset.

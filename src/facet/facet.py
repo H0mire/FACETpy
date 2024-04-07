@@ -5,7 +5,7 @@ import mne
 from loguru import logger
 
 
-class Facet:
+class facet:
 
     def __init__(self):
         self._analysis = Analysis_Framework(self)

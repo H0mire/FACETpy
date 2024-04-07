@@ -1,5 +1,5 @@
 import random
-from FACET.Facet import Facet
+from facet.facet import facet
 
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
@@ -15,8 +15,8 @@ unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 artifact_to_trigger_offset = -0.005
 # End Configuration Block
 
-# Loading the EEG data by creating a FACET object and importing the EEG data
-f = Facet()
+# Loading the EEG data by creating a facet object and importing the EEG data
+f = facet()
 f.import_EEG(
     file_path,
     upsampling_factor=upsample_factor,

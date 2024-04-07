@@ -1,5 +1,6 @@
 import numpy as np
 from ctypes import CDLL, c_int, c_double, POINTER
+import sys
 
 # set current path to the path the file is in and then change back to the original path
 import os
@@ -8,8 +9,13 @@ path = os.path.abspath(os.getcwd())
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-# Laden der kompilierten Shared Library
-lib_path = "./fastranc.dll"  # Stellen Sie sicher, dass dieser Pfad korrekt ist
+# Erkennen des Betriebssystems
+if sys.platform.startswith('linux'):
+    lib_path = './libfastranc.so'  # Linux
+elif sys.platform.startswith('win'):
+    lib_path = 'fastranc.dll'  # Windows
+else:
+    raise OSError("Unsupported operating system")
 lib = CDLL(lib_path)
 
 # Definieren des Funktionsprototyps in Python

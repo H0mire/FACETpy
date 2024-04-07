@@ -1,4 +1,4 @@
-from FACET.Facet import Facet
+from facet.facet import facet
 from loguru import logger
 import numpy as np
 import scipy.io as sio
@@ -7,20 +7,20 @@ import scipy.io as sio
 # Begin Configuration Block
 # Path to your EEG file
 file_path_edf_without_anc = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_without_lowpass.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_without_lowpass.edf"
 )
 file_path_edf_with_anc = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_with_anc.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_anc.edf"
 )
 file_path_edf_with_alignment = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_with_alignment.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_alignment.edf"
 )
-file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_with_alignment_subsamplealignment_anc.edf"
+file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_alignment_subsamplealignment_anc.edf"
 file_path_edf_full = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_full.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_full.edf"
 )
 file_path_edf_full_fastr = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_full_fastr.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_full_fastr.edf"
 )
 
 event_regex = r"\b1\b"
@@ -28,8 +28,8 @@ event_regex = r"\b1\b"
 
 # End Configuration Block
 
-# Loading the EEG data by creating a FACET object and importing the EEG data
-f = Facet()
+# Loading the EEG data by creating a facet object and importing the EEG data
+f = facet()
 f.import_EEG(file_path_edf_without_anc)
 f.get_EEG().mne_raw.crop(0, 162)
 f.find_triggers(event_regex)
@@ -55,7 +55,7 @@ unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 # Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
 artifact_to_trigger_offset = -0.005
 # End Configuration Block
-# Loading the EEG data by creating a FACET object and importing the EEG data
+# Loading the EEG data by creating a facet object and importing the EEG data
 f.import_EEG(
     file_path,
     upsampling_factor=upsample_factor,

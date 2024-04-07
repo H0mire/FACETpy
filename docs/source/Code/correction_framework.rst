@@ -9,7 +9,7 @@ Correction Framework Module
 Version: 1.0
 Date: 15.02.2024
 
-.. automodule:: FACET.Frameworks.Correction
+.. automodule:: facet.Frameworks.Correction
 	:members:
 	:undoc-members:
 	:show-inheritance:

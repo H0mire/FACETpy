@@ -2,12 +2,12 @@
 FILENAME_EEG = "NiazyFMRI.edf"
 # Unit Test Class
 import pytest, os, edflib
-from src.FACET.Facet import Facet
+from src.facet.facet import facet
 from loguru import logger
 
 class TestAnalysisFramework:
     def setup_method(self):
-        self.af = Facet()
+        self.af = facet()
         self.af.import_EEG(FILENAME_EEG, artifact_to_trigger_offset=-0.01, bads=['EMG', 'ECG'])
 
     def test_import_EEG(self):

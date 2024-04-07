@@ -1,11 +1,11 @@
-from FACET.Facet import Facet
+from facet.facet import facet
 
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
 # Path to your EEG file
 file_path = "src/NiazyFMRI.edf"
 file_path2 = (
-    "C:\\Users\\janik\\Projekte\\pyFACET\\Datasets\\Matlab_cleaned_without_lowpass.edf"
+    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_without_lowpass.edf"
 )
 # Event Regex assuming using stim channel
 event_regex = r"\b1\b"
@@ -17,15 +17,15 @@ unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 artifact_to_trigger_offset = -0.004296875
 # End Configuration Block
 
-# Loading the EEG data by creating a FACET object and importing the EEG data
-f = Facet()
+# Loading the EEG data by creating a facet object and importing the EEG data
+f = facet()
 f.import_EEG(
     file_path,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
-f2 = Facet()
+f2 = facet()
 f2.import_EEG(
     file_path2,
     upsampling_factor=upsample_factor,

@@ -4,7 +4,7 @@ Getting Started: Full Averaged Artifact Subtraction (AAS) Correction of BIDS EEG
 Introduction
 ------------
 
-This document explains how to use the FACET framework to its full extent. It describes how to import EEG data with a BIDS structure, apply alignment, and apply Averaged Artifact Subtraction (AAS) to correct for artifacts. This document assumes you have already installed FACET and have a basic understanding of how to use it.
+This document explains how to use the facet framework to its full extent. It describes how to import EEG data with a BIDS structure, apply alignment, and apply Averaged Artifact Subtraction (AAS) to correct for artifacts. This document assumes you have already installed facet and have a basic understanding of how to use it.
 
 Prerequisites
 -------------
@@ -35,14 +35,14 @@ Loading Your EEG Data
 
 .. note::
    
-   This tutorial is based on the default/stock FACET object implementation. The FACET Object is intended to be individualized to the user's needs.
-   To access all functionalities (if not already provided) of the FACET Tool, either edit/expand the `src/FACET/Facet.py` file or directly access the frameworks by e.g. `f.get_correction()` for the correction framework instance.
+   This tutorial is based on the default/stock facet object implementation. The facet Object is intended to be individualized to the user's needs.
+   To access all functionalities (if not already provided) of the facet Tool, either edit/expand the `src/facet/facet.py` file or directly access the frameworks by e.g. `f.get_correction()` for the correction framework instance.
 
-To begin, load your EEG dataset into a FACET object:
+To begin, load your EEG dataset into a facet object:
 
 .. code-block:: python
    
-   from src.FACET.Facet import Facet
+   from src.facet.facet import facet
    # It is advised to add a configuration block here, to keep an overview of the settings used for the analysis.
    # Begin Configuration Block
    # Path to your BIDS dataset
@@ -67,8 +67,8 @@ To begin, load your EEG dataset into a FACET object:
    evaluation_measures=["SNR", "RMS", "RMS2", "MEDIAN"] # Evaluation measures to be used for the evaluation of the AAS
    # End Configuration Block
 
-   # Loading the EEG data by creating a FACET object and importing the EEG data
-   f = Facet()
+   # Loading the EEG data by creating a facet object and importing the EEG data
+   f = facet()
    f.import_EEG(path=bids_path,fmt="bids",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
 
 .. important::
@@ -83,7 +83,7 @@ This can include filtering and resampling.
 
 .. note::
 
-   The stock FACET object provides a `pre_processing` method, which is a general predefined collection of preprocessing steps. 
+   The stock facet object provides a `pre_processing` method, which is a general predefined collection of preprocessing steps. 
    This can and should be individualized to the user's needs.
    `f.pre_processing()`
 
@@ -161,7 +161,7 @@ After removing artifacts, you can proceed with further EEG data processing, such
 
 .. note::
 
-   The stock FACET object provides a `post_processing` method, which is a general predefined collection of postprocessing steps. 
+   The stock facet object provides a `post_processing` method, which is a general predefined collection of postprocessing steps. 
    Again, this can and should be individualized to the user's needs.
    `f.post_processing()`
 
@@ -202,6 +202,6 @@ This can be done using the `export_EEG` method, which takes the file path as an 
 Conclusion
 ----------
 
-Applying Averaged Artifact Subtraction (AAS) is crucial for preparing EEG data for analysis by reducing noise and artifacts. This documentation outlined the steps to apply AAS using FACET, from loading your EEG data to applying the AAS correction.
+Applying Averaged Artifact Subtraction (AAS) is crucial for preparing EEG data for analysis by reducing noise and artifacts. This documentation outlined the steps to apply AAS using facet, from loading your EEG data to applying the AAS correction.
 
 For more detailed information on processing EEG data with MNE-Python, refer to the official MNE-Python documentation.
