@@ -122,8 +122,8 @@ class Correction_Framework:
 
         Parameters:
             avg_artifact_matrix_numpy (numpy.ndarray, optional): The average artifact matrix. If not provided,
-                it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
-                a ValueError will be raised.
+            it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
+            a ValueError will be raised.
             plot_artifacts (bool, optional): Whether to plot the artifacts. Defaults to False.
 
         Raises:
@@ -186,8 +186,8 @@ class Correction_Framework:
 
         Parameters:
             avg_artifact_matrix_numpy (numpy.ndarray, optional): The average artifact matrix. If not provided,
-                it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
-                a ValueError will be raised.
+            it will be retrieved from the instance variable `avg_artifact_matrix_numpy`. If both are None,
+            a ValueError will be raised.
             plot_artifacts (bool, optional): Whether to plot the artifacts. Defaults to False.
 
         Raises:
@@ -769,7 +769,6 @@ class Correction_Framework:
 
         Note:
             The `_eeg` attribute should be initialized before calling this method.
-
         """
         self.resample_data(
             self._eeg.mne_raw.info["sfreq"] / self._eeg.upsampling_factor

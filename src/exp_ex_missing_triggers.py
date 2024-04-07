@@ -24,10 +24,13 @@ f.find_triggers(event_regex)
 #remove first trigger from loaded_triggers to simulate missing trigger
 f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[15:830]
 f.find_missing_triggers()
-#remove the 4th trigger from loaded_triggers to simulate missing trigger
-#f.get_EEG().loaded_triggers = f.get_EEG().loaded_triggers[0:21] + f.get_EEG().loaded_triggers[22:840]
-#f.find_missing_triggers()
 
+#generate 10 random numbers between 0 and 839
+import random
+missing_triggers = random.sample(range(0, 839), 10)
+# remove triggers from loaded_triggers to simulate missing triggers
+for i in missing_triggers:
+    f.get_EEG().loaded_triggers.pop(i)
 
 #print count triggers total
 print(f.get_EEG().count_triggers)

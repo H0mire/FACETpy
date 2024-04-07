@@ -1,3 +1,13 @@
+"""
+Evaulation Framework Module
+
+This module contains the Evaluation_Framework class, which is used to evaluate EEG data.
+
+Author: Janik Michael Müller
+Date: 15.02.2024
+Version: 1.0
+"""
+
 import numpy as np
 import mne
 import matplotlib.pyplot as plt
