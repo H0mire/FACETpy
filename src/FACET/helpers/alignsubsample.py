@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class YourClass:
     # Assuming the presence of required attributes and methods like SplitVector, ProfileStart, and ProfileStop
     def AlignSubSample(self):
@@ -8,26 +9,36 @@ class YourClass:
         NumSamples = MaxTrigDist + 20  # Note: this is different from self.NumSamples
 
         # phase shift (-1/2 .. +1/2, below it is multiplied by 2*pi -> -pi..pi)
-        ShiftAngles = (np.arange(1, NumSamples + 1) - np.floor(NumSamples / 2) + 1) / NumSamples
+        ShiftAngles = (
+            np.arange(1, NumSamples + 1) - np.floor(NumSamples / 2) + 1
+        ) / NumSamples
 
         # if we already have values from a previous run
         if self.SubSampleAlignment is None or len(self.SubSampleAlignment) == 0:
             if self.SSAHPFrequency is not None and self.SSAHPFrequency > 0:
                 self.ProfileStart()
                 nyq = 0.5 * self.SamplingFrequency
-                f = [0, (self.SSAHPFrequency * 0.9) / (nyq * self.Upsample),
-                     (self.SSAHPFrequency * 1.1) / (nyq * self.Upsample), 1]
+                f = [
+                    0,
+                    (self.SSAHPFrequency * 0.9) / (nyq * self.Upsample),
+                    (self.SSAHPFrequency * 1.1) / (nyq * self.Upsample),
+                    1,
+                ]
                 a = [0, 0, 1, 1]
                 fw = np.firls(100, f, a)
 
-                HPEEG = np.fft.ifft(np.fft.ifftshift(np.fft.fftshift(np.fft.fft(self.RAEEGAcq)) * fw)).real
+                HPEEG = np.fft.ifft(
+                    np.fft.ifftshift(np.fft.fftshift(np.fft.fft(self.RAEEGAcq)) * fw)
+                ).real
                 HPEEG = np.concatenate((HPEEG[101:], np.zeros(100)))  # undo the shift
-                self.ProfileStop('SSA-Filter')
+                self.ProfileStop("SSA-Filter")
             else:
                 HPEEG = self.RAEEGAcq
 
             # Split vector into 2D matrix
-            EEGMatrix = self.SplitVector(HPEEG, self.TriggersUp - self.PreTrig - 10, NumSamples)
+            EEGMatrix = self.SplitVector(
+                HPEEG, self.TriggersUp - self.PreTrig - 10, NumSamples
+            )
             EEG_Ref = EEGMatrix[self.AlignSlicesReference, :]
 
             self.SubSampleAlignment = np.zeros(self.NumTriggers)
@@ -36,7 +47,9 @@ class YourClass:
             Shifts = np.zeros((self.NumTriggers, 20))
 
             self.ProfileStart()
-            for Epoch in set(range(1, self.NumTriggers + 1)) - {self.AlignSlicesReference}:
+            for Epoch in set(range(1, self.NumTriggers + 1)) - {
+                self.AlignSlicesReference
+            }:
                 EEG_M = EEGMatrix[Epoch - 1, :]
                 FFT_M = np.fft.fftshift(np.fft.fft(EEG_M))
                 Shift_L = -1
@@ -75,24 +88,30 @@ class YourClass:
                 self.SubSampleAlignment[Epoch - 1] = Shift_M
                 EEGMatrix[Epoch - 1, :] = EEG_M
 
-            self.ProfileStop('SSA-Iterate')
+            self.ProfileStop("SSA-Iterate")
 
-        # Further processing not shown due to length. Follow the same structure for the rest of
+            # Further processing not shown due to length. Follow the same structure for the rest of
             self.ProfileStart()
             # Loop over every epoch for final alignment
-            for Epoch in set(range(1, self.NumTriggers + 1)) - {self.AlignSlicesReference}:
+            for Epoch in set(range(1, self.NumTriggers + 1)) - {
+                self.AlignSlicesReference
+            }:
                 EEG = EEGMatrix[Epoch - 1, :]
                 FFT = np.fft.fftshift(np.fft.fft(EEG))
-                FFT *= np.exp(-1j * 2 * np.pi * ShiftAngles * self.SubSampleAlignment[Epoch - 1])
+                FFT *= np.exp(
+                    -1j * 2 * np.pi * ShiftAngles * self.SubSampleAlignment[Epoch - 1]
+                )
                 EEG = np.fft.ifft(np.fft.ifftshift(FFT)).real
                 EEGMatrix[Epoch - 1, :] = EEG
-            self.ProfileStop('SSA-Shift')
+            self.ProfileStop("SSA-Shift")
 
             # Join epochs
             for s in range(self.NumTriggers):
                 start_index = self.TriggersUp[s] - self.PreTrig
                 end_index = start_index + self.ArtLength
-                self.RAEEGAcq[start_index:end_index] = EEGMatrix[s, 10:10 + self.ArtLength]
+                self.RAEEGAcq[start_index:end_index] = EEGMatrix[
+                    s, 10 : 10 + self.ArtLength
+                ]
 
     def Compare(self, Ref, Arg):
         # Implementation of the Compare function

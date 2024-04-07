@@ -1,34 +1,58 @@
 import numpy as np
 from copy import deepcopy
 
+
 class EEG:
-    mne_raw: None #The MNE raw object storing the EEG data
-    mne_raw_orig: None #Untouched MNE raw object storing the EEG data
-    estimated_noise = None #The estimated noise of the EEG data used for the ANC
-    _tmin= None
-    _tmax= None
+    mne_raw: None  # The MNE raw object storing the EEG data
+    mne_raw_orig: None  # Untouched MNE raw object storing the EEG data
+    estimated_noise = None  # The estimated noise of the EEG data used for the ANC
+    _tmin = None
+    _tmax = None
     artifact_to_trigger_offset: None
-    loaded_triggers= None
-    last_trigger_search_regex=None
-    all_events= None
-    upsampling_factor= None
-    time_first_artifact_start= None
-    time_last_artifact_end= None
-    data_time_start= None
-    data_time_end= None
-    artifact_length= None
-    artifact_duration= None
-    volume_gaps= None
-    BIDSPath= None
+    loaded_triggers = None
+    last_trigger_search_regex = None
+    all_events = None
+    upsampling_factor = None
+    time_first_artifact_start = None
+    time_last_artifact_end = None
+    data_time_start = None
+    data_time_end = None
+    artifact_length = None
+    artifact_duration = None
+    volume_gaps = None
+    BIDSPath = None
 
-    #calculations
-    anc_hp_frequency = None #The highpass frequency of the ANC
-    anc_hp_filter_weights = None #The filter weights of the ANC
-    anc_filter_order = None #The filter order of the ANC
+    # calculations
+    anc_hp_frequency = None  # The highpass frequency of the ANC
+    anc_hp_filter_weights = None  # The filter weights of the ANC
+    anc_filter_order = None  # The filter order of the ANC
 
-    def __init__(self, mne_raw=None, mne_raw_orig=None, anc_hp_frequency=None, estimated_noise=None, artifact_to_trigger_offset=0.0, loaded_triggers=None, last_trigger_search_regex=None, all_events=None, upsampling_factor=None, time_first_artifact_start=None, time_last_artifact_end=None, data_time_start=None, data_time_end=None, artifact_length=0, artifact_duration=0, volume_gaps=None, BIDSPath=None):
+    def __init__(
+        self,
+        mne_raw=None,
+        mne_raw_orig=None,
+        anc_hp_frequency=None,
+        estimated_noise=None,
+        artifact_to_trigger_offset=0.0,
+        loaded_triggers=None,
+        last_trigger_search_regex=None,
+        all_events=None,
+        upsampling_factor=None,
+        time_first_artifact_start=None,
+        time_last_artifact_end=None,
+        data_time_start=None,
+        data_time_end=None,
+        artifact_length=0,
+        artifact_duration=0,
+        volume_gaps=None,
+        BIDSPath=None,
+    ):
         self.mne_raw = mne_raw
-        self.mne_raw_orig = mne_raw_orig if mne_raw_orig is not None else mne_raw.copy() if mne_raw is not None else None
+        self.mne_raw_orig = (
+            mne_raw_orig
+            if mne_raw_orig is not None
+            else mne_raw.copy() if mne_raw is not None else None
+        )
         self.anc_hp_frequency = anc_hp_frequency
         self.estimated_noise = estimated_noise
         self.artifact_to_trigger_offset = artifact_to_trigger_offset
@@ -45,7 +69,7 @@ class EEG:
         self.volume_gaps = volume_gaps
         self.BIDSPath = BIDSPath
 
-        #calculations
+        # calculations
         self._tmin = self.artifact_to_trigger_offset
         self._tmax = self.artifact_to_trigger_offset + self.artifact_duration
 
