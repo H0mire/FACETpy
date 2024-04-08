@@ -247,15 +247,20 @@ class AnalysisFramework:
         """
         return self._eeg
 
-    def plot_eeg(self, start=0):
+    def plot_eeg(self, start=0, title=None, eeg=None):
         """
-        Plots the EEG data starting from a specified time.
+        Plots the raw EEG data.
 
         Parameters:
-            start (int, optional): The start time (in seconds) for the plot.
+            start (int): The starting index of the data to be plotted.
+            title (str, optional): The title of the plot. If not provided, a default title will be used.
+            eeg (facet.eeg_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
         """
-        self._plot_number += 1
-        self._raw.plot(title=str(self._plot_number), start=start)
+        eeg = eeg if eeg is not None else self._eeg
+        if not title:
+            self._plot_number += 1
+            title = str(self._plot_number)
+        eeg.mne_raw.plot(title=title, start=start)
 
     def _try_to_get_events(self):
         """

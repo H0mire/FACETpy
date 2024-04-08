@@ -16,7 +16,6 @@ from facet.helpers.utils import split_vector
 from facet.helpers.crosscorr import crosscorrelation
 from loguru import logger
 from scipy.signal import firls, filtfilt, fftconvolve
-from numpy.fft import ifft, fftshift, ifftshift
 
 
 # import inst for mne python
@@ -99,21 +98,6 @@ class CorrectionFramework:
         """
         self._eeg = eeg
         return
-
-    def plot_eeg(self, start=0, title=None, eeg=None):
-        """
-        Plots the raw EEG data.
-
-        Parameters:
-            start (int): The starting index of the data to be plotted.
-            title (str, optional): The title of the plot. If not provided, a default title will be used.
-            eeg (facet.eeg_obj, optional): The EEG data to plot. If not provided, the instance's EEG data is used.
-        """
-        eeg = eeg if eeg is not None else self._eeg
-        if not title:
-            self._plot_number += 1
-            title = str(self._plot_number)
-        eeg.mne_raw.plot(title=title, start=start)
 
     def calc_avg_artifact(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):
         """

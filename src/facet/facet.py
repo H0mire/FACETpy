@@ -119,7 +119,7 @@ class facet:
 
     def plot_eeg(self, start=0, title=None, eeg=None):
         eeg = eeg if eeg is not None else self._eeg
-        self._correction.plot_eeg(start=start, title=title, eeg=eeg)
+        self._analysis.plot_eeg(start=start, title=title, eeg=eeg)
 
     def downsample(self):
         self._correction.downsample()
