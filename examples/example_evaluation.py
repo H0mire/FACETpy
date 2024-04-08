@@ -7,21 +7,24 @@ import scipy.io as sio
 # Begin Configuration Block
 # Path to your EEG file
 file_path_edf_without_anc = (
-    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_without_lowpass.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_without_lowpass.edf"
 )
 file_path_edf_with_anc = (
-    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_anc.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_anc.edf"
 )
 file_path_edf_with_alignment = (
-    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_alignment.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_alignment.edf"
 )
-file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_with_alignment_subsamplealignment_anc.edf"
+file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_alignment_subsamplealignment_anc.edf"
 file_path_edf_full = (
-    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_full.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_full.edf"
 )
 file_path_edf_full_fastr = (
-    "C:\\Users\\janik\\Projekte\\pyfacet\\Datasets\\Matlab_cleaned_full_fastr.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_full_fastr.edf"
 )
+
+file_path = "./examples/datasets/NiazyFMRI.edf"
+
 
 event_regex = r"\b1\b"
 
@@ -30,8 +33,12 @@ event_regex = r"\b1\b"
 
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
+f.import_eeg(file_path)
+f.get_eeg().mne_raw.crop(0, 162)
+mne_raw_orig_temp = f.get_eeg().mne_raw
 f.import_eeg(file_path_edf_without_anc)
 f.get_eeg().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw_orig = mne_raw_orig_temp
 f.find_triggers(event_regex)
 f.lowpass(70)
 f.add_to_evaluate(f.get_eeg(), name="Without ANC")
@@ -39,12 +46,12 @@ f.plot_eeg(start=29, title="Without ANC")
 
 f.import_eeg(file_path_edf_with_anc)
 f.get_eeg().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw_orig = mne_raw_orig_temp
 f.find_triggers(event_regex)
 f.add_to_evaluate(f.get_eeg(), name="With ANC")
 f.plot_eeg(start=29, title="With ANC")
 
 # Own implementation
-file_path = "src/NiazyFMRI.edf"
 # Event Regex assuming using stim channel
 # Upsampling factor
 upsample_factor = 10
@@ -63,6 +70,7 @@ f.import_eeg(
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
 f.get_eeg().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw_orig.crop(0, 162)
 # f.pre_processing()
 f.highpass(1.5)
 f.upsample()

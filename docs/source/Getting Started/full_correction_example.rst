@@ -45,7 +45,7 @@ To begin, load your EEG dataset into a facet object:
 
 .. code-block:: python
    
-   from src.facet.facet import facet
+   from facet.facet import facet
    # It is advised to add a configuration block here, to keep an overview of the settings used for the analysis.
    # Begin Configuration Block
    # Path to your BIDS dataset
@@ -72,7 +72,7 @@ To begin, load your EEG dataset into a facet object:
 
    # Loading the EEG data by creating a facet object and importing the EEG data
    f = facet()
-   f.import_eeg(path=bids_path,fmt="bids",upsampling_factor=upsampling_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
+   f.import_eeg(path=bids_path,fmt="bids",upsampling_factor=upsample_factor,artifact_to_trigger_offset=artifact_to_trigger_offset_in_seconds, bads=unwanted_bad_channels, subject=subject, session=session,task=task)
 
 .. important::
 
@@ -185,7 +185,7 @@ If you want to evaluate the processed EEG data, you can add the EEG data to the 
 .. code-block:: python
 
    f.add_to_evaluate(f.get_eeg(), name="Corrected EEG")
-   results = f.evaluate(plot=true, measures=evaluation_measures)
+   results = f.evaluate(plot=True, measures=evaluation_measures)
    print(results) # Print the evaluation results if you want to see detailed figures
 
 Exporting the Processed EEG Data

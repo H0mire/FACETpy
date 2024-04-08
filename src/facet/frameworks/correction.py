@@ -255,8 +255,7 @@ class CorrectionFramework:
         for key, ch_name in enumerate(channels_to_average):
             idx = self._eeg.mne_raw.ch_names.index(ch_name)
             logger.debug(f"Averaging Channel {idx}:{ch_name}", end=" ")
-            # TODO: Since it is a copy, it is not memory efficient, consider changing it to a data array
-            epochs_single_channel = epochs.copy().pick(key)
+            epochs_single_channel = np.squeeze(epochs._data[:, key, :])
             chosen_matrix = self.calc_chosen_matrix(
                 epochs_single_channel,
                 rel_window_offset=rel_window_position,
@@ -286,7 +285,7 @@ class CorrectionFramework:
         if len(epochs_indices_reference) == 0:
             return np.array([])
 
-        sum_data = np.sum(full_epochs._data[epochs_indices_reference], axis=0)
+        sum_data = np.sum(full_epochs[epochs_indices_reference], axis=0)
         chosen = list(epochs_indices_reference)
         # Check subsequent epochs
         for idx in epoch_indices:
@@ -294,11 +293,9 @@ class CorrectionFramework:
             if idx in chosen:
                 continue
             avg_data = sum_data / len(chosen)
-            corr = np.corrcoef(avg_data.squeeze(), full_epochs._data[idx].squeeze())[
-                0, 1
-            ]
+            corr = np.corrcoef(avg_data.squeeze(), full_epochs[idx].squeeze())[0, 1]
             if corr > threshold:
-                sum_data += full_epochs._data[idx]
+                sum_data += full_epochs[idx]
                 chosen.append(idx)
 
         return np.array(chosen)

@@ -3,7 +3,7 @@ from facet.facet import facet
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
 # Path to your EEG file
-file_path = "examples/datasets/NiazyFMRI.edf"
+file_path = "./examples/datasets/NiazyFMRI.edf"
 # Event Regex assuming using stim channel
 event_regex = r"\b1\b"
 # Upsampling factor
@@ -47,7 +47,6 @@ f.highpass(1)
 f.upsample()
 f.find_triggers(event_regex)
 f.align_triggers(0)
-# f.get_correction().align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
 f.downsample()
