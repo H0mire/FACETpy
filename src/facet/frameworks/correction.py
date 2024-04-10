@@ -915,9 +915,10 @@ class CorrectionFramework:
             )
             logger.info(f"Applying function to Channel {ch_id}")
             function(one_channel_facet_obj)
-            subsample_alignment_conf = (
-                one_channel_facet_obj._correction.sub_sample_alignment.copy()
-            )
+            if one_channel_facet_obj._correction.sub_sample_alignment:
+                subsample_alignment_conf = (
+                    one_channel_facet_obj._correction.sub_sample_alignment.copy()
+                )
             # append data to list
             one_channel_data = one_channel_facet_obj._eeg.mne_raw._data[0]
             data_list.append(one_channel_data)

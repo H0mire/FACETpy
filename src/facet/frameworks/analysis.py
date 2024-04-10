@@ -461,7 +461,7 @@ class AnalysisFramework:
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the end of the data")
-            logger.debug(f"Found {len(missing_triggers)} missing triggers in total")
+            logger.info(f"Found {len(missing_triggers)} missing triggers in total")
             if len(missing_triggers) == 0:
                 logger.info("No missing triggers found. Finishing...")
                 return []
