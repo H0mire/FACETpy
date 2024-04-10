@@ -16,6 +16,7 @@ from facet.helpers.utils import split_vector
 from facet.helpers.crosscorr import crosscorrelation
 from loguru import logger
 from scipy.signal import firls, filtfilt, fftconvolve
+from facet.eeg_obj import EEG
 
 
 # import inst for mne python
@@ -50,6 +51,7 @@ class CorrectionFramework:
         self.avg_artifact = None
         self.avg_artifact_matrix = None
         self.avg_artifact_matrix_numpy = None
+        self.sub_sample_alignment = None
 
     def cut(self):
         """
@@ -399,7 +401,9 @@ class CorrectionFramework:
         except Exception as ex:
             logger.exception("An exception occured while applying ANC", ex)
 
-    def align_triggers(self, ref_trigger, save=False, search_window=None):
+    def align_triggers(
+        self, ref_trigger, ref_channel=None, save=False, search_window=None
+    ):
         """
         Aligns slices based on a reference trigger.
 
@@ -413,28 +417,38 @@ class CorrectionFramework:
         if search_window is None:
             search_window = 3 * self._eeg.upsampling_factor
         try:
-            raw = self._eeg.mne_raw
             eeg_channels = mne.pick_types(
-                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+                self._eeg.mne_raw.info,
+                meg=False,
+                eeg=True,
+                stim=False,
+                eog=False,
+                exclude="bads",
             )
+            if ref_channel is None:
+                ref_channel = eeg_channels[0]
+            if not self._eeg.mne_raw.preload:
+                raw = self._eeg.mne_raw.copy().pick(ref_channel)
+                raw.load_data()
+                ref_channel = 0
+            else:
+                raw = self._eeg.mne_raw
             trigger_positions = self._eeg.loaded_triggers
             smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
             smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
             # Extract artifact at the chosen trigger
-            chosen_artifact = raw._data[eeg_channels[0]][
+            chosen_artifact = raw._data[ref_channel][
                 trigger_positions[ref_trigger]
                 + smin : trigger_positions[ref_trigger]
                 + smax
             ]
-            ref_channel = eeg_channels[0]
-
             # Iterate through all triggers and shift the trigger positions
             for key, val in enumerate(trigger_positions):
                 if key == ref_trigger:
                     continue
                 # Shift the trigger position
                 trigger_positions[key] = self._align_trigger(
-                    val, chosen_artifact, search_window, ref_channel
+                    val, chosen_artifact, search_window, ref_channel, raw
                 )
             # Update the trigger positions
             self._eeg.loaded_triggers = trigger_positions
@@ -443,16 +457,34 @@ class CorrectionFramework:
             self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
             if save:
                 # replace the triggers as events in the raw object
-                self._eeg.mne_raw.annotations = mne.Annotations(
-                    onset=self._eeg.loaded_triggers / self._eeg.mne_raw.info["sfreq"],
-                    duration=np.zeros(len(self._eeg.loaded_triggers)),
-                    description=["Trigger"] * len(self._eeg.loaded_triggers),
+                self._eeg.mne_raw.set_annotations(
+                    mne.Annotations(
+                        onset=np.array(self._eeg.loaded_triggers)
+                        / self._eeg.mne_raw.info["sfreq"],
+                        duration=np.zeros(len(self._eeg.loaded_triggers)),
+                        description=["Aligned_Trigger"]
+                        * len(self._eeg.loaded_triggers),
+                    )
                 )
+                self._eeg.all_events = self._eeg.triggers_as_events
+                # get stimchannel index
+                stim_channel = mne.pick_types(
+                    self._eeg.mne_raw.info, meg=False, eeg=False, stim=True, eog=False
+                )
+                if self._eeg.mne_raw.preload and len(stim_channel) > 0:
+                    # update the stimulus channel with the new triggers
+                    self._eeg.mne_raw._data[stim_channel] = np.zeros(
+                        self._eeg.mne_raw._data[stim_channel].shape
+                    )
+                    for idx, val in enumerate(self._eeg.loaded_triggers):
+                        self._eeg.mne_raw._data[stim_channel][val] = 1
 
         except Exception as ex:
             logger.exception("An exception occured while aligning triggers", ex)
 
-    def _align_trigger(self, trigger_pos, reference, search_window, ref_channel=0):
+    def _align_trigger(
+        self, trigger_pos, reference, search_window, ref_channel=0, raw=None
+    ):
         """
         Aligns the trigger based on a reference artifact.
 
@@ -463,13 +495,14 @@ class CorrectionFramework:
         Returns:
             int: new trigger position
         """
-        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
-        smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
-        current_artifact = self._eeg.mne_raw._data[ref_channel][
+        if raw is None:
+            raw = self._eeg.mne_raw
+        smin = int(self._eeg.get_tmin() * raw.info["sfreq"])
+        smax = int(self._eeg.get_tmax() * raw.info["sfreq"])
+        current_artifact = raw._data[ref_channel][
             trigger_pos + smin : trigger_pos + smax + search_window
         ]
         # Calculate the cross correlation
-        # Reduce positions to a window of 3 * _eeg.mne_raw.upsampling_factor
         max_corr = self._find_max_cross_correlation(
             current_artifact, reference, search_window
         )
@@ -496,7 +529,6 @@ class CorrectionFramework:
             eog=False,
             exclude="bads",
         )
-        self.sub_sample_alignment = None
         # Call _align_subsample for each channel
         for ch_id in eeg_channels:
             logger.debug(
@@ -597,7 +629,7 @@ class CorrectionFramework:
                 self.sub_sample_alignment[epoch - 1] = shift_m
                 eeg_matrix[epoch - 1, :] = eeg_m
 
-        logger.debug("Applying subsample alignment")
+        # logger.debug("Applying subsample alignment")
         # Assuming split_vector and other utility methods are defined similarly to the MATLAB version
         eeg_matrix = split_vector(
             self._eeg.mne_raw._data[ch_id],
@@ -839,3 +871,66 @@ class CorrectionFramework:
         # Find the maximum of the cross correlation
         max_corr = np.argmax(corr)
         return max_corr
+
+    def apply_per_channel(self, function):
+        """
+        Applies a function to each channel. It loads the data for the current channel. The functions is called. Finally the data is saved and unloaded and the next channel is loaded.
+
+        Parameters:
+            function (function): The function to apply to each channel.
+
+        Returns:
+            None
+        """
+        from facet.facet import facet
+
+        # check if raw is preloaded
+        if hasattr(self._eeg.mne_raw, "_data"):
+            logger.warning(
+                "Raw data is already loaded. Therefore no memory benefits can be achieved by applying the function per channel."
+            )
+
+        raw = self._eeg.mne_raw
+        eeg_channels = mne.pick_types(
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+        # create a list of channels
+        data_list = []
+        subsample_alignment_conf = None
+
+        for ch_id in eeg_channels:
+            # create raw with only one channel
+            one_channel_raw = raw.copy().pick(ch_id)
+            # load data
+            one_channel_raw.load_data()
+            logger.debug(f"Applying function to Channel {ch_id}:{raw.ch_names[ch_id]}")
+            one_channel_facet_obj = facet()
+            one_channel_eeg_obj = self._eeg.copy()
+            one_channel_eeg_obj.mne_raw = one_channel_raw
+            one_channel_eeg_obj.estimated_noise = np.zeros(one_channel_raw._data.shape)
+            one_channel_eeg_obj.mne_raw_orig = one_channel_raw.copy()
+            one_channel_facet_obj.import_by_eeg_obj(one_channel_eeg_obj)
+            one_channel_facet_obj._correction.sub_sample_alignment = (
+                subsample_alignment_conf
+            )
+            logger.info(f"Applying function to Channel {ch_id}")
+            function(one_channel_facet_obj)
+            subsample_alignment_conf = (
+                one_channel_facet_obj._correction.sub_sample_alignment.copy()
+            )
+            # append data to list
+            one_channel_data = one_channel_facet_obj._eeg.mne_raw._data[0]
+            data_list.append(one_channel_data)
+            # unload data
+            one_channel_raw._data = None
+            del one_channel_raw
+            del one_channel_facet_obj
+            del one_channel_eeg_obj
+        # Now load the data and replace the data
+        raw.load_data()
+        self._eeg.estimated_noise = np.zeros(raw._data.shape)
+        for i, ch_id in enumerate(eeg_channels):
+            raw._data[ch_id, : data_list[0].shape[0]] = data_list[i]
+        # delete data_list
+        del data_list
+        return

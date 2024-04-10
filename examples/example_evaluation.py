@@ -13,9 +13,9 @@ file_path_edf_with_anc = (
     "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_anc.edf"
 )
 file_path_edf_with_alignment = (
-    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_alignment.edf"
+    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\CleanedFMRIBAllen_exp.set"
 )
-file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_with_alignment_subsamplealignment_anc.edf"
+file_path_edf_with_alignment_subsamplealignment_anc = "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\CleanedFMRIBAllen_exp_without_subsample_alignment.set"
 file_path_edf_full = (
     "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_full.edf"
 )
@@ -36,7 +36,7 @@ f = facet()
 f.import_eeg(file_path)
 f.get_eeg().mne_raw.crop(0, 162)
 mne_raw_orig_temp = f.get_eeg().mne_raw
-f.import_eeg(file_path_edf_without_anc)
+f.import_eeg(file_path_edf_with_alignment_subsamplealignment_anc, fmt="eeglab")
 f.get_eeg().mne_raw.crop(0, 162)
 f.get_eeg().mne_raw_orig = mne_raw_orig_temp
 f.find_triggers(event_regex)
@@ -44,7 +44,7 @@ f.lowpass(70)
 f.add_to_evaluate(f.get_eeg(), name="Without ANC")
 f.plot_eeg(start=29, title="Without ANC")
 
-f.import_eeg(file_path_edf_with_anc)
+f.import_eeg(file_path_edf_with_alignment, fmt="eeglab")
 f.get_eeg().mne_raw.crop(0, 162)
 f.get_eeg().mne_raw_orig = mne_raw_orig_temp
 f.find_triggers(event_regex)

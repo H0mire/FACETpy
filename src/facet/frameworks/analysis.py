@@ -48,6 +48,7 @@ class AnalysisFramework:
         subject="subjectid",
         session="sessionid",
         task="corrected",
+        preload=True,
     ):
         """
         Imports EEG data from a file, supporting various formats, and loads it into the EEG object.
@@ -71,9 +72,12 @@ class AnalysisFramework:
                 subject=subject, session=session, task=task, root=path
             )
             raw = read_raw_bids(bids_path_i)
+        elif fmt == "eeglab":
+            raw = mne.io.read_raw_eeglab(path)
         else:
             raise ValueError("Format not supported")
-        raw.load_data()
+        if preload:
+            raw.load_data()
 
         all_channels = raw.ch_names
         exclude = [item for i, item in enumerate(all_channels) if item in bads]
@@ -83,7 +87,9 @@ class AnalysisFramework:
 
         self._eeg = EEG(
             mne_raw=raw,
-            estimated_noise=np.zeros(raw._data.shape),
+            estimated_noise=(
+                np.zeros(len(raw.ch_names), raw.n_times) if preload else None
+            ),
             artifact_to_trigger_offset=artifact_to_trigger_offset,
             upsampling_factor=upsampling_factor,
             data_time_start=data_time_start,
@@ -143,7 +149,7 @@ class AnalysisFramework:
             raw = self._eeg.mne_raw
             raw.export(path, fmt=fmt, overwrite=True)
 
-    def find_triggers(self, regex):
+    def find_triggers(self, regex, save=False):
         """
         Finds triggers in the EEG data based on a regular expression matching trigger values.
 
@@ -187,6 +193,16 @@ class AnalysisFramework:
         logger.debug(f"Found {len(triggers)} triggers")
         self._eeg.last_trigger_search_regex = regex
         self._eeg.loaded_triggers = triggers
+        if save:
+            # replace the triggers as events in the raw object
+            self._eeg.mne_raw.set_annotations(
+                mne.Annotations(
+                    onset=np.array(self._eeg.loaded_triggers)
+                    / self._eeg.mne_raw.info["sfreq"],
+                    duration=np.zeros(len(self._eeg.loaded_triggers)),
+                    description=["Trigger"] * len(self._eeg.loaded_triggers),
+                )
+            )
 
         self.derive_parameters()
 
@@ -362,6 +378,24 @@ class AnalysisFramework:
             list: A list of the missing trigger positions.
         """
         missing_triggers = []
+        f = None
+        if self._eeg.mne_raw.preload:
+            f = self._facet
+        else:
+            from facet.facet import facet
+
+            one_channel_raw = self._eeg.mne_raw.copy().pick(ref_channel)
+            # load data
+            one_channel_raw.load_data()
+            one_channel_facet_obj = facet()
+            one_channel_eeg_obj = self._eeg.copy()
+            one_channel_eeg_obj.mne_raw = one_channel_raw
+            one_channel_eeg_obj.estimated_noise = np.zeros(one_channel_raw._data.shape)
+            one_channel_eeg_obj.mne_raw_orig = one_channel_raw.copy()
+            one_channel_facet_obj.import_by_eeg_obj(one_channel_eeg_obj)
+            f = one_channel_facet_obj
+            ref_channel = 0
+
         if mode == "auto":
             search_window = int(0.5 * self._eeg.artifact_length)
             logger.info("Finding missing triggers using auto mode...")
@@ -370,8 +404,8 @@ class AnalysisFramework:
                     "Volume gaps are detected or flag is manually set to True. Results may be inaccurate"
                 )
             logger.debug("Generating template from reference channel...")
-            _3d_matrix = self._facet._correction.calc_matrix_aas(channels=[ref_channel])
-            template = self._facet._correction.calc_avg_artifact(_3d_matrix)[0][0]
+            _3d_matrix = f._correction.calc_matrix_aas(channels=[ref_channel])
+            template = f._correction.calc_avg_artifact(_3d_matrix)[0][0]
             # iterate through the trigger positions check for each trigger if the next trigger is within the artifact length with a threshold of 1.9*artifactlength
             logger.debug("Checking holes in the trigger positions...")
             for i in range(len(self._eeg.loaded_triggers) - 1):
@@ -379,7 +413,7 @@ class AnalysisFramework:
                     self._eeg.loaded_triggers[i + 1] - self._eeg.loaded_triggers[i]
                     > self._eeg.artifact_length * 1.9
                 ):
-                    new_trigger = self._facet._correction._align_trigger(
+                    new_trigger = f._correction._align_trigger(
                         self._eeg.loaded_triggers[i] + self._eeg.artifact_length,
                         template,
                         search_window,
@@ -391,7 +425,7 @@ class AnalysisFramework:
             logger.debug("Now removing triggers that are not artifacts...")
             # now check if each missing trigger is an artifact and remove if it is not
             for trigger in missing_triggers:
-                if not self._is_artifact(trigger, template):
+                if not f._analysis._is_artifact(trigger, template):
                     missing_triggers.remove(trigger)
             logger.debug(
                 f"Found {len(missing_triggers)} missing triggers that are artifacts"
@@ -402,28 +436,28 @@ class AnalysisFramework:
             # now check iteratively if triggers are missing at the beginning and end of the data by checking if first trigger - artifact length is an artifact and if last trigger + artifact length is an artifact
             # adding at the beginning and the end as long as the triggers are artifacts
             temp_pos = self._eeg.loaded_triggers[0] - self._eeg.artifact_length
-            new_pos = self._facet._correction._align_trigger(
+            new_pos = f._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
             count = 0
-            while self._is_artifact(new_pos, template):
+            while f._analysis._is_artifact(new_pos, template):
                 missing_triggers.insert(0, new_pos)
                 count += 1
                 temp_pos = new_pos - self._eeg.artifact_length
-                new_pos = self._facet._correction._align_trigger(
+                new_pos = f._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the beginning of the data")
             count = 0
             temp_pos = self._eeg.loaded_triggers[-1] + self._eeg.artifact_length
-            new_pos = self._facet._correction._align_trigger(
+            new_pos = f._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
-            while self._is_artifact(new_pos, template):
+            while f._analysis._is_artifact(new_pos, template):
                 missing_triggers.append(new_pos)
                 count += 1
                 temp_pos = new_pos + self._eeg.artifact_length
-                new_pos = self._facet._correction._align_trigger(
+                new_pos = f._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the end of the data")
@@ -434,7 +468,7 @@ class AnalysisFramework:
             logger.debug("Now aligning the missing triggers...")
             # align all missing triggers with self._facet._correction._align_trigger
             for i in range(len(missing_triggers)):
-                missing_triggers[i] = self._facet._correction._align_trigger(
+                missing_triggers[i] = f._correction._align_trigger(
                     missing_triggers[i], template, search_window, ref_channel
                 )
             # add the missing triggers as annotations with description "missing_trigger"
@@ -450,6 +484,13 @@ class AnalysisFramework:
             self.add_triggers(missing_triggers)
         else:
             logger.error("Mode not supported!")
+        if self._eeg.mne_raw.preload:
+            # unload data
+            one_channel_raw._data = None
+            del one_channel_raw
+            del one_channel_facet_obj
+            del one_channel_eeg_obj
+
         return missing_triggers
 
     def _add_annotations(self, annotations):

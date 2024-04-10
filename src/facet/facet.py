@@ -27,6 +27,7 @@ class facet:
         subject="subject1",
         session="session1",
         task="task1",
+        preload=True,
     ):
         logger.info(f"Importing EEG from {path}")
         self._eeg = self._analysis.import_eeg(
@@ -38,7 +39,15 @@ class facet:
             subject=subject,
             session=session,
             task=task,
+            preload=preload,
         )
+        self._correction = CorrectionFramework(self, self._eeg)
+        return self._eeg
+
+    def import_by_eeg_obj(self, eeg):
+        self._eeg = eeg
+        self._analysis._eeg = eeg
+        self._evaluation._eeg = eeg
         self._correction = CorrectionFramework(self, self._eeg)
         return self._eeg
 
@@ -60,9 +69,9 @@ class facet:
             event_id=event_id,
         )
 
-    def find_triggers(self, regex):
+    def find_triggers(self, regex, save=False):
         logger.info("finding triggers")
-        self._analysis.find_triggers(regex)
+        self._analysis.find_triggers(regex, save=save)
         num_triggers = self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
 
@@ -143,8 +152,21 @@ class facet:
         logger.info("Evaluating...")
         return self._evaluation.evaluate(plot=plot, measures=measures)
 
-    def align_triggers(self, ref_trigger_index):
-        self._correction.align_triggers(ref_trigger_index)
+    def apply_per_channel(self, function):
+        self._correction.apply_per_channel(function)
+
+    def align_triggers(
+        self, ref_trigger_index, ref_channel=None, save=False, search_window=None
+    ):
+        self._correction.align_triggers(
+            ref_trigger_index,
+            ref_channel=ref_channel,
+            save=save,
+            search_window=search_window,
+        )
+
+    def align_subsample(self, ref_trigger):
+        self._correction.align_subsample(ref_trigger)
 
     def get_correction(self):
         return self._correction
