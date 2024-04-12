@@ -24,7 +24,7 @@ f.import_eeg(
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
 f.get_eeg().mne_raw.crop(0, 162)
-f.plot_eeg(start=29)
+# f.plot_eeg(start=29)
 f.pre_processing()
 f.find_triggers(event_regex)
 

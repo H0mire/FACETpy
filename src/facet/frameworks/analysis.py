@@ -16,6 +16,9 @@ from scipy.signal import firls
 from facet.eeg_obj import EEG
 import numpy as np
 from loguru import logger
+from scipy.signal import find_peaks
+import matplotlib.pyplot as plt
+
 
 # import inst for mne python
 
@@ -397,6 +400,9 @@ class AnalysisFramework:
             ref_channel = 0
 
         if mode == "auto":
+            smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+            smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+
             search_window = int(0.5 * self._eeg.artifact_length)
             logger.info("Finding missing triggers using auto mode...")
             if self._eeg.volume_gaps:
@@ -461,6 +467,23 @@ class AnalysisFramework:
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the end of the data")
+            # now check if there are sub periodic artifacts in the data
+            logger.debug("Now checking for sub periodic artifacts...")
+            sub_periodic_artifacts = self._detect_sub_periodic_artifacts(
+                f._eeg.mne_raw.get_data()[ref_channel][
+                    self._eeg.loaded_triggers[0]
+                    + smin : self._eeg.loaded_triggers[0]
+                    + smax
+                ]
+            )
+            if sub_periodic_artifacts != []:
+                logger.warning("Sub periodic artifacts detected!")
+                logger.info("Do you want to add them as triggers?")
+                answer = input("y/n: ")
+                if answer == "y":
+                    missing_triggers += self._generate_sub_triggers(
+                        missing_triggers, len(sub_periodic_artifacts)
+                    )
             logger.info(f"Found {len(missing_triggers)} missing triggers in total")
             if len(missing_triggers) == 0:
                 logger.info("No missing triggers found. Finishing...")
@@ -484,7 +507,7 @@ class AnalysisFramework:
             self.add_triggers(missing_triggers)
         else:
             logger.error("Mode not supported!")
-        if self._eeg.mne_raw.preload:
+        if not self._eeg.mne_raw.preload:
             # unload data
             one_channel_raw._data = None
             del one_channel_raw
@@ -492,6 +515,67 @@ class AnalysisFramework:
             del one_channel_eeg_obj
 
         return missing_triggers
+
+    def _detect_sub_periodic_artifacts(self, ch_d):
+        """
+        detect if there are not registered triggers in the data. Often the triggers represent only volume triggers and not slice triggers.
+        This method tries the determine if there are sub triggers in the data and returns them.
+
+        Returns:
+            list: A list of the sub trigger positions.
+        """
+        # first check if there are peaks in the data that around the same amplitude to each other and do not contain a higher peak in between
+        # if there are peaks that are around the same amplitude to each other and do not contain a higher peak in between, they are considered as sub triggers
+        # the peaks are considered as sub triggers if they are within the current determined artifact length
+        may_be_sub_sub_periodic_artifacts = []
+
+        data_zero_mean = ch_d - np.mean(ch_d)
+        # now determine a threshold for the peaks
+        threshold = np.max(data_zero_mean) * 0.9
+        threshold_diff = np.max(data_zero_mean) * 0.1
+        # now determine the peaks positions and values
+        peaks, _ = find_peaks(data_zero_mean, height=threshold)
+
+        values = data_zero_mean[peaks]
+        # now determine if there more than 1 peak and if the peaks are around the same amplitude to each other
+        if len(peaks) > 1:
+            diffs = np.diff(values)
+            if np.ptp(diffs) < threshold_diff:
+                may_be_sub_sub_periodic_artifacts = peaks
+        return may_be_sub_sub_periodic_artifacts
+
+    def generate_sub_triggers(self, count):
+        """
+        Generate subtriggers for each trigger in the EEG data.
+
+        Parameters:
+            count (int): The number of subtriggers to generate for each trigger.
+
+        Returns:
+            None
+        """
+        triggers = self._eeg.loaded_triggers
+        sub_triggers = self._generate_sub_triggers(triggers, count)
+        self.add_triggers(sub_triggers)
+
+    def _generate_sub_triggers(self, triggers, count):
+        """
+        Generate {count} subtriggers, for each trigger in triggers.
+
+        Parameters:
+            triggers (list): List of trigger positions.
+            count (int): Number of subtriggers to generate.
+
+        Returns:
+            list: A list of the sub trigger positions.
+        """
+        sub_triggers = []
+        for trigger in triggers:
+            # determine the distance between the new sub triggers
+            distance = self._eeg.artifact_length / count
+            for i in range(count):
+                sub_triggers.append(trigger + i * distance)
+        return sub_triggers
 
     def _add_annotations(self, annotations):
         """

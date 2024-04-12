@@ -12,7 +12,7 @@ logger.add(sys.stderr, level="INFO")
 logger.add("facet.log", level="DEBUG")
 
 window_size = 30
-upsampling_factor = 1
+upsampling_factor = 3
 artifact_to_trigger_offset_in_seconds = -0.038
 relative_window_position = -0.5
 event_id_description_pairs = {"trigger": 1}
