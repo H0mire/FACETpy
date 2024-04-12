@@ -403,7 +403,7 @@ class AnalysisFramework:
             smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
             smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
 
-            search_window = int(0.5 * self._eeg.artifact_length)
+            search_window = int(0.1 * self._eeg.artifact_length)
             logger.info("Finding missing triggers using auto mode...")
             if self._eeg.volume_gaps:
                 logger.warning(
@@ -476,13 +476,19 @@ class AnalysisFramework:
                     + smax
                 ]
             )
-            if sub_periodic_artifacts != []:
+            if len(sub_periodic_artifacts) != 0:
                 logger.warning("Sub periodic artifacts detected!")
                 logger.info("Do you want to add them as triggers?")
-                answer = input("y/n: ")
-                if answer == "y":
+                logger.debug("Prompting user for response...")
+                response = input("y/n: ")
+                if response == "y":
+                    logger.debug("Generating sub triggers...")
+                    all_triggers = self._eeg.loaded_triggers + missing_triggers
+                    template = template[
+                        : len(template) // (len(sub_periodic_artifacts) + 1)
+                    ]
                     missing_triggers += self._generate_sub_triggers(
-                        missing_triggers, len(sub_periodic_artifacts)
+                        all_triggers, len(sub_periodic_artifacts)
                     )
             logger.info(f"Found {len(missing_triggers)} missing triggers in total")
             if len(missing_triggers) == 0:
@@ -541,7 +547,7 @@ class AnalysisFramework:
         if len(peaks) > 1:
             diffs = np.diff(values)
             if np.ptp(diffs) < threshold_diff:
-                may_be_sub_sub_periodic_artifacts = peaks
+                may_be_sub_sub_periodic_artifacts = peaks[1:]
         return may_be_sub_sub_periodic_artifacts
 
     def generate_sub_triggers(self, count):
@@ -572,9 +578,9 @@ class AnalysisFramework:
         sub_triggers = []
         for trigger in triggers:
             # determine the distance between the new sub triggers
-            distance = self._eeg.artifact_length / count
-            for i in range(count):
-                sub_triggers.append(trigger + i * distance)
+            distance = self._eeg.artifact_length / (count + 1)
+            for i in range(1, count + 1, 1):
+                sub_triggers.append(int(trigger + i * distance))
         return sub_triggers
 
     def _add_annotations(self, annotations):

@@ -25,18 +25,22 @@ f.import_eeg(
 )
 f.get_eeg().mne_raw.crop(0, 162)
 # f.plot_eeg(start=29)
-f.pre_processing()
 f.find_triggers(event_regex)
 
-# remove first trigger from loaded_triggers to simulate missing trigger
+f.pre_processing()
 
-# generate 10 random numbers between 0 and 839
-missing_triggers = random.sample(range(0, 839), 10)
+# generate 10 random numbers between 0 and 800
+missing_triggers = random.sample(range(0, 800), 10)
 # remove triggers from loaded_triggers to simulate missing triggers
 for i in missing_triggers:
     f.get_eeg().loaded_triggers.pop(i)
 
 f.get_eeg().loaded_triggers = f.get_eeg().loaded_triggers[15:830]
+f.find_missing_triggers()
+# remove every second trigger to simulate missing triggers
+f.get_eeg().loaded_triggers = f.get_eeg().loaded_triggers[::2]  #
+# double the artifact_length to simulate missing triggers
+f.get_analysis().derive_parameters()
 f.find_missing_triggers()
 # print count triggers total
 print(f.get_eeg().count_triggers)

@@ -8,7 +8,7 @@ export_bids_path = bids_path
 
 # configure logger
 logger.remove()
-logger.add(sys.stderr, level="INFO")
+logger.add(sys.stderr, level="DEBUG")
 logger.add("facet.log", level="DEBUG")
 
 window_size = 30
@@ -54,7 +54,7 @@ def apply_per_channel(f):
     f.pre_processing()
     # f.align_subsample(0)
     f.calc_matrix_aas()
-    f.remove_artifacts()
+    f.remove_artifacts(plot_artifacts=True)
     f.post_processing()
 
 
