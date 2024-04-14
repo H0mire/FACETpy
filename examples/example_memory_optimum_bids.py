@@ -12,7 +12,7 @@ logger.add(sys.stderr, level="DEBUG")
 logger.add("facet.log", level="DEBUG")
 
 window_size = 30
-upsampling_factor = 3
+upsampling_factor = 4
 artifact_to_trigger_offset_in_seconds = -0.038
 relative_window_position = -0.5
 event_id_description_pairs = {"trigger": 1}
@@ -42,19 +42,19 @@ f.import_eeg(
     subject="xp101",
     session=None,
     task="eegfmriNF",
-    preload=False,
+    preload=False,  # This is important to avoid memory issues. Otherwise applying per channel has no effect.
 )
 
 f.find_triggers(regex_trigger_annotation_filter)
-f.find_missing_triggers()
+f.find_missing_triggers()  # ensure that all triggers are found
 f.align_triggers(0)
 
 
 def apply_per_channel(f):
     f.pre_processing()
-    # f.align_subsample(0)
+    f.align_subsample(0)
     f.calc_matrix_aas()
-    f.remove_artifacts(plot_artifacts=True)
+    f.remove_artifacts(plot_artifacts=False)
     f.post_processing()
 
 

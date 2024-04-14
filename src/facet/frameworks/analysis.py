@@ -348,10 +348,12 @@ class AnalysisFramework:
         if len(triggers) == 0:
             logger.error("No triggers provided!")
             return
+        triggers = np.sort(triggers)
         # check if triggers are within the data
         if triggers[0] < 0 or triggers[-1] > self._eeg.mne_raw.n_times:
-            logger.error("Triggers are not within the data!")
-            return
+            logger.warning("Some Triggers are not within the data! Removing them...")
+            triggers = triggers[triggers >= 0]
+            triggers = triggers[triggers <= self._eeg.mne_raw.n_times]
 
         # check if triggers are not already in the data
         intersection = np.intersect1d(triggers, self._eeg.loaded_triggers)
@@ -359,8 +361,7 @@ class AnalysisFramework:
             logger.warning(
                 f"There are {len(intersection)} triggers already in the data at positions {intersection}. Removing them..."
             )
-            triggers = np.setdiff1d(triggers, intersection).tolist()
-            return
+            triggers = np.setdiff1d(triggers, intersection)
 
         # add triggers and ensure they are sorted
         self._eeg.loaded_triggers = np.sort(
@@ -477,8 +478,10 @@ class AnalysisFramework:
                 ]
             )
             if len(sub_periodic_artifacts) != 0:
-                logger.warning("Sub periodic artifacts detected!")
-                logger.info("Do you want to add them as triggers?")
+                logger.warning(
+                    f"{len(sub_periodic_artifacts)} sub periodic artifacts between each triggerpair detected! (This often happens if you use volume triggers only and not slice triggers.)"
+                )
+                logger.info("Do you want to add them as triggers? (y/n)")
                 logger.debug("Prompting user for response...")
                 response = input("y/n: ")
                 if response == "y":
@@ -489,6 +492,13 @@ class AnalysisFramework:
                     ]
                     missing_triggers += self._generate_sub_triggers(
                         all_triggers, len(sub_periodic_artifacts)
+                    )
+                    search_window = int(
+                        0.1
+                        * (
+                            self._eeg.artifact_length
+                            / (len(sub_periodic_artifacts) + 1)
+                        )
                     )
             logger.info(f"Found {len(missing_triggers)} missing triggers in total")
             if len(missing_triggers) == 0:

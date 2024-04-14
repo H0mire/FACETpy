@@ -915,7 +915,7 @@ class CorrectionFramework:
             )
             logger.info(f"Applying function to Channel {ch_id}")
             function(one_channel_facet_obj)
-            if one_channel_facet_obj._correction.sub_sample_alignment:
+            if one_channel_facet_obj._correction.sub_sample_alignment is not None:
                 subsample_alignment_conf = (
                     one_channel_facet_obj._correction.sub_sample_alignment.copy()
                 )

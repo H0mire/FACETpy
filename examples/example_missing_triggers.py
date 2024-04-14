@@ -37,9 +37,8 @@ for i in missing_triggers:
 
 f.get_eeg().loaded_triggers = f.get_eeg().loaded_triggers[15:830]
 f.find_missing_triggers()
-# remove every second trigger to simulate missing triggers
+# remove every second trigger to simulate sub periodic artifacts (calculating Slice triggers)
 f.get_eeg().loaded_triggers = f.get_eeg().loaded_triggers[::2]  #
-# double the artifact_length to simulate missing triggers
 f.get_analysis().derive_parameters()
 f.find_missing_triggers()
 # print count triggers total
