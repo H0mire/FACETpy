@@ -74,6 +74,9 @@ class EEG:
         self._tmin = self.artifact_to_trigger_offset
         self._tmax = self.artifact_to_trigger_offset + self.artifact_duration
 
+        # private attributes
+        self._loaded_triggers_upsampled = None
+
     @property
     def triggers_as_events(self):
         if self.loaded_triggers is None:

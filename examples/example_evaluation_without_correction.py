@@ -3,10 +3,8 @@ from facet.facet import facet
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
 # Path to your EEG file
-file_path = "./examples/datasets/NiazyFMRI.edf"
-file_path2 = (
-    "C:\\Users\\janik\\Projekte\\FACETpy\\Datasets\\Matlab_cleaned_without_lowpass.edf"
-)
+file_path = "C:/Users/janik/Projekte/FACETpy/Datasets/CleanedFMRIBAllen_exp_without_subsample_alignment.edf"
+file_path2 = "C:/Users/janik/Projekte/FACETpy/Datasets/Matlab_cleaned_with_ssa.edf"
 # Event Regex assuming using stim channel
 event_regex = r"\b1\b"
 # Upsampling factor
@@ -35,21 +33,16 @@ f2.import_eeg(
 
 f.get_eeg().mne_raw.crop(0, 162)
 f2.get_eeg().mne_raw.crop(0, 162)
-f.pre_processing()
 f.find_triggers(event_regex)
 f2.find_triggers(event_regex)
-f.align_triggers(0)
-f.calc_matrix_aas()
-f.remove_artifacts(plot_artifacts=False)
-f.post_processing()
-
-f.plot_eeg(start=29, title="Own")
-f.add_to_evaluate(f.get_eeg(), name="Own")
+f.plot_eeg(start=29, title="without SSA")
+f.add_to_evaluate(f.get_eeg(), name="without SSA")
 
 f2.lowpass(70)
-f2.plot_eeg(start=29, title="Matlab")
-f.add_to_evaluate(f2.get_eeg(), name="Matlab")
+f2.plot_eeg(start=29, title="with SSA")
+f.add_to_evaluate(f2.get_eeg(), name="with SSA")
 
-f.evaluate(measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+results = f.evaluate(measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+print(results)
 # f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")

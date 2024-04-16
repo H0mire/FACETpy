@@ -79,6 +79,8 @@ class AnalysisFramework:
             raw = mne.io.read_raw_eeglab(path)
         else:
             raise ValueError("Format not supported")
+
+        mne_raw_orig = raw.copy()
         if preload:
             raw.load_data()
 
@@ -90,6 +92,7 @@ class AnalysisFramework:
 
         self._eeg = EEG(
             mne_raw=raw,
+            mne_raw_orig=mne_raw_orig,
             estimated_noise=(
                 np.zeros(len(raw.ch_names), raw.n_times) if preload else None
             ),
@@ -386,27 +389,29 @@ class AnalysisFramework:
         if self._eeg.mne_raw.preload:
             f = self._facet
         else:
-            from facet.facet import facet
-
-            one_channel_raw = self._eeg.mne_raw.copy().pick(ref_channel)
-            # load data
-            one_channel_raw.load_data()
-            one_channel_facet_obj = facet()
-            one_channel_eeg_obj = self._eeg.copy()
-            one_channel_eeg_obj.mne_raw = one_channel_raw
-            one_channel_eeg_obj.estimated_noise = np.zeros(one_channel_raw._data.shape)
-            one_channel_eeg_obj.mne_raw_orig = one_channel_raw.copy()
-            one_channel_facet_obj.import_by_eeg_obj(one_channel_eeg_obj)
-            f = one_channel_facet_obj
+            f = self._facet.create_facet_with_channel_picks([ref_channel])
             ref_channel = 0
 
         if mode == "auto":
-            smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
-            smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+            needed_to_upsample = False
+            if (
+                f._eeg.mne_raw.info["sfreq"]
+                == self._facet._eeg.mne_raw_orig.info["sfreq"]
+            ):
+                if self._eeg.mne_raw.preload:
+                    f = self._facet.create_facet_with_channel_picks(
+                        [ref_channel], raw=self._eeg.mne_raw_orig
+                    )
+                # upsample data here because this achieves better results
+                f.upsample()
+                needed_to_upsample = True
 
-            search_window = int(0.1 * self._eeg.artifact_length)
+            smin = int(f._eeg.get_tmin() * f._eeg.mne_raw.info["sfreq"])
+            smax = int(f._eeg.get_tmax() * f._eeg.mne_raw.info["sfreq"])
+
+            search_window = int(0.1 * f._eeg.artifact_length)
             logger.info("Finding missing triggers using auto mode...")
-            if self._eeg.volume_gaps:
+            if f._eeg.volume_gaps:
                 logger.warning(
                     "Volume gaps are detected or flag is manually set to True. Results may be inaccurate"
                 )
@@ -415,13 +420,13 @@ class AnalysisFramework:
             template = f._correction.calc_avg_artifact(_3d_matrix)[0][0]
             # iterate through the trigger positions check for each trigger if the next trigger is within the artifact length with a threshold of 1.9*artifactlength
             logger.debug("Checking holes in the trigger positions...")
-            for i in range(len(self._eeg.loaded_triggers) - 1):
+            for i in range(len(f._eeg.loaded_triggers) - 1):
                 if (
-                    self._eeg.loaded_triggers[i + 1] - self._eeg.loaded_triggers[i]
-                    > self._eeg.artifact_length * 1.9
+                    f._eeg.loaded_triggers[i + 1] - f._eeg.loaded_triggers[i]
+                    > f._eeg.artifact_length * 1.9
                 ):
                     new_trigger = f._correction._align_trigger(
-                        self._eeg.loaded_triggers[i] + self._eeg.artifact_length,
+                        f._eeg.loaded_triggers[i] + f._eeg.artifact_length,
                         template,
                         search_window,
                         ref_channel,
@@ -442,7 +447,7 @@ class AnalysisFramework:
             )
             # now check iteratively if triggers are missing at the beginning and end of the data by checking if first trigger - artifact length is an artifact and if last trigger + artifact length is an artifact
             # adding at the beginning and the end as long as the triggers are artifacts
-            temp_pos = self._eeg.loaded_triggers[0] - self._eeg.artifact_length
+            temp_pos = f._eeg.loaded_triggers[0] - f._eeg.artifact_length
             new_pos = f._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
@@ -450,20 +455,20 @@ class AnalysisFramework:
             while f._analysis._is_artifact(new_pos, template):
                 missing_triggers.insert(0, new_pos)
                 count += 1
-                temp_pos = new_pos - self._eeg.artifact_length
+                temp_pos = new_pos - f._eeg.artifact_length
                 new_pos = f._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
             logger.debug(f"Found {count} missing triggers at the beginning of the data")
             count = 0
-            temp_pos = self._eeg.loaded_triggers[-1] + self._eeg.artifact_length
+            temp_pos = f._eeg.loaded_triggers[-1] + f._eeg.artifact_length
             new_pos = f._correction._align_trigger(
                 temp_pos, template, search_window, ref_channel
             )
             while f._analysis._is_artifact(new_pos, template):
                 missing_triggers.append(new_pos)
                 count += 1
-                temp_pos = new_pos + self._eeg.artifact_length
+                temp_pos = new_pos + f._eeg.artifact_length
                 new_pos = f._correction._align_trigger(
                     temp_pos, template, search_window, ref_channel
                 )
@@ -472,9 +477,7 @@ class AnalysisFramework:
             logger.debug("Now checking for sub periodic artifacts...")
             sub_periodic_artifacts = self._detect_sub_periodic_artifacts(
                 f._eeg.mne_raw.get_data()[ref_channel][
-                    self._eeg.loaded_triggers[0]
-                    + smin : self._eeg.loaded_triggers[0]
-                    + smax
+                    f._eeg.loaded_triggers[0] + smin : f._eeg.loaded_triggers[0] + smax
                 ]
             )
             if len(sub_periodic_artifacts) != 0:
@@ -486,19 +489,16 @@ class AnalysisFramework:
                 response = input("y/n: ")
                 if response == "y":
                     logger.debug("Generating sub triggers...")
-                    all_triggers = self._eeg.loaded_triggers + missing_triggers
+                    all_triggers = f._eeg.loaded_triggers + missing_triggers
                     template = template[
                         : len(template) // (len(sub_periodic_artifacts) + 1)
                     ]
-                    missing_triggers += self._generate_sub_triggers(
+                    missing_triggers += f._analysis._generate_sub_triggers(
                         all_triggers, len(sub_periodic_artifacts)
                     )
                     search_window = int(
                         0.1
-                        * (
-                            self._eeg.artifact_length
-                            / (len(sub_periodic_artifacts) + 1)
-                        )
+                        * (f._eeg.artifact_length / (len(sub_periodic_artifacts) + 1))
                     )
             logger.info(f"Found {len(missing_triggers)} missing triggers in total")
             if len(missing_triggers) == 0:
@@ -511,24 +511,27 @@ class AnalysisFramework:
                     missing_triggers[i], template, search_window, ref_channel
                 )
             # add the missing triggers as annotations with description "missing_trigger"
-            on_sets = np.array(missing_triggers) / self._eeg.mne_raw.info["sfreq"]
+            on_sets = np.array(missing_triggers) / f._eeg.mne_raw.info["sfreq"]
             # zero duration
             durations = np.zeros(len(missing_triggers))
             descriptions = ["missing_trigger"] * len(missing_triggers)
             annotations = mne.Annotations(
                 onset=on_sets, duration=durations, description=descriptions
             )
-            self._add_annotations(annotations)
+            f._analysis._add_annotations(annotations)
             # add the missing triggers to the EEG data
-            self.add_triggers(missing_triggers)
+            f._analysis.add_triggers(missing_triggers)
+            if needed_to_upsample:
+                f.downsample()
+            self._eeg.loaded_triggers = f._eeg.loaded_triggers
+            self._eeg.mne_raw.set_annotations(
+                f._eeg.mne_raw.annotations
+            )  # set the annotations to the raw object
         else:
             logger.error("Mode not supported!")
         if not self._eeg.mne_raw.preload:
             # unload data
-            one_channel_raw._data = None
-            del one_channel_raw
-            del one_channel_facet_obj
-            del one_channel_eeg_obj
+            del f
 
         return missing_triggers
 

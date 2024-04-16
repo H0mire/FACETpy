@@ -3,6 +3,7 @@ from .frameworks.evaluation import EvaluationFramework
 from .frameworks.analysis import AnalysisFramework
 import mne
 from loguru import logger
+import numpy as np
 
 
 class facet:
@@ -103,9 +104,6 @@ class facet:
     def apply_ANC(self):
         self._correction.apply_ANC()
 
-    def align_triggers(self, ref_trigger_index):
-        self._correction.align_triggers(ref_trigger_index)
-
     def remove_artifacts(self, avg_artifact_matrix_numpy=None, plot_artifacts=False):
         self._correction.remove_artifacts(
             avg_artifact_matrix_numpy=avg_artifact_matrix_numpy,
@@ -121,7 +119,7 @@ class facet:
         # change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=70)
-        self._correction.apply_ANC()
+        # self._correction.apply_ANC()
 
     def cut(self):
         self._correction.cut()
@@ -185,3 +183,19 @@ class facet:
 
     def set_analysis(self, analysis):
         self._analysis = analysis
+
+    def create_facet_with_channel_picks(self, ch_picks, load_data=True, raw=None):
+        if raw is None:
+            one_channel_raw = self._eeg.mne_raw.copy().pick(ch_picks)
+        else:
+            one_channel_raw = raw.copy().pick(ch_picks)
+        one_channel_facet_obj = facet()
+        one_channel_eeg_obj = self._eeg.copy()
+        one_channel_eeg_obj.mne_raw = one_channel_raw
+        one_channel_eeg_obj.mne_raw_orig = one_channel_raw.copy()
+        # load data
+        if load_data:
+            one_channel_raw.load_data()
+            one_channel_eeg_obj.estimated_noise = np.zeros(one_channel_raw._data.shape)
+        one_channel_facet_obj.import_by_eeg_obj(one_channel_eeg_obj)
+        return one_channel_facet_obj

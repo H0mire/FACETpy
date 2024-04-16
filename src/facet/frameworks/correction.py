@@ -413,10 +413,12 @@ class CorrectionFramework:
         Returns:
             None
         """
+        f = self._facet
         logger.debug("Aligning triggers")
         if search_window is None:
             search_window = 3 * self._eeg.upsampling_factor
         try:
+            needed_to_upsample = False
             eeg_channels = mne.pick_types(
                 self._eeg.mne_raw.info,
                 meg=False,
@@ -428,14 +430,23 @@ class CorrectionFramework:
             if ref_channel is None:
                 ref_channel = eeg_channels[0]
             if not self._eeg.mne_raw.preload:
-                raw = self._eeg.mne_raw.copy().pick(ref_channel)
-                raw.load_data()
+                f = self._facet.create_facet_with_channel_picks([ref_channel])
+                raw = f._eeg.mne_raw
                 ref_channel = 0
             else:
                 raw = self._eeg.mne_raw
-            trigger_positions = self._eeg.loaded_triggers
-            smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
-            smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+            if self._eeg.mne_raw.info["sfreq"] == self._eeg.mne_raw_orig.info["sfreq"]:
+                logger.debug("Data is not upsampled. Upsampling data")
+                if self._eeg.mne_raw.preload:
+                    f = f.create_facet_with_channel_picks(
+                        [ref_channel], raw=self._eeg.mne_raw_orig
+                    )
+                    raw = f._eeg.mne_raw
+                f.upsample()
+                needed_to_upsample = True
+            trigger_positions = f._eeg.loaded_triggers
+            smin = int(f._eeg.get_tmin() * f._eeg.mne_raw.info["sfreq"])
+            smax = int(f._eeg.get_tmax() * f._eeg.mne_raw.info["sfreq"])
             # Extract artifact at the chosen trigger
             chosen_artifact = raw._data[ref_channel][
                 trigger_positions[ref_trigger]
@@ -447,11 +458,22 @@ class CorrectionFramework:
                 if key == ref_trigger:
                     continue
                 # Shift the trigger position
-                trigger_positions[key] = self._align_trigger(
+                trigger_positions[key] = f._correction._align_trigger(
                     val, chosen_artifact, search_window, ref_channel, raw
                 )
+            if needed_to_upsample:
+                self._eeg._loaded_triggers_upsampled = trigger_positions
+                trigger_positions = [
+                    int(val / self._eeg.upsampling_factor) for val in trigger_positions
+                ]
             # Update the trigger positions
-            self._eeg.loaded_triggers = trigger_positions
+            self._eeg.loaded_triggers = trigger_positions[:]
+            if needed_to_upsample:
+                del trigger_positions
+                del raw
+                del f._eeg.mne_raw
+                del f
+
             # Update related attributes
             self._facet._analysis._derive_art_length()
             self._eeg._tmax = self._eeg._tmin + self._eeg.artifact_duration
@@ -470,7 +492,7 @@ class CorrectionFramework:
                 # get stimchannel index
                 stim_channel = mne.pick_types(
                     self._eeg.mne_raw.info, meg=False, eeg=False, stim=True, eog=False
-                )
+                )[0]
                 if self._eeg.mne_raw.preload and len(stim_channel) > 0:
                     # update the stimulus channel with the new triggers
                     self._eeg.mne_raw._data[stim_channel] = np.zeros(
@@ -750,6 +772,9 @@ class CorrectionFramework:
         """
         logger.info("Upsampling Data")
         self._upsample_data()
+        if self._eeg._loaded_triggers_upsampled is not None:
+            self._eeg.loaded_triggers = self._eeg._loaded_triggers_upsampled
+            self._eeg._loaded_triggers_upsampled = None
         return
 
     def filter(self, l_freq=None, h_freq=None):
@@ -900,20 +925,12 @@ class CorrectionFramework:
 
         for ch_id in eeg_channels:
             # create raw with only one channel
-            one_channel_raw = raw.copy().pick(ch_id)
             # load data
-            one_channel_raw.load_data()
-            logger.debug(f"Applying function to Channel {ch_id}:{raw.ch_names[ch_id]}")
-            one_channel_facet_obj = facet()
-            one_channel_eeg_obj = self._eeg.copy()
-            one_channel_eeg_obj.mne_raw = one_channel_raw
-            one_channel_eeg_obj.estimated_noise = np.zeros(one_channel_raw._data.shape)
-            one_channel_eeg_obj.mne_raw_orig = one_channel_raw.copy()
-            one_channel_facet_obj.import_by_eeg_obj(one_channel_eeg_obj)
+            logger.info(f"Applying function to Channel {ch_id}:{raw.ch_names[ch_id]}")
+            one_channel_facet_obj = self._facet.create_facet_with_channel_picks(ch_id)
             one_channel_facet_obj._correction.sub_sample_alignment = (
                 subsample_alignment_conf
             )
-            logger.info(f"Applying function to Channel {ch_id}")
             function(one_channel_facet_obj)
             if one_channel_facet_obj._correction.sub_sample_alignment is not None:
                 subsample_alignment_conf = (
@@ -923,10 +940,7 @@ class CorrectionFramework:
             one_channel_data = one_channel_facet_obj._eeg.mne_raw._data[0]
             data_list.append(one_channel_data)
             # unload data
-            one_channel_raw._data = None
-            del one_channel_raw
             del one_channel_facet_obj
-            del one_channel_eeg_obj
         # Now load the data and replace the data
         raw.load_data()
         self._eeg.estimated_noise = np.zeros(raw._data.shape)
