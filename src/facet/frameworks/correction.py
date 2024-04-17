@@ -540,9 +540,34 @@ class CorrectionFramework:
         # Shift the trigger position
         return trigger_pos + shift
 
-    def apply_PCA():
-        # TODO: implement PCA
-        pass
+    def _calc_PCA_residuals(self, ch_id):
+
+        s_acq_start, s_acq_end = self._eeg.mne_raw.time_as_index(
+            [self._eeg.time_first_artifact_start, self._eeg.time_last_artifact_end],
+            use_rounding=True,
+        )
+        ch_d_acq = self._eeg.mne_raw._data[ch_id]
+
+        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+        smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+        # Calculate the PCA residuals
+        if np.empty(np.intersect1d(self._eeg.obs_exclude_channels, ch_id)) & (
+            self.OBSNumPCs != 0
+        ):
+            Ipca = filtfilt(self.OBSHPFilterWeights, 1, self.RAEEGAcq)
+            papc = self.DoPCA(Ipca)
+            fitted_res = self.FitOBS(Ipca, papc)
+        elif not self._eeg.SliceTrigger:
+            Ipca = self.RAEEGAcq
+            papc = np.double(np.ones(self._eeg.artifact_length, 1))
+            # column-vector with all '1'
+            fitted_res = self.FitOBS(Ipca, papc)
+            # TODO: this seems to calculate the mean of every Ipca section
+        else:
+            fitted_res = zeros(length(self.RANoiseAcq), 1)
+
+        # fitted_res now holds a column vector with residuals
+        return fitted_res.flatten()
 
     def align_subsample(self, ref_trigger):  # WIP
         """
