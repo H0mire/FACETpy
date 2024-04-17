@@ -38,7 +38,6 @@ f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
 f.post_processing()
-f.apply_ANC()
 
 # end measuring time
 end_time = time.time()

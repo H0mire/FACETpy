@@ -402,7 +402,12 @@ class CorrectionFramework:
             logger.exception("An exception occured while applying ANC", ex)
 
     def align_triggers(
-        self, ref_trigger, ref_channel=None, save=False, search_window=None
+        self,
+        ref_trigger,
+        ref_channel=None,
+        save=False,
+        search_window=None,
+        upsample=True,
     ):
         """
         Aligns slices based on a reference trigger.
@@ -435,7 +440,10 @@ class CorrectionFramework:
                 ref_channel = 0
             else:
                 raw = self._eeg.mne_raw
-            if self._eeg.mne_raw.info["sfreq"] == self._eeg.mne_raw_orig.info["sfreq"]:
+            if (
+                self._eeg.mne_raw.info["sfreq"] == self._eeg.mne_raw_orig.info["sfreq"]
+                and upsample
+            ):
                 logger.debug("Data is not upsampled. Upsampling data")
                 if self._eeg.mne_raw.preload:
                     f = f.create_facet_with_channel_picks(

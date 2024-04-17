@@ -76,9 +76,11 @@ class facet:
         num_triggers = self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
 
-    def find_missing_triggers(self):
+    def find_missing_triggers(self, upsample=True, mode="auto", ref_channel=0):
         logger.info("Finding missing triggers...")
-        self._analysis.find_missing_triggers()
+        self._analysis.find_missing_triggers(
+            upsample=upsample, mode="auto", ref_channel=0
+        )
 
     def prepare(self):
         self._correction.prepare()
@@ -119,7 +121,7 @@ class facet:
         # change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=70)
-        # self._correction.apply_ANC()
+        self._correction.apply_ANC()
 
     def cut(self):
         self._correction.cut()
@@ -154,13 +156,19 @@ class facet:
         self._correction.apply_per_channel(function)
 
     def align_triggers(
-        self, ref_trigger_index, ref_channel=None, save=False, search_window=None
+        self,
+        ref_trigger_index,
+        ref_channel=None,
+        save=False,
+        search_window=None,
+        upsample=True,
     ):
         self._correction.align_triggers(
             ref_trigger_index,
             ref_channel=ref_channel,
             save=save,
             search_window=search_window,
+            upsample=upsample,
         )
 
     def align_subsample(self, ref_trigger):

@@ -373,7 +373,7 @@ class AnalysisFramework:
 
         self.derive_parameters()
 
-    def find_missing_triggers(self, mode="auto", ref_channel=0):
+    def find_missing_triggers(self, mode="auto", ref_channel=0, upsample=True):
         """
         Attempts to identify and add missing triggers in the EEG data.
 
@@ -397,6 +397,7 @@ class AnalysisFramework:
             if (
                 f._eeg.mne_raw.info["sfreq"]
                 == self._facet._eeg.mne_raw_orig.info["sfreq"]
+                and upsample
             ):
                 if self._eeg.mne_raw.preload:
                     f = self._facet.create_facet_with_channel_picks(
