@@ -27,6 +27,8 @@ class EEG:
     anc_hp_filter_weights = None  # The filter weights of the ANC
     anc_filter_order = None  # The filter order of the ANC
     ssa_hp_frequency = None  # The highpass frequency of the SSA
+    obs_hp_frequency = 70  # The highpass frequency of the OBS/PCA
+    obs_hp_filter_weights = None  # The filter weights of the ANC
 
     def __init__(
         self,
@@ -47,6 +49,7 @@ class EEG:
         artifact_duration=0,
         volume_gaps=None,
         BIDSPath=None,
+        obs_hp_frequency=70,
     ):
         self.mne_raw = mne_raw
         self.mne_raw_orig = (
@@ -69,6 +72,7 @@ class EEG:
         self.artifact_duration = artifact_duration
         self.volume_gaps = volume_gaps
         self.BIDSPath = BIDSPath
+        self.obs_hp_frequency = obs_hp_frequency
 
         # calculations
         self._tmin = self.artifact_to_trigger_offset

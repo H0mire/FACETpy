@@ -540,6 +540,10 @@ class CorrectionFramework:
         # Shift the trigger position
         return trigger_pos + shift
 
+    def apply_PCA():
+        # TODO: implement PCA
+        pass
+
     def align_subsample(self, ref_trigger):  # WIP
         """
         Aligns subsamples based on a reference trigger.

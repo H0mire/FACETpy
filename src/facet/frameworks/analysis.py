@@ -237,6 +237,7 @@ class AnalysisFramework:
             + self._eeg.artifact_duration
         )
         self._derive_anc_hp_params()
+        self._derive_pca_params()
         self._eeg._tmin = self._eeg.artifact_to_trigger_offset
         self._eeg._tmax = (
             self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
@@ -700,13 +701,39 @@ class AnalysisFramework:
 
         f = [
             0,
-            self._eeg.anc_hp_frequency * (1 - trans) / nyq,
+            (self._eeg.anc_hp_frequency * (1 - trans)) / nyq,
             self._eeg.anc_hp_frequency / nyq,
             1,
         ]
         a = [0, 0, 1, 1]
         self._eeg.anc_hp_filter_weights = firls(filtorder, f, a)
         self._eeg.anc_filter_order = artifact_length
+
+    def _derive_pca_params(self):
+        """
+        Derives the parameters for performing Principal Component Analysis (PCA) on the EEG data.
+
+        This method calculates the filter order and filter weights for high-pass filtering the EEG data
+        before applying PCA.
+
+        Returns:
+            None
+        """
+        sfreq = self._eeg.mne_raw.info["sfreq"]
+        nyq = 0.5 * sfreq
+
+        filtorder = round(1.2 * sfreq / (self._eeg.obs_hp_frequency - 10))
+        if filtorder % 2 == 0:
+            filtorder += 1
+
+        f = [
+            0,
+            (self._eeg.obs_hp_frequency - 10) / nyq,
+            (self._eeg.obs_hp_frequency + 10) / nyq,
+            1,
+        ]
+        a = [0, 0, 1, 1]
+        self._eeg.obs_hp_filter_weights = firls(filtorder, f, a)
 
     def _check_volume_gaps(self):
         """
