@@ -16,6 +16,8 @@ from facet.helpers.utils import split_vector
 from facet.helpers.crosscorr import crosscorrelation
 from loguru import logger
 from scipy.signal import firls, filtfilt, fftconvolve
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 from facet.eeg_obj import EEG
 
 
@@ -65,8 +67,7 @@ class CorrectionFramework:
             None
         """
         self._eeg.mne_raw.crop(
-            tmin=self._eeg.time_first_artifact_start,
-            tmax=min(self._eeg.data_time_end, self._eeg.time_last_artifact_end),
+            tmin=self._eeg.time_acq_start, tmax=self._eeg.time_acq_end
         )
         return
 
@@ -194,9 +195,7 @@ class CorrectionFramework:
         raw = self._eeg.mne_raw
 
         artifacts = self.calc_avg_artifact(avg_artifact_matrix_numpy, plot_artifacts)
-        smin, smax = raw.time_as_index(
-            [self._eeg.get_tmin(), self._eeg.get_tmax()], use_rounding=True
-        )
+        smin, smax = self._eeg.smin, self._eeg.smax
         aligned_triggers = self._align_triggers_averaged_artifacts(
             raw._data[list(avg_artifact_matrix_numpy.keys())[0]],
             artifacts[0],
@@ -241,8 +240,8 @@ class CorrectionFramework:
         epochs = mne.Epochs(
             raw,
             events=self._eeg.triggers_as_events,
-            tmin=self._eeg.get_tmin(),
-            tmax=self._eeg.get_tmax(),
+            tmin=self._eeg.tmin,
+            tmax=self._eeg.tmax,
             baseline=None,
             reject=None,
             preload=True,
@@ -453,9 +452,7 @@ class CorrectionFramework:
                 f.upsample()
                 needed_to_upsample = True
             trigger_positions = f._eeg.loaded_triggers
-            smin = int(f._eeg.get_tmin() * f._eeg.mne_raw.info["sfreq"])
-            smax = int(f._eeg.get_tmax() * f._eeg.mne_raw.info["sfreq"])
-            # Extract artifact at the chosen trigger
+            smin, smax = f._eeg.smin, f._eeg.smax
             chosen_artifact = raw._data[ref_channel][
                 trigger_positions[ref_trigger]
                 + smin : trigger_positions[ref_trigger]
@@ -527,8 +524,7 @@ class CorrectionFramework:
         """
         if raw is None:
             raw = self._eeg.mne_raw
-        smin = int(self._eeg.get_tmin() * raw.info["sfreq"])
-        smax = int(self._eeg.get_tmax() * raw.info["sfreq"])
+        smin, smax = self._eeg.smin, self._eeg.smax
         current_artifact = raw._data[ref_channel][
             trigger_pos + smin : trigger_pos + smax + search_window
         ]
@@ -540,34 +536,83 @@ class CorrectionFramework:
         # Shift the trigger position
         return trigger_pos + shift
 
-    def _calc_PCA_residuals(self, ch_id):
+    def apply_PCA(self, n_components=0.95):  # TODO: Use MNE's PCA implementation
+        # apply pca to each channel
+        logger.debug("applying PCA")
+        try:
+            raw = self._eeg.mne_raw
+            eeg_channels = mne.pick_types(
+                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+            )
+            channel_names_to_modify = [raw.ch_names[i] for i in eeg_channels[:]]
 
-        s_acq_start, s_acq_end = self._eeg.mne_raw.time_as_index(
-            [self._eeg.time_first_artifact_start, self._eeg.time_last_artifact_end],
-            use_rounding=True,
-        )
-        ch_d_acq = self._eeg.mne_raw._data[ch_id]
+            s_acq_start, s_acq_end = self._eeg.s_acq_start, self._eeg.s_acq_end
 
-        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
-        smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+            for key, ch_id in enumerate(eeg_channels):
+                logger.debug(
+                    f"Applying PCA to Channel {ch_id}:{channel_names_to_modify[key]}"
+                )
+                res = self._calc_pca_residuals(ch_id, n_components=n_components)
+                raw._data[ch_id][s_acq_start:s_acq_end] -= res
+                self._eeg.estimated_noise[ch_id][s_acq_start:s_acq_end] += res
+
+        except Exception as ex:
+            logger.exception("An exception occured while applying PCA", ex)
+
+    def _calc_pca_residuals(
+        self, ch_id, n_components=0.95
+    ):  # TODO: Use MNE's PCA implementation
+
+        s_acq_start, s_acq_end = self._eeg.s_acq_start, self._eeg.s_acq_end
+        ch_d = self._eeg.mne_raw._data[ch_id]
+        ch_d_acq = ch_d[s_acq_start:s_acq_end]
+
         # Calculate the PCA residuals
-        if np.empty(np.intersect1d(self._eeg.obs_exclude_channels, ch_id)) & (
-            self.OBSNumPCs != 0
+        if np.intersect1d(self._eeg.obs_exclude_channels, ch_id).size == 0 and (
+            n_components != 0
         ):
-            Ipca = filtfilt(self.OBSHPFilterWeights, 1, self.RAEEGAcq)
-            papc = self.DoPCA(Ipca)
-            fitted_res = self.FitOBS(Ipca, papc)
-        elif not self._eeg.SliceTrigger:
-            Ipca = self.RAEEGAcq
-            papc = np.double(np.ones(self._eeg.artifact_length, 1))
-            # column-vector with all '1'
-            fitted_res = self.FitOBS(Ipca, papc)
-            # TODO: this seems to calculate the mean of every Ipca section
+            Ipca = filtfilt(self._eeg.obs_hp_filter_weights, 1, ch_d_acq)
+            epochs = self._calc_pca(Ipca)
+            # paste the epochs back to the original data
+            fitted_res = np.zeros(len(ch_d_acq))
+            for i in range(0, len(epochs)):
+                fitted_res[
+                    np.arange(
+                        self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smin,
+                        self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smax,
+                    )
+                ] = epochs[i]
+
         else:
-            fitted_res = zeros(length(self.RANoiseAcq), 1)
+            fitted_res = np.zeros(len(ch_d_acq))
 
         # fitted_res now holds a column vector with residuals
         return fitted_res.flatten()
+
+    def _calc_pca(self, ch_d, n_components=0.95):  # TODO: Use MNE's PCA implementation
+
+        epochs = split_vector(
+            ch_d,
+            np.array(self._eeg.loaded_triggers)
+            + self._eeg.smin
+            - self._eeg.s_acq_start,
+            self._eeg.artifact_length,
+        )
+        # Now transpose the epochs matrix
+        epochs = epochs.T
+        # Now standardize the data
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(epochs)  # Standardize the data
+        # Now apply PCA
+        pca = PCA(n_components=n_components)
+        X_pca = pca.fit_transform(X_scaled)
+
+        # Now reconstruct the data
+        X_cleaned = pca.inverse_transform(X_pca)
+        X_cleaned = scaler.inverse_transform(X_cleaned)
+        residuals = epochs - X_cleaned
+
+        return residuals.T
 
     def align_subsample(self, ref_trigger):  # WIP
         """
@@ -603,14 +648,9 @@ class CorrectionFramework:
         # Maximum distance between triggers
         max_trig_dist = np.max(np.diff(self._eeg.loaded_triggers))
         num_samples = max_trig_dist + 20
-        acq_start = int(
-            self._eeg.time_first_artifact_start * self._eeg.mne_raw.info["sfreq"] - 10
-        )
-        acq_end = int(
-            self._eeg.time_last_artifact_end * self._eeg.mne_raw.info["sfreq"] + 10
-        )
+        acq_start, acq_end = self._eeg.s_acq_start, self._eeg.s_acq_end
         raeeg_acq = self._eeg.mne_raw._data[ch_id][acq_start:acq_end]
-        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+        smin = self._eeg.smin
 
         # Phase shift
         shift_angles = (
@@ -734,14 +774,11 @@ class CorrectionFramework:
         Returns:
             numpy.ndarray: The cleaned EEG data.
         """
-        acq_start, acq_end = self._eeg.mne_raw.time_as_index(
-            [self._eeg.time_first_artifact_start, self._eeg.time_last_artifact_end],
-            use_rounding=True,
-        )
-        Reference = Noise[acq_start:acq_end]
+        s_acq_start, s_acq_end = self._eeg.s_acq_start, self._eeg.s_acq_end
+        Reference = Noise[s_acq_start:s_acq_end]
         # plt.plot(Reference[0:self._eeg.artifact_length])
         tmpd = filtfilt(self._eeg.anc_hp_filter_weights, 1, EEG, axis=0, padtype="odd")
-        Data = tmpd[acq_start:acq_end].astype(float)
+        Data = tmpd[s_acq_start:s_acq_end].astype(float)
         Alpha = np.sum(Data * Reference) / np.sum(Reference * Reference)
         Reference = (Alpha * Reference).astype(float)
         mu = float(0.05 / (self._eeg.anc_filter_order * np.var(Reference)))
@@ -751,7 +788,7 @@ class CorrectionFramework:
         if np.isinf(np.max(FilteredNoise)):
             logger.error("Warning: ANC failed, skipping ANC.")
         else:
-            EEG[acq_start:acq_end] -= FilteredNoise
+            EEG[s_acq_start:s_acq_end] -= FilteredNoise
 
         return EEG
 
@@ -772,8 +809,7 @@ class CorrectionFramework:
         if search_window is None:
             search_window = 3 * self._eeg.upsampling_factor
         new_triggers = []
-        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
-        smax = int(self._eeg.get_tmax() * self._eeg.mne_raw.info["sfreq"])
+        smin, smax = self._eeg.smin, self._eeg.smax
         for i in range(self._eeg.count_triggers):
             base = ch_d[
                 self._eeg.loaded_triggers[i]

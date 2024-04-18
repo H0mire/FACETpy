@@ -20,7 +20,10 @@ class EEG:
     artifact_length = None
     artifact_duration = None
     volume_gaps = None
+    slice_triggers = None
     BIDSPath = None
+    acq_padding_left = None
+    acq_padding_right = None
 
     # calculations
     anc_hp_frequency = None  # The highpass frequency of the ANC
@@ -29,6 +32,7 @@ class EEG:
     ssa_hp_frequency = None  # The highpass frequency of the SSA
     obs_hp_frequency = 70  # The highpass frequency of the OBS/PCA
     obs_hp_filter_weights = None  # The filter weights of the ANC
+    obs_exclude_channels = []
 
     def __init__(
         self,
@@ -77,6 +81,8 @@ class EEG:
         # calculations
         self._tmin = self.artifact_to_trigger_offset
         self._tmax = self.artifact_to_trigger_offset + self.artifact_duration
+        self.time_acq_padding_left = self.artifact_duration
+        self.time_acq_padding_right = self.artifact_duration
 
         # private attributes
         self._loaded_triggers_upsampled = None
@@ -98,11 +104,60 @@ class EEG:
             return 0
         return len(self.loaded_triggers)
 
-    def get_tmin(self):
+    @property
+    def smin(self):
+        return int(np.ceil(self._tmin * self.mne_raw.info["sfreq"]))
+
+    @property
+    def smax(self):
+        return int(np.ceil(self._tmax * self.mne_raw.info["sfreq"]))
+
+    @property
+    def tmin(self):
         return self._tmin
 
-    def get_tmax(self):
+    @property
+    def tmax(self):
         return self._tmax
+
+    @property
+    def s_acq_padding_left(self):
+        return int(np.ceil(self.time_acq_padding_left * self.mne_raw.info["sfreq"]))
+
+    @property
+    def s_acq_padding_right(self):
+        return int(np.ceil(self.time_acq_padding_right * self.mne_raw.info["sfreq"]))
+
+    @property
+    def s_first_artifact_start(self):
+        return int(np.ceil(self.time_first_artifact_start * self.mne_raw.info["sfreq"]))
+
+    @property
+    def s_last_artifact_end(self):
+        return int(np.ceil(self.time_last_artifact_end * self.mne_raw.info["sfreq"]))
+
+    @property
+    def time_acq_start(self):
+        return np.max([0, self.time_first_artifact_start - self.time_acq_padding_left])
+
+    @property
+    def time_acq_end(self):
+        return np.min(
+            [
+                self.mne_raw.times[-1],
+                self.time_last_artifact_end + self.time_acq_padding_right,
+            ]
+        )
+
+    @property
+    def s_acq_start(self):
+        return np.max([0, self.s_first_artifact_start - self.s_acq_padding_left])
+
+    @property
+    def s_acq_end(self):
+        return np.min(
+            [self.mne_raw.n_times, self.s_last_artifact_end + self.s_acq_padding_right]
+        )
 
     def copy(self):
         copied = deepcopy(self)

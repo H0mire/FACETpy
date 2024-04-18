@@ -39,18 +39,10 @@ class EvaluationFramework:
         Returns:
             None
         """
-        if not end_time:
-            end_time = (
-                eeg.time_last_artifact_end
-                if eeg.time_last_artifact_end
-                else eeg.data_time_end
-            )
         if not start_time:
-            start_time = (
-                eeg.time_first_artifact_start
-                if eeg.time_first_artifact_start
-                else eeg.data_time_start
-            )
+            start_time = eeg.time_acq_start
+        if not end_time:
+            end_time = eeg.time_acq_end
         raw = eeg.mne_raw
         logger.debug("Channels that will be evaluated: " + str(raw.ch_names))
 
@@ -296,8 +288,8 @@ class EvaluationFramework:
                     np.ones_like(_eeg.loaded_triggers),
                 )
             )
-            tmin = _eeg.get_tmin()  # Start time before the event
-            tmax = _eeg.get_tmax()  # End time after the event
+            tmin = _eeg.tmin  # Start time before the event
+            tmax = _eeg.tmax  # End time after the event
             baseline = None  # No baseline correction
             picks = mne.pick_types(
                 _eeg.mne_raw.info,

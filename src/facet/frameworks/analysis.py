@@ -223,25 +223,12 @@ class AnalysisFramework:
             artifact_duration
             ANC high-pass filter parameters
         """
-        triggers = self._eeg.loaded_triggers
-        time_first_artifact_start = self._eeg.mne_raw.times[triggers[0]]
-        time_last_trigger = self._eeg.mne_raw.times[triggers[-1]]
-        self._eeg.time_first_artifact_start = (
-            time_first_artifact_start + self._eeg.artifact_to_trigger_offset
-        )
         self._check_volume_gaps()
         self._derive_art_length()
-        self._eeg.time_last_artifact_end = (
-            time_last_trigger
-            + self._eeg.artifact_to_trigger_offset
-            + self._eeg.artifact_duration
-        )
+        self._derive_times()
         self._derive_anc_hp_params()
         self._derive_pca_params()
-        self._eeg._tmin = self._eeg.artifact_to_trigger_offset
-        self._eeg._tmax = (
-            self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
-        )
+        self._derive_tmin_tmax()
 
     def get_mne_raw(self):
         """
@@ -374,7 +361,13 @@ class AnalysisFramework:
 
         self.derive_parameters()
 
-    def find_missing_triggers(self, mode="auto", ref_channel=0, upsample=True):
+    def find_missing_triggers(
+        self,
+        mode="auto",
+        ref_channel=0,
+        upsample=True,
+        add_sub_periodic_artifacts=None,
+    ):
         """
         Attempts to identify and add missing triggers in the EEG data.
 
@@ -408,8 +401,7 @@ class AnalysisFramework:
                 f.upsample()
                 needed_to_upsample = True
 
-            smin = int(f._eeg.get_tmin() * f._eeg.mne_raw.info["sfreq"])
-            smax = int(f._eeg.get_tmax() * f._eeg.mne_raw.info["sfreq"])
+            smin, smax = f._eeg.smin, f._eeg.smax
 
             search_window = int(0.1 * f._eeg.artifact_length)
             logger.info("Finding missing triggers using auto mode...")
@@ -486,10 +478,12 @@ class AnalysisFramework:
                 logger.warning(
                     f"{len(sub_periodic_artifacts)} sub periodic artifacts between each triggerpair detected! (This often happens if you use volume triggers only and not slice triggers.)"
                 )
-                logger.info("Do you want to add them as triggers? (y/n)")
-                logger.debug("Prompting user for response...")
-                response = input("y/n: ")
-                if response == "y":
+                if add_sub_periodic_artifacts is None:
+                    logger.info("Do you want to add them as triggers? (y/n)")
+                    logger.debug("Prompting user for response...")
+                    response = input("y/n: ")
+                    add_sub_periodic_artifacts = response == "y"
+                if add_sub_periodic_artifacts:
                     logger.debug("Generating sub triggers...")
                     all_triggers = f._eeg.loaded_triggers + missing_triggers
                     template = template[
@@ -649,7 +643,7 @@ class AnalysisFramework:
         new_position = self._facet._correction._align_trigger(
             position, template, 3 * self._eeg.upsampling_factor, 0
         )
-        smin = int(self._eeg.get_tmin() * self._eeg.mne_raw.info["sfreq"])
+        smin = self._eeg.smin
         data = self._eeg.mne_raw.get_data(
             start=new_position + smin,
             stop=new_position + smin + self._eeg.artifact_length,
@@ -734,6 +728,52 @@ class AnalysisFramework:
         ]
         a = [0, 0, 1, 1]
         self._eeg.obs_hp_filter_weights = firls(filtorder, f, a)
+
+    def _derive_tmin_tmax(self):
+        """
+        Derive the tmin and tmax values for the EEG data.
+
+        This method calculates the tmin and tmax values for the EEG data based on the artifact length
+        and the artifact to trigger offset.
+
+        The calculated values are stored in the `_eeg._tmin` and `_eeg._tmax` attributes.
+
+        Returns:
+            None
+        """
+        self._eeg._tmin = self._eeg.artifact_to_trigger_offset
+        self._eeg._tmax = (
+            self._eeg.artifact_to_trigger_offset + self._eeg.artifact_duration
+        )
+
+    def _derive_times(self):
+        """
+        Derive the time of the first artifact start and the time of the last trigger.
+
+        This method calculates the time of the first artifact start and the time of the last trigger
+        based on the EEG data and the loaded triggers.
+
+        The calculated values are stored in the `_eeg.time_first_artifact_start` and `_eeg.time_last_artifact_end` attributes.
+
+        Returns:
+            None
+        """
+        triggers = self._eeg.loaded_triggers
+        time_first_artifact_start = self._eeg.mne_raw.times[triggers[0]]
+        time_last_trigger = self._eeg.mne_raw.times[triggers[-1]]
+        self._eeg.time_first_artifact_start = np.max(
+            [time_first_artifact_start + self._eeg.artifact_to_trigger_offset, 0]
+        )
+        self._eeg.time_last_artifact_end = np.min(
+            [
+                time_last_trigger
+                + self._eeg.artifact_to_trigger_offset
+                + self._eeg.artifact_duration,
+                self._eeg.mne_raw.times[-1],
+            ]
+        )
+        self._eeg.time_acq_padding_left = self._eeg.artifact_duration
+        self._eeg.time_acq_padding_right = self._eeg.artifact_duration
 
     def _check_volume_gaps(self):
         """

@@ -15,7 +15,7 @@ class TestAnalysisframework:
             bads=["EMG", "ECG"],
             upsampling_factor=10,
         )
-        self.f.get_eeg().mne_raw.crop(0, 162)
+        self.f._eeg.mne_raw.crop(0, 162)
         self.af = self.f.get_analysis()
         self.cf = self.f.get_correction()
         self.ef = self.f.get_evaluation()
@@ -50,8 +50,35 @@ class TestAnalysisframework:
         missing_triggers = random.sample(range(0, 800), 10)
         # remove triggers from loaded_triggers to simulate missing triggers
         for i in missing_triggers:
-            self.af.get_eeg().loaded_triggers.pop(i)
+            self.af._eeg.loaded_triggers.pop(i)
         self.af.find_missing_triggers()
+
+        assert self.f._eeg.loaded_triggers is not None
+        assert self.f._eeg.triggers_as_events is not None
+        assert self.f._eeg.count_triggers is not None
+        assert self.f._eeg.time_first_artifact_start is not None
+        # trigger count should be 840
+        assert self.f._eeg.count_triggers == 840
+        # check if num_triggers is correct
+        assert len(self.f._eeg.loaded_triggers) == self.f._eeg.count_triggers
+        assert len(self.f._eeg.triggers_as_events) == self.f._eeg.count_triggers
+
+    def test_missing_triggers_sub_periodic_artifacts(self):
+        self.cf.filter(l_freq=1)
+        self.cf.upsample()
+        self.af.find_triggers(r"\b1\b")
+
+        missing_triggers = random.sample(range(0, 800), 10)
+        # remove triggers from loaded_triggers to simulate missing triggers
+        for i in missing_triggers:
+            self.af._eeg.loaded_triggers.pop(i)
+
+        self.af._eeg.loaded_triggers = self.af._eeg.loaded_triggers[15:830]
+        self.af.find_missing_triggers()
+        # remove every second trigger to simulate sub periodic artifacts (calculating Slice triggers)
+        self.af._eeg.loaded_triggers = self.af._eeg.loaded_triggers[::2]  #
+        self.af.derive_parameters()
+        self.af.find_missing_triggers(add_sub_periodic_artifacts=True)
 
         assert self.f._eeg.loaded_triggers is not None
         assert self.f._eeg.triggers_as_events is not None
@@ -85,7 +112,7 @@ class TestAnalysisframework:
         self.cf.filter(h_freq=70)
         self.af.find_triggers(r"\b1\b")
         # evaluate if the artifact removal was successful
-        self.ef.add_to_evaluate(self.f.get_eeg(), name="MNE_new")
+        self.ef.add_to_evaluate(self.f._eeg, name="MNE_new")
         results = self.ef.evaluate(
             plot=False, measures=["SNR", "RMS", "RMS2", "MEDIAN"]
         )

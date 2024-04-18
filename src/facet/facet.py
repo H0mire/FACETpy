@@ -76,10 +76,15 @@ class facet:
         num_triggers = self._eeg.count_triggers
         logger.info(f"Found {num_triggers} triggers")
 
-    def find_missing_triggers(self, upsample=True, mode="auto", ref_channel=0):
+    def find_missing_triggers(
+        self, upsample=True, mode="auto", ref_channel=0, add_sub_periodic_artifacts=None
+    ):
         logger.info("Finding missing triggers...")
         self._analysis.find_missing_triggers(
-            upsample=upsample, mode="auto", ref_channel=0
+            upsample=upsample,
+            mode=mode,
+            ref_channel=ref_channel,
+            add_sub_periodic_artifacts=add_sub_periodic_artifacts,
         )
 
     def prepare(self):

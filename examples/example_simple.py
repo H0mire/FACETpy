@@ -37,6 +37,7 @@ f.align_triggers(0)
 f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
+f.get_correction().apply_PCA()
 f.post_processing()
 
 # end measuring time
