@@ -53,10 +53,12 @@ f.find_missing_triggers()
 # Align the triggers
 reference_trigger = 0
 f.align_triggers(reference_trigger)
+f.align_subsample(reference_trigger)
 
 # Apply the AAS
 f.calc_matrix_aas()  # calculates the AAS matrix
 f.remove_artifacts()  # calculates the artifacts and removes them from the EEG data
+f.get_correction().apply_PCA(n_components=0.8)  # apply PCA to the EEG data
 
 # Postprocessing
 f.downsample()  # downsampling by upsample factor
