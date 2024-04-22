@@ -20,7 +20,7 @@ else:
 if os.path.exists(lib_path):
     logger.info(f"File {lib_path} exists")
 else:
-    logger.error(f"File {lib_path} does not exist")
+    logger.error(f"File {lib_path} does not exist. Run the build.py script to create the file.")
 
 fastranc = None
 try:
