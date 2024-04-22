@@ -128,3 +128,7 @@ dmypy.json
 
 #Poetry
 poetry.lock
+
+# Compiled Modules
+*.so
+*.dll
