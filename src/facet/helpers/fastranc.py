@@ -17,6 +17,11 @@ elif sys.platform.startswith('win'):
 else:
     raise OSError("Unsupported operating system")
 
+if os.path.exists(lib_path):
+    logger.info(f"File {lib_path} exists")
+else:
+    logger.error(f"File {lib_path} does not exist")
+
 fastranc = None
 try:
     lib = CDLL(lib_path)
@@ -31,8 +36,9 @@ try:
         c_int,
     ]
     fastranc.restype = None
-except:
-    logger.error("File not found! Check your Project Files")
+except Exception as ex:
+    logger.error(f"File {lib_path} could not be opened! Check your Project Files Message: {ex}")
+    logger.info(f"Current working directory: {os.getcwd()}")
 
 
 def fastr_anc(refs_array, d_array, N_value, mu_value):
