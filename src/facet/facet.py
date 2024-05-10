@@ -119,7 +119,7 @@ class facet:
 
     def pre_processing(self):  # Change to your liking
         # change to your liking
-        self._correction.filter(l_freq=1)
+        self._correction.filter(l_freq=0.5)
         self._correction.upsample()
 
     def post_processing(self):  # Change to your liking

@@ -238,14 +238,18 @@ class AnalysisFramework:
                 )
 
         ecg_channel = raw.get_data(picks=ecg_channels)
+        # filter the data
+       
         # Plot the ECG signal
         # plt.plot(ecg_channel[0])
         ecg_channel = ecg_channel[0]
 
         # Find the peaks of the ECG signal
-        _, rpeaks = nk.ecg_peaks(ecg_channel, sampling_rate=raw.info['sfreq'])
-        peaks = np.abs(rpeaks['ECG_R_Peaks']).astype(int)
+        # Processing the ECG signal
+        signals, info = nk.ecg_process(ecg_signal=ecg_channel, sampling_rate=raw.info["sfreq"])
 
+        # Extracting R-peak indices and converting to integer values
+        peaks = np.array(info['ECG_R_Peaks']).astype(int)
         # Create events based on the peak positions
         events = np.zeros((len(peaks), 3))
         events[:, 0] = peaks
@@ -265,7 +269,12 @@ class AnalysisFramework:
                 )
             )
 
-        self.derive_parameters()
+        self._check_volume_gaps()
+        self._derive_art_length()
+        self._derive_times()
+        self._derive_tmin_tmax()
+
+        
 
     def derive_parameters(self):
         """

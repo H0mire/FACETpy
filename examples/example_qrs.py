@@ -28,7 +28,7 @@ f.import_eeg(
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
 f.get_eeg().mne_raw.crop(0, 162)
-f.find_triggers(event_regex)k
+f.find_triggers(event_regex)
 
 # f.plot_eeg(start=29)
 f.pre_processing()
@@ -38,13 +38,8 @@ f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
 f.get_correction().apply_PCA()
-# f.get_analysis().find_triggers_qrs()
-# get ecg channel
-ecg = f.get_eeg().mne_raw._data[f.get_eeg().mne_raw.ch_names.index("ECG")]
-#plot ecg
-import matplotlib.pyplot as plt
-plt.plot(ecg)
-plt.show()
+f.get_analysis().find_triggers_qrs()
+f.find_missing_triggers()
 
 # end measuring time
 end_time = time.time()
