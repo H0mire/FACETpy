@@ -19,6 +19,7 @@ scipy = "1.11.4"
 notebook = "^7.1.2"
 scikit-learn = "^1.4.2"
 pyqt6 = "^6.6.1"
+neurokit2 = "^0.2.7"
 
 
 [tool.poetry.group.dev.dependencies]

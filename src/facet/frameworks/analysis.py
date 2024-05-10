@@ -17,6 +17,7 @@ from facet.eeg_obj import EEG
 import numpy as np
 from loguru import logger
 from scipy.signal import find_peaks
+import neurokit2 as nk
 import matplotlib.pyplot as plt
 
 
@@ -207,6 +208,60 @@ class AnalysisFramework:
                     / self._eeg.mne_raw.info["sfreq"],
                     duration=np.zeros(len(self._eeg.loaded_triggers)),
                     description=["Trigger"] * len(self._eeg.loaded_triggers),
+                )
+            )
+
+        self.derive_parameters()
+    
+    def find_triggers_qrs(self, save=False):
+        """
+        Find triggers in the EEG data based on the QRS complex of an ECG channel.
+        """
+
+        raw = self._eeg.mne_raw
+        ecg_channels = mne.pick_types(raw.info, meg=False, eeg=False, ecg=True)
+        
+
+        if len(ecg_channels) == 0:
+            # Now check if there are Channels called ECG and warn that there are not marked as ECG
+            ecg_channels = [
+                i
+                for i, ch in enumerate(raw.ch_names)
+                if "ECG" in ch.upper() or "EKG" in ch.upper()
+            ]
+            if len(ecg_channels) == 0:
+                logger.error("No ECG channels found!")
+                return
+            else:
+                logger.warning(
+                    "No ECG channels found! Found channels with ECG in name. Using these channels."
+                )
+
+        ecg_channel = raw.get_data(picks=ecg_channels)
+        # Plot the ECG signal
+        # plt.plot(ecg_channel[0])
+        ecg_channel = ecg_channel[0]
+
+        # Find the peaks of the ECG signal
+        _, rpeaks = nk.ecg_peaks(ecg_channel, sampling_rate=raw.info['sfreq'])
+        peaks = np.abs(rpeaks['ECG_R_Peaks']).astype(int)
+
+        # Create events based on the peak positions
+        events = np.zeros((len(peaks), 3))
+        events[:, 0] = peaks
+        events[:, 2] = 1
+
+        # Store the events in the EEG object
+        self._eeg.last_trigger_search_regex = "QRS"
+        self._eeg.loaded_triggers = list(map(int, events[:, 0]))
+
+        if save:
+            # replace the triggers as events in the raw object
+            self._eeg.mne_raw.set_annotations(
+                mne.Annotations(
+                    onset=events[:, 0] / self._eeg.mne_raw.info["sfreq"],
+                    duration=np.zeros(len(events)),
+                    description=["Trigger"] * len(events),
                 )
             )
 
