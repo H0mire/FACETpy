@@ -19,6 +19,7 @@ from loguru import logger
 from scipy.signal import find_peaks
 import neurokit2 as nk
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 # import inst for mne python
@@ -212,7 +213,7 @@ class AnalysisFramework:
             )
 
         self.derive_parameters()
-    
+
     def find_triggers_qrs(self, save=False):
         """
         Find triggers in the EEG data based on the QRS complex of an ECG channel.
@@ -220,7 +221,6 @@ class AnalysisFramework:
 
         raw = self._eeg.mne_raw
         ecg_channels = mne.pick_types(raw.info, meg=False, eeg=False, ecg=True)
-        
 
         if len(ecg_channels) == 0:
             # Now check if there are Channels called ECG and warn that there are not marked as ECG
@@ -238,18 +238,96 @@ class AnalysisFramework:
                 )
 
         ecg_channel = raw.get_data(picks=ecg_channels)
-        # filter the data
-       
-        # Plot the ECG signal
-        # plt.plot(ecg_channel[0])
         ecg_channel = ecg_channel[0]
+        # filter the data
+        start = self._eeg.mne_raw.time_as_index(10)[0]
+        stop = self._eeg.mne_raw.time_as_index(12)[0]
 
-        # Find the peaks of the ECG signal
-        # Processing the ECG signal
-        signals, info = nk.ecg_process(ecg_signal=ecg_channel, sampling_rate=raw.info["sfreq"])
+        # Plot the ECG signal
+        plt.title("ECG Before Filtering")
+        plt.plot(ecg_channel[int(start) : int(stop)])
+        plt.show()
+
+        logger.debug("Fitlering ECG signal...")
+
+        # First manually bandpass filter with 5 and 15 hz
+        #  ecg_channel = mne.filter.filter_data(
+        #     ecg_channel,
+        #     raw.info["sfreq"],
+        #     l_freq=5,
+        #     h_freq=15,
+        #     method="fir",
+        #     verbose=False,
+        # )
+
+        for _ in range(10):
+            ecg_channel = nk.ecg_clean(
+                ecg_channel, sampling_rate=raw.info["sfreq"], method="neurokit"
+            )
+
+        # Now Normalize the signal
+        min_val = np.min(ecg_channel)
+        max_val = np.max(ecg_channel)
+        cleaned_norml_ecg = (ecg_channel - min_val) / (max_val - min_val)
+
+        logger.debug("Finding peaks...")
+
+        resampled_by = (
+            self._eeg.mne_raw.info["sfreq"] / self._eeg.mne_raw_orig.info["sfreq"]
+        )
+        # Find the peaks of the ECG signal using scipy.signal.find_peaks
+        # height is set to 0.5 of the maximum value of the signal
+        r_peaks, _ = find_peaks(
+            cleaned_norml_ecg, distance=int(500 * resampled_by), height=0.7
+        )
 
         # Extracting R-peak indices and converting to integer values
-        peaks = np.array(info['ECG_R_Peaks']).astype(int)
+        r_peaks = np.array(r_peaks).astype(int)
+
+        # Step 5: Detect P-peaks
+        # Delineate the ECG signal to detect P-peaks
+        _, delineate_info = nk.ecg_delineate(
+            cleaned_norml_ecg, r_peaks, sampling_rate=raw.info["sfreq"], method="dwt"
+        )
+        # Extracting P-peak indices and converting to integer values
+        p_peaks = r_peaks
+
+        # ensure that you can use P-peaks as triggers
+        if len(p_peaks) == len(r_peaks):
+            peaks = r_peaks
+        else:
+            peaks = r_peaks
+
+        # For a more comprehensive ECG plot that includes detailed visualization, use nk.ecg_plot:
+        # nk.ecg_plot(signals, info)
+
+        # filter duplicate peaks and sort them
+        peaks = np.unique(peaks)
+        peaks = np.sort(peaks)
+        p_peaks = np.unique(p_peaks)
+        p_peaks = np.sort(p_peaks)
+
+        # Remove all negative peaks
+        peaks = peaks[peaks > 0]
+        p_peaks = p_peaks[p_peaks > 0]
+
+        # Now plot the last two peaks with the ECG signal
+        x_values = np.arange(start, stop)
+        plt.title("ECG After Filtering")
+        plt.plot(x_values, cleaned_norml_ecg[int(start) : int(stop)])
+        plt.scatter(
+            peaks[np.logical_and(peaks > start, peaks < stop)],
+            cleaned_norml_ecg[peaks[np.logical_and(peaks > start, peaks < stop)]],
+            color="red",
+        )
+        plt.show()
+
+        logger.warning(len(cleaned_norml_ecg))
+        logger.warning(max(p_peaks))
+        logger.warning(len(raw.get_data()[0]))
+
+        logger.debug(f"Found {len(peaks)} peaks")
+        logger.debug("Loading events...")
         # Create events based on the peak positions
         events = np.zeros((len(peaks), 3))
         events[:, 0] = peaks
@@ -268,13 +346,14 @@ class AnalysisFramework:
                     description=["Trigger"] * len(events),
                 )
             )
-
-        self._check_volume_gaps()
+        logger.debug("Deriving parameters...")
+        self._eeg.volume_gaps = True
         self._derive_art_length()
+        self._eeg.artifact_length = int(self._eeg.artifact_length * 0.5)
+        self._eeg.artifact_to_trigger_offset = (-1) * self._eeg.artifact_duration * 0.5
+        logger.warning(self._eeg.artifact_duration)
         self._derive_times()
         self._derive_tmin_tmax()
-
-        
 
     def derive_parameters(self):
         """
@@ -373,7 +452,7 @@ class AnalysisFramework:
         d = np.diff(self._eeg.loaded_triggers)  # trigger distances
 
         if self._eeg.volume_gaps:
-            m = np.mean([np.min(d), np.max(d)])  # middle distance
+            m = np.mean([np.median(d), np.max(d)])  # middle distance
             ds = d[d < m]  # trigger distances belonging to slice triggers
             # dv = d[d > m]  # trigger distances belonging to volume triggers
 
@@ -384,9 +463,6 @@ class AnalysisFramework:
         else:
             # total length of an artifact
             self._eeg.artifact_length = np.max(d)
-        self._eeg.artifact_duration = (
-            self._eeg.artifact_length / self._eeg.mne_raw.info["sfreq"]
-        )
 
     def add_triggers(self, triggers):
         """

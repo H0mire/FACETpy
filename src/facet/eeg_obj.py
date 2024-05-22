@@ -18,7 +18,6 @@ class EEG:
     data_time_start = None
     data_time_end = None
     artifact_length = None
-    artifact_duration = None
     volume_gaps = None
     slice_triggers = None
     BIDSPath = None
@@ -50,7 +49,6 @@ class EEG:
         data_time_start=None,
         data_time_end=None,
         artifact_length=0,
-        artifact_duration=0,
         volume_gaps=None,
         BIDSPath=None,
         obs_hp_frequency=70,
@@ -73,7 +71,6 @@ class EEG:
         self.data_time_start = data_time_start
         self.data_time_end = data_time_end
         self.artifact_length = artifact_length
-        self.artifact_duration = artifact_duration
         self.volume_gaps = volume_gaps
         self.BIDSPath = BIDSPath
         self.obs_hp_frequency = obs_hp_frequency
@@ -158,6 +155,12 @@ class EEG:
         return np.min(
             [self.mne_raw.n_times, self.s_last_artifact_end + self.s_acq_padding_right]
         )
+
+    @property
+    def artifact_duration(self):
+        if (self.mne_raw is None) or (self.mne_raw.info["sfreq"] is None):
+            return -1
+        return self.artifact_length / (self.mne_raw.info["sfreq"] or 1)
 
     def copy(self):
         copied = deepcopy(self)

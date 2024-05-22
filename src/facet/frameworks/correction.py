@@ -155,7 +155,7 @@ class CorrectionFramework:
                 art_length,
             )
             # check if the number of epochs in matrix is equal to the number of triggers
-            if len(ch_matrix) != len(self._eeg.loaded_triggers):
+            while len(data_split_on_epochs) != len(ch_matrix):
                 # remove the last epoch from data_split_on_epochs
                 data_split_on_epochs = data_split_on_epochs[:-1]
             avg_artifact = ch_matrix @ data_split_on_epochs
