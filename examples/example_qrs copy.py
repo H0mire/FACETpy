@@ -34,8 +34,19 @@ f.get_analysis().find_triggers_qrs()
 
 # get ecg channel
 ecg = f.get_eeg().mne_raw._data[f.get_eeg().mne_raw.ch_names.index("ECG")]
-#plot ecg
+# plot ecg
 import matplotlib.pyplot as plt
-plt.plot(ecg)
+
+ecg_to_plot = ecg[4000:16000]
+sfreq = f.get_eeg().mne_raw.info["sfreq"]
+
+# convert x axis to seconds
+x = range(len(ecg_to_plot))
+x = [i / sfreq for i in x]
+
+plt.plot(x, ecg_to_plot)
+plt.xlabel("Time (s)")
+plt.ylabel("ECG Amplitude (in Volts)")
+plt.title("ECG")
 plt.show()
 input("Press Enter to end the script...")

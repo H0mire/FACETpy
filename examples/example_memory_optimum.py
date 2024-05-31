@@ -34,14 +34,14 @@ f.import_eeg(
 f.find_triggers(event_regex)
 f.get_eeg().mne_raw.crop(0, 162)
 f.find_missing_triggers()
-f.align_triggers(0, save=True, ref_channel=2)
+f.align_triggers(0, save=True, ref_channel=2)  #
 
 
 def apply_per_channel(f):
     f.pre_processing()
     f.align_subsample(0)
     f.calc_matrix_aas()
-    f.remove_artifacts()
+    f.remove_artifacts(plot_artifacts=True)
     f.post_processing()
 
 

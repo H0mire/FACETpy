@@ -36,16 +36,16 @@ f.find_missing_triggers()
 f.align_triggers(0)
 f.align_subsample(0)
 f.calc_matrix_aas()
-f.remove_artifacts(plot_artifacts=False)
+f.remove_artifacts(plot_artifacts=True)
 f.get_correction().apply_PCA()
-f.post_processing()
-f.pre_processing()
 f.get_analysis().find_triggers_qrs()
+# f.post_processing()
+# f.pre_processing()
 f._eeg.mne_raw.info["bads"] += ["ECG"]
 # f.find_missing_triggers()
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=True)
-f.post_processing()
+# f.post_processing()
 
 
 # end measuring time
