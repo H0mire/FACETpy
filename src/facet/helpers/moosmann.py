@@ -64,7 +64,6 @@ def calc_weighted_matrix_by_realignment_parameters_file(
     # Lade Realignment Parameter Datei
     rp_data = pd.read_csv(rp_file, sep="\t", header=None, skiprows=1, decimal=".")
 
-    # Ersetze m_single_motion durch eine entsprechende Python-Funktion
     motiondata = single_motion(rp_data, threshold, 0)
     motiondata["both_not_normed"] = np.concatenate(
         (
@@ -121,7 +120,6 @@ def calc_weighted_matrix_by_realignment_parameters_file(
         for j in range(n_fmri):
             weighting_matrix[j, slid_win[j, :].astype(int)] = 1
     else:
-        # Ersetze m_moving_average durch eine entsprechende Python-Funktion
         weighting_matrix = moving_average(n_fmri, k)
 
     motiondata_struct = motiondata

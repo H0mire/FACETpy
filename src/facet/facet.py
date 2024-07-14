@@ -93,7 +93,7 @@ class facet:
     def calc_matrix_aas(self, method="numpy", rel_window_position=0, window_size=30):
         logger.info(f"Calculating matrix with allen et al. averaging method {method}")
         if method == "numpy":
-            self._correction.calc_matrix_aas(
+            return self._correction.calc_matrix_aas(
                 rel_window_position, window_size=window_size
             )
         else:
@@ -101,7 +101,7 @@ class facet:
 
     def calc_matrix_motion(self, file_path, threshold=5, window_size=30):
         logger.info(f"Calculating Matrix with motiondata in {file_path}")
-        self._correction.calc_matrix_motion(
+        return self._correction.calc_matrix_motion(
             file_path=file_path, threshold=threshold, window_size=window_size
         )
 

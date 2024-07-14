@@ -3,8 +3,15 @@ from facet.facet import facet
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
 # Path to your EEG file
-file_path = "C:/Users/janik/Projekte/FACETpy/Datasets/CleanedFMRIBAllen_exp_without_subsample_alignment.edf"
-file_path2 = "C:/Users/janik/Projekte/FACETpy/Datasets/Matlab_cleaned_with_ssa.edf"
+file_path = (
+    "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/NiazyFMRI.edf"
+)
+
+matlab_only_lowpass = "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/matlab_only_lowpass.edf"
+matlab_only_aas = "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/matlab_only_aas.edf"
+matlab_with_alignment = "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/matlab_with_alignment.edf"
+matlab_with_pca = "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/matlab_with_pca.edf"
+matlab_with_anc = "/home/janik/Documents/Projects/FACETpy/facetpy/examples/datasets/matlab_with_anc.edf"
 # Event Regex assuming using stim channel
 event_regex = r"\b1\b"
 # Upsampling factor
@@ -23,24 +30,36 @@ f.import_eeg(
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
+f.get_eeg().mne_raw.crop(0, 162)
+f.get_eeg().mne_raw_orig.crop(0, 162)
+f.find_triggers(event_regex)
+f.plot_eeg(start=29, title="Original")
+f.highpass(1)
+f.upsample()
+f.align_triggers(0)
+f.align_subsample(0)
+f.calc_matrix_aas()
+f.remove_artifacts()
+f.get_correction().apply_PCA(n_components=0.8)
+f.downsample()
+f.lowpass(70)
+f.apply_ANC()
+f.plot_eeg(start=29, title="FACETpy")
+f.add_to_evaluate(f.get_eeg(), name="FACETpy")
+
+# Second EEG import
 f2 = facet()
 f2.import_eeg(
-    file_path2,
+    matlab_with_anc,
     upsampling_factor=upsample_factor,
     bads=unwanted_bad_channels,
     artifact_to_trigger_offset=artifact_to_trigger_offset,
 )
-
-f.get_eeg().mne_raw.crop(0, 162)
+f2.get_eeg().mne_raw_orig = f.get_eeg().mne_raw_orig
 f2.get_eeg().mne_raw.crop(0, 162)
-f.find_triggers(event_regex)
 f2.find_triggers(event_regex)
-f.plot_eeg(start=29, title="without SSA")
-f.add_to_evaluate(f.get_eeg(), name="without SSA")
-
-f2.lowpass(70)
-f2.plot_eeg(start=29, title="with SSA")
-f.add_to_evaluate(f2.get_eeg(), name="with SSA")
+f2.plot_eeg(start=29, title="MATLAB")
+f.add_to_evaluate(f2.get_eeg(), name="MATLAB")
 
 results = f.evaluate(measures=["SNR", "RMS", "RMS2", "MEDIAN"])
 print(results)

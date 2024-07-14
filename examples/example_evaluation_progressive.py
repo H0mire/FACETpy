@@ -42,10 +42,10 @@ f.import_eeg(
 )
 f.get_eeg().mne_raw.crop(0, 162)
 f.find_triggers(event_regex)
-f.add_to_evaluate(f.get_eeg(), name="Original")
+f.add_to_evaluate(f.get_eeg().copy(), name="Original")
 # Preprocessing
 f.highpass(1)
-f.add_to_evaluate(f.get_eeg(), name="After Highpass")
+f.add_to_evaluate(f.get_eeg().copy(), name="After Highpass")
 f.upsample()  # upsampling factor must be specified when importing the EEG data
 
 # Find and load the triggers
@@ -59,20 +59,20 @@ f.align_subsample(reference_trigger)
 # Apply the AAS
 f.calc_matrix_aas()  # calculates the AAS matrix
 f.remove_artifacts()  # calculates the artifacts and removes them from the EEG data
-f.add_to_evaluate(f.get_eeg(), name="After AAS")
+f.add_to_evaluate(f.get_eeg().copy(), name="After AAS")
 f.get_correction().apply_PCA(n_components=0.8)  # apply PCA to the EEG data
-f.add_to_evaluate(f.get_eeg(), name="After PCA")
+f.add_to_evaluate(f.get_eeg().copy(), name="After PCA")
 # Postprocessing
 f.downsample()  # downsampling by upsample factor
 f.lowpass(70)  # lowpass filter with 70 Hz
-f.add_to_evaluate(f.get_eeg(), name="After Lowpass")
+f.add_to_evaluate(f.get_eeg().copy(), name="After Lowpass")
 f.apply_ANC()  # apply the ANC to the EEG data. This may take some time. If you want keep track of the progress, you can set the logger level to DEBUG
 
 # Plot the EEG data
 f.plot_eeg()
 
 # Evaluation
-f.add_to_evaluate(f.get_eeg(), name="Corrected EEG")
+f.add_to_evaluate(f.get_eeg().copy(), name="Corrected EEG")
 results = f.evaluate(plot=True, measures=evaluation_measures)
 print(results)
 

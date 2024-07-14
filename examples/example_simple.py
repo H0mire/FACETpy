@@ -14,11 +14,6 @@ unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 artifact_to_trigger_offset = -0.005
 # End Configuration Block
 
-# start measuring time
-import time
-
-start_time = time.time()
-
 # Loading the EEG data by creating a facet object and importing the EEG data
 f = facet()
 f.import_eeg(
@@ -40,10 +35,6 @@ f.remove_artifacts(plot_artifacts=False)
 f.get_correction().apply_PCA()
 f.post_processing()
 
-# end measuring time
-end_time = time.time()
-execution_time = end_time - start_time
-print(f"Execution time: {execution_time} seconds")
 f.plot_eeg(start=29)
 # f.plot_eeg(start=29)
 # f.export_eeg('processed_eeg_file.edf')
