@@ -45,12 +45,11 @@ f.import_eeg(
     task=task,
 )
 f.plot_eeg(title="after import")
-
 # Do some preprocessing
 f.highpass(1)
 f.upsample()
 f.plot_eeg(title="after preprocessing")
-f.add_to_evaluate(f.get_eeg(), "preprocessed")
+results_preprocessed = f.evaluate(f.get_eeg(), measures=evaluation_measures, name="preprocessed")
 
 # Find triggers
 f.find_triggers(regex_trigger_annotation_filter)
@@ -62,13 +61,13 @@ f.align_subsample(0)
 f.calc_matrix_aas()
 # Calculate the artifacts and remove them
 f.remove_artifacts(plot_artifacts=False)
-f.add_to_evaluate(f.get_eeg(), "After AAS")
+results_after_aas = f.evaluate(f.get_eeg(), measures=evaluation_measures, name="After AAS")
 # Now Postprocess the data
 f.get_correction().apply_PCA()
 f.downsample()
 f.lowpass(70)
 f.apply_ANC()
-f.add_to_evaluate(f.get_eeg(), "After ANC")
+results_after_anc = f.evaluate(f.get_eeg(), measures=evaluation_measures, name="After ANC")
 f.plot_eeg(title="after postprocessing")
 f.export_eeg(
     "example_full_bids",
@@ -78,6 +77,6 @@ f.export_eeg(
     task=task,
     event_id=event_id_description_pairs,
 )
-f.evaluate(plot=True, measures=evaluation_measures)
+f.plot([results_preprocessed, results_after_aas, results_after_anc], plot_measures=evaluation_measures)
 
 input("Press Enter to end the script...")

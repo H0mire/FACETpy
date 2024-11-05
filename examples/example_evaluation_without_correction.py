@@ -45,7 +45,11 @@ f.downsample()
 f.lowpass(70)
 f.apply_ANC()
 f.plot_eeg(start=29, title="FACETpy")
-f.add_to_evaluate(f.get_eeg(), name="FACETpy")
+results_facetpy = f.evaluate(
+    eeg=f.get_eeg(),
+    name="FACETpy",
+    measures=["SNR", "RMS", "RMS2", "MEDIAN"]
+)
 
 # Second EEG import
 f2 = facet()
@@ -59,9 +63,11 @@ f2.get_eeg().mne_raw_orig = f.get_eeg().mne_raw_orig
 f2.get_eeg().mne_raw.crop(0, 162)
 f2.find_triggers(event_regex)
 f2.plot_eeg(start=29, title="MATLAB")
-f.add_to_evaluate(f2.get_eeg(), name="MATLAB")
+results_matlab = f.evaluate(
+    f2.get_eeg(), measures=["SNR", "RMS", "RMS2", "MEDIAN"], name="MATLAB"
+)
 
-results = f.evaluate(measures=["SNR", "RMS", "RMS2", "MEDIAN"])
-print(results)
+f.plot([results_facetpy, results_matlab], plot_measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+
 # f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")

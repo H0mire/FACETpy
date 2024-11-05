@@ -112,9 +112,8 @@ class TestAnalysisframework:
         self.cf.filter(h_freq=70)
         self.af.find_triggers(r"\b1\b")
         # evaluate if the artifact removal was successful
-        self.ef.add_to_evaluate(self.f._eeg, name="MNE_new")
         results = self.ef.evaluate(
-            plot=False, measures=["SNR", "RMS", "RMS2", "MEDIAN"]
+            eeg=self.f._eeg, name="MNE_new", measures=["SNR", "RMS", "RMS2", "MEDIAN"]
         )
         assert results is not None
         logger.info(results)

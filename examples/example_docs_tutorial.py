@@ -69,8 +69,7 @@ f.apply_ANC()  # apply the ANC to the EEG data. This may take some time. If you 
 f.plot_eeg()
 
 # Evaluation
-f.add_to_evaluate(f.get_eeg(), name="Corrected EEG")
-results = f.evaluate(plot=True, measures=evaluation_measures)
+results = f.evaluate(plot=True, eeg=f.get_eeg(), name="Corrected EEG", measures=evaluation_measures)
 print(results)
 
 # f.export_eeg(path=export_file_path, fmt="edf")

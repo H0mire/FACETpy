@@ -126,7 +126,7 @@ class facet:
         # change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=70)
-        self._correction.apply_ANC()
+        # self._correction.apply_ANC()
 
     def cut(self):
         self._correction.cut()
@@ -147,15 +147,12 @@ class facet:
     def upsample(self):
         self._correction.upsample()
 
-    def add_to_evaluate(self, eeg, start_time=None, end_time=None, name=None):
-        logger.info("Adding to evaluation...")
-        self._evaluation.add_to_evaluate(
-            eeg, start_time=start_time, end_time=end_time, name=name
-        )
-
-    def evaluate(self, plot=True, measures=["SNR"]):
+    def evaluate(self, eeg=None, name=None, plot=False, measures=["SNR"]):
         logger.info("Evaluating...")
-        return self._evaluation.evaluate(plot=plot, measures=measures)
+        return self._evaluation.evaluate(eeg=eeg, name=name, plot=plot, measures=measures)
+    
+    def plot(self, results, plot_measures=["SNR"]):
+        self._evaluation.plot(results, plot_measures=plot_measures)
 
     def apply_per_channel(self, function):
         self._correction.apply_per_channel(function)

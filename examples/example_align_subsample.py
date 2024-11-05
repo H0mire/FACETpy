@@ -74,10 +74,11 @@ f.lowpass(45)
 eeg_with_subalignment = f.get_eeg()
 
 # now evaluate the difference
-f.add_to_evaluate(eeg_without_alignment, name="Without Alignment")
-f.add_to_evaluate(eeg_with_alignment, name="With Alignment")
-f.add_to_evaluate(eeg_with_subalignment, name="With Subalignment")
-f.evaluate(plot=True, measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+results_without_alignment = f.evaluate(eeg=eeg_without_alignment, name="Without Alignment", plot=False, measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+results_with_alignment = f.evaluate(eeg=eeg_with_alignment, name="With Alignment", plot=False, measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+results_with_subalignment = f.evaluate(eeg=eeg_with_subalignment, name="With Subalignment", plot=False, measures=["SNR", "RMS", "RMS2", "MEDIAN"])
+
+f.plot([results_without_alignment, results_with_alignment, results_with_subalignment], plot_measures=["SNR", "RMS", "RMS2", "MEDIAN"])
 
 # f.export_eeg('processed_eeg_file.edf')
 input("Press Enter to end the script...")
