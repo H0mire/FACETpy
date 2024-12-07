@@ -14,6 +14,8 @@ if sys.platform.startswith('linux'):
     lib_path = path + '/libfastranc.so'  # Linux
 elif sys.platform.startswith('win'):
     lib_path = path + '/fastranc.dll'  # Windows
+elif sys.platform.startswith('darwin'):
+    lib_path = path + '/libfastranc.dylib'  # MacOS
 else:
     raise OSError("Unsupported operating system")
 

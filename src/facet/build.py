@@ -12,6 +12,8 @@ def compile_fastranc():
         subprocess.run(["gcc", "-shared", "-fPIC", "-o", "src/facet/helpers/libfastranc.so", "src/facet/helpers/fastranc.c", "-lm"], check=True)
     elif sys.platform.startswith('win'):
         subprocess.run(["gcc", "-shared", "-o", "src/facet/helpers/fastranc.dll", "src/facet/helpers/fastranc.c", "-lm"], check=True)
+    elif sys.platform.startswith('darwin'):
+        subprocess.run(["gcc", "-dynamiclib", "-o", "src/facet/helpers/libfastranc.dylib", "src/facet/helpers/fastranc.c", "-lm"], check=True)
     else:
         raise OSError("Unsupported operating system")
 

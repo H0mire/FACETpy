@@ -132,3 +132,6 @@ poetry.lock
 # Compiled Modules
 *.so
 *.dll
+
+# Export
+export/
