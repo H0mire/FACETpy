@@ -1,0 +1,29 @@
+src_ng/
+├── facet/
+│   ├── __init__.py
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── facet.py        # Main FACET class
+│   │   ├── metadata.py     # Metadata handling
+│   │   └── plugin.py     # Plugin base classes and management
+│   ├── io/
+│   │   ├── __init__.py
+│   │   ├── loader.py       # Loading EEG data
+│   │   └── saver.py        # Saving EEG data
+│   ├── processing/
+│   │   ├── __init__.py
+│   │   ├── alignment.py    # Trigger alignment
+│   │   ├── artifacts.py    # Artifact detection/removal
+│   │   ├── filtering.py    # Signal filtering
+│   │   └── triggers.py     # Trigger handling
+│   ├── analysis/
+│   │   ├── __init__.py
+│   │   ├── evaluation.py   # Signal quality evaluation
+│   │   └── statistics.py   # Statistical analysis
+│   └── utils/
+│       ├── __init__.py
+│       ├── bids.py         # BIDS utilities
+│       └── logging.py      # Logging utilities
+│   └── plugins/          # Built-in plugins
+│       ├── __init__.py
+│       └── registry.py    # Plugin registry 
