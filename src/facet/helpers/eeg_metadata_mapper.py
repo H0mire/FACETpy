@@ -1,3 +1,5 @@
+import numpy as np
+
 def eeg_to_dict(eeg):
     """
     Maps EEG object attributes to a dictionary for storage in mne.info['facet'].

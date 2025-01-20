@@ -3,7 +3,9 @@ from facet.facet import facet
 from loguru import logger
 import sys
 
-bids_path = "F:\EEG Datasets\openneuro\FMRIWITHMOTION"
+from facet.utils.facet_result import FACETResult
+
+bids_path = '/Volumes/JanikSSD/EEG Datasets/openneuro/FMRIWITHMOTION'
 export_bids_path = bids_path
 
 # configure logger
@@ -16,7 +18,14 @@ upsampling_factor = 1
 artifact_to_trigger_offset_in_seconds = -0.038
 relative_window_position = -0.5
 moosmann_motion_threshold = 0.8
-event_id_description_pairs = {"trigger": 1}
+event_id_description_pairs = {
+    "trigger": 1,
+    "New Segment/": 2,
+    "Response/R128": 3,
+    "Stimulus/S  2": 4,
+    "Stimulus/S 99": 5,
+    "missing_trigger": 6
+}
 # Annotations with the description 'trigger' are considered as triggers
 regex_trigger_annotation_filter = r"\bResponse\b"
 unwanted_bad_channels = [
@@ -45,15 +54,20 @@ f.import_eeg(
     task=task,
 )
 f.plot_eeg(title="after import")
+
 # Do some preprocessing
 f.highpass(1)
 f.upsample()
 f.plot_eeg(title="after preprocessing")
-results_preprocessed = f.evaluate(f.get_eeg(), measures=evaluation_measures, name="preprocessed")
 
 # Find triggers
 f.find_triggers(regex_trigger_annotation_filter)
 f.find_missing_triggers()
+f._eeg.loaded_triggers[:-1]
+
+# Now as we have triggers, we can evaluate the data
+results_preprocessed = f.evaluate(f.get_eeg(), measures=evaluation_measures, name="preprocessed")
+
 # Now align the triggers
 f.align_triggers(0)
 f.align_subsample(0)
@@ -78,5 +92,9 @@ f.export_eeg(
     event_id=event_id_description_pairs,
 )
 f.plot([results_preprocessed, results_after_aas, results_after_anc], plot_measures=evaluation_measures)
+
+facet_result = FACETResult.from_facet_object(f)
+print(facet_result.get_metadata('_tmin'))
+facet_result.mne_noise.plot()
 
 input("Press Enter to end the script...")

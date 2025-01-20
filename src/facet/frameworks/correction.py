@@ -394,7 +394,7 @@ class CorrectionFramework:
                     f"Applying ANC to Channel {ch_id}:{channel_names_to_modify[key]}"
                 )
                 raw._data[ch_id] = self._anc(
-                    raw._data[ch_id], self._eeg.estimated_noise[key]
+                    raw._data[ch_id], self._eeg.estimated_noise[key], ch_id
                 )
 
         except Exception as ex:
@@ -763,7 +763,7 @@ class CorrectionFramework:
         result = -np.sum((ref - arg) ** 2)
         return result
 
-    def _anc(self, EEG, Noise):
+    def _anc(self, EEG, Noise, ch_id):
         """
         Internal method for Adaptive Noise Cancellation.
 
@@ -789,6 +789,7 @@ class CorrectionFramework:
             logger.error("Warning: ANC failed, skipping ANC.")
         else:
             EEG[s_acq_start:s_acq_end] -= FilteredNoise
+            self._eeg.estimated_noise[ch_id][s_acq_start:s_acq_end] += FilteredNoise
 
         return EEG
 
