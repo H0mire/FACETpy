@@ -1,4 +1,3 @@
-import os
 from facet.facet import facet
 from loguru import logger
 import sys
