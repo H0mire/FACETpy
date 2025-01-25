@@ -1,4 +1,5 @@
 from facet.facet import facet
+from facet.utils.facet_result import FACETResult
 
 # It is adviced to add a configuration block here, to keep an overview of the settings used for the analysis.
 # Begin Configuration Block
@@ -29,21 +30,19 @@ f.plot_eeg(start=29)
 f.pre_processing()
 f.find_missing_triggers()
 f.align_triggers(0)
-f.align_subsample(0)
+#f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
-f.get_correction().apply_PCA()
+#f.get_correction().apply_PCA()
 f.post_processing()
 
 f.plot_eeg(start=29)
 # f.plot_eeg(start=29)
 # f.export_eeg('processed_eeg_file.edf')
-f.export_eeg(
-    "example_simple_bids",
-    fmt="bids",
-    subject="muellerj",
-    session="01",
-    task="restingstate",
-    event_id={"trigger": 1},
-)
+#
+
+facet_result = FACETResult.from_facet_object(f)
+print(facet_result.get_metadata('_tmin'))
+facet_result.mne_noise.plot()
+
 input("Press Enter to end the script...")

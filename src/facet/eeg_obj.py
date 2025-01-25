@@ -107,7 +107,7 @@ class EEG:
 
     @property
     def smax(self):
-        return int(np.ceil(self._tmax * self.mne_raw.info["sfreq"]))
+        return self.smin + self.artifact_length
 
     @property
     def tmin(self):
