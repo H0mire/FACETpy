@@ -1,6 +1,5 @@
 from typing import Any, Dict, Optional
 import json
-import os
 from pathlib import Path
 import mne
 from loguru import logger

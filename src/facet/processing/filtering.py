@@ -1,5 +1,4 @@
 from typing import Optional
-import mne
 import numpy as np
 from loguru import logger
 from scipy.signal import firls, filtfilt

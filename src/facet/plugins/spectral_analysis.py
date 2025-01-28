@@ -12,4 +12,4 @@ class SpectralAnalysisPlugin(FACETPlugin):
             raise ValueError("No EEG data loaded")
             
         # Implementation here
-        return spectrogram 
+        return null 

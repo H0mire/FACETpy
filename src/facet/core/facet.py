@@ -6,10 +6,6 @@ from pathlib import Path
 from .metadata import MetadataHandler
 from ..io.loader import EEGLoader
 from ..io.saver import EEGSaver
-from ..processing.triggers import TriggerProcessor
-from ..processing.artifacts import ArtifactProcessor
-from ..processing.filtering import FilterProcessor
-from ..analysis.evaluation import EvaluationProcessor
 from .plugin import PluginManager, FACETPlugin
 
 class FACET:
@@ -22,13 +18,22 @@ class FACET:
         """Initialize FACET instance and its processors."""
         self.raw: Optional[mne.io.Raw] = None
         self.raw_orig: Optional[mne.io.Raw] = None
+
+        from ..processing.triggers import TriggerProcessor
+        from ..processing.alignment import AlignmentProcessor
+        from ..processing.artifacts import ArtifactProcessor
+        from ..processing.filtering import FilterProcessor
+        from ..analysis.evaluation import EvaluationProcessor
+        from ..visualization.plots import Plotter
         
         # Initialize processors
         self._metadata: MetadataHandler = MetadataHandler()
         self.triggers: TriggerProcessor = TriggerProcessor(self)
+        self.alignment: AlignmentProcessor = AlignmentProcessor(self)
         self.artifacts: ArtifactProcessor = ArtifactProcessor(self)
         self.filter: FilterProcessor = FilterProcessor(self)
         self.evaluation: EvaluationProcessor = EvaluationProcessor(self)
+        self.plot: Plotter = Plotter(self)
         
         self._plugin_manager: PluginManager = PluginManager()
         self._plugins: Dict[str, FACETPlugin] = {}

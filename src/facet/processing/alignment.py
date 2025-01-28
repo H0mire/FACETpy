@@ -5,10 +5,12 @@ from loguru import logger
 from scipy.signal import correlate
 from scipy.interpolate import interp1d
 
+from ..core.facet import FACET
+
 class AlignmentProcessor:
     """Handles alignment of triggers and artifacts."""
     
-    def __init__(self, facet):
+    def __init__(self, facet:'FACET'):
         """
         Initialize AlignmentProcessor.
         
@@ -81,7 +83,10 @@ class AlignmentProcessor:
         triggers = self._facet.get_metadata('triggers')
         
         if window_size is None:
-            window_size = self._facet.get_metadata('artifact_window_size', 100)
+            window_size = self._facet.get_metadata('artifact_window_size')
+        
+        if window_size is None:
+            raise ValueError("Window size not specified and could not be determined from metadata")
             
         # Apply subsample shifts using interpolation
         for ch_idx in range(raw.info['nchan']):
