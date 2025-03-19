@@ -20,6 +20,7 @@ from scipy.signal import find_peaks
 import neurokit2 as nk
 import matplotlib.pyplot as plt
 import pandas as pd
+from facet.helpers import bcg_detector
 
 
 # import inst for mne python
@@ -216,118 +217,28 @@ class AnalysisFramework:
 
     def find_triggers_qrs(self, save=False):
         """
-        Find triggers in the EEG data based on the QRS complex of an ECG channel.
+        Find triggers in the EEG data based on the QRS complex of an ECG channel using the BCG detector.
+        This implementation uses a robust QRS peak detection algorithm based on combined adaptive 
+        thresholding techniques from [Christov04, Niazy06].
+
+        Parameters
+        ----------
+        save : bool, optional
+            Whether to save the detected triggers as annotations in the raw object.
+
+        Returns
+        -------
+        None
+            The detected triggers are stored in the EEG object's loaded_triggers attribute.
         """
-
         raw = self._eeg.mne_raw
-        ecg_channels = mne.pick_types(raw.info, meg=False, eeg=False, ecg=True)
-
-        if len(ecg_channels) == 0:
-            # Now check if there are Channels called ECG and warn that there are not marked as ECG
-            ecg_channels = [
-                i
-                for i, ch in enumerate(raw.ch_names)
-                if "ECG" in ch.upper() or "EKG" in ch.upper()
-            ]
-            if len(ecg_channels) == 0:
-                logger.error("No ECG channels found!")
-                return
-            else:
-                logger.warning(
-                    "No ECG channels found! Found channels with ECG in name. Using these channels."
-                )
-
-        ecg_channel = raw.get_data(picks=ecg_channels)
-        ecg_channel = ecg_channel[0]
-        # filter the data
-        start = self._eeg.mne_raw.time_as_index(10)[0]
-        stop = self._eeg.mne_raw.time_as_index(12)[0]
-
-        # Plot the ECG signal
-        plt.title("ECG Before Filtering")
-        plt.plot(ecg_channel[int(start) : int(stop)])
-        plt.show()
-
-        logger.debug("Fitlering ECG signal...")
-
-        # First manually bandpass filter with 5 and 15 hz
-        #  ecg_channel = mne.filter.filter_data(
-        #     ecg_channel,
-        #     raw.info["sfreq"],
-        #     l_freq=5,
-        #     h_freq=15,
-        #     method="fir",
-        #     verbose=False,
-        # )
-
-        for _ in range(10):
-            ecg_channel = nk.ecg_clean(
-                ecg_channel, sampling_rate=raw.info["sfreq"], method="neurokit"
-            )
-
-        # Now Normalize the signal
-        min_val = np.min(ecg_channel)
-        max_val = np.max(ecg_channel)
-        cleaned_norml_ecg = (ecg_channel - min_val) / (max_val - min_val)
-
-        logger.debug("Finding peaks...")
-
-        resampled_by = (
-            self._eeg.mne_raw.info["sfreq"] / self._eeg.mne_raw_orig.info["sfreq"]
-        )
-        # Find the peaks of the ECG signal using scipy.signal.find_peaks
-        # height is set to 0.5 of the maximum value of the signal
-        r_peaks, _ = find_peaks(
-            cleaned_norml_ecg, distance=int(500 * resampled_by), height=0.7
-        )
-
-        # Extracting R-peak indices and converting to integer values
-        r_peaks = np.array(r_peaks).astype(int)
-
-        # Step 5: Detect P-peaks
-        # Delineate the ECG signal to detect P-peaks
-        _, delineate_info = nk.ecg_delineate(
-            cleaned_norml_ecg, r_peaks, sampling_rate=raw.info["sfreq"], method="dwt"
-        )
-        # Extracting P-peak indices and converting to integer values
-        p_peaks = r_peaks
-
-        # ensure that you can use P-peaks as triggers
-        if len(p_peaks) == len(r_peaks):
-            peaks = r_peaks
-        else:
-            peaks = r_peaks
-
-        # For a more comprehensive ECG plot that includes detailed visualization, use nk.ecg_plot:
-        # nk.ecg_plot(signals, info)
-
-        # filter duplicate peaks and sort them
-        peaks = np.unique(peaks)
-        peaks = np.sort(peaks)
-        p_peaks = np.unique(p_peaks)
-        p_peaks = np.sort(p_peaks)
-
-        # Remove all negative peaks
-        peaks = peaks[peaks > 0]
-        p_peaks = p_peaks[p_peaks > 0]
-
-        # Now plot the last two peaks with the ECG signal
-        x_values = np.arange(start, stop)
-        plt.title("ECG After Filtering")
-        plt.plot(x_values, cleaned_norml_ecg[int(start) : int(stop)])
-        plt.scatter(
-            peaks[np.logical_and(peaks > start, peaks < stop)],
-            cleaned_norml_ecg[peaks[np.logical_and(peaks > start, peaks < stop)]],
-            color="red",
-        )
-        plt.show()
-
-        logger.warning(len(cleaned_norml_ecg))
-        logger.warning(max(p_peaks))
-        logger.warning(len(raw.get_data()[0]))
+        
+        # Detect QRS peaks using the BCG detector
+        peaks = bcg_detector.fmrib_qrsdetect(raw)
 
         logger.debug(f"Found {len(peaks)} peaks")
         logger.debug("Loading events...")
+        
         # Create events based on the peak positions
         events = np.zeros((len(peaks), 3))
         events[:, 0] = peaks
@@ -346,6 +257,7 @@ class AnalysisFramework:
                     description=["Trigger"] * len(events),
                 )
             )
+            
         logger.debug("Deriving parameters...")
         self._eeg.volume_gaps = True
         self._derive_art_length()
