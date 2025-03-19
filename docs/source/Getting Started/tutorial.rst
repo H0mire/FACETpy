@@ -34,6 +34,9 @@ Or you can use pip and venv:
    # Mandatory: Install the required packages
    pip install -r requirements.txt
 
+   cd path/to/facet/src
+   pip install -e .
+
 Loading Your EEG Data
 ---------------------
 .. note::

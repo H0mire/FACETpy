@@ -126,7 +126,7 @@ class facet:
         # change to your liking
         self._correction.downsample()
         self._correction.filter(h_freq=70)
-        # self._correction.apply_ANC()
+        self._correction.apply_ANC()
 
     def cut(self):
         self._correction.cut()

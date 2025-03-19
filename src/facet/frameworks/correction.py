@@ -576,12 +576,22 @@ class CorrectionFramework:
             # paste the epochs back to the original data
             fitted_res = np.zeros(len(ch_d_acq))
             for i in range(0, len(epochs)):
-                fitted_res[
-                    np.arange(
-                        self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smin,
-                        self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smax,
-                    )
-                ] = epochs[i]
+                start_pos = self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smin
+                end_pos = self._eeg.loaded_triggers[i] - s_acq_start + self._eeg.smax
+                
+                # Ensure start position is valid
+                if start_pos < 0:
+                    continue  # Skip this epoch if it starts before the data
+                
+                # Adjust end position if it exceeds data length
+                if end_pos > len(ch_d_acq):
+                    epoch_length = len(ch_d_acq) - start_pos
+                    if epoch_length <= 0:
+                        continue  # Skip if no valid data points
+                    fitted_res[start_pos:len(ch_d_acq)] = epochs[i][:epoch_length]
+                else:
+                    # Full epoch fits
+                    fitted_res[start_pos:end_pos] = epochs[i]
 
         else:
             fitted_res = np.zeros(len(ch_d_acq))

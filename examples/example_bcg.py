@@ -27,21 +27,28 @@ f.get_eeg().mne_raw.crop(0, 162)
 
 f.get_analysis().find_triggers(event_regex)
 
-f.plot_eeg(start=29)
 f.pre_processing()
 f.find_missing_triggers()
 f.align_triggers(0)
 #f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
-f.plot_eeg(start=29)
+f.get_correction().apply_PCA()
+f.post_processing()
+f.plot_eeg(start=29, eeg=f.get_eeg().copy())
+
+#now BCG Correction
+f.pre_processing()
 f.get_analysis().find_triggers_qrs(True)
+f.align_triggers(0)
+#f.align_subsample(0)
 f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=False)
-#f.get_correction().apply_PCA()
+f.get_correction().apply_PCA()
 f.post_processing()
-
 f.plot_eeg(start=29)
+f.export_eeg('processed_eeg_file.edf')
+
 # f.plot_eeg(start=29)
 # f.export_eeg('processed_eeg_file.edf')
 #
