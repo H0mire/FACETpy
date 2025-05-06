@@ -1,3 +1,8 @@
+
+.. image:: docs/source/_static/logo.png
+   :align: center
+   :width: 300px
+
 FACET Python Toolbox
 ###################
 
