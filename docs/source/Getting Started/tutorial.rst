@@ -1,4 +1,4 @@
-Getting Started: Averaged Artifact Subtraction (AAS) Correction of BIDS EEG Data
+Getting Started: Averaged Artifact Subtraction (AAS) Correction of EDF EEG Data
 ====================================================================================
 
 Introduction
