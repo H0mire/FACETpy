@@ -6,6 +6,8 @@ mne-bids==0.14
 numpy==1.26.3
 pandas==2.2.0
 scipy==1.11.4
+scikit-learn
+neurokit2
 notebook
 sphinx
 sphinx-rtd-theme
