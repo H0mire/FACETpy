@@ -17,6 +17,7 @@ You can install the required packages using poetry (Recommended):
 
 .. code-block:: bash
    
+   # eg. install it with conda: conda install -c conda-forge poetry=1.4
    poetry install
    poetry shell
 
@@ -109,6 +110,7 @@ If your Dataset contains a Stim Channel (Channel that contains event information
 
    f.find_triggers(regex_trigger_annotation_filter)
    f.find_missing_triggers()
+   results_before_correction = f.evaluate(f.get_eeg(), name="before_correction", measures = evaluation_measures)
 
 .. note::
 
@@ -122,7 +124,7 @@ Before applying AAS, you need to align the triggers so they match their Slice Gr
 
    reference_trigger = 0
    f.align_triggers(reference_trigger)
-   f.get_correction().align_subsample(reference_trigger)
+   f.align_subsample(reference_trigger)
 
 Applying Averaged Artifact Subtraction
 --------------------------------------
@@ -184,9 +186,9 @@ If you want to evaluate the processed EEG data, you can add the EEG data to the 
 
 .. code-block:: python
 
-   f.add_to_evaluate(f.get_eeg(), name="Corrected EEG")
-   results = f.evaluate(plot=True, measures=evaluation_measures)
-   print(results) # Print the evaluation results if you want to see detailed figures
+   results_after_correction = f.evaluate(f.get_eeg(), name="after_correction", measures = evaluation_measures)
+   f.plot([results_before_correction, results_after_correction], plot_measures=evaluation_measures)
+   print(results_after_correction) # Print the evaluation results if you want to see detailed figures
 
 Exporting the Processed EEG Data
 --------------------------------
