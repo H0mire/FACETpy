@@ -65,22 +65,25 @@ clean_epochs, noisy_epochs = estimator.prepare_epochs()
 
 cleaned_data = estimator.clean_data(noisy_epochs)
 
-
-
 eeg_obj.mne_raw_orig.load_data()
 cleaned_raw = eeg_obj.mne_raw_orig.copy()
 # Only update the first 30 channels, keep the rest unchanged
 cleaned_data_reshaped = cleaned_data.transpose(1, 0, 2).reshape(cleaned_data.shape[1], -1)
 n_channels_to_update = cleaned_data_reshaped.shape[0]
-cleaned_raw._data[:n_channels_to_update,eeg_obj.s_first_artifact_start:eeg_obj.s_first_artifact_start+cleaned_data_reshaped.shape[1]] = cleaned_data_reshaped[:n_channels_to_update]
+cleaned_raw._data[:n_channels_to_update,eeg_obj.s_first_artifact_start-1000:eeg_obj.s_first_artifact_start-1000+cleaned_data_reshaped.shape[1]] = cleaned_data_reshaped[:n_channels_to_update]
 
 # Plot comparison of original vs cleaned data for the first channel
+
+
+eeg_obj.mne_raw = cleaned_raw;
+f._eeg = eeg_obj;
+f.lowpass();
 import matplotlib.pyplot as plt
 
 plt.figure(figsize=(15, 8))
-times = cleaned_raw.times
+times = f.get_eeg().mne_raw.times
 plt.plot(times, eeg_obj.mne_raw_orig._data[0, :], label='Original', alpha=0.7)
-plt.plot(times, cleaned_raw._data[0, :], label='Cleaned', alpha=0.7)
+plt.plot(times, f.get_eeg().mne_raw._data[0, :], label='Cleaned', alpha=0.7)
 plt.xlabel('Time (s)')
 plt.ylabel('Amplitude')
 plt.title('Channel 1: Original vs Cleaned EEG Data')
@@ -88,9 +91,6 @@ plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
-
-
-eeg_obj.mne_raw = cleaned_raw;
 
 f.plot_eeg(start=29)
 results_dl = f.evaluate(eeg_obj, measures=evaluation_measures)

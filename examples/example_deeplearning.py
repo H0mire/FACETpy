@@ -101,7 +101,7 @@ try:
     history = estimator.train_model(
         latent_dim=32,  # Adjust based on your needs
         batch_size=32,
-        epochs=30,
+        epochs=100,
         validation_split=0.2
     )
     estimator.save_model("my_artifact_model")
