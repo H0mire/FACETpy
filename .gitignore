@@ -135,3 +135,15 @@ poetry.lock
 
 # Export
 export/
+
+# trained models
+*.pth
+*.weights
+*.h5
+*.hdf5
+*.ckpt
+*.pkl
+*.pt
+*.pth.tar
+*.pth.tar.gz
+*.pth.tar.bz2
