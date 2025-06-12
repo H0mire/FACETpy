@@ -1,6 +1,6 @@
 from facet.facet import facet
 from facet.utils.facet_result import FACETResult
-from facet.frameworks.deeplearning import ArtifactEstimator
+from facet.frameworks.deeplearning_torch import ArtifactEstimator
 import matplotlib.pyplot as plt
 import numpy as np
 import torch

@@ -1,6 +1,6 @@
 from facet.facet import facet
 from facet.utils.facet_result import FACETResult
-from facet.frameworks.deeplearning import ArtifactEstimator
+from facet.frameworks.deeplearning_torch import ArtifactEstimator
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -89,25 +89,23 @@ estimator = ArtifactEstimator(eeg_obj)
 print("Preparing epochs...")
 clean_epochs, noisy_epochs = estimator.prepare_epochs()
 
-# Print some information about the prepared data
-print("\nData Information:")
-print(f"Number of epochs: {estimator.get_data_shape()[0]}")
-print(f"Number of channels: {estimator.get_data_shape()[1]}")
-print(f"Number of timepoints: {estimator.get_data_shape()[2]}")
-
 # 5. Train the model
 print("\nTraining the model...")
 try:
-    history = estimator.train_model(latent_dim=32,  # Adjust based on your needs
-        batch_size=32,
-        epochs=50,
-        validation_split=0.2)
+    history = estimator.train_cascade(
+        epochs_per_stage=500,     # Train each stage for 100 epochs
+        lambda_noise=1.5,         # Use λ = 1.5
+        auto_search_lambda=False
+    )
+
     estimator.save_model("my_artifact_model")
     
     # 6. Plot training history
     plt.figure(figsize=(10, 5))
-    plt.plot(history['loss'], label='Training Loss')
-    plt.plot(history['val_loss'], label='Validation Loss')
+    plt.plot(history['stage1_loss'], label='Training Loss')
+    plt.plot(history['stage1_val_loss'], label='Validation Loss')
+    plt.plot(history['stage2_loss'], label='Training Loss')
+    plt.plot(history['stage2_val_loss'], label='Validation Loss')
     plt.title('Training History')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
