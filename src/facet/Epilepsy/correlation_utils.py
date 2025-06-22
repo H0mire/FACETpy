@@ -344,7 +344,6 @@ def zoom_detected_events(raw, trace, r, peaks, half_win_s=0.4, th_ica=0.85):
 
 
 
-
 def detect_spike_matches(
     raw,
     channel,
@@ -560,3 +559,6 @@ def plot_top_matches_from_results(raw, channel, match_times, match_scores, templ
     for t, score in top_matches:
         print(f"{channel} at {t:.2f}s (score = {score:.2f})")
         plot_match_with_template(raw, channel, [t], template, raw.info["sfreq"])
+
+
+
