@@ -7,41 +7,7 @@ from scipy.signal import find_peaks
 from mne.preprocessing import ICA
 import mne
 from mne.time_frequency import psd_array_welch as psd_welch
-
-def annotate_spike(raw, onset=0.70, duration=0.15, label="spike", plot=True):
-    """
-    Annotate a spike in the raw EEG data and optionally plot it.
-
-    Parameters:
-    - raw: mne.io.Raw
-        The EEG recording.
-    - onset: float
-        Time in seconds where the spike starts.
-    - duration: float
-        Duration of the spike in seconds.
-    - label: str
-        Description for the annotation.
-    - plot: bool
-        Whether to show a plot of the annotated segment.
-
-    Returns:
-    - raw: mne.io.Raw
-        The same raw object with the annotation added.
-    """
-    raw.set_annotations(Annotations(onset=[onset],
-                                    duration=[duration],
-                                    description=[label]))
-
-    if plot:
-        raw.plot(
-            start=0,
-            duration=5,
-            scalings=dict(eeg=100),
-            title=f'Spike Annotation: {label}',
-            show=True
-        )
-
-    return raw
+from scipy.signal import correlate
 
 
 
@@ -308,7 +274,7 @@ def basic_clean(
     ica = ICA(n_components=ica_var, method='fastica', random_state=random_state)
     reject_dict = None
     if reject_uV is not None:
-        reject_dict = dict(eeg=reject_uV * 1e-6)   # µV → V this tells ICA to ignore any  1-second segment where the peak-to-peak amplitude exceeds the threshold reject_uV
+        reject_dict = dict(eeg=reject_uV )   # µV → V this tells ICA to ignore any  1-second segment where the peak-to-peak amplitude exceeds the threshold reject_uV
     ica.fit(raw_ica, reject=reject_dict, verbose=False)
 
     # --- automatic quick picks: extremely high-frequency components (muscle)
@@ -320,26 +286,6 @@ def basic_clean(
     ica.apply(raw_clean)                # remove excluded ICs in-place
 
     return raw_clean, ica
-
-
-
-
-def flag_muscle_ics(ica_obj, raw_obj, hf_band=(30, 90), z_thresh=3.):
-    """Return indices of ICs with unusually high 30–90 Hz power."""
-    sfreq = raw_obj.info['sfreq']
-    sources = ica_obj.get_sources(raw_obj).get_data()
-    psds, freqs = psd_welch(
-        sources,
-        sfreq=sfreq,                
-        fmin=hf_band[0],
-        fmax=hf_band[1],
-        n_fft=int(sfreq * 2),
-        n_overlap=0,
-        verbose=False
-    )          
-    hf_power = psds.mean(axis=1)
-    zscores   = (hf_power - hf_power.mean()) / hf_power.std()
-    return list(np.where(zscores > z_thresh)[0])
 
 
 
@@ -361,12 +307,12 @@ def compute_adaptive_threshold(raw, percentile=99, scale=1.5):
     float
         Adaptive threshold in µV.
     """
-    ptp = raw.get_data(reject_by_annotation='omit').ptp(axis=1) * 1e6  # µV
+    ptp = raw.get_data(reject_by_annotation='omit').ptp(axis=1)  # µV
     return np.percentile(ptp, percentile) * scale
 
 
 
-def scale_eeg_to(raw, target="uV"):
+def scale_eeg_to(raw, target="uV"):  
     """
     Ensure EEG data is scaled to the desired unit ('V' or 'uV').
 
@@ -380,28 +326,37 @@ def scale_eeg_to(raw, target="uV"):
     Returns
     -------
     raw : mne.io.Raw
-        Rescaled EEG.
+        Rescaled EEG with updated unit metadata.
     """
     target = target.lower()
-    if not hasattr(raw, "_orig_units"):
-        print("Warning: Unit metadata not found. No scaling applied.")
-        return raw
 
-    # Normalize unit names
-    orig = raw._orig_units.get("EEG", "").lower()
+    # Ensure metadata exists, defaulting to volts
+    if not hasattr(raw, '_orig_units') or 'EEG' not in raw._orig_units:
+        raw._orig_units = {'EEG': 'V'}
 
+    orig = raw._orig_units.get('EEG', 'V').lower()
+    if orig not in ('v', 'uv'):
+        # fallback assume volts
+        orig = 'v'
+        raw._orig_units['EEG'] = 'V'
+
+    # No conversion needed
     if orig == target:
         print(f"EEG already in {target}. No scaling applied.")
         return raw
 
-    if orig == "v" and target == "uv":
-        print("Scaling EEG from volts → microvolts.")
+    # Perform conversion
+    if orig == 'v' and target == 'uv':
         raw._data *= 1e6
-    elif orig == "uv" and target == "v":
-        print("Scaling EEG from microvolts → volts.")
+        raw._orig_units['EEG'] = 'uV'
+        print("Scaling EEG from volts → microvolts.")
+    elif orig == 'uv' and target == 'v':
         raw._data *= 1e-6
+        raw._orig_units['EEG'] = 'V'
+        print("Scaling EEG from microvolts → volts.")
     else:
-        print(f"Unknown or mismatched units: {orig} → {target}. No scaling.")
+        print(f"Unknown or mismatched units: {orig} → {target}. No scaling applied.")
+
     return raw
 
 
@@ -510,3 +465,384 @@ def plot_top_matches_from_results(raw, channel, match_times, match_scores, templ
     for t, score in top_matches:
         print(f"{channel} at {t:.2f}s (score = {score:.2f})")
         plot_match_with_template(raw, channel, [t], template, raw.info["sfreq"])
+
+
+
+
+def build_template(raw, spike_sec, half_win_s=0.15):
+    sf   = raw.info['sfreq']
+    hw   = int(round(half_win_s * sf))
+    idxs = (np.array(spike_sec) * sf).astype(int)
+
+    # 1) pick channel with largest total pp
+    n_ch = raw.info['nchan']
+    pp  = np.zeros(n_ch)
+    for ch in range(n_ch):
+        for i in idxs:
+            if 0 <= i-hw < raw.n_times and i+hw <= raw.n_times:
+                pp[ch] += raw._data[ch, i-hw:i+hw].ptp()
+    best_ch = pp.argmax()
+
+    # 2) average all ±hw segments
+    segs = [raw._data[best_ch, i-hw:i+hw] for i in idxs
+            if 0 <= i-hw < raw.n_times and i+hw <= raw.n_times]
+    T    = np.stack(segs).mean(axis=0)
+
+    # 3) peak-align so the largest absolute deflection is at center
+    half_len = len(T)//2
+    peak_idx = np.abs(T).argmax()
+    shift    = peak_idx - half_len
+    T        = np.roll(T, -shift)
+
+    # 4) z-score
+    template_z = (T - T.mean()) / T.std()
+
+    # 5) sanity‐check plot
+    times = np.linspace(-half_win_s*1000, half_win_s*1000, len(T))
+    plt.figure(figsize=(5,4))
+    plt.plot(times, template_z, lw=1.4)
+    plt.axvline(0, ls='--', c='C0')
+    plt.title("Template (z-scored & peak-aligned)")
+    plt.xlabel("Time (ms)"); plt.tight_layout(); plt.show()
+
+    return best_ch, template_z, shift
+
+
+
+def pearson_r(signal, template_z):
+    """
+    Sample-wise Pearson correlation between 1-D `signal`
+    and zero-mean/unit-std template `template_z` (length L).
+    Returns r(t) in [-1, +1], same length as signal.
+    """
+    L = len(template_z)
+
+    # Numerator = cross-corr
+    num = correlate(signal, template_z[::-1], mode='same')
+
+    # Local mean & std via convolution
+    kernel = np.ones(L) / L
+    mean   = np.convolve(signal,    kernel, mode='same')
+    mean2  = np.convolve(signal**2, kernel, mode='same')
+    std    = np.sqrt(np.maximum(mean2 - mean**2, 1e-12))
+
+    r = num / (L * std)            # template std = 1
+    r[~np.isfinite(r)] = 0
+    return r
+
+def find_best_ica(raw, template_z, half_shift,
+                  n_components=25, random_state=97):
+    """
+    Compute ICA, then pick the component whose Pearson r(t) 
+    has the highest peak |r| anywhere in the recording.
+
+    Returns
+    -------
+    best_idx   : int       index of the chosen ICA component
+    best_trace : ndarray   that component's time series (µV)
+    best_r     : ndarray   its Pearson r(t) with the template
+    """
+    import numpy as np
+    from mne.preprocessing import ICA
+
+    # 1) fit ICA on a 1+ Hz high-passed copy
+    ica = ICA(n_components=n_components,
+              random_state=random_state,
+              max_iter="auto")
+    ica.fit(raw.copy().filter(1., None))
+
+    # 2) grab all component time-series
+    sources = ica.get_sources(raw).get_data()  # (n_comp, n_times)
+
+    best_idx, best_peak = None, -np.inf
+    best_r,   best_trace = None, None
+    
+    
+    # 3) slide-correlate each component against the template
+    for comp_idx, comp in enumerate(sources):
+        r = pearson_r(comp, template_z)
+        r = np.roll(r, -half_shift)
+        peak = np.max(np.abs(r))
+        if peak > best_peak:
+            best_peak, best_idx = peak, comp_idx
+            best_r, best_trace = r, comp
+
+    return best_idx, best_trace, best_r
+
+        
+def compute_spike_regressors(raw, spike_sec,
+                             half_win_s=0.10,
+                             th_raw=0.30, th_ica=0.85,
+                             min_dist_s=0.3,
+                             match_tol_s=0.2):
+    """
+    Build template, compute r_raw & r_ica, pick discrete spike events,
+    and then match them back to your annotated times with a tolerance.
+
+    Returns
+    -------
+    template_z   : ndarray   z-scored spike template
+    r_raw        : ndarray   continuous r(t) on best scalp channel
+    r_ica        : ndarray   continuous r(t) on best ICA component
+    peaks_raw    : ndarray   sample-indices of raw-channel spikes
+    peaks_ica    : ndarray   sample-indices of ICA-component spikes
+    best_ch      : int       scalp channel index used for template
+    best_ica_idx : int       ICA component index
+    caught       : list      annotated times that were detected
+    missed       : list      annotated times that were *not* detected
+    """
+    import numpy as np
+    from scipy.signal import find_peaks
+    import matplotlib.pyplot as plt
+
+    sfreq = raw.info['sfreq']
+    # 1) build template…
+    best_ch, template_z, half_shift = build_template(raw, spike_sec, half_win_s)
+
+    # 2) raw‐channel correlation…
+    sig   = raw.get_data(picks=[best_ch])[0]
+    sig_z = (sig - sig.mean())/sig.std()
+    r_raw = pearson_r(sig_z, template_z)
+    r_raw = np.roll(r_raw, -half_shift)
+
+    # 3) ICA correlation…
+    best_ica_idx, ica_trace, r_ica = find_best_ica(raw, template_z, half_shift)
+
+    # 4) pick peaks
+    dist_s       = int(min_dist_s * sfreq)
+    peaks_raw, _ = find_peaks(r_raw, height=th_raw, distance=dist_s)
+    peaks_ica, _ = find_peaks(r_ica, height=th_ica, distance=dist_s)
+
+    # 5) match back into caught / missed
+    tol_s    = match_tol_s
+    tol_samp = int(tol_s * sfreq)
+    caught, missed = [], []
+    for t0 in spike_sec:
+        idx0 = int(round(t0 * sfreq))
+        if np.any(np.abs(peaks_ica - idx0) <= tol_samp):
+            caught.append(t0)
+        else:
+            missed.append(t0)
+
+    print(f"Caught  {len(caught)}/{len(spike_sec)} spikes within ±{tol_s}s:")
+    print("  → caught:", caught)
+    print("  → missed:", missed)
+
+    # 6) final summary plot
+    times = np.arange(raw.n_times)/sfreq
+    plt.figure(figsize=(10,3))
+    plt.plot(times, ica_trace, label=f"ICA {best_ica_idx} (µV)")
+    plt.plot(times, r_ica*20, label="r(t)×20")
+    for s in spike_sec:
+        plt.axvline(s, ls='--', c='C3', alpha=0.7)
+    plt.scatter(peaks_ica/sfreq,
+                np.full_like(peaks_ica, th_ica*20),
+                marker='v', c='C1', label='detected')
+    plt.legend(loc='upper right')
+    plt.xlabel("Time (s)")
+    plt.title("ICA vs annotations & detections")
+    plt.tight_layout()
+    plt.show()
+
+    return (template_z, r_raw, r_ica,
+            peaks_raw, peaks_ica,
+            best_ch, best_ica_idx,
+            caught, missed)
+
+
+def plot_ica_with_annotations(raw, ica_trace, peaks_ica, spike_sec,
+                              match_tol_s=0.1, tmin=0, tmax=None ):
+    """
+    raw         : mne.io.Raw    (just to get sfreq and times)
+    ica_trace   : 1D array (n_times,) your chosen ICA component (µV)
+    peaks_ica   : 1D int array    sample indices where you ran find_peaks()
+    spike_sec   : list of floats  manual annotation times in seconds
+    match_tol_s : float           tolerance window for a “hit”
+    tmin,tmax   : floats          time range to plot (in seconds)
+    """
+    sf = raw.info['sfreq']
+    times = np.arange(ica_trace.size) / sf
+    if tmax is None:
+        tmax = times[-1]
+    # convert peaks to times
+    peaks_t = peaks_ica / sf
+
+    # full overview
+    fig, ax = plt.subplots(figsize=(12,3))
+    ax.plot(times, ica_trace, color='C0', lw=0.6, label='ICA trace (µV)')
+    ax.scatter(peaks_t, np.interp(peaks_t, times, ica_trace),
+               marker='v', color='C1', label='Detected peaks')
+    ax.vlines(spike_sec, ica_trace.min(), ica_trace.max(),
+              color='C3', linestyle='--', alpha=0.7, label='Annotations')
+    ax.set_xlim(tmin, tmax)
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Amplitude (µV)')
+    ax.set_title('ICA component vs annotated spikes & detected events')
+    ax.legend(loc='upper right')
+    plt.tight_layout()
+    plt.show()
+
+    # now zoom in on the first few annotations
+    for s in spike_sec[:5]:
+        window = match_tol_s * 5  # e.g. 5× your tolerance
+        sel = (times >= s-window) & (times <= s+window)
+        fig, ax = plt.subplots(figsize=(6,3))
+        ax.plot(times[sel], ica_trace[sel], color='C0', lw=1)
+        # detected peaks in window
+        sel_peaks = peaks_t[(peaks_t >= s-window) & (peaks_t <= s+window)]
+        ax.scatter(sel_peaks,
+                   np.interp(sel_peaks, times, ica_trace),
+                   marker='v', color='C1')
+        ax.axvline(s, color='C3', linestyle='--', label='Annotation')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('µV')
+        ax.set_title(f'Zoom around manual spike @ {s:.2f}s')
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+
+
+def quick_spike_overview(raw, spike_sec, highlight_ch, window_s=0.4, n_spikes=3):
+    """
+    Plot all channels ±window_s/2 around the first n_spikes annotated events,
+    highlighting a single channel in red with its name in the legend.
+    
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Your EEG data (µV).
+    spike_sec : list of float
+        Annotated spike times in seconds.
+    highlight_ch : int
+        Index of the channel to highlight/label.
+    window_s : float
+        Length of window in seconds (default 0.4 s).
+    n_spikes : int
+        How many spikes (rows) to plot.
+    """
+    sf = raw.info['sfreq']
+    half = int(window_s * sf / 2)
+    data = raw.get_data()  # shape (n_ch, n_times)
+    ch_names = raw.ch_names
+    
+    t_axis = np.arange(-half, half) / sf * 1e3  # milliseconds
+
+    fig, axes = plt.subplots(n_spikes, 1, figsize=(8, 2.5*n_spikes), sharex=True)
+    if n_spikes == 1:
+        axes = [axes]
+
+    for ax, sec in zip(axes, spike_sec[:n_spikes]):
+        idx = int(round(sec * sf))
+        start, stop = idx-half, idx+half
+        if start < 0 or stop > data.shape[1]:
+            ax.text(0.5, 0.5, "Spike too close to edge", ha='center')
+            continue
+
+        # Plot all channels in light grey
+        for ch in range(data.shape[0]):
+            ax.plot(t_axis, data[ch, start:stop],
+                    color='grey', alpha=0.4, linewidth=0.5)
+
+        # Overplot the highlighted channel in red
+        ax.plot(t_axis, data[highlight_ch, start:stop],
+                color='red', linewidth=1.5,
+                label=f"{ch_names[highlight_ch]}")
+
+        ax.axvline(0, color='k', ls='--')
+        ax.set_ylabel(f"Spike @ {sec:.2f}s")
+        ax.legend(loc='upper right')
+
+    axes[-1].set_xlabel("Time (ms)")
+    fig.tight_layout()
+    plt.show()
+    plt.close("all")
+
+
+
+
+def list_top_spike_channels(raw, spike_sec, half_win_s=0.10, top_n=5):
+    """
+    Identify the top N EEG channels by average peak-to-peak amplitude around annotated spikes.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Continuous EEG data, assumed in microvolts (µV).
+    spike_sec : list of float
+        Spike annotation times in seconds.
+    half_win_s : float
+        Half-window length in seconds for P–P calculation (default ±0.10 s).
+    top_n : int
+        Number of top channels to return (default 5).
+
+    Returns
+    -------
+    top_channels : list of tuples
+        List of (index, name, mean_pp) for the top N channels, sorted descending.
+    """
+    sfreq = raw.info['sfreq']
+    half_samples = int(round(half_win_s * sfreq))
+    idxs = (np.array(spike_sec) * sfreq).astype(int)
+
+    n_ch = raw.info['nchan']
+    data = raw.get_data()  # shape (n_ch, n_times), µV
+
+    mean_pp = np.zeros(n_ch)
+    for ch in range(n_ch):
+        pps = []
+        for idx in idxs:
+            start, stop = idx - half_samples, idx + half_samples
+            if 0 <= start and stop <= data.shape[1]:
+                segment = data[ch, start:stop]
+                pps.append(np.ptp(segment))
+        mean_pp[ch] = np.mean(pps) if pps else 0
+
+    order = np.argsort(mean_pp)[::-1]
+    top = [(int(ch), raw.ch_names[ch], float(mean_pp[ch])) for ch in order[:top_n]]
+    return top
+
+
+def zoom_detected_events(raw, trace, r, peaks, half_win_s=0.4, th_ica=0.85):
+    """
+    Loop over detected peaks and plot each event in a zoomed-in window.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        EEG object (used for sampling frequency).
+    trace : ndarray, shape (n_times,)
+        The time series (e.g., ICA component) in µV.
+    r : ndarray, shape (n_times,)
+        Continuous correlation trace r(t).
+    peaks : array-like of int
+        Sample indices of detected events.
+    half_win_s : float
+        Total window length in seconds (default 0.4s).
+    th_ica : float
+        Threshold used for detection (for plotting reference lines).
+    """
+    import matplotlib.pyplot as plt
+    sfreq = raw.info['sfreq']
+    t = np.arange(trace.size) / sfreq
+    half_samples = int(round(half_win_s/2 * sfreq))
+    
+    for idx in peaks:
+        center = idx / sfreq
+        start = idx - half_samples
+        stop = idx + half_samples
+        if start < 0 or stop > trace.size:
+            continue
+        sel = slice(start, stop)
+        fig, ax = plt.subplots(figsize=(6,3))
+        ax.plot(t[sel], trace[sel], label='ICA trace (µV)')
+        ax.plot(t[sel], r[sel]*20, label='r(t) × 20', lw=1)
+        ax.axvline(center, color='red', linestyle=':')
+        ax.axhline(th_ica*20, ls='--', color='gray')
+        ax.axhline(-th_ica*20, ls='--', color='gray')
+        ax.set_xlabel('Time (s)')
+        ax.set_title(f'Spike at {center:.2f}s')
+        ax.legend(loc='upper right')
+        plt.tight_layout()
+        plt.show()
