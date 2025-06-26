@@ -9,6 +9,8 @@ import mne
 from mne.time_frequency import psd_array_welch as psd_welch
 from scipy.signal import correlate
 from facet.Epilepsy.shared_utils import build_template
+from mne.filter import filter_data
+from scipy.stats import kurtosis
 
 def pearson_r(signal, template_z):
     """
@@ -31,119 +33,112 @@ def pearson_r(signal, template_z):
     r[~np.isfinite(r)] = 0
     return r
 
+
 def find_best_ica(raw, template_z, half_shift,
-                  n_components=25, random_state=97):
+                  spike_sec, half_win_s=0.10):
     """
-    Compute ICA, then pick the component whose Pearson r(t) 
-    has the highest peak |r| anywhere in the recording.
-
+    Ebrahimzade 2021 version:
+        • fit ICA  (1–40 Hz copy)
+        • keep first 3 ICs with kurtosis ≥ 3
+        • sum them, band-pass 3–25 Hz
+        • correlate (|r|) with the template
     Returns
     -------
-    best_idx   : int       index of the chosen ICA component
-    best_trace : ndarray   that component's time series (µV)
-    best_r     : ndarray   its Pearson r(t) with the template
+    keep_idx : list[int]      indices of ICs used
+    comp_bp  : 1-D ndarray    composite IC trace (µV, 3–25 Hz)
+    r_abs    : 1-D ndarray    |r|(t) aligned with raw
     """
+    sf   = raw.info['sfreq']
+    hw   = int(round(half_win_s * sf))
 
-    # 1) fit ICA on a 1+ Hz high-passed copy
-    ica = ICA(n_components=n_components,
-              random_state=random_state,
-              max_iter="auto")
-    ica.fit(raw.copy().filter(1., None))
+    # 1) ICA on 1-40 Hz copy
+    ica = mne.preprocessing.ICA(
+            n_components=min(20, raw.info['nchan']),
+            random_state=97, method='fastica', max_iter='auto')
+    ica.fit(raw.copy().filter(1., 40., picks='eeg'))
+    S = ica.get_sources(raw).get_data()          # shape (n_comp, n_times)
 
-    # 2) grab all component time-series
-    sources = ica.get_sources(raw).get_data()  # (n_comp, n_times)
+    # 2) keep first 3 peaky ICs
+    keep_idx = np.where(kurtosis(S, axis=1, fisher=False) >= 3)[0]
+    if keep_idx.size == 0:                       # fallback: most-kurtotic IC
+        keep_idx = np.array([np.argmax(kurtosis(S, axis=1, fisher=False))])
 
-    best_idx, best_peak = None, -np.inf
-    best_r,   best_trace = None, None
-    
-    
-    # 3) slide-correlate each component against the template
-    for comp_idx, comp in enumerate(sources):
-        r = pearson_r(comp, template_z)
-        r = np.roll(r, -half_shift)
-        peak = np.max(np.abs(r))
-        if peak > best_peak:
-            best_peak, best_idx = peak, comp_idx
-            best_r, best_trace = r, comp
+    # 3) composite trace  → 3–25 Hz
+    comp      = S[keep_idx].sum(axis=0)
+    comp_bp   = filter_data(comp, sf, 3., 25., verbose=False)
 
-    return best_idx, best_trace, best_r
+    # 4) correlation |r|
+    r = np.roll(pearson_r(comp_bp, template_z), -half_shift)
+    r_abs = np.abs(r)                            # 0 … 1
 
-        
+    return keep_idx.tolist(), comp_bp.ravel(), r_abs.ravel()
+
+
 def compute_spike_regressors(raw, spike_sec,
-                             half_win_s=0.10,
-                             th_raw=0.30, th_ica=0.85,
-                             min_dist_s=0.3,
-                             match_tol_s=0.2):
+                             half_win_s=0.15,
+                             th_raw=0.35,
+                             match_tol_s=0.1):
     """
-    Build template, compute r_raw & r_ica, pick discrete spike events,
-    and then match them back to your annotated times with a tolerance.
+    Ebrahimzade 2021 implementation:
+      • build spike template on best scalp channel
+      • corr(template, best channel) → r_raw   (aux plot)
+      • find_best_ica() returns:
+            keep_idx   : list of IC indices used
+            ica_trace  : composite IC (band-passed 3–25 Hz)
+            r_ica      : |r|(t) on that trace, 0…1
+      • adaptive gate  th_ica = 0.75 * r_ica.max()
+      • peaks: find local maxima ≥ th_ica, refractory 0.2 s
+      • match detections to annotations within ±match_tol_s
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from scipy.signal import find_peaks
 
-    Returns
-    -------
-    template_z   : ndarray   z-scored spike template
-    r_raw        : ndarray   continuous r(t) on best scalp channel
-    r_ica        : ndarray   continuous r(t) on best ICA component
-    peaks_raw    : ndarray   sample-indices of raw-channel spikes
-    peaks_ica    : ndarray   sample-indices of ICA-component spikes
-    best_ch      : int       scalp channel index used for template
-    best_ica_idx : int       ICA component index
-    caught       : list      annotated times that were detected
-    missed       : list      annotated times that were *not* detected
-    """
-    
-  
     sfreq = raw.info['sfreq']
-    # 1) build template…
-    best_ch, template_z, half_shift = build_template(raw, spike_sec, half_win_s)
 
-    # 2) raw‐channel correlation…
+    # 1  template
+    best_ch, template_z, half_shift, spike_sec_refined = \
+    build_template(raw, spike_sec, half_win_s=0.15, return_refined=True)
+
+    # 2  raw-channel correlation (auxiliary)
     sig   = raw.get_data(picks=[best_ch])[0]
-    sig_z = (sig - sig.mean())/sig.std()
-    r_raw = pearson_r(sig_z, template_z)
-    r_raw = np.roll(r_raw, -half_shift)
+    sig_z = (sig - sig.mean()) / sig.std()
+    r_raw = pearson_r(sig_z, template_z)        # centre already aligned
 
-    # 3) ICA correlation…
-    best_ica_idx, ica_trace, r_ica = find_best_ica(raw, template_z, half_shift)
+    # 3  ICA composite + correlation (|r|)
+    keep_idx, ica_trace, r_ica = find_best_ica(
+        raw, template_z, half_shift, spike_sec_refined, half_win_s)
 
-    # 4) pick peaks
-    dist_s       = int(min_dist_s * sfreq)
-    peaks_raw, _ = find_peaks(r_raw, height=th_raw, distance=dist_s)
-    peaks_ica, _ = find_peaks(r_ica, height=th_ica, distance=dist_s)
+    # 4  adaptive threshold & peak picking 
+    th_ica   = 0.75 * r_ica.max()
+    min_dist = int(0.15 * sfreq)
+    peaks_raw, _ = find_peaks(r_raw, height=th_raw, distance=min_dist)
+    peaks_ica, _ = find_peaks(r_ica, height=th_ica, distance=min_dist)
 
-    # 5) match back into caught / missed
-    tol_s    = match_tol_s
-    tol_samp = int(tol_s * sfreq)
-    caught, missed = [], []
-    for t0 in spike_sec:
-        idx0 = int(round(t0 * sfreq))
-        if np.any(np.abs(peaks_ica - idx0) <= tol_samp):
+    refractory = int(0.15 * sfreq)           # 150 ms
+    merged = []
+    for p in peaks_ica:
+        if not merged or p - merged[-1] > refractory:
+            merged.append(p)
+    peaks_ica = np.array(merged, int)
+    # 5  match detections to manual spikes
+    tol_samp = int(match_tol_s * sfreq)
+    caught   = []
+    missed   = []
+    for t0 in spike_sec_refined:
+        i0 = int(round(t0 * sfreq))
+        if np.any(np.abs(peaks_ica - i0) <= tol_samp):
             caught.append(t0)
         else:
             missed.append(t0)
 
-    print(f"Caught  {len(caught)}/{len(spike_sec)} spikes within ±{tol_s}s:")
-    print("  → caught:", caught)
-    print("  → missed:", missed)
+    print(f"r_ica max = {r_ica.max():.3f}   th_ica = {th_ica:.3f}")
+    print(f"Caught {len(caught)}/{len(spike_sec_refined)} spikes within ±{match_tol_s}s")
 
-    # 6) final summary plot
-    times = np.arange(raw.n_times)/sfreq
-    plt.figure(figsize=(10,3))
-    plt.plot(times, ica_trace, label=f"ICA {best_ica_idx} (µV)")
-    plt.plot(times, r_ica*20, label="r(t)×20")
-    for s in spike_sec:
-        plt.axvline(s, ls='--', c='C3', alpha=0.7)
-    plt.scatter(peaks_ica/sfreq,
-                np.full_like(peaks_ica, th_ica*20),
-                marker='v', c='C1', label='detected')
-    plt.legend(loc='upper right')
-    plt.xlabel("Time (s)")
-    plt.title("ICA vs annotations & detections")
-    plt.tight_layout()
-    plt.show()
 
     return (template_z, r_raw, r_ica,
             peaks_raw, peaks_ica,
-            best_ch, best_ica_idx,
+            best_ch, keep_idx,
             caught, missed)
 
 
@@ -344,90 +339,6 @@ def zoom_detected_events(raw, trace, r, peaks, half_win_s=0.4, th_ica=0.85):
 
 
 
-def detect_spike_matches(
-    raw,
-    channel,
-    template,
-    threshold_ratio=0.8,
-    min_distance_sec=0.3,
-    threshold_uV=None,
-    normalize=True,
-    verbose=False,
-):
-    """
-    Detect spike-like events in a signal using normalized cross-correlation with a template.
-    
-    Parameters
-    ----------
-    raw : mne.io.Raw
-        Cleaned EEG data.
-    channel : str
-        Name of the EEG channel to search in.
-    template : np.ndarray
-        1D spike template in µV.
-    threshold_ratio : float
-        Minimum correlation to consider a match (typically 0.6–0.9).
-    min_distance_sec : float
-        Minimum time between matches in seconds.
-    threshold_uV : float or None
-        Minimum peak-to-peak amplitude to consider the segment (optional).
-    normalize : bool
-        Whether to z-score normalize both template and signal segments.
-    verbose : bool
-        Print match info and rejection reasons.
-
-    Returns
-    -------
-    match_times : list of float
-        Time points (in seconds) where a spike match was found.
-    match_scores : list of float
-        Corresponding match scores (normalized correlation).
-    """
-    signal = raw.get_data(picks=[channel])[0]
- 
-    sfreq = raw.info['sfreq']
-    template_len = len(template)
-    min_distance = int(min_distance_sec * sfreq)
-    half_len = template_len // 2
-
-    # Normalize template (once)
-    template_pos = (template - np.mean(template)) / np.std(template) if normalize else template
-    template_neg = -template_pos
-
-    match_times = []
-    match_scores = []
-
-    # Slide window across signal
-    for i in range(half_len, len(signal) - half_len, min_distance):
-        segment = signal[i - half_len : i + half_len]
-        if len(segment) != template_len:
-            continue  # Skip bad edges
-
-        # Reject low-amplitude segments if threshold is set
-        if threshold_uV and np.ptp(segment) < threshold_uV:
-            if verbose:
-                print(f"Rejected at {i/sfreq:.2f}s due to low amplitude ({np.ptp(segment):.1f} µV)")
-            continue
-
-        # Normalize segment
-        segment_norm = (segment - np.mean(segment)) / np.std(segment) if normalize else segment
-
-        # Correlate with template and inverted template
-        score = max(
-            np.dot(segment_norm, template_pos),
-            np.dot(segment_norm, template_neg)
-        ) / template_len
-
-        if score >= threshold_ratio:
-            match_times.append(i / sfreq)
-            match_scores.append(score)
-            if verbose:
-                print(f"Match at {i/sfreq:.2f}s (score = {score:.2f})")
-
-    return match_times, match_scores
-
-
-
 def plot_match_with_template(raw, channel, match_times, template, sfreq, window=0.3):
     """
     Plot signal segments around matches with spike template overlayed.
@@ -470,95 +381,6 @@ def normalize_signal(sig):
     """Zero-mean, unit-variance normalization."""
     return (sig - np.mean(sig)) / np.std(sig)
 
-
-
-def backproject_ic_to_sensor(template_ic, ic_idx, raw, ica, sensor):
-    """Project 1D IC template back to EEG space and return signal from one channel."""
-    topo = ica.mixing_matrix_[:, ic_idx]
-    projected = np.outer(topo, template_ic)  # shape: (n_channels, n_time)
-    return projected[raw.ch_names.index(sensor)]
-
-
-
-def find_spike_matches_all_channels(raw, template, threshold_ratio=0.8, verbose=False):
-    """
-    Detect spike matches across all EEG channels and find the best individual match.
-
-    Parameters
-    ----------
-    raw : mne.io.Raw
-        Scaled EEG data.
-    template : np.ndarray
-        1D template (in microvolts).
-    threshold_ratio : float
-        Correlation threshold for accepting matches.
-    verbose : bool
-        If True, print match info.
-
-    Returns
-    -------
-    channel_scores : dict
-        Channel → number of matches.
-    top_channel : str
-        Channel with best individual match.
-    top_time : float
-        Time of best match (in seconds).
-    top_score : float
-        Best individual match score.
-    """
-    from collections import defaultdict
-    import numpy as np
-
-    channel_scores = defaultdict(int)
-    top_score = -np.inf
-    top_channel = None
-    top_time = None
-
-    for ch in raw.info['ch_names']:
-        match_times, match_scores = detect_spike_matches(
-            raw, ch, template, threshold_ratio=threshold_ratio, verbose=verbose
-        )
-        channel_scores[ch] = len(match_times)
-
-        if match_scores:
-            max_idx = np.argmax(match_scores)
-            if match_scores[max_idx] > top_score:
-                top_score = match_scores[max_idx]
-                top_channel = ch
-                top_time = match_times[max_idx]
-
-    return channel_scores, top_channel, top_time, top_score
-
-
-def plot_top_matches_from_results(raw, channel, match_times, match_scores, template, top_n=5):
-    """
-    Plot the top N spike matches from already detected results.
-
-    Parameters
-    ----------
-    raw : mne.io.Raw
-        Cleaned EEG data.
-    channel : str
-        Channel name.
-    match_times : list of float
-        Detected spike match times (in seconds).
-    match_scores : list of float
-        Corresponding match scores.
-    template : np.ndarray
-        Template waveform in µV.
-    top_n : int
-        Number of top matches to plot.
-    """
-    if not match_scores:
-        print(f"No matches to plot for channel {channel}.")
-        return
-
-    top_matches = sorted(zip(match_times, match_scores), key=lambda x: x[1], reverse=True)[:top_n]
-
-    print(f"\nTop {len(top_matches)} matches in {channel}:")
-    for t, score in top_matches:
-        print(f"{channel} at {t:.2f}s (score = {score:.2f})")
-        plot_match_with_template(raw, channel, [t], template, raw.info["sfreq"])
 
 
 

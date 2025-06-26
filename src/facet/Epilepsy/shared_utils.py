@@ -1,40 +1,54 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import detrend
 
-def build_template(raw, spike_sec, half_win_s=0.15):
+def build_template(raw, spike_sec, half_win_s=0.15, return_refined=False):
+    """
+    Builds a peak-aligned, polarity-standardised template.
+    Any annotation lag is removed automatically by re-centering each
+    snippet on its own largest absolute deflection.
+    """
     sf   = raw.info['sfreq']
     hw   = int(round(half_win_s * sf))
-    idxs = (np.array(spike_sec) * sf).astype(int)
+    idxs = (np.asarray(spike_sec) * sf).astype(int)
 
-    # 1) pick channel with largest total pp
-    n_ch = raw.info['nchan']
-    pp  = np.zeros(n_ch)
-    for ch in range(n_ch):
-        for i in idxs:
-            if 0 <= i-hw < raw.n_times and i+hw <= raw.n_times:
-                pp[ch] += raw._data[ch, i-hw:i+hw].ptp()
-    best_ch = pp.argmax()
+    # 1)   choose channel with largest cumulative P-P
+    pp = [sum(raw._data[ch, i-hw:i+hw].ptp()
+              for i in idxs if 0 <= i-hw < raw.n_times <= i+hw)
+          for ch in range(raw.info['nchan'])]
+    best_ch = int(np.argmax(pp))
 
-    # 2) average all ±hw segments
-    segs = [raw._data[best_ch, i-hw:i+hw] for i in idxs
-            if 0 <= i-hw < raw.n_times and i+hw <= raw.n_times]
-    T    = np.stack(segs).mean(axis=0)
+    segs, refined_times = [], []
+    for i in idxs:
+        if 0 <= i-hw and i+hw <= raw.n_times:
+            seg = raw._data[best_ch, i-hw:i+hw].astype(float, copy=True)
+            seg = detrend(seg, type='linear')            # baseline
+            # flip so main spike is positive
+            if np.abs(seg.min()) > np.abs(seg.max()):
+                seg *= -1
 
-    # 3) peak-align so the largest absolute deflection is at center
-    half_len = len(T)//2
-    peak_idx = np.abs(T).argmax()
-    shift    = peak_idx - half_len
-    T        = np.roll(T, -shift)
+            # ---- NEW: roll so largest |deflection| is at centre ----
+            peak_idx = np.abs(seg).argmax()
+            centre   = len(seg)//2
+            shift    = centre - peak_idx
+            seg      = np.roll(seg, shift)
+            refined_times.append((i + shift) / sf)       # optional
 
-    # 4) z-score
+            segs.append(seg)
+
+    T = np.mean(segs, axis=0)
+
+    # z-score
     template_z = (T - T.mean()) / T.std()
 
-    # 5) sanity‐check plot
-    times = np.linspace(-half_win_s*1000, half_win_s*1000, len(T))
-    plt.figure(figsize=(5,4))
-    plt.plot(times, template_z, lw=1.4)
-    plt.axvline(0, ls='--', c='C0')
-    plt.title("Template (z-scored & peak-aligned)")
-    plt.xlabel("Time (ms)"); plt.tight_layout(); plt.show()
+    # quick look
+    times = np.linspace(-half_win_s*1e3, half_win_s*1e3, len(T))
+    plt.figure(figsize=(4.5,3))
+    plt.plot(times, template_z); plt.axvline(0, ls='--', c='k')
+    plt.title('IED template'); plt.xlabel('Time (ms)'); plt.tight_layout(); plt.show()
 
-    return best_ch, template_z, shift
+    shift = 0                       # already centred
+    if return_refined:
+        return best_ch, template_z, shift, refined_times
+    else:
+        return best_ch, template_z, shift

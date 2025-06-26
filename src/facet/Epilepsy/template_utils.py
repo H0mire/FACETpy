@@ -55,86 +55,6 @@ def extract_spike_windows(raw, spike_times_s, channel=0, half_win_s=0.15):
     plt.show()
     return segments, times
 
-def extract_template(raw: Raw, channel: str, start_time: float, end_time: float, normalize: bool = True, plot: bool = True):
-    """
-    Extract a spike template from the EEG data.
-
-    Parameters:
-    - raw: mne.io.Raw object
-    - channel: str, EEG channel name to extract from (e.g., "F3")
-    - start_time: float, start time in seconds
-    - end_time: float, end time in seconds
-    - normalize: bool, whether to normalize the template
-    - plot: bool, whether to plot the template
-
-    Returns:
-    - template (np.ndarray): the extracted (and optionally normalized) waveform
-    """
-    sfreq = raw.info['sfreq']
-    start_sample = int(start_time * sfreq)
-    end_sample = int(end_time * sfreq)
-
-    channel_index = raw.ch_names.index(channel)
-    template_data = raw.get_data(picks=[channel_index])[0, start_sample:end_sample]
-
-    if normalize:
-        template_data = (template_data - np.mean(template_data)) / np.std(template_data)
-
-    if plot:
-        times = np.linspace(start_time, end_time, len(template_data))
-        plt.plot(times, template_data)
-        plt.title(f"Template from {channel} ({start_time:.2f}–{end_time:.2f}s)")
-        plt.xlabel("Time (s)")
-        plt.ylabel("Amplitude (\u00b5V)")
-        plt.grid(True)
-        plt.show()
-
-    return template_data
-
-
-
-def find_spike_template(raw, channel="F3", threshold=100, window=0.15):
-    """
-    Automatically find a spike in the given EEG channel and extract a template.
-    
-    Parameters:
-        raw: MNE Raw object
-        channel: channel name to search in
-        threshold: amplitude threshold (in µV)
-        window: total window duration in seconds (e.g. 0.15s -> 75ms before/after)
-
-    Returns:
-        template_normalized: the extracted spike template (1D np.array)
-        template_times: the time axis (1D np.array)
-        center_time: center of the spike in seconds
-    """
-    import numpy as np
-
-    data = raw.get_data(picks=[channel])[0] * 1e6  # Convert V → µV
-    times = raw.times
-    sfreq = raw.info['sfreq']
-    half_window_samples = int((window / 2) * sfreq)
-
-    # Find a spike candidate (just the first one over threshold)
-    spike_indices = np.where(np.abs(data) > threshold)[0]
-    if len(spike_indices) == 0:
-        raise ValueError("No spike candidate found above threshold.")
-
-    center_idx = spike_indices[0]
-
-    # Handle boundary safely
-    start_idx = max(center_idx - half_window_samples, 0)
-    end_idx = min(center_idx + half_window_samples, len(data))
-
-    spike_segment = data[start_idx:end_idx]
-    spike_times = times[start_idx:end_idx]
-
-    # Normalize
-    spike_normalized = (spike_segment - np.mean(spike_segment)) / np.std(spike_segment)
-
-    return spike_normalized, spike_times, times[center_idx]
-
-
 
 def basic_clean(
         raw,
@@ -276,16 +196,6 @@ def scale_eeg_to(raw, target="uV"):
 
     return raw
 
-
-def extract_median_spike(sig, sfreq, height_mult=4, min_dist=0.2, win_len=0.15):
-    """Find spike-like peaks in a 1D IC signal and return a normalized median template."""
-    
-
-    peaks, _ = find_peaks(np.abs(sig), height=height_mult * sig.std(), distance=int(min_dist * sfreq))
-    win = int(win_len * sfreq)
-    snips = [sig[p - win//2 : p + win//2] for p in peaks if p - win//2 >= 0 and p + win//2 <= len(sig)]
-    template = np.median(snips, axis=0)
-    return (template - template.mean()) / template.std()
 
 
 def plot_spike_template(template, title="Spike Template", fs=150):
