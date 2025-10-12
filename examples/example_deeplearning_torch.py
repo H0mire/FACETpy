@@ -93,8 +93,9 @@ clean_epochs, noisy_epochs = estimator.prepare_epochs()
 print("\nTraining the model...")
 try:
     history = estimator.train_cascade(
+        learning_rate=0.0001,
         epochs_per_stage=500,     # Train each stage for 100 epochs
-        lambda_noise=1.5,         # Use λ = 1.5
+        lambda_noise=0.5,         # Use λ = 1.5
         auto_search_lambda=False
     )
 
@@ -132,12 +133,6 @@ try:
             f'Epoch {i+1}'
         )
         plt.show()
-    
-    # 9. Save the cleaned data (optional)
-    # Create a new MNE Raw object with the cleaned data
-    cleaned_raw = eeg_obj.mne_raw.copy()
-    cleaned_raw._data = cleaned_data.reshape(cleaned_raw._data.shape)
-    cleaned_raw.save('cleaned_data.fif', overwrite=True)
     
     print("\nProcessing complete!")
     

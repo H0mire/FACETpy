@@ -20,6 +20,7 @@ EEG data and evaluate the performance of the correction.
    :hidden:
    :caption: Contents:
 
+   project_overview
    Getting Started/tutorial
    Getting Started/full_correction_example
    Code/analysis_framework

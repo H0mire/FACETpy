@@ -406,12 +406,12 @@ class CascadedDenoisingEstimator:
     
     def train_cascade(
         self,
-        lambda_noise: float = None,
+        lambda_noise: float = 1.5,
         epochs_per_stage: int = 100,
         batch_size: int = 32,
-        learning_rate: float = 0.0001,
+        learning_rate: float = 0.001,
         validation_split: float = 0.2,
-        auto_search_lambda: bool = True
+        auto_search_lambda: bool = False
     ) -> Dict[str, Any]:
         """
         Train the cascaded denoising autoencoder.
