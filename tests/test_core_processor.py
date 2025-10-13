@@ -53,7 +53,7 @@ class TestProcessorBase:
 
     def test_processor_validation(self, sample_context):
         """Test processor validation."""
-        class RequiresTrig gersProcessor(Processor):
+        class RequiresTriggersProcessor(Processor):
             name = "requires_triggers"
             requires_triggers = True
 

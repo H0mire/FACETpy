@@ -35,7 +35,8 @@ class Processor(ABC):
     - process(): Main processing logic
     - validate(): Check prerequisites (optional)
 
-    Example:
+    Example::
+
         class HighPassFilter(Processor):
             name = "highpass_filter"
 
@@ -175,11 +176,12 @@ class SequenceProcessor(Processor):
     This is a composite processor that allows grouping multiple
     processing steps into a single unit.
 
-    Example:
+    Example::
+
         preprocessing = SequenceProcessor([
             HighPassFilter(freq=1.0),
             UpSample(factor=10),
-            Notch Filter(freqs=[50])
+            NotchFilter(freqs=[50])
         ])
     """
 
@@ -213,7 +215,8 @@ class ConditionalProcessor(Processor):
     """
     Processor that executes conditionally based on context.
 
-    Example:
+    Example::
+
         ConditionalProcessor(
             condition=lambda ctx: ctx.metadata.custom.get("needs_upsampling"),
             processor=UpSample(factor=10),
@@ -267,7 +270,8 @@ class SwitchProcessor(Processor):
     """
     Processor that switches between multiple processors based on selector.
 
-    Example:
+    Example::
+
         SwitchProcessor(
             selector=lambda ctx: "motion" if ctx.has_motion_data() else "aas",
             cases={
@@ -342,7 +346,8 @@ class LambdaProcessor(Processor):
 
     Useful for quick custom operations without creating a full processor class.
 
-    Example:
+    Example::
+
         LambdaProcessor(
             name="remove_bad_channels",
             func=lambda ctx: ctx.with_raw(

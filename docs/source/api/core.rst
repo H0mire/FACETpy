@@ -101,14 +101,6 @@ ParallelExecutor
 Exceptions
 ----------
 
-.. autoclass:: ProcessorError
-   :members:
-   :show-inheritance:
-
 .. autoclass:: ProcessorValidationError
-   :members:
-   :show-inheritance:
-
-.. autoclass:: PipelineError
    :members:
    :show-inheritance:

@@ -70,7 +70,8 @@ class Pipeline:
     A pipeline orchestrates the execution of multiple processors in sequence,
     handles errors, provides progress tracking, and supports parallelization.
 
-    Example:
+    Example::
+
         pipeline = Pipeline([
             EDFLoader("data.edf"),
             HighPassFilter(freq=1.0),
@@ -296,7 +297,8 @@ class PipelineBuilder:
     """
     Fluent builder for constructing pipelines.
 
-    Example:
+    Example::
+
         pipeline = (PipelineBuilder()
             .load_edf("data.edf")
             .highpass(1.0)

@@ -50,6 +50,7 @@ Documentation Overview
    :maxdepth: 2
    :caption: Getting Started
 
+   project_overview
    getting_started/installation
    getting_started/quickstart
    getting_started/tutorial
@@ -81,7 +82,6 @@ Documentation Overview
 
    migration/v2_migration_guide
    migration/legacy_api
-   legacy/old_framework
 
 .. toctree::
    :maxdepth: 1

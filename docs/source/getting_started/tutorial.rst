@@ -267,5 +267,5 @@ Next Steps
 ----------
 
 * Explore :doc:`examples` for more use cases
-* Learn about :doc:`../user_guide/custom_processors`
-* Check the :doc:`../api/core` reference
+* Learn about creating custom processors in the examples
+* Check the :doc:`../api/core` reference for detailed API documentation

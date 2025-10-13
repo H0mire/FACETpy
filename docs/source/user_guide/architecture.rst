@@ -383,7 +383,7 @@ This architecture provides:
 Next Steps
 ----------
 
-* Learn about :doc:`pipelines` in detail
-* Explore :doc:`processors` capabilities
-* Understand :doc:`parallel_processing`
-* Create :doc:`custom_processors`
+* Check out the :doc:`../getting_started/tutorial` for hands-on examples
+* Review the :doc:`../api/core` documentation for detailed API reference
+* Learn about creating custom processors in the tutorial
+* Explore the example workflows in :doc:`../getting_started/examples`

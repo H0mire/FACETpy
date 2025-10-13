@@ -20,7 +20,8 @@ class ProcessorRegistry:
     This singleton class maintains a registry of all available processors,
     allowing dynamic discovery and instantiation.
 
-    Example:
+    Example::
+
         # Register a processor
         @register_processor
         class MyProcessor(Processor):
@@ -168,16 +169,18 @@ def register_processor(
     """
     Decorator to register a processor.
 
-    Can be used with or without arguments:
+    Can be used with or without arguments.
 
-    @register_processor
-    class MyProcessor(Processor):
-        name = "my_processor"
-        ...
+    Example::
 
-    @register_processor(name="custom_name")
-    class MyProcessor(Processor):
-        ...
+        @register_processor
+        class MyProcessor(Processor):
+            name = "my_processor"
+            ...
+
+        @register_processor(name="custom_name")
+        class MyProcessor(Processor):
+            ...
 
     Args:
         processor_class: Processor class (when used without arguments)
