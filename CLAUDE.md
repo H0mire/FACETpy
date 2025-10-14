@@ -4,39 +4,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FACETpy is a Python toolbox for correcting EEG artifacts in simultaneous EEG-fMRI recordings using Averaged Artifact Subtraction (AAS). The package provides advanced artifact detection, correction, and evaluation capabilities built on top of MNE-Python.
+FACETpy is a Python toolbox for correcting EEG artifacts in simultaneous EEG-fMRI recordings using Averaged Artifact Subtraction (AAS) and other advanced correction methods. The project is built on MNE-Python and provides a modular, pipeline-based architecture for flexible EEG processing.
+
+**Key Features:**
+- Import EEG data from various formats (EDF, GDF, BIDS)
+- Advanced artifact detection and correction using AAS, ANC, and PCA
+- Comprehensive evaluation framework with SNR, RMS, and other metrics
+- Flexible processing pipeline with support for parallel execution
+- Built-in trigger detection and alignment algorithms
 
 ## Development Commands
 
-### Installation and Setup
-
+### Environment Setup
 ```bash
-# Install dependencies using Poetry (recommended)
+# Install Poetry 1.4+ if needed
+conda install -c conda-forge poetry=1.4
+
+# Install project dependencies
 poetry install
 
 # Activate virtual environment
 poetry shell
-
-# Build C extension for Fast RAN correction
-poetry run build-fastranc
-# Or directly: python -m facet.build
 ```
 
-### Testing
+### Building C Extensions
+The project includes a C extension for fast adaptive noise cancellation (ANC):
+```bash
+# Compile the FastRANC C extension
+poetry run build-fastranc
 
+# Or manually via the script defined in pyproject.toml
+python -m facet.build
+```
+
+Note: The C extension (libfastranc.dylib/so/dll) is optional. If not built, ANC features will be unavailable but the rest of the toolbox works normally.
+
+### Testing
 ```bash
 # Run all tests
 pytest
 
 # Run specific test file
-pytest tests/test_facet.py
+pytest tests/test_core_pipeline.py
 
-# Run with verbose output
-pytest -v
+# Run with markers
+pytest -m unit          # Unit tests only
+pytest -m integration   # Integration tests only
+pytest -m "not slow"    # Skip slow tests
+
+# Run a specific test function
+pytest tests/test_core_pipeline.py::test_pipeline_execution -v
 ```
 
-### Documentation
+Test fixtures are defined in `tests/conftest.py` and provide sample EEG data, contexts, and processors.
 
+### Documentation
 ```bash
 # Navigate to docs directory
 cd docs
@@ -44,200 +66,235 @@ cd docs
 # Build HTML documentation
 make html
 
-# Auto-rebuild on changes (live reload)
+# Auto-rebuild on changes (if available)
 make livehtml
+
+# View docs
+open build/html/index.html
 ```
 
-The compiled documentation will be in `docs/build/html/`.
+Documentation is built with Sphinx and uses the RTD theme. Source files are in `docs/source/`.
 
-### Building the C Extension
+## Architecture
 
-The package includes a C extension (`fastranc.c`) for fast Adaptive Noise Cancellation:
+### Core Architecture (v2.0 - New Modular System)
 
-```bash
-# Use the Poetry script
-poetry run build-fastranc
+The codebase has undergone a major refactoring to a modular, processor-based architecture:
 
-# Or use the module directly
-python -m facet.build
+**Core Components (`src/facet/core/`):**
+
+1. **Processor (`processor.py`)** - Base class for all processing operations
+   - All processors inherit from `Processor` ABC
+   - Implement `process(context) -> context` method
+   - Built-in validation via `validate()` method
+   - Automatic history tracking in context
+   - Flags: `requires_triggers`, `requires_raw`, `modifies_raw`, `parallel_safe`
+   - Composite processors: `SequenceProcessor`, `ConditionalProcessor`, `SwitchProcessor`
+
+2. **ProcessingContext (`context.py`)** - Immutable context passed between processors
+   - Wraps MNE Raw object and metadata
+   - Stores processing history (provenance tracking)
+   - Methods: `get_raw()`, `with_raw()`, `has_triggers()`, `get_metadata()`
+   - Includes `ProcessingMetadata` for triggers, artifact info, custom data
+
+3. **Pipeline (`pipeline.py`)** - Orchestrates processor execution
+   - Sequential execution of processors with validation
+   - Error handling and progress tracking
+   - Parallel execution support via `ParallelExecutor`
+   - Returns `PipelineResult` with context, success status, timing
+   - Methods: `run()`, `add()`, `insert()`, `remove()`, `validate_all()`, `describe()`
+
+4. **Registry (`registry.py`)** - Global processor registry
+   - Functions: `register_processor()`, `get_processor()`, `list_processors()`
+   - Enables processor lookup by name for serialization/config
+
+5. **ParallelExecutor (`parallel.py`)** - Parallel processing support
+   - Channel-wise parallelization for compatible processors
+   - Uses joblib for multiprocessing
+
+### Module Organization
+
+```
+src/facet/
+├── core/              # Core pipeline infrastructure
+├── io/                # Data loaders and exporters (EDF, BIDS, GDF)
+├── preprocessing/     # Preprocessing processors (filters, resampling, triggers, alignment)
+├── correction/        # Correction algorithms (AAS, ANC, PCA)
+├── evaluation/        # Evaluation metrics (SNR, RMS, median artifact)
+├── helpers/           # Utility functions and C extensions
+├── resources/         # Translations and resources
+├── eeg_obj.py        # Legacy EEG object wrapper
+└── facet.py          # Legacy API (maintained for backwards compatibility)
 ```
 
-This compiles `src/facet/helpers/fastranc.c` into a platform-specific shared library (`.so` on Linux, `.dylib` on macOS, `.dll` on Windows).
+### Legacy API (`facet.py`)
 
-## Architecture Overview
+The old API based on the `facet` class is still available for backwards compatibility but is not the recommended approach for new code. It uses a framework-based architecture with `AnalysisFramework`, `CorrectionFramework`, and `EvaluationFramework`.
 
-### Core Components
+### Pipeline Pattern (Recommended)
 
-**Main API (`facet.py`)**: The `facet` class is the primary interface. It orchestrates three framework components and manages the EEG data lifecycle. Users interact primarily with this class.
+The v2.0 architecture uses a pipeline pattern where:
+1. Each processing step is a `Processor` subclass
+2. Processors receive a `ProcessingContext` and return a new context
+3. Contexts are immutable and track history
+4. Pipelines compose processors into workflows
+5. Results are wrapped in `PipelineResult` objects
 
-**EEG Data Object (`eeg_obj.py`)**: The `EEG` class encapsulates all EEG data and metadata, including:
-- `mne_raw`: Current processed MNE Raw object
-- `mne_raw_orig`: Original unprocessed MNE Raw object for reference
-- `estimated_noise`: Accumulated noise estimates from corrections
-- `loaded_triggers`: Trigger positions marking artifact occurrences
-- Artifact timing parameters (`artifact_length`, `artifact_to_trigger_offset`, etc.)
-- Filter parameters for ANC and PCA preprocessing
-
-### Three Framework System
-
-The package uses a separation-of-concerns architecture with three specialized frameworks:
-
-#### 1. AnalysisFramework (`frameworks/analysis.py`)
-Handles data I/O and trigger detection:
-- Imports EEG from multiple formats (EDF, GDF, BIDS, EEGLAB)
-- Exports processed data to various formats
-- Finds triggers using regex patterns or QRS detection
-- Detects and adds missing triggers automatically
-- Derives critical processing parameters (artifact length, filter settings)
-- Manages annotations and events
-
-Key method: `derive_parameters()` calculates artifact length, timing boundaries, and filter parameters based on detected triggers.
-
-#### 2. CorrectionFramework (`frameworks/correction.py`)
-Implements artifact correction algorithms:
-- **Averaged Artifact Subtraction (AAS)**: Calculates weighted averaging matrices using correlation-based epoch selection
-- **Motion-based correction**: Uses fMRI realignment parameters via Moosmann method
-- **Adaptive Noise Cancellation (ANC)**: Applies fast RAN-C algorithm (C implementation)
-- **PCA-based artifact removal**: Removes periodic artifacts using principal component analysis
-- **Trigger alignment**: Aligns triggers and performs subsample alignment
-- Filtering and resampling operations
-
-Key workflow:
-1. `prepare()` - Prepares data for correction
-2. `calc_matrix_aas()` or `calc_matrix_motion()` - Computes averaging weights
-3. `remove_artifacts()` - Subtracts averaged artifacts
-4. `apply_ANC()` - Applies adaptive filtering
-5. `apply_PCA()` - Removes residual periodic artifacts
-
-#### 3. EvaluationFramework (`frameworks/evaluation.py`)
-Provides metrics for assessing correction quality:
-- **SNR**: Signal-to-Noise Ratio (comparing artifact vs. clean segments)
-- **RMS**: Root Mean Square ratio (before/after correction)
-- **RMS2**: RMS ratio relative to clean reference
-- **MEDIAN**: Median peak-to-peak artifact amplitude
-
-Evaluation compares corrected data against clean reference periods (time windows without artifacts).
-
-### Deep Learning Module (`frameworks/deeplearning.py`)
-
-The package includes experimental deep learning-based artifact removal:
-
-- **ManifoldAutoencoder**: A convolutional autoencoder that learns artifact manifolds
-- **ArtifactEstimator**: High-level interface for training and applying deep learning models
-
-The autoencoder learns to predict artifacts by training on paired clean/noisy epochs, enabling artifact removal without relying on averaging assumptions. Supports both TensorFlow and PyTorch implementations.
-
-### Helpers and Utilities
-
-- `helpers/fastranc.c` and `helpers/fastranc.py`: Fast C-based adaptive noise cancellation
-- `helpers/bcg_detector.py`: QRS detection for BCG artifact triggers
-- `helpers/moosmann.py`: Motion-based artifact correction using fMRI parameters
-- `helpers/crosscorr.py`: Cross-correlation for trigger alignment
-- `helpers/alignsubsample.py`: Subsample-level trigger alignment
-- `utils/facet_result.py`: Result container for storing correction outputs
-- `utils/i18n.py`: Internationalization support
-
-## Typical Processing Pipeline
-
+Example:
 ```python
-# 1. Import and initialize
-f = facet()
-f.import_eeg(path, fmt='edf', upsampling_factor=10,
-             artifact_to_trigger_offset=-0.005)
+from facet.core import Pipeline
+from facet.io import EDFLoader, EDFExporter
+from facet.preprocessing import TriggerDetector, UpSample
+from facet.correction import AASCorrection
 
-# 2. Find triggers (artifact occurrences)
-f.find_triggers(event_regex)
-f.find_missing_triggers()  # Optional: detect missing triggers
+pipeline = Pipeline([
+    EDFLoader(path="data.edf", preload=True),
+    TriggerDetector(regex=r"\b1\b"),
+    UpSample(factor=10),
+    AASCorrection(window_size=30),
+    EDFExporter(path="output.edf")
+], name="Basic Pipeline")
 
-# 3. Preprocessing
-f.highpass(1)
-f.upsample()
-
-# 4. Align triggers for precise artifact localization
-f.align_triggers(ref_trigger=0)
-f.align_subsample(ref_trigger=0)  # Optional: subsample alignment
-
-# 5. Calculate and remove artifacts
-f.calc_matrix_aas()  # Or f.calc_matrix_motion(file_path)
-f.remove_artifacts()
-
-# 6. Post-processing
-f.get_correction().apply_PCA()  # Optional: remove residual artifacts
-f.downsample()
-f.lowpass(70)
-f.apply_ANC()
-
-# 7. Evaluate results
-results = f.evaluate(measures=["SNR", "RMS", "MEDIAN"])
-f.plot([results])
-
-# 8. Export
-f.export_eeg('output.edf', fmt='edf')
+result = pipeline.run()
 ```
 
-## Important Implementation Details
+See `examples/complete_pipeline_example.py` for comprehensive examples including parallel execution, conditional processing, and batch workflows.
 
-### Upsampling Strategy
-The package uses aggressive upsampling (typically 10x) during processing to achieve subsample-level precision in trigger alignment. This is critical for accurate artifact subtraction. Data is downsampled after correction.
+## Important Implementation Notes
 
-### Trigger Alignment
-Trigger positions are refined using cross-correlation to account for:
-- Scanner clock drift
-- Asynchronous sampling between EEG and MRI systems
-- Subsample timing variations
+### Processor Development
+When creating new processors:
+- Inherit from `Processor` in `facet.core`
+- Implement `process(context) -> context` method
+- Override `validate(context)` for prerequisite checks
+- Set class attributes: `name`, `description`, `requires_*`, `parallel_safe`
+- Initialize parameters in `__init__` and call `super().__init__()`
+- Use `context.with_raw(new_raw)` to return modified context
+- Never modify context in-place; always return new context
 
-The `align_triggers()` method adjusts trigger positions, and `align_subsample()` performs phase-shift-based fine alignment.
+### Context Management
+- Contexts are passed through pipelines and track all operations
+- Use `context.get_raw()` to access MNE Raw object
+- Use `context.metadata.triggers` for trigger positions
+- Store custom data in `context.metadata.custom` dict
+- Processing history is automatically tracked via `add_history_entry()`
 
-### Adaptive Averaging Windows
-The `calc_matrix_aas()` method uses a sliding window approach where artifact templates are averaged only from highly correlated epochs (correlation > 0.975 by default). This adapts to non-stationary artifacts and subject motion.
+### MNE Integration
+- All EEG data is stored as MNE Raw objects (`mne.io.Raw`)
+- Always use `.copy()` when modifying Raw objects to avoid in-place changes
+- Sampling frequency: `raw.info['sfreq']`
+- Access data: `raw._data` (shape: [n_channels, n_samples])
+- Annotations are used for triggers: `raw.annotations`
 
-### Memory-Efficient Processing
-For large datasets, use `apply_per_channel()` which processes one channel at a time to reduce memory usage. This is especially important when dealing with high sampling rates or long recordings.
+### Trigger Handling
+- Triggers are stored as sample positions (integers) in `context.metadata.triggers`
+- Trigger detection uses regex patterns on annotation descriptions
+- Common pattern: `r"\b1\b"` for trigger value "1"
+- After upsampling, triggers must be scaled: `triggers * upsample_factor`
 
-### Volume vs. Slice Triggers
-The code handles both volume triggers (one per fMRI volume) and slice triggers (one per slice acquisition). The `_check_volume_gaps()` method automatically detects which mode is present based on trigger spacing.
+### Parallel Processing
+- Set `parallel_safe = True` on processors that can be parallelized
+- Channel-wise operations are good candidates for parallelization
+- Use `pipeline.run(parallel=True, n_jobs=-1)` to enable
+- Not all processors support parallelization (e.g., I/O operations)
 
-## Key Concepts
+### Testing Patterns
+- Use fixtures from `tests/conftest.py` for sample data
+- `sample_raw`: Basic MNE Raw object
+- `sample_raw_with_artifacts`: Raw with simulated fMRI artifacts
+- `sample_context`: ProcessingContext with triggers and metadata
+- `sample_edf_file`: Temporary EDF file for I/O tests
+- Mark tests with `@pytest.mark.unit`, `@pytest.mark.integration`, etc.
 
-**Artifact Window**: The time segment containing an artifact, defined by `artifact_to_trigger_offset` and `artifact_length`. The offset is typically negative (e.g., -0.005s) to account for trigger delay.
+## Common Patterns
 
-**Acquisition Window**: The time range containing all artifacts plus padding (`time_acq_start` to `time_acq_end`). Padding ensures filter edge effects don't contaminate artifact regions.
+### Creating a Standard Correction Pipeline
+```python
+import facet
 
-**Estimated Noise**: Accumulated artifact estimates stored in `EEG.estimated_noise`. This is used as a reference signal for ANC and can be analyzed separately.
+# Using convenience function
+pipeline = facet.create_standard_pipeline(
+    "input.edf",
+    "output.edf",
+    trigger_regex=r"\b1\b",
+    upsample_factor=10
+)
+result = pipeline.run()
+```
 
-**Correlation Threshold**: Used in `calc_chosen_matrix()` to determine which epochs are similar enough to include in artifact averaging (default: 0.975).
+### Custom Processor Example
+```python
+from facet.core import Processor, ProcessingContext
 
-## Data Format Support
+class CustomFilter(Processor):
+    name = "custom_filter"
+    requires_raw = True
+    modifies_raw = True
 
-- **BIDS**: Full support for Brain Imaging Data Structure format
-- **EDF/GDF**: European Data Format and General Data Format
-- **EEGLAB**: EEGLAB .set files
+    def __init__(self, cutoff: float):
+        self.cutoff = cutoff
+        super().__init__()
 
-All formats are imported via MNE-Python, so any format supported by MNE can potentially work.
+    def validate(self, context: ProcessingContext):
+        super().validate(context)
+        # Add custom validation
 
-## Testing
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        # Apply custom filtering
+        raw.filter(l_freq=None, h_freq=self.cutoff)
+        return context.with_raw(raw)
+```
 
-The main test file is `tests/test_facet.py`. When adding new features:
-- Add unit tests for new correction algorithms
-- Test with both simulated and real EEG-fMRI data
-- Verify that evaluation metrics show improvement after correction
+### Conditional Processing
+```python
+from facet.core import ConditionalProcessor, Pipeline
 
-## Common Pitfalls
+def needs_extra_correction(ctx):
+    snr = ctx.metadata.custom.get('snr', float('inf'))
+    return snr < 10
 
-1. **Incorrect artifact_to_trigger_offset**: If triggers don't align with artifact peaks, correction will fail. Use `plot_eeg()` to visually inspect trigger placement.
+pipeline = Pipeline([
+    # ... initial steps ...
+    SNRCalculator(),
+    ConditionalProcessor(
+        condition=needs_extra_correction,
+        processor=PCACorrection(n_components=0.95)
+    ),
+    # ... final steps ...
+])
+```
 
-2. **Missing triggers**: Run `find_missing_triggers()` if periodic artifacts are present but not all triggers were detected.
+## File Paths and Structure
 
-3. **Memory issues**: Use `preload=False` when importing large files, then process with `apply_per_channel()`.
+- Main source: `src/facet/`
+- Tests: `tests/` with fixtures in `conftest.py`
+- Examples: `examples/complete_pipeline_example.py`
+- Documentation: `docs/source/` (Sphinx RST format)
+- C extension source: `src/facet/helpers/fastranc.c`
+- Build script: `src/facet/build.py`
 
-4. **Filter order warnings**: The automatic filter parameter derivation can produce very high filter orders for slow sampling rates. Check logs for warnings.
+## Dependencies
 
-5. **Shape mismatches in deep learning**: Ensure clean and noisy data have identical shapes and trigger counts before training the autoencoder.
+Key dependencies (from `pyproject.toml`):
+- Python ^3.11
+- MNE 1.6.0 (EEG/MEG processing)
+- NumPy 2.1.3 (numerical operations)
+- SciPy ^1.15.3 (signal processing)
+- pandas ^2.2.3 (data handling)
+- matplotlib ^3.10.3 (plotting)
+- scikit-learn ^1.4.2 (PCA)
+- neurokit2 ^0.2.7 (BCG detection)
+- TensorFlow ^2.19.0 (deep learning features)
 
-## Code Style
+Dev dependencies:
+- pytest ^8.1.1 (testing)
+- Sphinx ^7.2.6 (documentation)
+- sphinx-rtd-theme ^2.0.0
 
-- Use `loguru` for logging (already imported as `logger` in most modules)
-- MNE objects use 0-based channel indexing
-- Trigger positions are stored as integer sample indices
-- Time values are in seconds, sample indices are integers
-- Private methods start with `_` (e.g., `_derive_art_length()`)
+## Version and Licensing
+
+- Current version: 2.0.0
+- License: GPLv3
+- Author: Janik Michael Mueller
+- Documentation: https://facetpy.readthedocs.io/

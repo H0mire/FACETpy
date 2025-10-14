@@ -31,6 +31,15 @@ from facet.evaluation import (
 )
 import traceback
 
+file_path = "./examples/datasets/NiazyFMRI.edf"
+# Event Regex assuming using stim channel
+event_regex = r"\b1\b"
+# Upsampling factor
+upsample_factor = 10
+# unwanted channels
+unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
+# Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
+artifact_to_trigger_offset = -0.005
 
 def main():
     """
@@ -60,7 +69,9 @@ def main():
         # 1. Load data
         EDFLoader(
             path=input_file,
-            preload=True
+            preload=True,
+            bad_channels=unwanted_bad_channels,
+            artifact_to_trigger_offset=artifact_to_trigger_offset,
         ),
 
         # 2. Detect triggers
@@ -152,8 +163,8 @@ def example_parallel_execution():
     output_file = "path/to/output/corrected.edf"
 
     pipeline = Pipeline([
-        EDFLoader(path=input_file, preload=True),
-        TriggerDetector(regex=r"\b1\b"),
+        EDFLoader(path=input_file, preload=True, artifact_to_trigger_offset=-0.005),
+        TriggerDetector(regex=r"\b1\b", ),
         UpSample(factor=10),
         TriggerAligner(ref_trigger_index=0),
 

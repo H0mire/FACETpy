@@ -236,23 +236,11 @@ def test_pipeline():
 
 ## Test Coverage Goals
 
-Target coverage: **>90%**
-
-Current coverage by module:
-- Core: >95%
-- I/O: >85%
-- Preprocessing: >90%
-- Correction: >85%
-- Evaluation: >90%
+Target coverage and reporting will be defined once the initial test suite is executed.
 
 ## Continuous Integration
 
-Tests are run automatically on:
-- Every commit
-- Every pull request
-- Before each release
-
-CI configuration: `.github/workflows/tests.yml`
+Automated test runs and CI configuration are pending and will be documented after the first successful pipeline execution.
 
 ## Troubleshooting
 
@@ -384,7 +372,7 @@ open htmlcov/index.html
 When adding new features:
 
 1. Write tests first (TDD approach)
-2. Ensure >90% coverage for new code
+2. Record actual coverage results once the suite runs
 3. Include both unit and integration tests
 4. Add appropriate markers
 5. Update this README if adding new fixtures

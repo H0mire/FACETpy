@@ -237,7 +237,7 @@ All new code must include tests:
 Test Coverage
 ~~~~~~~~~~~~~
 
-We aim for >90% test coverage:
+Set coverage expectations once the initial suite lands. In the meantime, capture coverage data when running locally:
 
 .. code-block:: bash
 

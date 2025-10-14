@@ -240,10 +240,10 @@ result = pipeline.run(parallel=True, n_jobs=-1)  # Uses ALL cores
 
 | Dataset | Sequential | Parallel (8 cores) | Speedup |
 |---------|-----------|-------------------|---------|
-| 30 channels, 600 volumes | 45s | 12s | **3.75x** |
-| 64 channels, 1200 volumes | 180s | 48s | **3.75x** |
+| Example 1 | TBD | TBD | TBD |
+| Example 2 | TBD | TBD | TBD |
 
-**Channel-wise parallelization** happens automatically!
+Channel-wise parallelization is planned; record actual gains after benchmarking.
 
 ---
 
@@ -468,7 +468,7 @@ pipeline = create_standard_pipeline(
 result = pipeline.run()
 ```
 
-**90% less code, 100% more power!**
+The new pipeline helper reduces boilerplate once its implementation is verified.
 
 ---
 
@@ -513,29 +513,12 @@ if result.success:
 
 # Slide 19: What We Achieved
 
-## By The Numbers
+## Current Focus
 
-### Code Quality
-- **~5,000** lines of new code
-- **30+** processors implemented
-- **>90%** test coverage
-- **100%** type hints
-
-### Documentation
-- **~3,400** lines of documentation
-- **15+** documentation pages
-- **10+** complete examples
-- **Full** API reference
-
-### Performance
-- **3.75x** faster with parallelization
-- **50%** less memory usage
-- **Zero** breaking changes to algorithms
-
-### Architecture
-- **4** core components
-- **5** module categories
-- **Infinite** extensibility
+- Finalize the modular architecture and processor catalog.
+- Fill in missing documentation pages and ensure navigation works.
+- Stand up the automated test suite and gather real-world metrics.
+- Prepare migration guidance once the APIs stabilize.
 
 ---
 
@@ -619,10 +602,10 @@ if result.success:
 - IDE support
 - Catch errors early
 
-### 🧪 Well-Tested
-- >90% coverage
-- Easy to add tests
-- CI/CD ready
+### 🧪 Testing Roadmap
+- Establish baseline coverage goals
+- Document how to add new tests
+- Integrate CI checks once pipelines succeed
 
 ### 🎁 Open
 - Plugin system
@@ -926,24 +909,26 @@ class MyProcessor(Processor):
 
 ## Detailed Performance Analysis
 
-### Test System
-- CPU: Intel i7-8700K (6 cores, 12 threads)
-- RAM: 32GB DDR4
-- OS: Ubuntu 22.04
+Benchmarking has not been executed yet. Capture the environment and timings once real runs occur.
+
+### Test System (to be recorded)
+- CPU: TBD
+- RAM: TBD
+- OS: TBD
 
 ### Benchmark Results
 
 | Processing Step | Sequential | Parallel (12 threads) | Speedup |
 |----------------|-----------|---------------------|---------|
-| AAS Correction | 28.5s | 8.2s | 3.48x |
-| ANC Correction | 12.3s | 3.1s | 3.97x |
-| PCA Correction | 8.7s | 2.5s | 3.48x |
-| **Total Pipeline** | **45.2s** | **12.1s** | **3.74x** |
+| AAS Correction | TBD | TBD | TBD |
+| ANC Correction | TBD | TBD | TBD |
+| PCA Correction | TBD | TBD | TBD |
+| **Total Pipeline** | **TBD** | **TBD** | **TBD** |
 
 ### Memory Usage
-- Sequential: 450 MB
-- Parallel: 1.2 GB (includes overhead)
-- Per-channel: ~35 MB
+- Sequential: TBD
+- Parallel: TBD
+- Per-channel: TBD
 
 ---
 
@@ -951,23 +936,22 @@ class MyProcessor(Processor):
 
 ## Comprehensive Testing
 
-### Overall Coverage: **92.3%**
+### Overall Coverage: TBD
 
 | Module | Coverage | Tests |
 |--------|----------|-------|
-| Core (context) | 96% | 18 |
-| Core (processor) | 94% | 25 |
-| Core (pipeline) | 95% | 20 |
-| I/O | 88% | 12 |
-| Preprocessing | 91% | 32 |
-| Correction | 87% | 24 |
-| Evaluation | 93% | 15 |
+| Core (context) | TBD | Planned |
+| Core (processor) | TBD | Planned |
+| Core (pipeline) | TBD | Planned |
+| I/O | TBD | Planned |
+| Preprocessing | TBD | Planned |
+| Correction | TBD | Planned |
+| Evaluation | TBD | Planned |
 
-### Total Test Count: **146 tests**
-
-- Unit tests: 118
-- Integration tests: 28
-- Test execution time: ~45 seconds
+### Testing Checklist
+- Inventory of planned unit tests
+- Define integration scenarios
+- Measure runtime after first successful run
 
 ---
 
@@ -976,24 +960,18 @@ class MyProcessor(Processor):
 ## Quality Indicators
 
 ### Complexity
-- Average cyclomatic complexity: **3.2**
-- Maximum cyclomatic complexity: **12**
-- Maintainability index: **78/100**
+- Capture cyclomatic complexity after refactor lands
+- Track maintainability index over time
 
 ### Documentation
-- Docstring coverage: **98%**
-- Type hint coverage: **100%**
-- Example coverage: **100%**
+- Measure docstring and type hint coverage after code stabilizes
 
 ### Standards
-- PEP 8 compliance: **100%**
-- PEP 484 compliance: **100%**
-- No code smells detected
+- Run linters and formatters regularly
+- Document deviations from style guides
 
 ### Dependencies
-- Direct dependencies: **6**
-- Total dependencies: **24**
-- All dependencies up-to-date
+- Audit direct and transitive dependencies before release
 
 ---
 
