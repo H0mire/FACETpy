@@ -115,7 +115,7 @@ class ProcessingContext:
 
         Args:
             picks: Channel picks (MNE format)
-            **kwargs: Additional arguments for Raw.get_data()
+            **kwargs: Additional arguments for Raw.get_data(copy=False)
 
         Returns:
             Data array
@@ -312,7 +312,7 @@ class ProcessingContext:
             Dictionary representation
         """
         return {
-            'raw_data': self._raw.get_data(),
+            'raw_data': self._raw.get_data(copy=False),
             'raw_info': self._raw.info,
             'metadata': {
                 'triggers': self._metadata.triggers,

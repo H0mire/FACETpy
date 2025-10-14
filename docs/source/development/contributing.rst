@@ -130,13 +130,13 @@ We follow PEP 8 with some modifications:
 
    def process_data(raw: mne.io.Raw, param: float = 1.0) -> np.ndarray:
        """Process the data."""
-       return raw.get_data() * param
+       return raw.get_data(copy=False) * param
 
    # ✗ Bad
    from facet.core import *  # Don't use star imports
 
    def process_data(raw, param=1.0):  # Missing type hints
-       return raw.get_data() * param
+       return raw.get_data(copy=False) * param
 
 Naming Conventions
 ~~~~~~~~~~~~~~~~~~

@@ -120,7 +120,7 @@ Create your own processor:
 
            # Your custom logic here
            denoised_data = my_denoising_algorithm(
-               raw.get_data(),
+               raw.get_data(copy=False),
                threshold=self.threshold
            )
 

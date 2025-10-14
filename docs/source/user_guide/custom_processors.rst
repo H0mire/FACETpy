@@ -171,7 +171,7 @@ Here's a complete processor template with all features:
            """
            # Get data
            raw = context.get_raw()
-           data = raw.get_data()  # numpy array
+           data = raw.get_data(copy=False)  # numpy array
 
            # Your processing logic here
            processed_data = self._process_data(data)
@@ -294,7 +294,7 @@ Mark artifact segments:
 
        def process(self, context):
            raw = context.get_raw()
-           data = raw.get_data()
+           data = raw.get_data(copy=False)
            sfreq = raw.info['sfreq']
 
            # Find high-amplitude samples
@@ -360,7 +360,7 @@ Implement a custom filtering algorithm:
 
        def process(self, context):
            raw = context.get_raw()
-           data = raw.get_data()
+           data = raw.get_data(copy=False)
            sfreq = raw.info['sfreq']
 
            # Design filter
@@ -503,7 +503,7 @@ Handling Errors Gracefully
        """Process with error handling."""
        try:
            raw = context.get_raw()
-           data = raw.get_data()
+           data = raw.get_data(copy=False)
 
            # Processing that might fail
            result = self._process_data(data)
@@ -606,7 +606,7 @@ To enable parallelization, ensure your processor is thread-safe:
            """Process with no shared state."""
            # ✓ Good: No shared mutable state
            raw = context.get_raw()
-           data = raw.get_data()
+           data = raw.get_data(copy=False)
 
            # Process data independently
            result = self._process_channel(data)
@@ -626,7 +626,7 @@ Use NumPy vectorization for speed:
    def process(self, context):
        """Vectorized processing."""
        raw = context.get_raw()
-       data = raw.get_data()
+       data = raw.get_data(copy=False)
 
        # ✓ Good: Vectorized
        result = np.sqrt(data ** 2 + 1)

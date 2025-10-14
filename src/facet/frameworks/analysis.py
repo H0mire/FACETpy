@@ -522,7 +522,7 @@ class AnalysisFramework:
             # now check if there are sub periodic artifacts in the data
             logger.debug("Now checking for sub periodic artifacts...")
             sub_periodic_artifacts = self._detect_sub_periodic_artifacts(
-                f._eeg.mne_raw.get_data()[ref_channel][
+                f._eeg.mne_raw.get_data(copy=False)[ref_channel][
                     f._eeg.loaded_triggers[0] + smin : f._eeg.loaded_triggers[0] + smax
                 ]
             )

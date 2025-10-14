@@ -140,7 +140,7 @@ class AASCorrection(Processor):
             logger.debug(f"  Channel {ch_idx}: {ch_name}")
 
             # Get single-channel epochs
-            epochs_single_channel = np.squeeze(epochs.get_data()[:, idx, :])
+            epochs_single_channel = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
 
             # Calculate averaging matrix using correlation-based selection
             avg_matrix = self._calc_averaging_matrix(

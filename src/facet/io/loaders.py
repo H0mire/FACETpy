@@ -68,7 +68,7 @@ class EDFLoader(Processor):
         logger.info(f"Loading EDF file: {self.path}")
 
         # Load raw data
-        raw = mne.io.read_raw_edf(self.path, preload=self.preload)
+        raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
 
         # Mark bad channels
         if self.bad_channels:

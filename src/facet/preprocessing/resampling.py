@@ -125,7 +125,8 @@ class UpSample(Resample):
         factor: int = 10,
         npad: str = 'auto',
         window: str = 'boxcar',
-        n_jobs: int = 1
+        n_jobs: int = 1,
+        verbose: bool = False
     ):
         """
         Initialize upsampler.
@@ -135,13 +136,17 @@ class UpSample(Resample):
             npad: Amount to pad the start and end of the data
             window: Window to use for resampling
             n_jobs: Number of parallel jobs
+            verbose: Verbose output
         """
         self.factor = factor
-        # Don't call super().__init__() yet, we'll set sfreq in process()
-        self.npad = npad
-        self.window = window
-        self.n_jobs = n_jobs
-        self._sfreq = None  # Will be set during processing
+        # Initialize parent with a dummy sfreq (will be overridden in process)
+        super().__init__(
+            sfreq=1.0,  # Dummy value, set properly in process()
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            verbose=verbose
+        )
 
     def _get_parameters(self):
         """Override to include factor instead of sfreq."""
@@ -187,7 +192,8 @@ class DownSample(Resample):
         factor: int = 10,
         npad: str = 'auto',
         window: str = 'boxcar',
-        n_jobs: int = 1
+        n_jobs: int = 1,
+        verbose: bool = False
     ):
         """
         Initialize downsampler.
@@ -197,12 +203,17 @@ class DownSample(Resample):
             npad: Amount to pad the start and end of the data
             window: Window to use for resampling
             n_jobs: Number of parallel jobs
+            verbose: Verbose output
         """
         self.factor = factor
-        self.npad = npad
-        self.window = window
-        self.n_jobs = n_jobs
-        self._sfreq = None
+        # Initialize parent with a dummy sfreq (will be overridden in process)
+        super().__init__(
+            sfreq=1.0,  # Dummy value, set properly in process()
+            npad=npad,
+            window=window,
+            n_jobs=n_jobs,
+            verbose=verbose
+        )
 
     def _get_parameters(self):
         """Override to include factor instead of sfreq."""

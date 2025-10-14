@@ -29,6 +29,7 @@ from facet.evaluation import (
     MedianArtifactCalculator,
     MetricsReport
 )
+import traceback
 
 
 def main():
@@ -50,8 +51,8 @@ def main():
     """
 
     # Configuration
-    input_file = "path/to/your/data.edf"
-    output_file = "path/to/output/corrected.edf"
+    input_file = "./examples/datasets/NiazyFMRI.edf"
+    output_file = "./output/corrected.edf"
     trigger_pattern = r"\b1\b"  # Regex pattern for trigger detection
 
     # Build the pipeline
@@ -138,6 +139,7 @@ def main():
 
     else:
         print(f"\n✗ Pipeline failed: {result.error}")
+        traceback.print_exception(type(result.error), result.error, result.error.__traceback__)
         if result.failed_processor:
             print(f"Failed at: {result.failed_processor}")
 
@@ -285,7 +287,7 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Uncomment one of these to run:
-    # main()
+    main()
     # example_parallel_execution()
     # example_minimal_pipeline()
     # example_custom_workflow()

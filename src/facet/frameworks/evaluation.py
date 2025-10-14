@@ -142,8 +142,8 @@ class EvaluationFramework:
             float: The RMS ratio for the evaluated dataset.
         """
         # Extracting the data
-        data_corrected = mnedict["raw"].get_data()
-        data_uncorrected = mnedict["raw_orig"].get_data()
+        data_corrected = mnedict["raw"].get_data(copy=False)
+        data_uncorrected = mnedict["raw_orig"].get_data(copy=False)
 
         # TODO: Bugfix for different number of channels
         if data_corrected.shape[0] != data_uncorrected.shape[0]:
@@ -168,8 +168,8 @@ class EvaluationFramework:
             float: The RMS ratio for the evaluated dataset.
         """
         # Extracting the data
-        data_corrected = mnedict["raw"].get_data()
-        data_ref = mnedict["ref"].get_data()
+        data_corrected = mnedict["raw"].get_data(copy=False)
+        data_ref = mnedict["ref"].get_data(copy=False)
 
         # Calculate RMS
         rms_corrected = np.sqrt(np.mean(data_corrected**2, axis=1))
@@ -226,7 +226,7 @@ class EvaluationFramework:
             preload=True,
         )
         # Calculate the peak-to-peak value for each epoch and channel
-        p2p_values_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data()]
+        p2p_values_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data(copy=False)]
 
         # Calculate the mean peak-to-peak value per epoch across all channels
         mean_p2p_per_epoch = [np.mean(epoch_p2p) for epoch_p2p in p2p_values_per_epoch]
@@ -247,8 +247,8 @@ class EvaluationFramework:
             float: The SNR value for the dataset.
         """
         # Extracting the data
-        data_to_evaluate = mnedict["raw"].get_data()
-        data_reference = mnedict["ref"].get_data()
+        data_to_evaluate = mnedict["raw"].get_data(copy=False)
+        data_reference = mnedict["ref"].get_data(copy=False)
 
         # Calculate power of the signal
         power_corrected = np.var(data_to_evaluate, axis=1)

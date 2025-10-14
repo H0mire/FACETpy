@@ -1202,8 +1202,8 @@ class ArtifactEstimator:
         }
         
         # Get data as numpy arrays
-        clean_data = clean_epochs.get_data()
-        noisy_data = noisy_epochs.get_data()
+        clean_data = clean_epochs.get_data(copy=False)
+        noisy_data = noisy_epochs.get_data(copy=False)
         
         # Store the data
         self.clean_epochs = clean_data
@@ -1366,7 +1366,7 @@ class ArtifactEstimator:
         )
         
         # Get epoch data
-        epoch_data = epochs.get_data()  # Shape: (n_epochs, n_channels, n_times_epoch)
+        epoch_data = epochs.get_data(copy=False)  # Shape: (n_epochs, n_channels, n_times_epoch)
         n_epochs, n_channels_epoch, n_times_epoch = epoch_data.shape
         
         print(f"Created {n_epochs} epochs with shape: {epoch_data.shape}")

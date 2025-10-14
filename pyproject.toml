@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "facet"
-version = "0.1.0"
+version = "2.0.0"
 description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
 authors = ["Janik Michael Mueller <janik.michael.mueller@gmail.com>"]
 license = "GNUv3"

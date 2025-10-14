@@ -263,7 +263,7 @@ class FastANCProcessor(CNativeProcessor):
         """Convert Python data to C-compatible format."""
         return {
             "reference": context.get_noise().ctypes,
-            "data": context.get_raw().get_data().ctypes,
+            "data": context.get_raw().get_data(copy=False).ctypes,
             "order": self.filter_order,
             "mu": self.mu
         }

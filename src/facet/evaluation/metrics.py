@@ -292,7 +292,7 @@ class MedianArtifactCalculator(Processor):
         )
 
         # Calculate peak-to-peak per epoch and channel
-        p2p_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data()]
+        p2p_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data(copy=False)]
 
         # Mean across channels for each epoch
         mean_p2p_per_epoch = [np.mean(epoch_p2p) for epoch_p2p in p2p_per_epoch]

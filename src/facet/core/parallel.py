@@ -326,7 +326,7 @@ class ParallelExecutor:
         # Merge data from all chunks
         for i, result_ctx in enumerate(results):
             result_raw = result_ctx.get_raw()
-            result_data = result_raw.get_data()
+            result_data = result_raw.get_data(copy=False)
             result_channels = result_raw.ch_names
 
             # Find channel indices in original

@@ -160,8 +160,8 @@ class CascadedDenoisingEstimator:
         }
         
         # Get data as numpy arrays
-        clean_data = clean_epochs.get_data()
-        noisy_data = noisy_epochs.get_data()
+        clean_data = clean_epochs.get_data(copy=False)
+        noisy_data = noisy_epochs.get_data(copy=False)
         
         # Store the data
         self.clean_epochs = clean_data
@@ -582,7 +582,7 @@ class CascadedDenoisingEstimator:
         )
         
         # Get epoch data and clean it
-        epoch_data = epochs.get_data()
+        epoch_data = epochs.get_data(copy=False)
         cleaned_epochs = self.clean_data(epoch_data)
         
         # Apply corrections back to continuous data
