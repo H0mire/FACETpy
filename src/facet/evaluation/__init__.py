@@ -11,12 +11,14 @@ from .metrics import (
     SNRCalculator,
     RMSCalculator,
     MedianArtifactCalculator,
-    MetricsReport
+    MetricsReport,
 )
+from .visualization import RawPlotter
 
 __all__ = [
     'SNRCalculator',
     'RMSCalculator',
     'MedianArtifactCalculator',
     'MetricsReport',
+    'RawPlotter',
 ]

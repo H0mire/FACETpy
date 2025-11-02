@@ -7,7 +7,7 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from loguru import logger
 from .processor import Processor
 from .context import ProcessingContext
@@ -23,10 +23,12 @@ class PipelineResult:
 
     def __init__(
         self,
-        context: ProcessingContext,
+        context: Optional[ProcessingContext],
         success: bool = True,
         error: Optional[Exception] = None,
-        execution_time: float = 0.0
+        execution_time: float = 0.0,
+        failed_processor: Optional[str] = None,
+        failed_processor_index: Optional[int] = None
     ):
         """
         Initialize pipeline result.
@@ -41,6 +43,8 @@ class PipelineResult:
         self.success = success
         self.error = error
         self.execution_time = execution_time
+        self.failed_processor = failed_processor
+        self.failed_processor_index = failed_processor_index
 
     def get_context(self) -> ProcessingContext:
         """Get final processing context."""
@@ -145,9 +149,11 @@ class Pipeline:
 
         try:
             context = initial_context
+            current_processor: Optional[Tuple[int, Processor]] = None
 
             # Execute processors
             for i, processor in enumerate(self.processors):
+                current_processor = (i, processor)
                 logger.info(
                     f"[{i+1}/{len(self.processors)}] Executing: {processor.name}"
                 )
@@ -175,13 +181,26 @@ class Pipeline:
 
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"Pipeline failed after {execution_time:.2f}s: {e}")
+            if current_processor:
+                failed_index, failed_proc = current_processor
+                logger.error(
+                    f"Pipeline failed after {execution_time:.2f}s during processor "
+                    f"{failed_proc.name} (step {failed_index + 1}/{len(self.processors)}): {e}"
+                )
+            else:
+                logger.error(
+                    f"Pipeline failed after {execution_time:.2f}s before executing any "
+                    f"processor: {e}"
+                )
+            logger.opt(exception=e).debug("Exception details")
 
             return PipelineResult(
                 context=context if context else None,
                 success=False,
                 error=e,
-                execution_time=execution_time
+                execution_time=execution_time,
+                failed_processor=current_processor[1].name if current_processor else None,
+                failed_processor_index=current_processor[0] if current_processor else None
             )
 
     def add(self, processor: Processor) -> 'Pipeline':

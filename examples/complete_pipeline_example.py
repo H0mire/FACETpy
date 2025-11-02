@@ -8,7 +8,17 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import os
 from pathlib import Path
+import traceback
+
+OUTPUT_DIR = Path("./output")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+MPLCONFIG_PATH = OUTPUT_DIR / "mpl_config"
+MPLCONFIG_PATH.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIG_PATH.resolve()))
+
 from facet.core import Pipeline
 from facet.io import EDFLoader, EDFExporter
 from facet.preprocessing import (
@@ -27,9 +37,10 @@ from facet.evaluation import (
     SNRCalculator,
     RMSCalculator,
     MedianArtifactCalculator,
-    MetricsReport
+    MetricsReport,
+    RawPlotter
 )
-import traceback
+from facet.helpers import WaitForConfirmation
 
 file_path = "./examples/datasets/NiazyFMRI.edf"
 # Event Regex assuming using stim channel
@@ -56,12 +67,14 @@ def main():
     8. Downsample back to original rate
     9. Apply final highpass filter
     10. Evaluate results
-    11. Export corrected data
+    11. Visualise before/after snippets
+    12. Optionally pause for manual inspection
+    13. Export corrected data
     """
 
     # Configuration
     input_file = "./examples/datasets/NiazyFMRI.edf"
-    output_file = "./output/corrected.edf"
+    output_file = str(OUTPUT_DIR / "corrected.edf")
     trigger_pattern = r"\b1\b"  # Regex pattern for trigger detection
 
     # Build the pipeline
@@ -126,7 +139,26 @@ def main():
         MedianArtifactCalculator(),
         MetricsReport(),
 
-        # 11. Export corrected data
+        # 11. Visualise results (configurable plotting step)
+        RawPlotter(
+            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
+            channel="Fp1",
+            start=25.0,
+            duration=20.0,
+            overlay_original=False,
+            save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
+            show=True,
+            auto_close=False,
+            title="Fp1 – Before vs After (first 20s)"
+        ),
+
+        # 12. Optional confirmation pause (auto-continues in scripted runs)
+        WaitForConfirmation(
+            message="Review the generated plot, then press Enter to continue.",
+            auto_continue=False
+        ),
+
+        # 13. Export corrected data
         EDFExporter(
             path=output_file,
             overwrite=True
@@ -147,6 +179,11 @@ def main():
         print(f"  SNR: {metrics.get('snr', 'N/A')}")
         print(f"  RMS Ratio: {metrics.get('rms_ratio', 'N/A')}")
         print(f"  Median Artifact: {metrics.get('median_artifact', 'N/A')}")
+
+        plot_output = OUTPUT_DIR / "pipeline_before_after.png"
+        if plot_output.exists():
+            print(f"\nVisual inspection plot saved to: {plot_output}")
+            print("Adjust the RawPlotter step to change channels, duration, or plotting mode.")
 
     else:
         print(f"\n✗ Pipeline failed: {result.error}")

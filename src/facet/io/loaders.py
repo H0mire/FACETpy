@@ -70,10 +70,29 @@ class EDFLoader(Processor):
         # Load raw data
         raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
 
-        # Mark bad channels
+        # Mark bad channels with validation against available channels
         if self.bad_channels:
-            raw.info['bads'] = self.bad_channels
-            logger.debug(f"Marked {len(self.bad_channels)} bad channels")
+            available_channels = set(raw.ch_names)
+            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
+            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
+
+            if missing_channels:
+                logger.warning(
+                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
+                    f"{', '.join(missing_channels)}"
+                )
+                logger.debug(
+                    f"Available channels: {', '.join(raw.ch_names)}"
+                )
+
+            raw.info['bads'] = valid_bad_channels
+            if valid_bad_channels:
+                logger.debug(
+                    f"Marked {len(valid_bad_channels)} bad channel(s): "
+                    f"{', '.join(valid_bad_channels)}"
+                )
+            else:
+                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
 
         # Create metadata
         metadata = ProcessingMetadata(
@@ -171,10 +190,29 @@ class BIDSLoader(Processor):
         if self.preload:
             raw.load_data()
 
-        # Mark bad channels
+        # Mark bad channels with validation against available channels
         if self.bad_channels:
-            raw.info['bads'] = self.bad_channels
-            logger.debug(f"Marked {len(self.bad_channels)} bad channels")
+            available_channels = set(raw.ch_names)
+            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
+            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
+
+            if missing_channels:
+                logger.warning(
+                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
+                    f"{', '.join(missing_channels)}"
+                )
+                logger.debug(
+                    f"Available channels: {', '.join(raw.ch_names)}"
+                )
+
+            raw.info['bads'] = valid_bad_channels
+            if valid_bad_channels:
+                logger.debug(
+                    f"Marked {len(valid_bad_channels)} bad channel(s): "
+                    f"{', '.join(valid_bad_channels)}"
+                )
+            else:
+                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
 
         # Create metadata
         metadata = ProcessingMetadata(
@@ -247,10 +285,29 @@ class GDFLoader(Processor):
         # Load raw data
         raw = mne.io.read_raw_gdf(self.path, preload=self.preload)
 
-        # Mark bad channels
+        # Mark bad channels with validation against available channels
         if self.bad_channels:
-            raw.info['bads'] = self.bad_channels
-            logger.debug(f"Marked {len(self.bad_channels)} bad channels")
+            available_channels = set(raw.ch_names)
+            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
+            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
+
+            if missing_channels:
+                logger.warning(
+                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
+                    f"{', '.join(missing_channels)}"
+                )
+                logger.debug(
+                    f"Available channels: {', '.join(raw.ch_names)}"
+                )
+
+            raw.info['bads'] = valid_bad_channels
+            if valid_bad_channels:
+                logger.debug(
+                    f"Marked {len(valid_bad_channels)} bad channel(s): "
+                    f"{', '.join(valid_bad_channels)}"
+                )
+            else:
+                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
 
         # Create metadata
         metadata = ProcessingMetadata(
