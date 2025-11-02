@@ -138,6 +138,101 @@ class SNRCalculator(Processor):
 
 
 @register_processor
+class LegacySNRCalculator(Processor):
+    """
+    Calculate legacy-style Signal-to-Noise Ratio (SNR).
+
+    Mirrors the original FACET implementation by comparing the variance of the
+    corrected data to the variance of the uncorrected reference recording.
+    """
+
+    name = "legacy_snr_calculator"
+    description = "Legacy-style SNR using original raw as reference"
+    requires_triggers = False
+    parallel_safe = False
+
+    def __init__(self):
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        """Validate prerequisites."""
+        super().validate(context)
+        if context.get_raw_original() is None:
+            raise ProcessorValidationError(
+                "Original raw data not available. Cannot calculate legacy SNR."
+            )
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        """Calculate legacy SNR."""
+        logger.info("Calculating legacy SNR (corrected vs original)")
+
+        raw_corrected = context.get_raw()
+        raw_original = context.get_raw_original()
+
+        # Use EEG channels only
+        picks = mne.pick_types(
+            raw_corrected.info,
+            meg=False,
+            eeg=True,
+            stim=False,
+            eog=False,
+            exclude='bads'
+        )
+
+        if len(picks) == 0:
+            logger.warning("No EEG channels found for legacy SNR calculation")
+            return context
+
+        triggers = context.get_triggers()
+        artifact_length = context.get_artifact_length()
+        if triggers is None or len(triggers) == 0 or artifact_length is None:
+            logger.warning("Legacy SNR requires triggers and artifact length; skipping")
+            return context
+
+        sfreq = raw_corrected.info['sfreq']
+        acq_start = max(0, triggers[0] - int(artifact_length * 0.5))
+        acq_end = min(raw_corrected.n_times, triggers[-1] + int(artifact_length * 1.5))
+
+        acq_tmin = acq_start / sfreq
+        acq_tmax = acq_end / sfreq
+
+        corrected_data = raw_corrected.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=picks)
+
+        ref_segments = []
+        if acq_tmin > 0:
+            ref_segments.append(
+                raw_original.copy().crop(tmax=acq_tmin).get_data(picks=picks)
+            )
+        if acq_tmax < raw_original.times[-1]:
+            ref_segments.append(
+                raw_original.copy().crop(tmin=acq_tmax).get_data(picks=picks)
+            )
+
+        if ref_segments:
+            reference_data = np.concatenate(ref_segments, axis=1)
+        else:
+            reference_data = raw_original.get_data(picks=picks)
+
+        var_corrected = np.var(corrected_data, axis=1)
+        var_reference = np.var(reference_data, axis=1)
+
+        var_residual = var_corrected - var_reference
+        var_residual = np.maximum(var_residual, 1e-10)
+
+        snr_per_channel = np.abs(var_reference / var_residual)
+        snr_mean = float(np.mean(snr_per_channel))
+
+        logger.info(f"Legacy SNR: {snr_mean:.2f}")
+
+        new_metadata = context.metadata.copy()
+        metrics = new_metadata.custom.setdefault('metrics', {})
+        metrics['legacy_snr'] = snr_mean
+        metrics['legacy_snr_per_channel'] = snr_per_channel.tolist()
+
+        return context.with_metadata(new_metadata)
+
+
+@register_processor
 class RMSCalculator(Processor):
     """
     Calculate Root Mean Square (RMS) improvement ratio.

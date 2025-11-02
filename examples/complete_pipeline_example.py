@@ -19,10 +19,11 @@ MPLCONFIG_PATH = OUTPUT_DIR / "mpl_config"
 MPLCONFIG_PATH.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIG_PATH.resolve()))
 
-from facet.core import Pipeline
+from facet.core import Pipeline, LambdaProcessor
 from facet.io import EDFLoader, EDFExporter
 from facet.preprocessing import (
     HighPassFilter,
+    LowPassFilter,
     UpSample,
     TriggerDetector,
     TriggerAligner,
@@ -35,6 +36,7 @@ from facet.correction import (
 )
 from facet.evaluation import (
     SNRCalculator,
+    LegacySNRCalculator,
     RMSCalculator,
     MedianArtifactCalculator,
     MetricsReport,
@@ -51,13 +53,16 @@ upsample_factor = 10
 unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
 # Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
 artifact_to_trigger_offset = -0.005
+# Crop window (seconds). Adjust as needed to trim the recording before processing.
+crop_tmin = 0
+crop_tmax = 162
 
 def main():
     """
     Run a complete fMRI artifact correction pipeline.
 
     Steps:
-    1. Load EEG data
+    1. Load EEG data and optionally crop to a time window
     2. Detect triggers
     3. Upsample for better precision
     4. Align triggers using cross-correlation
@@ -87,9 +92,21 @@ def main():
             artifact_to_trigger_offset=artifact_to_trigger_offset,
         ),
 
+        # 1b. Optionally crop the raw to a specific interval before further processing
+        LambdaProcessor(
+            name="crop_raw_to_interval",
+            func=lambda ctx: ctx.with_raw(
+                ctx.get_raw().copy().crop(tmin=crop_tmin, tmax=crop_tmax)
+            )
+        ),
+
         # 2. Detect triggers
         TriggerDetector(
             regex=trigger_pattern
+        ),
+
+        HighPassFilter(
+            freq=0.5
         ),
 
         # 3. Upsample for precision
@@ -110,31 +127,29 @@ def main():
             realign_after_averaging=True
         ),
 
-        # 6. ANC Correction (optional, for residual artifacts)
-        ANCCorrection(
-            filter_order=5,
-            hp_freq=1.0,
-            use_c_extension=True
+        # 6. Downsample back to original rate
+        DownSample(
+            factor=10
         ),
 
-        # 7. PCA Correction (optional, for systematic artifacts)
+        LowPassFilter(
+            freq=70
+        ),
+
+        # 9. PCA Correction (optional, for systematic artifacts)
         PCACorrection(
             n_components=0.95,  # Keep 95% of variance
             hp_freq=1.0
         ),
 
-        # 8. Downsample back to original rate
-        DownSample(
-            factor=10
-        ),
-
-        # 9. Final highpass filter
-        HighPassFilter(
-            freq=0.5
+        # 8. ANC Correction (for residual artifacts)
+        ANCCorrection(
+            use_c_extension=True
         ),
 
         # 10. Evaluate results
         SNRCalculator(),
+        LegacySNRCalculator(),
         RMSCalculator(),
         MedianArtifactCalculator(),
         MetricsReport(),
@@ -144,12 +159,12 @@ def main():
             mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
             channel="Fp1",
             start=25.0,
-            duration=20.0,
-            overlay_original=False,
+            duration=120.0,
+            overlay_original=True,
             save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
             show=True,
             auto_close=False,
-            title="Fp1 – Before vs After (first 20s)"
+            title="Fp1 – Before vs After (first 120s)"
         ),
 
         # 12. Optional confirmation pause (auto-continues in scripted runs)
@@ -177,6 +192,7 @@ def main():
         metrics = result.context.metadata.custom.get('metrics', {})
         print("\nFinal Metrics:")
         print(f"  SNR: {metrics.get('snr', 'N/A')}")
+        print(f"  Legacy SNR: {metrics.get('legacy_snr', 'N/A')}")
         print(f"  RMS Ratio: {metrics.get('rms_ratio', 'N/A')}")
         print(f"  Median Artifact: {metrics.get('median_artifact', 'N/A')}")
 
@@ -284,9 +300,9 @@ def example_batch_processing():
         TriggerDetector(regex=r"\b1\b"),
         UpSample(factor=10),
         AASCorrection(window_size=30),
-        ANCCorrection(filter_order=5),
         DownSample(factor=10),
-        HighPassFilter(freq=0.5)
+        HighPassFilter(freq=0.5),
+        ANCCorrection()
     ])
 
     # Process multiple files

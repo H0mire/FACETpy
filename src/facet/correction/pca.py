@@ -244,23 +244,67 @@ class PCACorrection(Processor):
         # Transpose to (n_times, n_epochs) for sklearn
         epochs_t = epochs.T
 
-        # Standardize the data
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(epochs_t)
+        # Identify columns with sufficient variance to avoid scaling issues
+        col_var = np.var(epochs_t, axis=0)
+        variance_threshold = 1e-12
+        valid_mask = col_var > variance_threshold
 
-        # Apply PCA
-        pca = PCA(n_components=self.n_components)
-        X_pca = pca.fit_transform(X_scaled)
+        if np.count_nonzero(valid_mask) < 2:
+            # Not enough informative samples for PCA
+            return np.zeros_like(epochs)
 
-        # Reconstruct data
-        X_reconstructed = pca.inverse_transform(X_pca)
-        X_reconstructed = scaler.inverse_transform(X_reconstructed)
+        X_valid = epochs_t[:, valid_mask]
+
+        # Standardize the data on informative columns only
+        mean_valid = np.mean(X_valid, axis=0)
+        std_valid = np.std(X_valid, axis=0, ddof=0)
+        std_valid = np.where(std_valid < variance_threshold, 1.0, std_valid)
+        X_centered = (X_valid - mean_valid) / std_valid
+
+        # Compute SVD
+        try:
+            U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
+        except np.linalg.LinAlgError as ex:
+            logger.warning(f"PCA SVD failed ({ex}); skipping channel")
+            return np.zeros_like(epochs)
+
+        # Determine number of components to retain
+        max_components = min(X_centered.shape[0], X_centered.shape[1])
+        if isinstance(self.n_components, int):
+            n_components = min(self.n_components, max_components)
+        else:
+            n_components = self.n_components
+
+        if max_components <= 1:
+            return np.zeros_like(epochs)
+
+        if isinstance(n_components, float):
+            if not 0 < n_components < 1:
+                raise ValueError("n_components as float must be between 0 and 1.")
+            explained_var = (S ** 2) / (X_centered.shape[0] - 1)
+            explained_ratio = np.cumsum(explained_var) / np.sum(explained_var)
+            n_components = np.searchsorted(explained_ratio, n_components) + 1
+            n_components = max(1, min(n_components, max_components))
+        else:
+            n_components = max(1, n_components)
+
+        # Reconstruct data using retained components
+        U_reduced = U[:, :n_components]
+        S_reduced = S[:n_components]
+        Vt_reduced = Vt[:n_components, :]
+        X_reconstructed_valid = (
+            (U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid
+        ) + mean_valid
 
         # Calculate residuals (artifact = original - reconstructed)
-        residuals = epochs_t - X_reconstructed
+        residuals_valid = X_valid - X_reconstructed_valid
+
+        # Reinsert residuals into full matrix
+        residuals_full = np.zeros_like(epochs_t)
+        residuals_full[:, valid_mask] = residuals_valid
 
         # Transpose back to (n_epochs, n_times)
-        return residuals.T
+        return residuals_full.T
 
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
         """

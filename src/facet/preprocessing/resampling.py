@@ -62,6 +62,12 @@ class Resample(Processor):
 
         logger.info(f"Resampling from {old_sfreq}Hz to {self.sfreq}Hz")
 
+        # Prepare estimated noise resampling (mirrors legacy behaviour)
+        noise_raw = None
+        if context.has_estimated_noise():
+            noise_raw = raw.copy()
+            noise_raw._data = context.get_estimated_noise().copy()
+
         # Resample raw data
         raw.resample(
             sfreq=self.sfreq,
@@ -90,17 +96,19 @@ class Resample(Processor):
 
         # Resample estimated noise if it exists
         if context.has_estimated_noise():
-            noise = context.get_estimated_noise().copy()
-            noise_raw = context.get_raw_original().copy()
-            noise_raw._data = noise
-            noise_raw.resample(
-                sfreq=self.sfreq,
-                npad=self.npad,
-                window=self.window,
-                n_jobs=self.n_jobs,
-                verbose=False
-            )
-            new_context.set_estimated_noise(noise_raw._data)
+            if noise_raw is None:
+                # Should not happen, but guard for safety
+                noise_resampled = np.zeros(new_context.get_raw()._data.shape)
+            else:
+                noise_raw.resample(
+                    sfreq=self.sfreq,
+                    npad=self.npad,
+                    window=self.window,
+                    n_jobs=self.n_jobs,
+                    verbose=False
+                )
+                noise_resampled = noise_raw._data.copy()
+            new_context.set_estimated_noise(noise_resampled)
 
         return new_context
 

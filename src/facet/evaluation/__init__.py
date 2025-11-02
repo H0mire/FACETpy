@@ -9,6 +9,7 @@ Date: 2025-01-12
 
 from .metrics import (
     SNRCalculator,
+    LegacySNRCalculator,
     RMSCalculator,
     MedianArtifactCalculator,
     MetricsReport,
@@ -17,6 +18,7 @@ from .visualization import RawPlotter
 
 __all__ = [
     'SNRCalculator',
+    'LegacySNRCalculator',
     'RMSCalculator',
     'MedianArtifactCalculator',
     'MetricsReport',
