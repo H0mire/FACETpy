@@ -67,7 +67,12 @@ from .preprocessing import (
 
     # Alignment
     TriggerAligner,
-    SubsampleAligner
+    SliceAligner,
+    SubsampleAligner,
+
+    # Acquisition window
+    CutAcquisitionWindow,
+    PasteAcquisitionWindow,
 )
 
 # Correction processors
@@ -138,7 +143,10 @@ __all__ = [
     'QRSTriggerDetector',
     'MissingTriggerDetector',
     'TriggerAligner',
+    'SliceAligner',
     'SubsampleAligner',
+    'CutAcquisitionWindow',
+    'PasteAcquisitionWindow',
 
     # Correction
     'AASCorrection',
@@ -193,8 +201,10 @@ def create_standard_pipeline(
     processors = [
         EDFLoader(path=input_path, preload=True),
         TriggerDetector(regex=trigger_regex),
+        CutAcquisitionWindow(),
         UpSample(factor=upsample_factor),
-        TriggerAligner(ref_trigger_index=0),
+        SliceAligner(ref_trigger_index=0),
+        SubsampleAligner(ref_trigger_index=0),
         AASCorrection(window_size=30, correlation_threshold=0.975)
     ]
 
@@ -206,6 +216,7 @@ def create_standard_pipeline(
 
     processors.extend([
         DownSample(factor=upsample_factor),
+        PasteAcquisitionWindow(),
         HighPassFilter(freq=0.5),
         EDFExporter(path=output_path, overwrite=True)
     ])

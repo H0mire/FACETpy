@@ -20,7 +20,8 @@ from .trigger_detection import (
     QRSTriggerDetector,
     MissingTriggerDetector
 )
-from .alignment import TriggerAligner, SubsampleAligner
+from .alignment import TriggerAligner, SliceAligner, SubsampleAligner
+from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
 
 __all__ = [
     # Filtering
@@ -42,5 +43,10 @@ __all__ = [
 
     # Alignment
     'TriggerAligner',
+    'SliceAligner',
     'SubsampleAligner',
+
+    # Acquisition window
+    'CutAcquisitionWindow',
+    'PasteAcquisitionWindow',
 ]

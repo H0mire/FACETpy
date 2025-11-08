@@ -23,6 +23,10 @@ class ProcessingMetadata:
     triggers: Optional[np.ndarray] = None
     trigger_regex: Optional[str] = None
     artifact_to_trigger_offset: float = 0.0
+    acq_start_sample: Optional[int] = None
+    acq_end_sample: Optional[int] = None
+    pre_trigger_samples: Optional[int] = None
+    post_trigger_samples: Optional[int] = None
     upsampling_factor: int = 1
     artifact_length: Optional[int] = None
     volume_gaps: Optional[bool] = None
@@ -34,6 +38,10 @@ class ProcessingMetadata:
             triggers=self.triggers.copy() if self.triggers is not None else None,
             trigger_regex=self.trigger_regex,
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
+            acq_start_sample=self.acq_start_sample,
+            acq_end_sample=self.acq_end_sample,
+            pre_trigger_samples=self.pre_trigger_samples,
+            post_trigger_samples=self.post_trigger_samples,
             upsampling_factor=self.upsampling_factor,
             artifact_length=self.artifact_length,
             volume_gaps=self.volume_gaps,
@@ -318,6 +326,10 @@ class ProcessingContext:
                 'triggers': self._metadata.triggers,
                 'trigger_regex': self._metadata.trigger_regex,
                 'artifact_to_trigger_offset': self._metadata.artifact_to_trigger_offset,
+                'acq_start_sample': self._metadata.acq_start_sample,
+                'acq_end_sample': self._metadata.acq_end_sample,
+                'pre_trigger_samples': self._metadata.pre_trigger_samples,
+                'post_trigger_samples': self._metadata.post_trigger_samples,
                 'upsampling_factor': self._metadata.upsampling_factor,
                 'artifact_length': self._metadata.artifact_length,
                 'volume_gaps': self._metadata.volume_gaps,
@@ -345,6 +357,10 @@ class ProcessingContext:
             triggers=data['metadata']['triggers'],
             trigger_regex=data['metadata']['trigger_regex'],
             artifact_to_trigger_offset=data['metadata']['artifact_to_trigger_offset'],
+            acq_start_sample=data['metadata'].get('acq_start_sample'),
+            acq_end_sample=data['metadata'].get('acq_end_sample'),
+            pre_trigger_samples=data['metadata'].get('pre_trigger_samples'),
+            post_trigger_samples=data['metadata'].get('post_trigger_samples'),
             upsampling_factor=data['metadata']['upsampling_factor'],
             artifact_length=data['metadata']['artifact_length'],
             volume_gaps=data['metadata']['volume_gaps'],

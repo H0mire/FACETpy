@@ -7,13 +7,74 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import Optional
+from typing import Optional, Tuple
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import fftconvolve, firls
-
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..helpers.crosscorr import crosscorrelation
+
+
+def _get_pre_post_samples(
+    context: ProcessingContext,
+    artifact_length: int,
+) -> Tuple[int, int]:
+    """Derive pre/post trigger sample lengths using metadata."""
+    sfreq = context.get_raw().info["sfreq"]
+    metadata = context.metadata
+
+    if artifact_length is None or artifact_length <= 0:
+        raise ProcessorValidationError("Artifact length must be positive for alignment")
+
+    if metadata.pre_trigger_samples is not None:
+        pre = int(max(0, min(metadata.pre_trigger_samples, artifact_length)))
+    else:
+        offset_samples = int(round(metadata.artifact_to_trigger_offset * sfreq))
+        pre = int(max(0, min(-offset_samples, artifact_length))) if offset_samples < 0 else 0
+
+    if metadata.post_trigger_samples is not None:
+        post = int(max(0, min(metadata.post_trigger_samples, artifact_length)))
+    else:
+        post = int(max(artifact_length - pre, 0))
+
+    if pre + post == 0:
+        post = artifact_length
+    if pre + post < artifact_length:
+        post = artifact_length - pre
+
+    return pre, post
+
+
+def _extract_epoch_with_padding(
+    data: np.ndarray,
+    start_idx: int,
+    length: int,
+    total_length: int,
+) -> np.ndarray:
+    """
+    Extract a window from the data. Pads with edge values when the window
+    exceeds the available samples.
+    """
+    end_idx = start_idx + length
+
+    pad_left = max(0, -start_idx)
+    pad_right = max(0, end_idx - total_length)
+
+    valid_start = max(0, start_idx)
+    valid_end = min(total_length, end_idx)
+
+    segment = data[valid_start:valid_end]
+    if pad_left or pad_right:
+        segment = np.pad(segment, (pad_left, pad_right), mode="edge")
+
+    if len(segment) != length:
+        # As a fallback, resize by repeating edge values to the required length
+        if len(segment) == 0:
+            segment = np.zeros(length, dtype=data.dtype)
+        else:
+            segment = np.resize(segment, length)
+
+    return segment
 
 
 @register_processor
@@ -182,168 +243,157 @@ class TriggerAligner(Processor):
 
 
 @register_processor
+class SliceAligner(TriggerAligner):
+    """Align slices on already upsampled data (legacy RAAlignSlices)."""
+
+    name = "slice_aligner"
+    description = "Align slice triggers on upsampled data"
+
+    def __init__(
+        self,
+        ref_trigger_index: int = 0,
+        ref_channel: Optional[int] = None,
+        search_window: Optional[int] = None,
+        save_to_annotations: bool = False,
+    ):
+        super().__init__(
+            ref_trigger_index=ref_trigger_index,
+            ref_channel=ref_channel,
+            search_window=search_window,
+            save_to_annotations=save_to_annotations,
+            upsample_for_alignment=False,
+        )
+
+
+@register_processor
 class SubsampleAligner(Processor):
     """
-    Align triggers at subsample precision using phase shifts.
+    Refine trigger positions at subsample precision (post-upsampling).
 
-    This processor uses FFT-based phase shifting to achieve subsample-level
-    alignment of artifacts.
-
-    Example:
-        aligner = SubsampleAligner(ref_trigger_index=0)
-        context = aligner.execute(context)
+    This implementation mirrors the intent of the MATLAB RAAlignSubSample step
+    while operating directly on the already upsampled data.
     """
 
     name = "subsample_aligner"
-    description = "Align triggers at subsample precision"
+    description = "Refine trigger alignment at subsample precision"
     requires_triggers = True
 
     def __init__(
         self,
         ref_trigger_index: int = 0,
         ref_channel: Optional[int] = None,
-        hp_frequency: Optional[float] = None,
-        max_iterations: int = 15
+        search_window: Optional[int] = None,
+        apply_to_raw: bool = False,
     ):
-        """
-        Initialize subsample aligner.
-
-        Args:
-            ref_trigger_index: Index of reference trigger
-            ref_channel: Reference channel index (None for first EEG)
-            hp_frequency: Highpass frequency for preprocessing (None for auto)
-            max_iterations: Maximum iterations for optimization
-        """
         self.ref_trigger_index = ref_trigger_index
         self.ref_channel = ref_channel
-        self.hp_frequency = hp_frequency
-        self.max_iterations = max_iterations
-        self._subsample_shifts = None
+        self.search_window = search_window
+        self.apply_to_raw = apply_to_raw
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
-        """Validate prerequisites."""
         super().validate(context)
         if context.get_artifact_length() is None:
             raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
+                "Artifact length not set. Run TriggerDetector before SubsampleAligner."
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Align at subsample precision."""
-        logger.info("Aligning triggers at subsample precision")
+        logger.info("Refining trigger alignment with subsample precision")
 
         raw = context.get_raw()
-        triggers = context.get_triggers()
+        triggers = context.get_triggers().copy()
         artifact_length = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
-        upsampling_factor = context.metadata.upsampling_factor
+        n_samples = raw.n_times
+        upsampling_factor = max(1, context.metadata.upsampling_factor)
 
-        # Get reference channel
+        if len(triggers) == 0:
+            logger.warning("SubsampleAligner received empty triggers; skipping")
+            return context
+
+        if self.ref_trigger_index >= len(triggers):
+            raise ProcessorValidationError(
+                f"Reference trigger index {self.ref_trigger_index} "
+                f"is out of range for {len(triggers)} triggers"
+            )
+
+        pre_samples, post_samples = _get_pre_post_samples(context, artifact_length)
+        window_length = pre_samples + post_samples
+
+        if window_length <= 0:
+            raise ProcessorValidationError("SubsampleAligner window length is zero")
+
+        if self.search_window is not None:
+            search_radius = int(max(1, self.search_window))
+        else:
+            search_radius = int(max(1, upsampling_factor * 2))
+
         if self.ref_channel is None:
             eeg_channels = mne.pick_types(
-                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
+                raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
             )
-            ref_channel = eeg_channels[0] if len(eeg_channels) > 0 else 0
+            ref_channel = eeg_channels[0] if len(eeg_channels) else 0
         else:
             ref_channel = self.ref_channel
 
-        # Calculate offsets
-        tmin = int(context.metadata.artifact_to_trigger_offset * sfreq)
+        ref_signal = raw.get_data(picks=[ref_channel])[0]
+        ref_trigger = triggers[self.ref_trigger_index]
+        ref_epoch = _extract_epoch_with_padding(
+            ref_signal,
+            ref_trigger - pre_samples,
+            window_length,
+            n_samples,
+        )
 
-        # Determine maximum trigger distance for FFT
-        max_trig_dist = np.max(np.diff(triggers))
-        num_samples = max_trig_dist + 20
+        shifts = np.zeros(len(triggers), dtype=int)
 
-        # Get acquisition data
-        acq_start = max(0, triggers[0] - artifact_length)
-        acq_end = min(raw.n_times, triggers[-1] + artifact_length)
-        acq_data = raw.get_data(picks=[ref_channel], start=acq_start, stop=acq_end)[0]
-
-        # Apply highpass filter if specified
-        if self.hp_frequency and self.hp_frequency > 0:
-            logger.debug(f"Applying {self.hp_frequency}Hz highpass for alignment")
-            nyq = 0.5 * sfreq
-            f = [
-                0,
-                (self.hp_frequency * 0.9) / (nyq * upsampling_factor),
-                (self.hp_frequency * 1.1) / (nyq * upsampling_factor),
-                1,
-            ]
-            a = [0, 0, 1, 1]
-            fw = firls(101, f, a)
-            hpeeg = fftconvolve(acq_data, fw, mode='same')
-            hpeeg = np.concatenate([hpeeg[100:], np.zeros(100)])
-        else:
-            hpeeg = acq_data
-
-        # Split into epochs
-        from ..helpers.utils import split_vector
-        adjusted_triggers = triggers - acq_start + tmin - 10
-        eeg_matrix = split_vector(hpeeg, adjusted_triggers, num_samples)
-
-        # Get reference epoch
-        eeg_ref = eeg_matrix[self.ref_trigger_index, :]
-
-        # Calculate phase shifts
-        shift_angles = (
-            np.arange(1, num_samples + 1) - np.floor(num_samples / 2) + 1
-        ) / num_samples
-
-        self._subsample_shifts = np.zeros(len(triggers))
-        corrs = np.zeros((len(triggers), self.max_iterations))
-        shifts = np.zeros((len(triggers), self.max_iterations))
-
-        # Calculate shifts for each epoch
-        for epoch_idx in range(len(triggers)):
-            if epoch_idx == self.ref_trigger_index:
+        for idx, trigger in enumerate(triggers):
+            if idx == self.ref_trigger_index:
                 continue
 
-            eeg_m = eeg_matrix[epoch_idx, :]
-            fft_m = np.fft.fftshift(np.fft.fft(eeg_m))
+            segment_start = trigger - pre_samples - search_radius
+            segment_length = window_length + 2 * search_radius
 
-            # Initial shifts
-            shift_l, shift_m, shift_r = -1, 0, 1
+            segment = _extract_epoch_with_padding(
+                ref_signal,
+                segment_start,
+                segment_length,
+                n_samples,
+            )
 
-            # Calculate initial correlations
-            fft_l = fft_m * np.exp(-1j * 2 * np.pi * shift_angles * shift_l)
-            fft_r = fft_m * np.exp(-1j * 2 * np.pi * shift_angles * shift_r)
-            eeg_l = np.real(np.fft.ifft(np.fft.ifftshift(fft_l)))
-            eeg_r = np.real(np.fft.ifft(np.fft.ifftshift(fft_r)))
+            corr = crosscorrelation(segment, ref_epoch, search_radius)
+            corr = np.nan_to_num(corr)
+            shift = int(np.argmax(corr) - search_radius)
+            shifts[idx] = shift
 
-            corr_l = self._compare(eeg_ref, eeg_l)
-            corr_m = self._compare(eeg_ref, eeg_m)
-            corr_r = self._compare(eeg_ref, eeg_r)
+        aligned_triggers = np.clip(triggers + shifts, 0, n_samples - 1).astype(int)
 
-            fft_ori = fft_m
+        if self.apply_to_raw and np.any(shifts):
+            logger.debug("Applying subsample shifts to raw data segments")
+            data = raw.get_data()
+            for idx, shift in enumerate(shifts):
+                if shift == 0:
+                    continue
+                trigger = triggers[idx]
+                window_start = max(0, trigger - pre_samples)
+                window_end = min(n_samples, trigger + post_samples)
+                segment = data[:, window_start:window_end]
+                data[:, window_start:window_end] = np.roll(segment, shift, axis=1)
+            raw._data = data
 
-            # Iterative optimization
-            for iteration in range(self.max_iterations):
-                corrs[epoch_idx, iteration] = corr_m
-                shifts[epoch_idx, iteration] = shift_m
-
-                # Update bounds
-                if corr_l > corr_r:
-                    corr_r, eeg_r, fft_r, shift_r = corr_m, eeg_m, fft_m, shift_m
-                else:
-                    corr_l, eeg_l, fft_l, shift_l = corr_m, eeg_m, fft_m, shift_m
-
-                # Calculate new midpoint
-                shift_m = (shift_l + shift_r) / 2
-                fft_m = fft_ori * np.exp(-1j * 2 * np.pi * shift_angles * shift_m)
-                eeg_m = np.real(np.fft.ifft(np.fft.ifftshift(fft_m)))
-                corr_m = self._compare(eeg_ref, eeg_m)
-
-            self._subsample_shifts[epoch_idx] = shift_m
-
-        logger.info("Subsample alignment completed")
-
-        # Store shifts in metadata for application during correction
         new_metadata = context.metadata.copy()
-        new_metadata.custom['subsample_shifts'] = self._subsample_shifts
+        new_metadata.triggers = aligned_triggers
+        new_metadata.custom.setdefault("subsample_alignment", {}).update(
+            {
+                "shifts": shifts.tolist(),
+                "ref_trigger_index": self.ref_trigger_index,
+                "search_window": search_radius,
+            }
+        )
+
+        if new_metadata.pre_trigger_samples is None:
+            new_metadata.pre_trigger_samples = pre_samples
+        if new_metadata.post_trigger_samples is None:
+            new_metadata.post_trigger_samples = post_samples
 
         return context.with_metadata(new_metadata)
-
-    def _compare(self, ref: np.ndarray, arg: np.ndarray) -> float:
-        """Compare two signals (negative sum of squared differences)."""
-        return -np.sum((ref - arg) ** 2)

@@ -11,11 +11,14 @@ from facet.preprocessing import (
     UpSample,
     DownSample,
     TriggerAligner,
+    SliceAligner,
+    SubsampleAligner,
+    CutAcquisitionWindow,
     HighPassFilter,
     LowPassFilter,
     BandPassFilter
 )
-from facet.core import ProcessingContext, ProcessorValidationError
+from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
 
 
 @pytest.mark.unit
@@ -28,7 +31,7 @@ class TestTriggerDetector:
 
         # Load file with triggers
         loader = EDFLoader(path=str(sample_edf_file), preload=True)
-        context = loader.execute(ProcessingContext())
+        context = loader.execute(None)
 
         # Detect triggers
         detector = TriggerDetector(regex=r"\b1\b")
@@ -44,7 +47,7 @@ class TestTriggerDetector:
         from facet.io import EDFLoader
 
         loader = EDFLoader(path=str(sample_edf_file), preload=True)
-        context = loader.execute(ProcessingContext())
+        context = loader.execute(None)
 
         detector = TriggerDetector(regex=r"\b1\b")
         result = detector.execute(context)
@@ -164,6 +167,78 @@ class TestTriggerAligner:
 
         with pytest.raises(ProcessorValidationError):
             aligner.execute(context)
+
+
+@pytest.mark.unit
+class TestAcquisitionAlignment:
+    """Tests for acquisition window and slice/subsample alignment."""
+
+    def _build_shifted_context(self, shift_samples=3):
+        """Create a minimal context with a known shift between artifacts."""
+        sfreq = 200
+        artifact_length = 40
+        n_samples = 400
+        triggers = np.array([100, 200])
+
+        data = np.zeros((1, n_samples), dtype=float)
+        template = np.sin(np.linspace(0, np.pi, artifact_length)) * 1e-6
+
+        # Reference artifact aligned with trigger
+        data[0, triggers[0]:triggers[0] + artifact_length] += template
+        # Second artifact shifted in time
+        shifted_start = triggers[1] + shift_samples
+        data[0, shifted_start:shifted_start + artifact_length] += template
+
+        info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, verbose=False)
+
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        metadata.upsampling_factor = 1
+
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_cut_acquisition_sets_metadata(self):
+        """CutAcquisitionWindow should derive acquisition metadata."""
+        context = self._build_shifted_context()
+        cutter = CutAcquisitionWindow()
+        result = cutter.execute(context)
+
+        assert result.metadata.acq_start_sample is not None
+        assert result.metadata.acq_end_sample is not None
+        assert result.metadata.pre_trigger_samples is not None
+        assert result.metadata.post_trigger_samples is not None
+
+    def test_slice_aligner_corrects_shift(self):
+        """SliceAligner should align shifted triggers on upsampled data."""
+        context = self._build_shifted_context(shift_samples=3)
+        context = CutAcquisitionWindow().execute(context)
+
+        aligner = SliceAligner(ref_trigger_index=0, search_window=6)
+        result = aligner.execute(context)
+
+        aligned = result.get_triggers()
+        assert aligned[0] == context.get_triggers()[0]
+        assert aligned[1] - context.get_triggers()[1] == 3
+
+    def test_subsample_aligner_records_shifts(self):
+        """SubsampleAligner should adjust triggers and record shift metadata."""
+        context = self._build_shifted_context(shift_samples=2)
+        context = CutAcquisitionWindow().execute(context)
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5)
+        result = aligner.execute(context)
+
+        aligned = result.get_triggers()
+        expected = context.get_triggers()[1] + 2
+        assert abs(aligned[1] - expected) <= 3
+
+        alignment_meta = result.metadata.custom.get('subsample_alignment')
+        assert alignment_meta is not None
+        recorded_shift = alignment_meta['shifts'][1]
+        assert abs(recorded_shift - 2) <= 3
 
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
