@@ -158,6 +158,17 @@ class HighPassFilter(Filter):
             fir_window=fir_window
         )
 
+    def _get_parameters(self):
+        """Expose user-facing freq parameter for history/serialization."""
+        return {
+            'freq': self.l_freq,
+            'picks': self.picks,
+            'filter_length': self.filter_length,
+            'method': self.method,
+            'phase': self.phase,
+            'fir_window': self.fir_window
+        }
+
 
 @register_processor
 class LowPassFilter(Filter):
@@ -201,6 +212,17 @@ class LowPassFilter(Filter):
             phase=phase,
             fir_window=fir_window
         )
+
+    def _get_parameters(self):
+        """Expose user-facing freq parameter for history/serialization."""
+        return {
+            'freq': self.h_freq,
+            'picks': self.picks,
+            'filter_length': self.filter_length,
+            'method': self.method,
+            'phase': self.phase,
+            'fir_window': self.fir_window
+        }
 
 
 @register_processor

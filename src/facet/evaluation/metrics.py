@@ -12,6 +12,7 @@ import mne
 import numpy as np
 from loguru import logger
 
+from ..console import report_metric
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 
 
@@ -125,7 +126,7 @@ class SNRCalculator(Processor):
         # Average SNR across channels
         snr_mean = np.mean(snr_per_channel)
 
-        logger.info(f"SNR: {snr_mean:.2f}")
+        report_metric("snr", float(snr_mean), label="SNR", display=f"{snr_mean:.2f}")
 
         # Store in metadata
         new_metadata = context.metadata.copy()
@@ -222,7 +223,12 @@ class LegacySNRCalculator(Processor):
         snr_per_channel = np.abs(var_reference / var_residual)
         snr_mean = float(np.mean(snr_per_channel))
 
-        logger.info(f"Legacy SNR: {snr_mean:.2f}")
+        report_metric(
+            "legacy_snr",
+            snr_mean,
+            label="Legacy SNR",
+            display=f"{snr_mean:.2f}",
+        )
 
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault('metrics', {})
@@ -308,7 +314,7 @@ class RMSCalculator(Processor):
         # Median across channels
         rms_ratio = np.median(rms_ratio_per_channel)
 
-        logger.info(f"RMS ratio: {rms_ratio:.2f}")
+        report_metric("rms_ratio", float(rms_ratio), label="RMS Ratio", display=f"{rms_ratio:.2f}")
 
         # Store in metadata
         new_metadata = context.metadata.copy()
@@ -395,7 +401,12 @@ class MedianArtifactCalculator(Processor):
         # Median across epochs
         median_artifact = np.median(mean_p2p_per_epoch)
 
-        logger.info(f"Median artifact amplitude: {median_artifact:.2e}")
+        report_metric(
+            "median_artifact",
+            float(median_artifact),
+            label="Median Artifact",
+            display=f"{median_artifact:.2e}",
+        )
 
         # Store in metadata
         new_metadata = context.metadata.copy()

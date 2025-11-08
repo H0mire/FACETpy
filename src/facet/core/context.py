@@ -14,6 +14,7 @@ from copy import deepcopy
 import numpy as np
 import mne
 from loguru import logger
+from facet.logging_config import suppress_stdout
 
 
 @dataclass
@@ -117,6 +118,29 @@ class ProcessingContext:
         """Check if Raw object exists."""
         return self._raw is not None
 
+    def _call_raw_get_data(
+        self,
+        picks: Optional[Any] = None,
+        **kwargs
+    ) -> np.ndarray:
+        """
+        Call Raw.get_data while gracefully handling removed keywords.
+
+        Some lightweight MNE containers (e.g., RawArray created during chunk
+        execution) do not accept the ``copy`` keyword. We optimistically pass
+        it to avoid extra allocations and fall back to the default behaviour if
+        the object rejects it.
+        """
+        try:
+            return self._raw.get_data(picks=picks, **kwargs)
+        except TypeError as exc:
+            if 'copy' in kwargs and "unexpected keyword argument 'copy'" in str(exc):
+                logger.debug("Raw.get_data() rejected 'copy'; retrying without it")
+                safe_kwargs = dict(kwargs)
+                safe_kwargs.pop('copy', None)
+                return self._raw.get_data(picks=picks, **safe_kwargs)
+            raise
+
     def get_data(self, picks: Optional[Any] = None, **kwargs) -> np.ndarray:
         """
         Get data from Raw object.
@@ -128,7 +152,7 @@ class ProcessingContext:
         Returns:
             Data array
         """
-        return self._raw.get_data(picks=picks, **kwargs)
+        return self._call_raw_get_data(picks=picks, **kwargs)
 
     # =========================================================================
     # Metadata Access
@@ -320,7 +344,7 @@ class ProcessingContext:
             Dictionary representation
         """
         return {
-            'raw_data': self._raw.get_data(copy=False),
+            'raw_data': self._call_raw_get_data(copy=False),
             'raw_info': self._raw.info,
             'metadata': {
                 'triggers': self._metadata.triggers,
@@ -349,8 +373,9 @@ class ProcessingContext:
         Returns:
             ProcessingContext instance
         """
-        # Reconstruct Raw object
-        raw = mne.io.RawArray(data['raw_data'], data['raw_info'])
+        # Reconstruct Raw object (suppress MNE's verbose print output)
+        with suppress_stdout():
+            raw = mne.io.RawArray(data['raw_data'], data['raw_info'])
 
         # Reconstruct metadata
         metadata = ProcessingMetadata(

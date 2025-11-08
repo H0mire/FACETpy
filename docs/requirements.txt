@@ -11,6 +11,7 @@ tensorflow==2.19.0
 EDFlib-Python==1.0.8
 loguru==0.7.2
 pyqt6==6.6.1
+rich==13.9.4
 sphinx>=4.0.0
 sphinx-rtd-theme>=1.0.0
 myst-parser>=0.18.0

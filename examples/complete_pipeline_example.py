@@ -18,6 +18,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 MPLCONFIG_PATH = OUTPUT_DIR / "mpl_config"
 MPLCONFIG_PATH.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIG_PATH.resolve()))
+os.environ["FACET_CONSOLE_MODE"] = "modern" # "classic" or "modern"
+
 
 from facet.core import Pipeline, LambdaProcessor
 from facet.io import EDFLoader, EDFExporter
@@ -43,6 +45,10 @@ from facet.evaluation import (
     RawPlotter
 )
 from facet.helpers import WaitForConfirmation
+
+from facet import (
+    create_standard_pipeline
+)
 
 file_path = "./examples/datasets/NiazyFMRI.edf"
 # Event Regex assuming using stim channel
@@ -106,7 +112,7 @@ def main():
         ),
 
         HighPassFilter(
-            freq=0.5
+            freq=1.0
         ),
 
         # 3. Upsample for precision
@@ -127,6 +133,12 @@ def main():
             realign_after_averaging=True
         ),
 
+        # 9. PCA Correction (optional, for systematic artifacts)
+        PCACorrection(
+            n_components=0.95,  # Keep 95% of variance
+            hp_freq=1.0
+        ),
+
         # 6. Downsample back to original rate
         DownSample(
             factor=10
@@ -134,13 +146,7 @@ def main():
 
         LowPassFilter(
             freq=70
-        ),
-
-        # 9. PCA Correction (optional, for systematic artifacts)
-        PCACorrection(
-            n_components=0.95,  # Keep 95% of variance
-            hp_freq=1.0
-        ),
+        ),        
 
         # 8. ANC Correction (for residual artifacts)
         ANCCorrection(
@@ -159,18 +165,12 @@ def main():
             mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
             channel="Fp1",
             start=25.0,
-            duration=120.0,
-            overlay_original=True,
+            duration=20.0,
+            overlay_original=False,
             save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
             show=True,
             auto_close=False,
-            title="Fp1 – Before vs After (first 120s)"
-        ),
-
-        # 12. Optional confirmation pause (auto-continues in scripted runs)
-        WaitForConfirmation(
-            message="Review the generated plot, then press Enter to continue.",
-            auto_continue=False
+            title="Fp1 – Before vs After (first 20s)"
         ),
 
         # 13. Export corrected data
@@ -182,7 +182,7 @@ def main():
 
     # Run the pipeline
     print("Starting pipeline execution...")
-    result = pipeline.run()
+    result = pipeline.run() 
 
     if result.success:
         print("\n✓ Pipeline completed successfully!")
@@ -207,17 +207,43 @@ def main():
         if result.failed_processor:
             print(f"Failed at: {result.failed_processor}")
 
+def example_standard_pipeline():
+    """
+    Example of running the standard pipeline.
+    """
+    pipeline = create_standard_pipeline("./examples/datasets/NiazyFMRI.edf",
+                                        "./examples/datasets/corrected.edf", use_anc=True)
+    
+    pipeline.extend([ SNRCalculator(),
+        RMSCalculator(),
+        MedianArtifactCalculator(),
+        MetricsReport(),
+        RawPlotter(
+            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
+            channel="Fp1",
+            start=25.0,
+            duration=20.0,
+            overlay_original=False,
+            save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
+            show=True,
+            auto_close=False,
+            title="Fp1 – Before vs After (first 120s)"
+        )])
+    
+
+    return pipeline.run()
 
 def example_parallel_execution():
     """
     Example of running pipeline with parallel processing.
     """
-    input_file = "path/to/your/data.edf"
-    output_file = "path/to/output/corrected.edf"
+    input_file = "./examples/datasets/NiazyFMRI.edf"
+    output_file = "./examples/datasets/corrected.edf"
 
     pipeline = Pipeline([
         EDFLoader(path=input_file, preload=True, artifact_to_trigger_offset=-0.005),
         TriggerDetector(regex=r"\b1\b", ),
+        HighPassFilter(freq=0.5),
         UpSample(factor=10),
         TriggerAligner(ref_trigger_index=0),
 
@@ -228,22 +254,40 @@ def example_parallel_execution():
         ),
 
         DownSample(factor=10),
-        HighPassFilter(freq=0.5),
+        LowPassFilter(freq=70),
+        SNRCalculator(),
+        RMSCalculator(),
+        MedianArtifactCalculator(),
+        MetricsReport(),
+        RawPlotter(
+            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
+            channel="Fp1",
+            start=25.0,
+            duration=120.0,
+            overlay_original=True,
+            save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
+            show=True,
+            auto_close=True,
+            title="Fp1 – Before vs After (first 120s)"
+        ),
         EDFExporter(path=output_file, overwrite=True)
     ], name="Parallel Pipeline")
 
     # Run with parallel execution (automatically parallelizes compatible processors)
     result = pipeline.run(parallel=True, n_jobs=-1)  # -1 = use all cores
 
-    print(f"Pipeline completed in {result.execution_time:.2f}s")
+    if not result.success:
+        print(f"Parallel pipeline failed: {result.error}")
+        return
 
+    print(f"Pipeline completed in {result.execution_time:.2f}s")
 
 def example_minimal_pipeline():
     """
     Minimal pipeline for basic correction.
     """
     pipeline = Pipeline([
-        EDFLoader(path="data.edf", preload=True),
+        EDFLoader(path="./examples/datasets/NiazyFMRI.edf", preload=True),
         TriggerDetector(regex=r"\b1\b"),
         UpSample(factor=10),
         AASCorrection(window_size=30),
@@ -267,7 +311,7 @@ def example_custom_workflow():
         return snr < 10  # Apply PCA if SNR is poor
 
     pipeline = Pipeline([
-        EDFLoader(path="data.edf", preload=True),
+        EDFLoader(path="./examples/datasets/NiazyFMRI.edf", preload=True),
         TriggerDetector(regex=r"\b1\b"),
         UpSample(factor=10),
         AASCorrection(window_size=30),
@@ -307,9 +351,9 @@ def example_batch_processing():
 
     # Process multiple files
     input_files = [
-        "subject1.edf",
-        "subject2.edf",
-        "subject3.edf"
+        "./examples/datasets/NiazyFMRI.edf",
+        "./examples/datasets/NiazyFMRI.edf",
+        "./examples/datasets/NiazyFMRI.edf",
     ]
 
     for input_file in input_files:
@@ -317,7 +361,7 @@ def example_batch_processing():
 
         # Load data
         loader = EDFLoader(path=input_file, preload=True)
-        initial_context = loader.execute(ProcessingContext())
+        initial_context = loader.execute(None)
 
         # Run correction pipeline
         result = correction_pipeline.run(initial_context=initial_context)
@@ -351,7 +395,8 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Uncomment one of these to run:
-    main()
+    # main()
+    example_standard_pipeline()
     # example_parallel_execution()
     # example_minimal_pipeline()
     # example_custom_workflow()

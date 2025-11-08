@@ -14,6 +14,7 @@ from loguru import logger
 import numpy as np
 
 from ..core import Processor, ProcessingContext, ProcessingMetadata, register_processor
+from facet.logging_config import suppress_stdout
 
 
 @register_processor
@@ -67,8 +68,9 @@ class EDFLoader(Processor):
         """Load EDF file."""
         logger.info(f"Loading EDF file: {self.path}")
 
-        # Load raw data
-        raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
+        # Load raw data (suppress MNE's verbose print output)
+        with suppress_stdout():
+            raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
 
         # Mark bad channels with validation against available channels
         if self.bad_channels:

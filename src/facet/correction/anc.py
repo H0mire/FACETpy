@@ -14,6 +14,7 @@ from loguru import logger
 from scipy.signal import filtfilt
 
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..console import processor_progress
 
 
 @register_processor
@@ -42,7 +43,7 @@ class ANCCorrection(Processor):
     name = "anc_correction"
     description = "Adaptive Noise Cancellation for residual artifacts"
     requires_triggers = True
-    parallel_safe = True
+    parallel_safe = False
     parallelize_by_channels = True
 
     def __init__(
@@ -147,26 +148,35 @@ class ANCCorrection(Processor):
         raw_corrected = raw.copy()
         noise_updated = estimated_noise.copy()
 
-        for ch_idx in eeg_channels:
-            ch_name = raw.ch_names[ch_idx]
-            logger.debug(f"  Applying ANC to {ch_name}")
+        with processor_progress(
+            total=len(eeg_channels) or None,
+            message="Adaptive noise cancellation",
+        ) as progress:
+            for idx, ch_idx in enumerate(eeg_channels):
+                ch_name = raw.ch_names[ch_idx]
+                logger.debug(f"  Applying ANC to {ch_name}")
 
-            # Apply ANC to this channel
-            try:
-                corrected_data, filtered_noise = self._anc_single_channel(
-                    raw_corrected._data[ch_idx],
-                    estimated_noise[ch_idx],
-                    s_acq_start,
-                    s_acq_end,
-                    hp_weights,
-                    filter_order
-                )
+                # Apply ANC to this channel
+                try:
+                    corrected_data, filtered_noise = self._anc_single_channel(
+                        raw_corrected._data[ch_idx],
+                        estimated_noise[ch_idx],
+                        s_acq_start,
+                        s_acq_end,
+                        hp_weights,
+                        filter_order,
+                        ch_name 
+                    )
 
-                raw_corrected._data[ch_idx] = corrected_data
-                noise_updated[ch_idx, s_acq_start:s_acq_end] += filtered_noise
-            except Exception as ex:
-                logger.error(f"ANC failed for channel {ch_name}: {ex}")
-                logger.warning(f"Skipping ANC for channel {ch_name}")
+                    raw_corrected._data[ch_idx] = corrected_data
+                    noise_updated[ch_idx, s_acq_start:s_acq_end] += filtered_noise
+                    status = f"\t{idx + 1}/{len(eeg_channels)} • {ch_name}"
+                except Exception as ex:
+                    logger.error(f"ANC failed for channel {ch_name}: {ex}")
+                    logger.warning(f"Skipping ANC for channel {ch_name}")
+                    status = f"\{idx + 1}/{len(eeg_channels)} • {ch_name} (skipped)"
+
+                progress.advance(1, message=status)
 
         # Create new context
         new_context = context.with_raw(raw_corrected)
@@ -194,7 +204,8 @@ class ANCCorrection(Processor):
         s_acq_start: int,
         s_acq_end: int,
         hp_weights: Optional[np.ndarray],
-        filter_order: int
+        filter_order: int,
+        ch_name: str
     ) -> tuple:
         """
         Apply ANC to a single channel.
@@ -214,11 +225,11 @@ class ANCCorrection(Processor):
         segment_len = reference.size
 
         if segment_len == 0:
-            logger.warning("ANC reference window is empty, skipping")
+            logger.warning(f"[Channel: {ch_name}] ANC reference window is empty, skipping")
             return eeg_data, np.zeros(0, dtype=float)
         if segment_len <= filter_order:
             logger.warning(
-                "ANC reference window shorter than filter order, skipping"
+                f"[Channel: {ch_name}] ANC reference window shorter than filter order, skipping"
             )
             return eeg_data, np.zeros(segment_len, dtype=float)
 
@@ -232,12 +243,12 @@ class ANCCorrection(Processor):
         # Calculate Alpha scaling factor
         ref_energy = np.sum(reference * reference)
         if not np.isfinite(ref_energy) or ref_energy <= np.finfo(float).eps:
-            logger.warning("Reference energy is too small, skipping ANC")
+            logger.warning(f"[Channel: {ch_name}] Reference energy is too small, skipping ANC")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         alpha = np.sum(data * reference) / ref_energy
         if not np.isfinite(alpha):
-            logger.warning("Alpha scaling for ANC is not finite, skipping")
+            logger.warning(f"[Channel: {ch_name}] Alpha scaling for ANC is not finite, skipping")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         reference = (alpha * reference).astype(float)
@@ -245,12 +256,12 @@ class ANCCorrection(Processor):
         # Calculate mu (learning rate)
         var_ref = np.var(reference)
         if not np.isfinite(var_ref) or var_ref <= np.finfo(float).eps:
-            logger.warning("Reference variance is zero, skipping ANC")
+            logger.warning(f"[Channel: {ch_name}] Reference variance is zero, skipping ANC")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         mu = float(self.mu_factor / (filter_order * var_ref))
         if not np.isfinite(mu) or mu <= 0:
-            logger.warning("Computed ANC learning rate is invalid, skipping")
+            logger.warning(f"[Channel: {ch_name}] Computed ANC learning rate is invalid, skipping")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         # Apply adaptive filtering
@@ -262,7 +273,7 @@ class ANCCorrection(Processor):
         # Check for numerical issues
         max_filtered = np.max(np.abs(filtered_noise))
         if not np.isfinite(max_filtered):
-            logger.error("ANC produced invalid values (inf/nan), skipping")
+            logger.error(f"[Channel: {ch_name}] ANC produced invalid values (inf/nan), skipping")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         eeg_segment = eeg_data[s_acq_start:s_acq_end]
@@ -274,7 +285,7 @@ class ANCCorrection(Processor):
 
         if gain > self.max_gain:
             logger.error(
-                f"ANC produced unstable gain ({gain:.2e}), skipping correction"
+                f"[Channel: {ch_name}] ANC produced unstable gain ({gain:.2e}), skipping correction"
             )
             return eeg_data, np.zeros(segment_len, dtype=float)
 

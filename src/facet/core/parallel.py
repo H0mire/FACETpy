@@ -7,12 +7,25 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import functools
 import multiprocessing as mp
-from typing import List, Optional, Callable
+import sys
+from typing import Callable, List, Optional
 from loguru import logger
 import numpy as np
+import mne
 from .processor import Processor
 from .context import ProcessingContext
+from facet.logging_config import suppress_stdout
+from facet.console.progress import processor_progress
+
+# Ensure macOS/Linux use fork to avoid resource_tracker semaphore noise.
+if sys.platform != "win32":
+    try:
+        mp.set_start_method("fork", force=True)
+    except RuntimeError:
+        # Another part of the app already set the method; keep it as-is.
+        pass
 
 
 def _worker_function(processor_config: dict, context_data: dict) -> dict:
@@ -154,30 +167,56 @@ class ParallelExecutor:
         raw = context.get_raw()
         n_channels = len(raw.ch_names)
 
+        if n_channels == 0:
+            logger.warning("No channels available for parallel execution")
+            return context
+
         # Split channels into chunks
         channel_chunks = self._split_into_chunks(
             list(range(n_channels)),
             self.n_jobs
         )
 
-        if self.backend == "multiprocessing":
-            results = self._execute_multiprocessing(
-                processor,
-                context,
-                channel_chunks
-            )
-        elif self.backend == "threading":
-            results = self._execute_threading(
-                processor,
-                context,
-                channel_chunks
-            )
-        else:  # serial
-            results = self._execute_serial(
-                processor,
-                context,
-                channel_chunks
-            )
+        progress_total = n_channels if n_channels > 0 else None
+        with processor_progress(
+            total=progress_total,
+            message=f"{processor.name}: channels",
+        ) as progress:
+
+            def _update_progress(processed: int) -> None:
+                if processed <= 0:
+                    return
+                next_value = progress.current + processed
+                progress.advance(
+                    processed,
+                    message=(
+                        f"{int(next_value)}/{n_channels} channels"
+                        if n_channels
+                        else "channels"
+                    ),
+                )
+
+            if self.backend == "multiprocessing":
+                results = self._execute_multiprocessing(
+                    processor,
+                    context,
+                    channel_chunks,
+                    progress_callback=_update_progress,
+                )
+            elif self.backend == "threading":
+                results = self._execute_threading(
+                    processor,
+                    context,
+                    channel_chunks,
+                    progress_callback=_update_progress,
+                )
+            else:  # serial
+                results = self._execute_serial(
+                    processor,
+                    context,
+                    channel_chunks,
+                    progress_callback=_update_progress,
+                )
 
         # Merge results
         return self._merge_channel_results(context, results)
@@ -241,7 +280,8 @@ class ParallelExecutor:
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]]
+        channel_chunks: List[List[int]],
+        progress_callback: Optional[Callable[[int], None]] = None,
     ) -> List[ProcessingContext]:
         """Execute using multiprocessing."""
         # Prepare processor config
@@ -258,33 +298,39 @@ class ParallelExecutor:
             chunk_contexts.append(chunk_context.to_dict())
 
         # Execute in parallel
+        worker = functools.partial(_worker_function, processor_config)
+        contexts: List[ProcessingContext] = []
         with mp.Pool(processes=self.n_jobs) as pool:
-            results = pool.starmap(
-                _worker_function,
-                [(processor_config, ctx_data) for ctx_data in chunk_contexts]
-            )
+            for idx, result in enumerate(pool.imap(worker, chunk_contexts)):
+                contexts.append(ProcessingContext.from_dict(result))
+                if progress_callback:
+                    chunk_size = len(channel_chunks[idx])
+                    progress_callback(chunk_size)
 
-        # Convert results back to contexts
-        return [ProcessingContext.from_dict(result) for result in results]
+        return contexts
 
     def _execute_threading(
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]]
+        channel_chunks: List[List[int]],
+        progress_callback: Optional[Callable[[int], None]] = None,
     ) -> List[ProcessingContext]:
         """Execute using threading (GIL-limited)."""
-        from concurrent.futures import ThreadPoolExecutor
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        results = []
+        results: List[ProcessingContext] = []
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-            futures = []
+            futures = {}
             for chunk in channel_chunks:
                 chunk_context = self._create_channel_subset_context(context, chunk)
                 future = executor.submit(processor.execute, chunk_context)
-                futures.append(future)
+                futures[future] = len(chunk)
 
-            results = [future.result() for future in futures]
+            for future in as_completed(futures):
+                results.append(future.result())
+                if progress_callback:
+                    progress_callback(futures[future])
 
         return results
 
@@ -292,7 +338,8 @@ class ParallelExecutor:
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]]
+        channel_chunks: List[List[int]],
+        progress_callback: Optional[Callable[[int], None]] = None,
     ) -> List[ProcessingContext]:
         """Execute serially (for debugging/comparison)."""
         results = []
@@ -300,6 +347,8 @@ class ParallelExecutor:
             chunk_context = self._create_channel_subset_context(context, chunk)
             result = processor.execute(chunk_context)
             results.append(result)
+            if progress_callback:
+                progress_callback(len(chunk))
         return results
 
     def _create_channel_subset_context(
@@ -312,7 +361,15 @@ class ParallelExecutor:
         picks = [raw.ch_names[i] for i in channel_indices]
         subset_raw = raw.copy().pick(picks)
 
-        return context.with_raw(subset_raw, copy_metadata=True)
+        subset_ctx = context.with_raw(subset_raw, copy_metadata=True)
+
+        if context.has_estimated_noise():
+            noise = context.get_estimated_noise()
+            if noise is not None and noise.ndim == 2:
+                subset_noise = noise[channel_indices, :]
+                subset_ctx.set_estimated_noise(subset_noise.copy())
+
+        return subset_ctx
 
     def _merge_channel_results(
         self,
@@ -320,21 +377,64 @@ class ParallelExecutor:
         results: List[ProcessingContext]
     ) -> ProcessingContext:
         """Merge channel-wise results back into single context."""
-        # Get original raw structure
-        raw = original_context.get_raw().copy()
+        if not results:
+            return original_context
+
+        original_raw = original_context.get_raw()
+        template_raw = results[0].get_raw()
+        template_data = results[0].get_data(copy=False)
+
+        new_sfreq = template_raw.info['sfreq']
+        n_times = template_data.shape[1]
+        dtype = template_data.dtype
+
+        merged_data = np.zeros(
+            (len(original_raw.ch_names), n_times),
+            dtype=dtype
+        )
+        channel_index = {
+            name: idx for idx, name in enumerate(original_raw.ch_names)
+        }
 
         # Merge data from all chunks
-        for i, result_ctx in enumerate(results):
+        for result_ctx in results:
             result_raw = result_ctx.get_raw()
-            result_data = result_raw.get_data(copy=False)
-            result_channels = result_raw.ch_names
+            result_data = result_ctx.get_data(copy=False)
+            for j, ch_name in enumerate(result_raw.ch_names):
+                ch_idx = channel_index[ch_name]
+                merged_data[ch_idx] = result_data[j]
 
-            # Find channel indices in original
-            for j, ch_name in enumerate(result_channels):
-                ch_idx = raw.ch_names.index(ch_name)
-                raw._data[ch_idx] = result_data[j]
+        # Build new RawArray at the upsampled rate to avoid mutating protected info
+        info = original_raw.info.copy()
+        if hasattr(info, "_unlock"):
+            with info._unlock():
+                info['sfreq'] = new_sfreq
+        else:
+            info['sfreq'] = new_sfreq
 
-        return original_context.with_raw(raw)
+        with suppress_stdout():
+            new_raw = mne.io.RawArray(
+                data=merged_data,
+                info=info
+            )
+
+        merged_context = original_context.with_raw(new_raw)
+        merged_context._metadata = results[0].metadata.copy()
+
+        if any(result_ctx.has_estimated_noise() for result_ctx in results):
+            # Estimated noise is stored channel-wise; merge similarly
+            noise_data = np.zeros_like(merged_data)
+            for result_ctx in results:
+                if not result_ctx.has_estimated_noise():
+                    continue
+                result_noise = result_ctx.get_estimated_noise()
+                result_raw = result_ctx.get_raw()
+                for j, ch_name in enumerate(result_raw.ch_names):
+                    ch_idx = channel_index[ch_name]
+                    noise_data[ch_idx] = result_noise[j]
+            merged_context.set_estimated_noise(noise_data)
+
+        return merged_context
 
     def _merge_epoch_results(
         self,

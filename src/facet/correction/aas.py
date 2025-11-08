@@ -13,6 +13,7 @@ import numpy as np
 from loguru import logger
 
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..console import processor_progress
 from ..helpers.utils import split_vector
 from ..helpers.crosscorr import crosscorrelation
 
@@ -135,22 +136,30 @@ class AASCorrection(Processor):
         logger.debug(f"Computing averaging matrices for {len(eeg_channels)} channels")
         averaging_matrices = {}
 
-        for idx, ch_idx in enumerate(eeg_channels):
-            ch_name = raw.ch_names[ch_idx]
-            logger.debug(f"  Channel {ch_idx}: {ch_name}")
+        with processor_progress(
+            total=len(eeg_channels) or None,
+            message="Averaging matrices",
+        ) as progress:
+            for idx, ch_idx in enumerate(eeg_channels):
+                ch_name = raw.ch_names[ch_idx]
+                logger.debug(f"  Channel {ch_idx}: {ch_name}")
 
-            # Get single-channel epochs
-            epochs_single_channel = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
+                # Get single-channel epochs
+                epochs_single_channel = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
 
-            # Calculate averaging matrix using correlation-based selection
-            avg_matrix = self._calc_averaging_matrix(
-                epochs_single_channel,
-                window_size=self.window_size,
-                rel_window_offset=self.rel_window_position,
-                correlation_threshold=self.correlation_threshold
-            )
+                # Calculate averaging matrix using correlation-based selection
+                avg_matrix = self._calc_averaging_matrix(
+                    epochs_single_channel,
+                    window_size=self.window_size,
+                    rel_window_offset=self.rel_window_position,
+                    correlation_threshold=self.correlation_threshold
+                )
 
-            averaging_matrices[ch_idx] = avg_matrix
+                averaging_matrices[ch_idx] = avg_matrix
+                progress.advance(
+                    1,
+                    message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
+                )
 
         # Calculate averaged artifacts for each channel
         logger.debug("Computing averaged artifacts")
@@ -192,27 +201,36 @@ class AASCorrection(Processor):
         smin = int(context.metadata.artifact_to_trigger_offset * sfreq)
         smax = smin + artifact_length
 
-        for ch_list_idx, ch_idx in enumerate(averaging_matrices.keys()):
-            ch_name = raw.ch_names[ch_idx]
-            logger.debug(f"  Removing artifacts from {ch_name}")
+        with processor_progress(
+            total=len(averaging_matrices) or None,
+            message="Removing artifacts",
+        ) as progress:
+            for ch_list_idx, ch_idx in enumerate(averaging_matrices.keys()):
+                ch_name = raw.ch_names[ch_idx]
+                logger.debug(f"  Removing artifacts from {ch_name}")
 
-            artifacts = artifacts_per_channel[ch_list_idx]
+                artifacts = artifacts_per_channel[ch_list_idx]
 
-            for epoch_idx, trigger_pos in enumerate(aligned_triggers):
-                start = trigger_pos + smin
-                stop = min(trigger_pos + smax, raw_corrected._data.shape[1])
+                for epoch_idx, trigger_pos in enumerate(aligned_triggers):
+                    start = trigger_pos + smin
+                    stop = min(trigger_pos + smax, raw_corrected._data.shape[1])
 
-                if start < 0 or start >= raw_corrected._data.shape[1]:
-                    continue
+                    if start < 0 or start >= raw_corrected._data.shape[1]:
+                        continue
 
-                # Get artifact for this epoch (handle boundary)
-                artifact_segment = artifacts[epoch_idx, :stop - start]
+                    # Get artifact for this epoch (handle boundary)
+                    artifact_segment = artifacts[epoch_idx, :stop - start]
 
-                # Subtract artifact
-                raw_corrected._data[ch_idx, start:stop] -= artifact_segment
+                    # Subtract artifact
+                    raw_corrected._data[ch_idx, start:stop] -= artifact_segment
 
-                # Accumulate to estimated noise
-                estimated_noise[ch_idx, start:stop] += artifact_segment
+                    # Accumulate to estimated noise
+                    estimated_noise[ch_idx, start:stop] += artifact_segment
+
+                progress.advance(
+                    1,
+                    message=f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})",
+                )
 
         # Create new context with corrected data
         new_context = context.with_raw(raw_corrected)

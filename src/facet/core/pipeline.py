@@ -12,6 +12,8 @@ from loguru import logger
 from .processor import Processor
 from .context import ProcessingContext
 from .parallel import ParallelExecutor
+from ..console import get_console
+from ..console.progress import set_current_step_index
 
 
 class PipelineResult:
@@ -142,7 +144,18 @@ class Pipeline:
             PipelineResult containing final context and metadata
         """
         import time
+
         start_time = time.time()
+        console = get_console()
+
+        console.set_pipeline_metadata(
+            {
+                "execution_mode": "parallel" if parallel else "serial",
+                "n_jobs": str(n_jobs),
+            }
+        )
+        step_names = [processor.name for processor in self.processors]
+        console.start_pipeline(self.name, len(self.processors), step_names=step_names)
 
         logger.info(f"Starting pipeline: {self.name}")
         logger.info(f"Number of processors: {len(self.processors)}")
@@ -158,20 +171,38 @@ class Pipeline:
                     f"[{i+1}/{len(self.processors)}] Executing: {processor.name}"
                 )
 
-                # Check if processor can be parallelized
-                if parallel and processor.parallel_safe:
-                    # Use parallel executor
-                    executor = ParallelExecutor(n_jobs=n_jobs)
-                    context = executor.execute(processor, context)
-                else:
-                    # Execute normally
-                    context = processor.execute(context)
+                console.step_started(i, processor.name)
+                set_current_step_index(i)
+
+                step_start = time.time()
+                executed_in_parallel = parallel and processor.parallel_safe
+
+                try:
+                    if executed_in_parallel:
+                        executor = ParallelExecutor(n_jobs=n_jobs)
+                        context = executor.execute(processor, context)
+                    else:
+                        context = processor.execute(context)
+                finally:
+                    set_current_step_index(None)
+
+                duration = time.time() - step_start
+                console.step_completed(
+                    i,
+                    processor.name,
+                    duration,
+                    metrics={
+                        "execution_mode": "parallel" if executed_in_parallel else "serial",
+                        "last_duration": f"{duration:.2f}s",
+                    },
+                )
 
             # Success
             execution_time = time.time() - start_time
             logger.info(
                 f"Pipeline completed successfully in {execution_time:.2f}s"
             )
+            console.pipeline_complete(True, execution_time)
 
             return PipelineResult(
                 context=context,
@@ -194,6 +225,13 @@ class Pipeline:
                 )
             logger.opt(exception=e).debug("Exception details")
 
+            console.pipeline_failed(
+                execution_time,
+                e,
+                current_processor[0] if current_processor else None,
+                current_processor[1].name if current_processor else None,
+            )
+
             return PipelineResult(
                 context=context if context else None,
                 success=False,
@@ -214,6 +252,19 @@ class Pipeline:
             Self for chaining
         """
         self.processors.append(processor)
+        return self
+    
+    def extend(self, processors: List[Processor]) -> 'Pipeline':
+        """
+        Extend pipeline with multiple processors.
+
+        Args:
+            processors: List of processors to add
+
+        Returns:
+            Self for chaining
+        """
+        self.processors.extend(processors)
         return self
 
     def insert(self, index: int, processor: Processor) -> 'Pipeline':

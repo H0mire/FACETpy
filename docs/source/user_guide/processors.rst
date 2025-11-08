@@ -43,6 +43,44 @@ When you call ``processor.execute(context)``:
    except ProcessorValidationError as e:
        print(f"Validation failed: {e}")
 
+Live Progress Bars
+------------------
+
+The modern console can render a dedicated progress bar for any long-running
+processor. Import the ``processor_progress`` helper and advance it as your work
+completes. When the console runs in classic mode the helper becomes a no-op, so
+it is safe to call regardless of user preferences.
+
+.. code-block:: python
+
+   from facet.console import processor_progress
+   from facet.core import Processor
+
+   class EpochAverager(Processor):
+       name = "Average epochs"
+
+       def execute(self, context):
+           epochs = list(context.get_epochs())
+           with processor_progress(total=len(epochs), message="Averaging") as prog:
+               for epoch in epochs:
+                   self._process_epoch(epoch)
+                   prog.advance(message=f"Processed {prog.current:.0f} epochs")
+           return context
+
+``processor_progress`` also supports ``update(current=..., total=...)`` and
+``complete()`` so you can report arbitrary metrics (samples, files, estimated
+seconds, etc.). Combine these updates with your own loguru messages for a rich
+view of what the processor is doing.
+
+.. note::
+
+   Processors marked with ``parallelize_by_channels`` (e.g. ``Filter`` or
+   ``AASCorrection``) automatically emit channel-wise progress when the pipeline
+   runs them in parallel mode. For other workloads consider tracking epochs,
+   files, or optimization iterations; anything you surface through
+   ``processor_progress`` appears in the live console without affecting legacy
+   logging.
+
 Available Processors
 --------------------
 

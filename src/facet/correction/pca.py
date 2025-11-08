@@ -16,6 +16,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..console import processor_progress
 from ..helpers.utils import split_vector
 
 
@@ -122,40 +123,48 @@ class PCACorrection(Processor):
         else:
             estimated_noise = context.get_estimated_noise().copy()
 
-        for ch_idx in eeg_channels:
-            ch_name = raw.ch_names[ch_idx]
-            logger.debug(f"  Applying PCA to {ch_name}")
+        with processor_progress(
+            total=len(eeg_channels) or None,
+            message="PCA artifact correction",
+        ) as progress:
+            for idx, ch_idx in enumerate(eeg_channels):
+                ch_name = raw.ch_names[ch_idx]
+                logger.debug(f"  Applying PCA to {ch_name}")
+                status_prefix = f"{idx + 1}/{len(eeg_channels)} • {ch_name}"
 
-            # Check if channel should be excluded
-            if ch_idx in self.exclude_channels:
-                logger.debug(f"  Skipping {ch_name} (excluded)")
-                continue
+                # Check if channel should be excluded
+                if ch_idx in self.exclude_channels:
+                    logger.debug(f"  Skipping {ch_name} (excluded)")
+                    progress.advance(1, message=f"{status_prefix} (excluded)")
+                    continue
 
-            # Skip if n_components is 0
-            if self.n_components == 0:
-                logger.debug(f"  Skipping {ch_name} (n_components=0)")
-                continue
+                # Skip if n_components is 0
+                if self.n_components == 0:
+                    logger.debug(f"  Skipping {ch_name} (n_components=0)")
+                    progress.advance(1, message=f"{status_prefix} (disabled)")
+                    continue
 
-            # Apply PCA to this channel
-            try:
-                residuals = self._calc_pca_residuals(
-                    raw_corrected._data[ch_idx],
-                    triggers,
-                    artifact_length,
-                    s_acq_start,
-                    s_acq_end,
-                    hp_weights
-                )
+                # Apply PCA to this channel
+                try:
+                    residuals = self._calc_pca_residuals(
+                        raw_corrected._data[ch_idx],
+                        triggers,
+                        artifact_length,
+                        s_acq_start,
+                        s_acq_end,
+                        hp_weights
+                    )
 
-                # Subtract residuals from data
-                raw_corrected._data[ch_idx][s_acq_start:s_acq_end] -= residuals
+                    # Subtract residuals from data
+                    raw_corrected._data[ch_idx][s_acq_start:s_acq_end] -= residuals
 
-                # Add to estimated noise
-                estimated_noise[ch_idx][s_acq_start:s_acq_end] += residuals
-
-            except Exception as ex:
-                logger.error(f"PCA failed for channel {ch_name}: {ex}")
-                logger.warning(f"Skipping PCA for channel {ch_name}")
+                    # Add to estimated noise
+                    estimated_noise[ch_idx][s_acq_start:s_acq_end] += residuals
+                    progress.advance(1, message=status_prefix)
+                except Exception as ex:
+                    logger.error(f"PCA failed for channel {ch_name}: {ex}")
+                    logger.warning(f"Skipping PCA for channel {ch_name}")
+                    progress.advance(1, message=f"{status_prefix} (error)")
 
         # Create new context
         new_context = context.with_raw(raw_corrected)

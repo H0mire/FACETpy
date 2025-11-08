@@ -423,7 +423,21 @@ Best Practices
 
 5. **Log Progress**
 
-   FACETpy uses loguru for logging:
+   FACETpy still records every detail with ``loguru`` (see ``logs/*.log``), but the
+   console now streams a Rich-powered dashboard that tracks processor states,
+   durations, and a live progress bar. This interactive view is enabled by
+   default—just run your pipeline and watch the terminal update in place.
+
+   Prefer the legacy line-by-line console output? Export
+   ``FACET_CONSOLE_MODE=classic`` (or ``legacy``) before starting Python and
+   you'll get the traditional loguru sink back while file logging remains
+   untouched.
+
+   .. code-block:: bash
+
+      FACET_CONSOLE_MODE=classic python my_pipeline.py
+
+   You can still log explicitly from processors using loguru:
 
    .. code-block:: python
 

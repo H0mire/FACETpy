@@ -11,6 +11,11 @@ Version: 2.0.0
 __version__ = "2.0.0"
 __author__ = "FACETpy Team"
 
+# Logging is initialized on import so every execution gets a per-run log file.
+from .logging_config import configure_logging as _configure_logging
+
+_configure_logging()
+
 # Core architecture
 from .core import (
     # Base classes
@@ -172,9 +177,10 @@ def create_standard_pipeline(
     input_path: str,
     output_path: str,
     trigger_regex: str = r"\b1\b",
+    artifact_to_trigger_offset: float = -0.005,
     upsample_factor: int = 10,
     use_anc: bool = True,
-    use_pca: bool = False
+    use_pca: bool = True
 ) -> Pipeline:
     """
     Create a standard fMRI artifact correction pipeline.
@@ -194,32 +200,36 @@ def create_standard_pipeline(
         pipeline = facet.create_standard_pipeline(
             "data.edf",
             "corrected.edf",
-            trigger_regex=r"\\b1\\b"
+            trigger_regex=r"\\b1\\b",
+            artifact_to_trigger_offset=-0.005
         )
         result = pipeline.run()
     """
     processors = [
-        EDFLoader(path=input_path, preload=True),
+        EDFLoader(path=input_path, preload=True, artifact_to_trigger_offset=artifact_to_trigger_offset),
         TriggerDetector(regex=trigger_regex),
         CutAcquisitionWindow(),
+        HighPassFilter(freq=1.0),
         UpSample(factor=upsample_factor),
         SliceAligner(ref_trigger_index=0),
         SubsampleAligner(ref_trigger_index=0),
         AASCorrection(window_size=30, correlation_threshold=0.975)
     ]
-
-    if use_anc and _has_anc:
-        processors.append(ANCCorrection(filter_order=5, hp_freq=1.0))
-
     if use_pca and _has_pca:
         processors.append(PCACorrection(n_components=0.95, hp_freq=1.0))
 
     processors.extend([
         DownSample(factor=upsample_factor),
         PasteAcquisitionWindow(),
-        HighPassFilter(freq=0.5),
-        EDFExporter(path=output_path, overwrite=True)
+        LowPassFilter(freq=70.0)
     ])
+
+    if use_anc and _has_anc:
+        processors.append(ANCCorrection())
+
+    processors.append(      
+        EDFExporter(path=output_path, overwrite=True)
+    )
 
     return Pipeline(processors, name="Standard fMRI Correction Pipeline")
 
