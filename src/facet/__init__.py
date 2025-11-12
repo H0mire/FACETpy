@@ -176,6 +176,8 @@ if _has_pca:
 def create_standard_pipeline(
     input_path: str,
     output_path: str,
+    start_sample: int = 0,
+    end_sample: int = None,
     trigger_regex: str = r"\b1\b",
     artifact_to_trigger_offset: float = -0.005,
     upsample_factor: int = 10,
