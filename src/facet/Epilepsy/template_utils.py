@@ -10,7 +10,13 @@ from mne.time_frequency import psd_array_welch as psd_welch
 from scipy.signal import correlate
 
 
-def extract_spike_windows(raw, spike_times_s, channel=0, half_win_s=0.15):
+def extract_spike_windows(
+        raw,
+        spike_times_s,
+        channel,
+        half_win_s=0.15,
+        baseline_ms=0,
+):
     """Extract ±half_win_s-second snippets around each spike time for one channel.
 
     Parameters
@@ -23,6 +29,8 @@ def extract_spike_windows(raw, spike_times_s, channel=0, half_win_s=0.15):
         Index of the channel to extract.
     half_win_s : float
         Half‐window length in seconds (so total window is 2*half_win_s).
+    baseline_ms : float
+        Duration in ms before spike to use for baseline subtraction (default 0 = no subtraction).
 
     Returns
     -------
@@ -45,6 +53,13 @@ def extract_spike_windows(raw, spike_times_s, channel=0, half_win_s=0.15):
 
     segments = np.stack(segments)
     times = np.linspace(-half_win_s, half_win_s, segments.shape[1])
+
+    # Baseline subtraction
+    if baseline_ms > 0:
+        baseline_samples = int(round(baseline_ms / 1000 * sfreq))
+        for i in range(segments.shape[0]):
+            baseline_mean = np.mean(segments[i, :baseline_samples])
+            segments[i] -= baseline_mean
 
     #  plot first snippet
     plt.plot(times * 1000, segments[0], lw=1)
