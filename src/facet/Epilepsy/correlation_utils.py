@@ -16,7 +16,8 @@ def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.)
                         kurtosis_min=3.0, max_keep=3, random_state=97):
     """Fit ICA, select peaky components, sum, band-pass, correlate with template."""
     sf = raw.info['sfreq']
-    ica = ICA(n_components=min(20, raw.info['nchan']),
+    n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
+    ica = ICA(n_components=min(20, n_eeg),
               random_state=random_state, method='fastica', max_iter='auto')
     ica.fit(raw.copy().filter(*band_ica, picks='eeg'))
     S = ica.get_sources(raw).get_data()  # (n_comp, n_times)
@@ -32,12 +33,12 @@ def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.)
 
 
 # ======================= Main component selection (Ebrahimzadeh) =======================
-def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3., 25.)):
+def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3., 25.), th_raw=0.35, match_tol_s=0.1, visualize=False):
     """Select ICA components that correlate with template at annotated IED windows."""
     from loguru import logger
     sf = raw.info['sfreq']
     best_ch, template_z, _, refined = build_template(
-        raw, spike_sec, half_win_s=half_win_s, return_refined=True)
+        raw, spike_sec, half_win_s=half_win_s, return_refined=True, visualize=visualize)
 
     # Augment template if small set
     augmented_spikes = augment_template(raw, spike_sec, template_z, best_ch)
@@ -48,7 +49,8 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
     logger.info(f"Stable candidate components: {stable_indices}")
 
     # Fit ICA once to get sources
-    ica = ICA(n_components=min(20, raw.info['nchan']),  # Reduced for speed
+    n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
+    ica = ICA(n_components=min(20, n_eeg),  # Reduced for speed
               random_state=97, method='infomax', max_iter='auto')
     ica.fit(raw.copy())  # Raw is already filtered to 1-100
     S = ica.get_sources(raw).get_data()
@@ -61,7 +63,7 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
         comp_tc = S[idx]
         comp_bp = filter_data(comp_tc, sf, band_comp[0], band_comp[1], verbose=False)
         logger.info(f"Checking component {idx}")
-        if check_component_acceptance(comp_bp, template_z, augmented_spikes, sf):
+        if check_component_acceptance(comp_bp, template_z, augmented_spikes, sf, min_corr=th_raw):
             logger.info(f"Accepted component {idx}")
             accepted.append(idx)
             timecourses.append(comp_bp)
@@ -128,7 +130,8 @@ def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), kurtosis_min=2.0, max_kee
 
     for run in range(n_runs):
         random_state = run  # different seed each time
-        ica = ICA(n_components=min(20, raw.info['nchan']),
+        n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
+        ica = ICA(n_components=min(20, n_eeg),
                   random_state=random_state, method='infomax', max_iter='auto')
         ica.fit(raw.copy())  # Raw is already filtered to 1-100
         S = ica.get_sources(raw).get_data()

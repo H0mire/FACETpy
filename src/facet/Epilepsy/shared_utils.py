@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import detrend
 
 def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
-                   smooth=False, return_refined=False):
+                   smooth=False, return_refined=False, visualize=True):
     """
     Builds a peak-aligned, polarity-standardised template.
     Any annotation lag is removed automatically by re-centering each
@@ -23,6 +23,8 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
         Whether to apply light smoothing (5-point moving average).
     return_refined : bool
         Whether to return refined spike times.
+    visualize : bool
+        Whether to plot the template.
 
     Returns
     -------
@@ -92,14 +94,15 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
     # Z-score
     template_z = (T - T.mean()) / (T.std() + 1e-12)
 
-    times = np.linspace(-half_win_s*1e3, half_win_s*1e3, len(T))
-    plt.figure(figsize=(4.5,3))
-    plt.plot(times, template_z)
-    plt.axvline(0, ls='--', c='k')
-    plt.title('IED template')
-    plt.xlabel('Time (ms)')
-    plt.tight_layout()
-    plt.show()
+    if visualize:
+        times = np.linspace(-half_win_s*1e3, half_win_s*1e3, len(T))
+        plt.figure(figsize=(4.5,3))
+        plt.plot(times, template_z)
+        plt.axvline(0, ls='--', c='k')
+        plt.title('IED template')
+        plt.xlabel('Time (ms)')
+        plt.tight_layout()
+        plt.show()
 
     shift = 0  # Already centered
     if return_refined:

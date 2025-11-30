@@ -50,7 +50,7 @@ def hrf_kernel(t, peak=6, undershoot=16):
     h2 = 0.1 * (t / undershoot) ** 2 * np.exp(-t / undershoot)
     return h1 - h2
 
-def generate_hrf_regressors(component_tc, sfreq, peaks_s=[3, 5, 7, 9], tr=2.5):
+def generate_hrf_regressors(component_tc, sfreq, peaks_s=[3, 5, 6, 7, 9], tr=2.5):
     """Generate HRF-convolved regressors for component timecourse, resampled to fMRI TR."""
     t = np.arange(0, 20, 1/sfreq)  # 20s kernel
     total_duration_sec = len(component_tc) / sfreq
@@ -66,3 +66,38 @@ def generate_hrf_regressors(component_tc, sfreq, peaks_s=[3, 5, 7, 9], tr=2.5):
 
 
 # Grouiller et al.  HRF regressor generation
+
+def compute_and_attach_ica_regressors(detection, sfreq, tr):
+    """
+    Compute ICA regressors and attach them to the detection object.
+    
+    Parameters
+    ----------
+    detection : TemplateICADetection
+        The detection result object.
+    sfreq : float
+        Sampling frequency.
+    tr : float
+        fMRI Repetition Time.
+        
+    Returns
+    -------
+    detection : TemplateICADetection
+        Updated detection object with regressors attached.
+    """
+    if tr is not None and len(detection.accepted_components) > 0:
+        # Use the first accepted component
+        # detection.component_timecourses contains the timecourses of accepted components in order
+        if detection.component_timecourses and len(detection.component_timecourses) > 0:
+            ica_source = detection.component_timecourses[0]
+            
+            regressors_dict = generate_hrf_regressors(
+                component_tc=ica_source,
+                sfreq=sfreq,
+                tr=tr
+            )
+            
+            detection.regressor_ica = regressors_dict.get('6s')
+            detection.regressors_ica_all = regressors_dict
+            
+    return detection

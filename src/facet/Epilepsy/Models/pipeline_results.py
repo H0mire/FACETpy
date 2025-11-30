@@ -10,3 +10,6 @@ class TemplateICADetection:
     component_timecourses: list[np.ndarray]  # timecourses of accepted components
     hrf_regressors: dict  # {'component_idx': {'3s': array, '5s': array, ...}}
     ica: object  # MNE ICA object
+    regressor_ica: np.ndarray = None # Continuous ICA regressor
+    regressors_ica_all: dict = None # All generated ICA regressors
+    raw: object = None # MNE Raw object

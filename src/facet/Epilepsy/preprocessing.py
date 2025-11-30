@@ -23,10 +23,63 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
     mat = loadmat(mat_path)
     eeg = mat['eeg_data']  # shape (n_ch, n_samples), in µV
 
+    # Try to find channel names
+    ch_names = None
+    possible_keys = ['channels', 'channel_labels', 'labels', 'chan_names']
+    for key in possible_keys:
+        if key in mat:
+            try:
+                # Handle different ways strings might be stored in .mat
+                vals = mat[key]
+                if vals.shape[0] == eeg.shape[0]: # Column vector or list matching channels
+                    ch_names = [str(v[0]) if isinstance(v, np.ndarray) else str(v) for v in vals]
+                    # Clean up formatting (e.g. remove extra quotes or spaces)
+                    ch_names = [n.strip().replace("'", "").replace('"', "") for n in ch_names]
+                    break
+                elif vals.shape[1] == eeg.shape[0]: # Row vector
+                    ch_names = [str(v) for v in vals[0]]
+                    ch_names = [n.strip().replace("'", "").replace('"', "") for n in ch_names]
+                    break
+            except Exception as e:
+                print(f"Found key '{key}' but failed to parse channel names: {e}")
+
+    if ch_names is None:
+        # Check if it matches the known 29-channel dataset (vepiset)
+        if eeg.shape[0] == 29:
+            print("Detected 29 channels, assuming vepiset dataset layout.")
+            ch_names = [
+                'Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 
+                'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz',
+                'PG1', 'PG2', 'A1', 'A2',
+                'ECG1', 'ECG2',
+                'EMG1', 'EMG2', 'EMG3', 'EMG4'
+            ]
+            # Define types
+            # First 19 are standard EEG
+            # Next 4 are auricular (PG1, PG2, A1, A2). 
+            # We set them to 'misc' because PG1/PG2 often have overlapping positions in standard montages,
+            # causing MNE plotting to crash. Also, we typically want ICA on scalp EEG only.
+            ch_types = ['eeg'] * 19 + ['misc'] * 4 + ['ecg'] * 2 + ['emg'] * 4
+        else:
+            # Fallback to generic names
+            ch_names = [f"EEG{i+1}" for i in range(eeg.shape[0])]
+            ch_types = 'eeg'
+    else:
+        ch_types = 'eeg'
+
     # Build an MNE RawArray in volts (MNE expects volts)
-    ch_names = [f"EEG{i+1}" for i in range(eeg.shape[0])]
-    info = mne.create_info(ch_names, sfreq, ch_types="eeg")
+    info = mne.create_info(ch_names, sfreq, ch_types=ch_types)
     raw = mne.io.RawArray(eeg / 1e6, info)
+
+    # Try to set a standard montage if names look standard
+    try:
+        montage = mne.channels.make_standard_montage('standard_1020')
+        # Only set if enough channels match
+        # MNE's set_montage will raise an error or warning if channels don't match, 
+        # but we can use on_missing='ignore' or 'warn'
+        raw.set_montage(montage, on_missing='ignore')
+    except Exception as e:
+        print(f"Could not set standard montage: {e}")
 
     return raw
 
@@ -124,3 +177,33 @@ def parse_spike_times(mat_or_path, label_marker="!", markers_alt=None, debug=Fal
             print("Warning: No spike markers matched; check label_marker argument.")
 
     return spike_sec
+
+
+def prepare_eeg_data(mat_path, sfreq=500.0):
+    """
+    Load, filter, and parse EEG data for the pipeline.
+
+    Parameters
+    ----------
+    mat_path : str
+        Path to the .mat file.
+    sfreq : float
+        Sampling frequency.
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        Standard filtered raw object (1-70Hz).
+    raw_ica : mne.io.Raw
+        ICA filtered raw object (1-100Hz).
+    spike_sec : list
+        List of spike times in seconds.
+    """
+    raw = load_mat_to_mne(mat_path, sfreq=sfreq)
+    raw = filter_eeg(raw)
+    raw_ica = raw.copy().filter(1., 100., picks='eeg', verbose=False)
+
+    mat = loadmat(mat_path)
+    spike_sec = parse_spike_times(mat, label_marker="!")
+
+    return raw, raw_ica, spike_sec
