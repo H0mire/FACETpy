@@ -107,6 +107,16 @@ from .evaluation import (
     MetricsReport
 )
 
+# Miscellaneous utilities
+from .misc import (
+    EEGGenerator,
+    ChannelSchema,
+    OscillationParams,
+    NoiseParams,
+    ArtifactParams,
+    generate_synthetic_eeg,
+)
+
 # Build __all__ dynamically
 __all__ = [
     # Version
@@ -162,6 +172,14 @@ __all__ = [
     'RMSCalculator',
     'MedianArtifactCalculator',
     'MetricsReport',
+
+    # Miscellaneous / Synthetic Data Generation
+    'EEGGenerator',
+    'ChannelSchema',
+    'OscillationParams',
+    'NoiseParams',
+    'ArtifactParams',
+    'generate_synthetic_eeg',
 ]
 
 # Add optional exports

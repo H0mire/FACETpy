@@ -1,0 +1,5 @@
+- trigger detection with subperiodic artifact detection
+- improve eeg data generator
+- more practical examples
+- annotation analysis tool
+- ui 

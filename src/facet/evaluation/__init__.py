@@ -11,7 +11,10 @@ from .metrics import (
     SNRCalculator,
     LegacySNRCalculator,
     RMSCalculator,
+    RMSResidualCalculator,
     MedianArtifactCalculator,
+    FFTAllenCalculator,
+    FFTNiazyCalculator,
     MetricsReport,
 )
 from .visualization import RawPlotter
@@ -20,7 +23,10 @@ __all__ = [
     'SNRCalculator',
     'LegacySNRCalculator',
     'RMSCalculator',
+    'RMSResidualCalculator',
     'MedianArtifactCalculator',
+    'FFTAllenCalculator',
+    'FFTNiazyCalculator',
     'MetricsReport',
     'RawPlotter',
 ]

@@ -30,6 +30,7 @@ class ProcessingMetadata:
     post_trigger_samples: Optional[int] = None
     upsampling_factor: int = 1
     artifact_length: Optional[int] = None
+    slices_per_volume: Optional[int] = None
     volume_gaps: Optional[bool] = None
     custom: Dict[str, Any] = field(default_factory=dict)
 
@@ -45,6 +46,7 @@ class ProcessingMetadata:
             post_trigger_samples=self.post_trigger_samples,
             upsampling_factor=self.upsampling_factor,
             artifact_length=self.artifact_length,
+            slices_per_volume=self.slices_per_volume,
             volume_gaps=self.volume_gaps,
             custom=deepcopy(self.custom)
         )
@@ -356,6 +358,7 @@ class ProcessingContext:
                 'post_trigger_samples': self._metadata.post_trigger_samples,
                 'upsampling_factor': self._metadata.upsampling_factor,
                 'artifact_length': self._metadata.artifact_length,
+                'slices_per_volume': self._metadata.slices_per_volume,
                 'volume_gaps': self._metadata.volume_gaps,
                 'custom': self._metadata.custom
             },
@@ -388,6 +391,7 @@ class ProcessingContext:
             post_trigger_samples=data['metadata'].get('post_trigger_samples'),
             upsampling_factor=data['metadata']['upsampling_factor'],
             artifact_length=data['metadata']['artifact_length'],
+            slices_per_volume=data['metadata'].get('slices_per_volume'),
             volume_gaps=data['metadata']['volume_gaps'],
             custom=data['metadata']['custom']
         )

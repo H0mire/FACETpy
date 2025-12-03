@@ -172,6 +172,40 @@ class AASCorrection(Processor):
             sfreq
         )
 
+        # Plot a random artifact if requested
+        if self.plot_artifacts and artifacts_per_channel:
+            try:
+                import random
+                from matplotlib import pyplot as plt
+
+                # Pick a random channel index from the list of processed channels
+                processed_channels = list(averaging_matrices.keys())
+                random_ch_list_idx = random.randint(0, len(processed_channels) - 1)
+
+                ch_idx = processed_channels[random_ch_list_idx]
+                ch_name = raw.ch_names[ch_idx]
+
+                # Get artifacts for that channel
+                artifacts = artifacts_per_channel[random_ch_list_idx]
+
+                # Pick a random epoch
+                if len(artifacts) > 0:
+                    random_epoch_idx = random.randint(0, len(artifacts) - 1)
+                    artifact_segment = artifacts[random_epoch_idx]
+
+                    logger.info(f"Plotting random artifact for channel {ch_name}, epoch {random_epoch_idx}")
+
+                    plt.figure(figsize=(10, 4))
+                    plt.plot(artifact_segment)
+                    plt.title(f"Estimated Artifact: Channel {ch_name} (Epoch {random_epoch_idx})")
+                    plt.xlabel("Samples")
+                    plt.ylabel("Amplitude")
+                    plt.grid(True, alpha=0.3)
+                    plt.tight_layout()
+                    plt.show()
+            except Exception as e:
+                logger.warning(f"Failed to plot random artifact: {e}")
+
         # Realign triggers to averaged artifacts if requested
         if self.realign_after_averaging:
             logger.debug("Realigning triggers to averaged artifacts")

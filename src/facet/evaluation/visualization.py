@@ -125,7 +125,7 @@ class RawPlotter(Processor):
             self.picks
         )
 
-        fig = raw.plot(**plot_kwargs)
+        fig = raw.plot(block=not self.auto_close,**plot_kwargs)
 
         if self.save_path:
             from matplotlib import pyplot as plt  # Lazy import
@@ -160,11 +160,51 @@ class RawPlotter(Processor):
         if self.overlay_original:
             raw_original = context.get_raw_original()
             if raw_original is not None:
-                original = raw_original.get_data(
-                    picks=[channel_idx],
-                    start=start_sample,
-                    stop=stop_sample
-                )[0]
+                # Calculate indices for original data based on its own sampling rate
+                sfreq_original = raw_original.info["sfreq"]
+                start_sample_original = int(self.start * sfreq_original)
+                stop_sample_original = start_sample_original + int(self.duration * sfreq_original) if self.duration > 0 else raw_original.n_times
+                stop_sample_original = min(stop_sample_original, raw_original.n_times)
+                
+                # Ensure valid range
+                if stop_sample_original <= start_sample_original:
+                    stop_sample_original = raw_original.n_times
+                
+                # Check if channel exists in original data
+                if channel_idx < len(raw_original.ch_names):
+                    try:
+                        original_data = raw_original.get_data(
+                            picks=[channel_idx],
+                            start=start_sample_original,
+                            stop=stop_sample_original
+                        )
+                        if original_data.size > 0:
+                            original = original_data[0]
+                            # Resample original to match current times if sampling rates differ
+                            if sfreq_original != sfreq and len(original) > 0:
+                                from scipy import signal
+                                if len(original) > 1:
+                                    original = signal.resample(original, len(times))
+                                else:
+                                    # If original is too short, skip overlay
+                                    logger.warning(
+                                        "Original data too short for overlay (length %d vs %d); skipping overlay.",
+                                        len(original), len(times)
+                                    )
+                                    original = None
+                            # Also check if lengths match even with same sampling rate
+                            elif len(original) != len(times):
+                                logger.warning(
+                                    "Original data length mismatch (length %d vs %d); skipping overlay.",
+                                    len(original), len(times)
+                                )
+                                original = None
+                        else:
+                            logger.warning("Original data returned empty array; skipping overlay.")
+                    except (IndexError, ValueError) as e:
+                        logger.warning(f"Failed to extract original data: {e}; skipping overlay.")
+                else:
+                    logger.warning("Channel index out of range for original data; skipping overlay.")
             else:
                 logger.warning("Original data unavailable; skipping overlay.")
 

@@ -102,6 +102,29 @@ class TriggerDetector(Processor):
                 mean_val = np.mean([np.median(trigger_diffs), np.max(trigger_diffs)])
                 slice_diffs = trigger_diffs[trigger_diffs < mean_val]
                 new_metadata.artifact_length = int(np.max(slice_diffs))
+
+                # Calculate slices per volume
+                # Identify gap indices (indices where diff is large)
+                gap_indices = np.where(trigger_diffs >= mean_val)[0]
+                
+                if len(gap_indices) > 0:
+                    slice_counts = []
+                    last_idx = -1
+                    for idx in gap_indices:
+                        count = idx - last_idx
+                        slice_counts.append(count)
+                        last_idx = idx
+                    
+                    # Last volume
+                    # If the last gap wasn't at the very end, add the remaining triggers
+                    if last_idx < len(triggers) - 1:
+                        slice_counts.append(len(triggers) - 1 - last_idx)
+                    
+                    if slice_counts:
+                        slices_per_vol = int(np.median(slice_counts))
+                        new_metadata.slices_per_volume = slices_per_vol
+                        logger.info(f"Estimated slices per volume: {slices_per_vol}")
+
             else:
                 new_metadata.volume_gaps = False
                 new_metadata.artifact_length = int(np.max(trigger_diffs))

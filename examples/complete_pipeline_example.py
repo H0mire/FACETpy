@@ -40,7 +40,10 @@ from facet.evaluation import (
     SNRCalculator,
     LegacySNRCalculator,
     RMSCalculator,
+    RMSResidualCalculator,
     MedianArtifactCalculator,
+    FFTAllenCalculator,
+    FFTNiazyCalculator,
     MetricsReport,
     RawPlotter
 )
@@ -88,6 +91,7 @@ def main():
     output_file = str(OUTPUT_DIR / "corrected.edf")
     trigger_pattern = r"\b1\b"  # Regex pattern for trigger detection
 
+    eval_results = {}
     # Build the pipeline
     pipeline = Pipeline([
         # 1. Load data
@@ -130,7 +134,8 @@ def main():
         AASCorrection(
             window_size=30,
             correlation_threshold=0.975,
-            realign_after_averaging=True
+            realign_after_averaging=True,
+            plot_artifacts=False
         ),
 
         # 9. PCA Correction (optional, for systematic artifacts)
@@ -157,20 +162,24 @@ def main():
         SNRCalculator(),
         LegacySNRCalculator(),
         RMSCalculator(),
+        RMSResidualCalculator(),
         MedianArtifactCalculator(),
-        MetricsReport(),
+        FFTAllenCalculator(),
+        FFTNiazyCalculator(),
+        MetricsReport(store=eval_results),
 
         # 11. Visualise results (configurable plotting step)
         RawPlotter(
-            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
-            channel="Fp1",
-            start=25.0,
-            duration=20.0,
-            overlay_original=False,
-            save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
-            show=True,
-            auto_close=False,
-            title="Fp1 – Before vs After (first 20s)"
+            mode="mne",     # Use MNE interactive plotter
+            start=5.0,      # Start at 5 seconds
+            duration=5.0,   # Show 5 seconds
+            picks=None,     # None = show all channels (scrollable in interactive view)
+            save_path=str(OUTPUT_DIR / "eeg_generation_visualization.png"),
+            show=True,      # Display the plot interactively
+            auto_close=False,  # Keep plot open
+            mne_kwargs={
+                'scalings': 'auto'  # Auto-scale channels for better visibility
+            }
         ),
 
         # 13. Export corrected data
@@ -184,6 +193,8 @@ def main():
     print("Starting pipeline execution...")
     result = pipeline.run() 
 
+    MetricsReport.plot(eval_results, metrics=['snr', 'rms_residual', 'median_artifact', 'fft_allen', 'fft_niazy'])
+
     if result.success:
         print("\n✓ Pipeline completed successfully!")
         print(f"Execution time: {result.execution_time:.2f} seconds")
@@ -194,7 +205,15 @@ def main():
         print(f"  SNR: {metrics.get('snr', 'N/A')}")
         print(f"  Legacy SNR: {metrics.get('legacy_snr', 'N/A')}")
         print(f"  RMS Ratio: {metrics.get('rms_ratio', 'N/A')}")
+        print(f"  RMS Residual: {metrics.get('rms_residual', 'N/A')}")
         print(f"  Median Artifact: {metrics.get('median_artifact', 'N/A')}")
+        if 'median_artifact_ratio' in metrics:
+            print(f"  Median Artifact Ratio: {metrics.get('median_artifact_ratio', 'N/A')}")
+        
+        if 'fft_allen' in metrics:
+            print("  FFT Allen (Diff %):")
+            for band, val in metrics['fft_allen'].items():
+                print(f"    {band}: {val:.2f}%")
 
         plot_output = OUTPUT_DIR / "pipeline_before_after.png"
         if plot_output.exists():
@@ -214,9 +233,14 @@ def example_standard_pipeline():
     pipeline = create_standard_pipeline("./examples/datasets/NiazyFMRI.edf",
                                         "./examples/datasets/corrected.edf", use_anc=True)
     
-    pipeline.extend([ SNRCalculator(),
+    pipeline.extend([ 
+        SNRCalculator(),
         RMSCalculator(),
+        RMSResidualCalculator(),
         MedianArtifactCalculator(),
+        LegacySNRCalculator(),
+        FFTAllenCalculator(),
+        FFTNiazyCalculator(),
         MetricsReport(),
         RawPlotter(
             mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
@@ -255,9 +279,14 @@ def example_parallel_execution():
 
         DownSample(factor=10),
         LowPassFilter(freq=70),
+        
+        # Evaluation
         SNRCalculator(),
         RMSCalculator(),
+        RMSResidualCalculator(),
         MedianArtifactCalculator(),
+        FFTAllenCalculator(),
+        
         MetricsReport(),
         RawPlotter(
             mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
@@ -395,8 +424,8 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Uncomment one of these to run:
-    # main()
-    example_standard_pipeline()
+    main()
+    # example_standard_pipeline()
     # example_parallel_execution()
     # example_minimal_pipeline()
     # example_custom_workflow()

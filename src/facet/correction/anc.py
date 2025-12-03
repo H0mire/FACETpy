@@ -259,6 +259,7 @@ class ANCCorrection(Processor):
             logger.warning(f"[Channel: {ch_name}] Reference variance is zero, skipping ANC")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
+        logger.error("filter_order is " + str(filter_order) + " and var_ref is " + str(var_ref))
         mu = float(self.mu_factor / (filter_order * var_ref))
         if not np.isfinite(mu) or mu <= 0:
             logger.warning(f"[Channel: {ch_name}] Computed ANC learning rate is invalid, skipping")
