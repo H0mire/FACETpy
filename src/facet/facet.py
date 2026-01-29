@@ -147,9 +147,9 @@ class facet:
     def upsample(self):
         self._correction.upsample()
 
-    def evaluate(self, eeg=None, name=None, plot=False, measures=["SNR"]):
+    def evaluate(self, eeg=None, name=None, plot=False, measures=["SNR"], start_time=None, end_time=None, ref_start_time=None, ref_end_time=None):
         logger.info("Evaluating...")
-        return self._evaluation.evaluate(eeg=eeg, name=name, plot=plot, measures=measures)
+        return self._evaluation.evaluate(eeg=eeg, name=name, plot=plot, measures=measures, start_time=start_time, end_time=end_time, ref_start_time=ref_start_time, ref_end_time=ref_end_time)
     
     def plot(self, results, plot_measures=["SNR"]):
         self._evaluation.plot(results, plot_measures=plot_measures)

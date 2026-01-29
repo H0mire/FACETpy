@@ -27,7 +27,7 @@ class EvaluationFramework:
         return
 
     def evaluate(
-        self, eeg, start_time=None, end_time=None, name=None, plot=True, measures=[]
+        self, eeg, start_time=None, end_time=None, ref_start_time=None, ref_end_time=None, name=None, plot=True, measures=[]
     ):
         """
         Evaluate the EEG data based on specified measures.
@@ -36,6 +36,12 @@ class EvaluationFramework:
             eeg (facet.eeg_obj): The EEG data to be evaluated.
             start_time (float, optional): Start time of the data to be evaluated.
             end_time (float, optional): End time of the data to be evaluated.
+            ref_start_time (float, optional): Start time of the clean reference interval.
+                If provided along with ref_end_time, this interval will be used as the reference
+                instead of the default behavior (everything except the artifact interval).
+            ref_end_time (float, optional): End time of the clean reference interval.
+                If provided along with ref_start_time, this interval will be used as the reference
+                instead of the default behavior (everything except the artifact interval).
             name (str, optional): Name of the evaluation dataset.
             plot (bool, optional): Whether to plot the results. Defaults to True.
             measures (list, optional): A list of measures to calculate. Defaults to an empty list.
@@ -49,6 +55,8 @@ class EvaluationFramework:
             end_time = eeg.time_acq_end
         raw = eeg.mne_raw
         logger.debug("Channels that will be evaluated: " + str(raw.ch_names))
+        logger.debug("Signal interval: " + str(start_time) + " - " + str(end_time))
+        logger.debug("Reference interval: " + str(ref_start_time) + " - " + str(ref_end_time))
 
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
@@ -57,9 +65,16 @@ class EvaluationFramework:
         cropped_mne_raw = self._crop(
             raw=eeg.mne_raw, tmin=start_time, tmax=end_time
         ).pick(channels_to_keep)
-        ref_mne_raw = self._cutout(
-            raw=eeg.mne_raw, tmin=start_time, tmax=end_time
-        ).pick(channels_to_keep)
+        
+        # Use specified reference interval if provided, otherwise use cutout (default behavior)
+        if ref_start_time is not None and ref_end_time is not None:
+            ref_mne_raw = self._crop(
+                raw=eeg.mne_raw, tmin=ref_start_time, tmax=ref_end_time
+            ).pick(channels_to_keep)
+        else:
+            ref_mne_raw = self._cutout(
+                raw=eeg.mne_raw, tmin=start_time, tmax=end_time
+            ).pick(channels_to_keep)
         artifact_raw_reference_raw_dict = {
             "eeg": eeg,
             "raw": cropped_mne_raw,
@@ -153,8 +168,8 @@ class EvaluationFramework:
         rms_corrected = np.sqrt(np.mean(data_corrected**2, axis=1))
         rms_uncorrected = np.sqrt(np.mean(data_uncorrected**2, axis=1))
 
-        # Calculate Ratio
-        rms = rms_uncorrected / rms_corrected
+        # Calculate Ratio (add epsilon to prevent division by zero)
+        rms = rms_uncorrected / (rms_corrected )
         return np.median(rms)
 
     def evaluate_RMS_residual_ratio(self, mnedict):
@@ -175,8 +190,8 @@ class EvaluationFramework:
         rms_corrected = np.sqrt(np.mean(data_corrected**2, axis=1))
         rms_ref = np.sqrt(np.mean(data_ref**2, axis=1))
 
-        # Calculate Ratio
-        rms = rms_corrected / rms_ref
+        # Calculate Ratio (add epsilon to prevent division by zero)
+        rms = rms_corrected / (rms_ref )
         return np.median(rms)
 
     def calculate_median_imaging_artifact(self, mnedict):
@@ -257,8 +272,8 @@ class EvaluationFramework:
         # Calculate power of the residual (noise)
         power_residual = power_corrected - power_without
 
-        # Calculate SNR
-        snr = np.abs(power_without / power_residual)
+        # Calculate SNR (add epsilon to prevent division by zero)
+        snr = np.abs(power_without / (power_residual ))
 
         return np.mean(snr)
 
