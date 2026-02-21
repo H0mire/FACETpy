@@ -3,14 +3,20 @@
 from __future__ import annotations
 
 import atexit
+import io
 import os
+import re
+import sys
 import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any, Deque, Dict, List, Optional, TextIO
 
 from .base import BaseConsole
+
+# Strip ANSI escape sequences (e.g. \x1b[31m) from terminal output
+_ANSI_STRIP = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
 
 try:  # Local import guard so the manager can fall back gracefully.
     from rich import box
@@ -50,6 +56,50 @@ class StepState:
     progress_message: str = ""
 
 
+class _LogTee(io.TextIOBase):
+    """Tees stdout/stderr to the real stream and appends to the Live Logs panel."""
+
+    def __init__(
+        self,
+        real: TextIO,
+        console: "ModernConsole",
+        level: str = "INFO",
+    ) -> None:
+        self._real = real
+        self._console = console
+        self._level = level
+        self._buffer: List[str] = []
+
+    def write(self, text: str) -> int:
+        if not isinstance(text, str):
+            raise TypeError(f"write() argument must be str, not {type(text).__name__}")
+        result = self._real.write(text)
+        self._real.flush()
+        lines: List[str] = []
+        while text:
+            line, new_line, text = text.partition("\n")
+            if new_line:
+                self._buffer.append(line)
+                plain = _ANSI_STRIP.sub("", "".join(self._buffer)).strip()
+                self._buffer.clear()
+                if plain:
+                    lines.append(plain)
+            else:
+                self._buffer.append(line)
+                break
+        for plain in lines:
+            self._console._tee_append_log(self._level, plain)
+        return result
+
+    def flush(self) -> None:
+        self._real.flush()
+        if self._buffer:
+            plain = _ANSI_STRIP.sub("", "".join(self._buffer)).strip()
+            self._buffer.clear()
+            if plain:
+                self._console._tee_append_log(self._level, plain)
+
+
 class ModernConsole(BaseConsole):
     """Interactive console that renders FACETpy progress using Rich."""
 
@@ -60,7 +110,11 @@ class ModernConsole(BaseConsole):
         if not _RICH_AVAILABLE:
             raise RuntimeError("Rich is not available")
 
-        self.console = Console(highlight=False)
+        # Wire Console to real stdout *before* installing tee, so Live display
+        # output bypasses the tee and avoids deadlock (tee acquires _lock).
+        self._real_stdout = sys.stdout
+        self._real_stderr = sys.stderr
+        self.console = Console(file=self._real_stdout, highlight=False)
         if not self.console.is_terminal or os.environ.get("TERM") == "dumb":
             raise RuntimeError("Interactive console requires a TTY terminal")
 
@@ -84,8 +138,13 @@ class ModernConsole(BaseConsole):
             console=self.console,
             refresh_per_second=8,
             auto_refresh=False,
+            redirect_stdout=False,
+            redirect_stderr=False,
         )
         self._live.start()
+        self._stdout_tee: Optional[_LogTee] = None
+        self._stderr_tee: Optional[_LogTee] = None
+        self._install_output_tee()
         atexit.register(self.shutdown)
 
     # ------------------------------------------------------------------
@@ -104,6 +163,7 @@ class ModernConsole(BaseConsole):
         return os.environ.get("TERM", "").lower() not in {"", "dumb"}
 
     def shutdown(self) -> None:
+        self._uninstall_output_tee()
         with self._lock:
             self._stop_ticker_locked()
             if self._live is not None:
@@ -256,6 +316,32 @@ class ModernConsole(BaseConsole):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+    def _install_output_tee(self) -> None:
+        """Replace stdout/stderr with tees that also feed the Live Logs panel."""
+        if self._stdout_tee is not None:
+            return
+        self._stdout_tee = _LogTee(self._real_stdout, self, level="INFO")
+        self._stderr_tee = _LogTee(self._real_stderr, self, level="WARNING")
+        sys.stdout = self._stdout_tee  # type: ignore[assignment]
+        sys.stderr = self._stderr_tee  # type: ignore[assignment]
+
+    def _uninstall_output_tee(self) -> None:
+        """Restore original stdout/stderr."""
+        if self._stdout_tee is not None:
+            sys.stdout = self._real_stdout  # type: ignore[assignment]
+            self._stdout_tee = None
+        if self._stderr_tee is not None:
+            sys.stderr = self._real_stderr  # type: ignore[assignment]
+            self._stderr_tee = None
+
+    def _tee_append_log(self, level: str, text: str) -> None:
+        """Append tee output to log messages and refresh (called from _LogTee.write)."""
+        if not text.strip():
+            return
+        with self._lock:
+            self._append_log(level, text)
+            self._refresh_locked()
+
     def _append_log(self, level: str, text: str, timestamp: Optional[str] = None) -> None:
         if timestamp is None:
             timestamp = time.strftime("%H:%M:%S")
