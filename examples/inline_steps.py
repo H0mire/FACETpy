@@ -31,6 +31,7 @@ from facet import (
     PrintMetric,
     load_edf,
 )
+from facet.helpers.interactive import WaitForConfirmation
 
 INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
 OUTPUT_FILE = "./output/corrected_inline.edf"
@@ -74,8 +75,8 @@ pipeline = Pipeline([
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
 ], name="Inline Steps")
 
-result = pipeline.run()
-result.print_summary()
+# result = pipeline.run()
+# result.print_summary()
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +96,9 @@ ctx = (
     | AASCorrection(window_size=30)
     | DownSample(factor=10)
     | SNRCalculator()
+    | WaitForConfirmation(
+    message="✅ Execution Finished! Press Enter to print the result..."
+    )
     | MetricsReport(name="Pipe-operator result")
 )
 

@@ -148,6 +148,12 @@ class NullConsole(BaseConsole):
     def get_rich_console(self) -> Any:  # noqa: D401
         return None
 
+    def set_active_prompt(self, message: str) -> None:  # noqa: D401
+        return None
+
+    def clear_active_prompt(self) -> None:  # noqa: D401
+        return None
+
     @contextlib.contextmanager
     def suspend_raw_mode(self) -> Generator[None, None, None]:  # noqa: D401
         yield

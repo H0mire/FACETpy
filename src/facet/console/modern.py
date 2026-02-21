@@ -103,23 +103,24 @@ class _LogTee(io.TextIOBase):
             line, new_line, remaining = remaining.partition("\n")
             if new_line:
                 self._buffer.append(line)
-                plain = _ANSI_STRIP.sub("", "".join(self._buffer)).strip()
+                raw = "".join(self._buffer)
                 self._buffer.clear()
-                if plain:
-                    lines.append(plain)
+                # Only skip truly empty lines (strip ANSI for the blank-check only)
+                if _ANSI_STRIP.sub("", raw).strip():
+                    lines.append(raw)
             else:
                 self._buffer.append(line)
                 break
-        for plain in lines:
-            self._console._tee_append_log(self._level, plain)
+        for raw in lines:
+            self._console._tee_append_log(self._level, raw)
         return len(text)
 
     def flush(self) -> None:
         if self._buffer:
-            plain = _ANSI_STRIP.sub("", "".join(self._buffer)).strip()
+            raw = "".join(self._buffer)
             self._buffer.clear()
-            if plain:
-                self._console._tee_append_log(self._level, plain)
+            if _ANSI_STRIP.sub("", raw).strip():
+                self._console._tee_append_log(self._level, raw)
 
 
 class ModernConsole(BaseConsole):
@@ -167,6 +168,10 @@ class ModernConsole(BaseConsole):
         # stays open until the user explicitly presses q.
         self._pipeline_done: bool = False
         self._quit_event = threading.Event()
+
+        # Non-None while WaitForConfirmation (or similar) is blocking on input.
+        # The footer replaces its normal hints with this text.
+        self._active_prompt: Optional[str] = None
 
         self._lock = threading.Lock()
         self._ticker_stop = threading.Event()
@@ -248,6 +253,18 @@ class ModernConsole(BaseConsole):
         if self._stdout_tee is not None and self._sink_console is not None:
             return self._sink_console
         return self.console
+
+    def set_active_prompt(self, message: str) -> None:
+        """Show *message* in the footer while waiting for user input."""
+        with self._lock:
+            self._active_prompt = message
+            self._refresh_locked()
+
+    def clear_active_prompt(self) -> None:
+        """Restore the normal footer after the prompt has been answered."""
+        with self._lock:
+            self._active_prompt = None
+            self._refresh_locked()
 
     def set_pipeline_metadata(self, metadata: Dict[str, Any]) -> None:
         with self._lock:
@@ -414,7 +431,7 @@ class ModernConsole(BaseConsole):
             self._sink_console = Console(
                 file=self._stdout_tee,  # type: ignore[arg-type]
                 highlight=False,
-                no_color=True,
+                force_terminal=True,   # emit ANSI color codes through the tee
                 width=sink_width,
             )
         except Exception:
@@ -883,7 +900,7 @@ class ModernConsole(BaseConsole):
                 row.append("  ")
                 row.append(f"{entry['level']:>7}", style=entry["style"])
                 row.append("  ")
-                row.append(entry["text"])
+                row.append_text(Text.from_ansi(entry["text"]))
                 rows.append(row)
             body = Align.left(Group(*rows))
 
@@ -910,6 +927,13 @@ class ModernConsole(BaseConsole):
 
     def _render_footer(self) -> Text:
         """One-line keybinding hint bar shown in both views."""
+        # While a prompt is active, replace the normal hints with the prompt text.
+        if self._active_prompt is not None:
+            t = Text(justify="center")
+            t.append(" ⏎ ", style="bold yellow")
+            t.append(self._active_prompt, style="bold yellow")
+            return t
+
         t = Text(justify="center")
         t.append(" [", style="dim")
         t.append("l", style="bold cyan")
@@ -1007,7 +1031,7 @@ class ModernConsole(BaseConsole):
                 row.append("  ")
                 row.append(f"{entry['level']:>7}", style=entry["style"])
                 row.append("  ")
-                row.append(entry["text"])
+                row.append_text(Text.from_ansi(entry["text"]))
                 rows.append(row)
             body = Align.left(Group(*rows))
         return Panel(body, title="Live Logs", border_style="bright_black", box=box.ROUNDED)

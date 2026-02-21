@@ -15,7 +15,7 @@ from typing import Optional
 
 from loguru import logger
 
-from ..console import suspend_raw_mode
+from ..console import get_console, suspend_raw_mode
 from ..core import Processor, ProcessingContext, register_processor
 
 
@@ -67,22 +67,62 @@ class WaitForConfirmation(Processor):
             logger.warning("Standard input is not interactive; continuing automatically.")
             return context
 
-        # Suspend raw terminal mode while waiting so input()/readline() work
-        # correctly even when the ModernConsole keyboard listener is active.
-        with suspend_raw_mode():
-            try:
-                if self.timeout is None:
-                    input(f"{self.message} ")
-                else:
-                    self._prompt_with_timeout()
-            except (EOFError, KeyboardInterrupt):
-                logger.info("User aborted confirmation step; continuing execution.")
-            except TimeoutError as exc:
-                logger.warning(str(exc))
+        # Print the (optionally Rich-markup) message through the log panel so it
+        # lands inside the live display rather than escaping above it.
+        self._print_message()
+
+        # Derive a short single-line footer hint — strip any Rich markup tags so
+        # they don't appear literally in the footer text.
+        try:
+            from rich.text import Text as _RichText
+            _strip = lambda s: _RichText.from_markup(s).plain
+        except Exception:
+            import re as _re
+            _strip = lambda s: _re.sub(r"\[/?[^\]]*\]", "", s)
+        footer_hint = next(
+            (_strip(l.strip()) for l in self.message.split("\n") if l.strip()),
+            "Press Enter to continue...",
+        )
+        console = get_console()
+        console.set_active_prompt(footer_hint)
+        try:
+            # Suspend raw terminal mode while waiting so input()/readline() work
+            # correctly even when the ModernConsole keyboard listener is active.
+            with suspend_raw_mode():
+                try:
+                    if self.timeout is None:
+                        input("")
+                    else:
+                        self._prompt_with_timeout()
+                except (EOFError, KeyboardInterrupt):
+                    logger.info("User aborted confirmation step; continuing execution.")
+                except TimeoutError as exc:
+                    logger.warning(str(exc))
+        finally:
+            console.clear_active_prompt()
         return context
 
+    def _print_message(self) -> None:
+        """Render the message through the Rich console, auto-colouring plain text."""
+        rich_console = get_console().get_rich_console()
+        # If the message contains no Rich markup tags, apply a default colour scheme:
+        # the first non-empty line is rendered bold+yellow, remaining lines dim.
+        has_markup = "[" in self.message
+        first = True
+        for line in self.message.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            if has_markup:
+                rich_console.print(line)
+            elif first:
+                rich_console.print(f"[bold yellow]{line}[/bold yellow]")
+            else:
+                rich_console.print(f"[dim]{line}[/dim]")
+            first = False
+
     def _prompt_with_timeout(self) -> None:
-        """Prompt the user with an optional timeout."""
+        """Wait for user confirmation with an optional timeout."""
         logger.info(
             "Waiting for user confirmation (timeout=%.1fs)...",
             self.timeout
@@ -98,15 +138,12 @@ class WaitForConfirmation(Processor):
         """Handle confirmation on Windows platforms."""
         import msvcrt
 
-        print(self.message, end=" ", flush=True)
         while True:
             if msvcrt.kbhit():
                 char = msvcrt.getwch()
                 if char in ("\n", "\r"):
-                    print()
                     return
             if self.timeout is not None and (time.time() - start_time) > self.timeout:
-                print()  # Newline after prompt
                 self._handle_timeout()
                 return
             time.sleep(0.05)
@@ -115,12 +152,10 @@ class WaitForConfirmation(Processor):
         """Handle confirmation on POSIX platforms using select."""
         import select
 
-        print(self.message, end=" ", flush=True)
         ready, _, _ = select.select([sys.stdin], [], [], self.timeout)
         if ready:
             sys.stdin.readline()
         else:
-            print()
             self._handle_timeout()
 
     def _handle_timeout(self) -> None:
