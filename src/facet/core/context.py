@@ -438,6 +438,36 @@ class ProcessingContext:
         ctx._estimated_noise = data['estimated_noise']
         return ctx
 
+    def __or__(self, other) -> 'ProcessingContext':
+        """
+        Apply a processor or callable to this context using the pipe operator.
+
+        Enables a clean chaining syntax outside of a ``Pipeline``::
+
+            ctx = ProcessingContext(raw)
+            result = (
+                ctx
+                | HighPassFilter(1.0)
+                | UpSample(10)
+                | TriggerDetector(r"\\b1\\b")
+                | AASCorrection()
+            )
+            filtered_raw = result.get_raw()
+
+        Args:
+            other: A :class:`~facet.core.Processor` instance **or** any
+                ``Callable[[ProcessingContext], ProcessingContext]``.
+
+        Returns:
+            New :class:`ProcessingContext` produced by applying *other*.
+        """
+        from .processor import Processor
+        if isinstance(other, Processor):
+            return other.execute(self)
+        elif callable(other):
+            return other(self)
+        return NotImplemented
+
     def __repr__(self) -> str:
         """String representation."""
         n_channels = len(self._raw.ch_names)

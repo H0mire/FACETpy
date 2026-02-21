@@ -22,6 +22,7 @@ from .trigger_detection import (
 )
 from .alignment import TriggerAligner, SliceAligner, SubsampleAligner
 from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
+from .transforms import Crop, RawTransform
 
 __all__ = [
     # Filtering
@@ -49,4 +50,8 @@ __all__ = [
     # Acquisition window
     'CutAcquisitionWindow',
     'PasteAcquisitionWindow',
+
+    # Transforms
+    'Crop',
+    'RawTransform',
 ]

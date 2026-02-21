@@ -233,3 +233,85 @@ class TestProcessingContext:
         # Original should be unchanged
         assert sample_context.get_raw() is original_raw
         assert np.array_equal(sample_context.get_triggers(), original_triggers)
+
+
+@pytest.mark.unit
+class TestProcessingContextPipeOperator:
+    """Tests for ProcessingContext.__or__ (pipe operator)."""
+
+    def test_pipe_with_processor(self, sample_context):
+        """ctx | Processor applies the processor and returns new context."""
+        from facet.core import Processor
+
+        class DoubleData(Processor):
+            name = "double_data"
+
+            def process(self, context):
+                raw = context.get_raw().copy()
+                raw._data *= 2
+                return context.with_raw(raw)
+
+        original_data = sample_context.get_raw()._data.copy()
+        result = sample_context | DoubleData()
+
+        assert isinstance(result, ProcessingContext)
+        # Original is unchanged
+        np.testing.assert_array_equal(sample_context.get_raw()._data, original_data)
+        # Result has doubled data
+        np.testing.assert_array_almost_equal(result.get_raw()._data, original_data * 2)
+
+    def test_pipe_with_callable(self, sample_context):
+        """ctx | callable applies the function and returns new context."""
+        def noop(ctx):
+            return ctx.with_raw(ctx.get_raw().copy())
+
+        result = sample_context | noop
+
+        assert isinstance(result, ProcessingContext)
+        assert result.get_sfreq() == sample_context.get_sfreq()
+
+    def test_pipe_chaining(self, sample_context):
+        """Multiple | calls can be chained."""
+        from facet.core import Processor
+
+        class AddToCustom(Processor):
+            name = "add_custom"
+            modifies_raw = False
+
+            def __init__(self, key, value):
+                self.key = key
+                self.value = value
+                super().__init__()
+
+            def process(self, context):
+                context.metadata.custom[self.key] = self.value
+                return context
+
+        result = (
+            sample_context
+            | AddToCustom("step1", 1)
+            | AddToCustom("step2", 2)
+        )
+
+        assert result.metadata.custom["step1"] == 1
+        assert result.metadata.custom["step2"] == 2
+
+    def test_pipe_with_lambda(self, sample_context):
+        """ctx | lambda works and returns context."""
+        result = sample_context | (lambda ctx: ctx)
+        assert isinstance(result, ProcessingContext)
+
+    def test_pipe_unsupported_type_returns_not_implemented(self, sample_context):
+        """ctx | unsupported_type returns NotImplemented."""
+        result = sample_context.__or__(42)
+        assert result is NotImplemented
+
+    def test_pipe_history_tracked(self, sample_context):
+        """Processor applied via | records a history entry."""
+        from tests.conftest import create_mock_processor
+
+        proc = create_mock_processor("pipe_proc")
+        result = sample_context | proc
+
+        names = [h.name for h in result.get_history()]
+        assert "pipe_proc" in names

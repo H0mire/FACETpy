@@ -230,3 +230,183 @@ class TestPipelineIntegration:
         metrics = result.context.metadata.custom.get('metrics', {})
         assert 'snr' in metrics
         assert 'rms_ratio' in metrics
+
+
+@pytest.mark.unit
+class TestPipelineCallableNormalisation:
+    """Pipeline should accept plain callables alongside Processor instances."""
+
+    def test_lambda_in_constructor(self, sample_context):
+        """A lambda is silently wrapped and executed."""
+        called = []
+
+        pipeline = Pipeline([lambda ctx: (called.append(1) or ctx)])
+        result = pipeline.run(initial_context=sample_context)
+
+        assert result.success is True
+        assert called == [1]
+
+    def test_named_function_in_constructor(self, sample_context):
+        """A def function is wrapped and its __name__ is used as step label."""
+        def my_step(ctx):
+            return ctx
+
+        pipeline = Pipeline([my_step])
+        result = pipeline.run(initial_context=sample_context)
+
+        assert result.success is True
+        names = [h.name for h in result.context.get_history()]
+        assert "my_step" in names
+
+    def test_mixed_processor_and_callable(self, sample_context):
+        """Processor and callable can be mixed freely in one list."""
+        proc = create_mock_processor("proc1")
+        pipeline = Pipeline([proc, lambda ctx: ctx])
+        result = pipeline.run(initial_context=sample_context)
+
+        assert result.success is True
+        assert proc.call_count == 1
+
+    def test_invalid_item_raises_type_error(self):
+        """A non-callable, non-Processor item raises TypeError."""
+        with pytest.raises(TypeError):
+            Pipeline([42])
+
+    def test_add_callable(self, sample_context):
+        """Pipeline.add() accepts a callable."""
+        called = []
+        pipeline = Pipeline([])
+        pipeline.add(lambda ctx: (called.append(True) or ctx))
+
+        result = pipeline.run(initial_context=sample_context)
+        assert result.success is True
+        assert called == [True]
+
+    def test_insert_callable(self, sample_context):
+        """Pipeline.insert() accepts a callable."""
+        order = []
+        proc = create_mock_processor("first")
+
+        def second(ctx):
+            order.append("second")
+            return ctx
+
+        pipeline = Pipeline([proc])
+        pipeline.insert(0, lambda ctx: (order.append("inserted") or ctx))
+
+        result = pipeline.run(initial_context=sample_context)
+        assert result.success is True
+        assert order[0] == "inserted"
+
+    def test_extend_callables(self, sample_context):
+        """Pipeline.extend() accepts a list of callables."""
+        called = []
+        pipeline = Pipeline([])
+        pipeline.extend([
+            lambda ctx: (called.append(1) or ctx),
+            lambda ctx: (called.append(2) or ctx),
+        ])
+
+        result = pipeline.run(initial_context=sample_context)
+        assert result.success is True
+        assert called == [1, 2]
+
+
+@pytest.mark.unit
+class TestPipelineResultMetrics:
+    """Tests for PipelineResult.metrics and .metrics_df properties."""
+
+    def _make_result_with_metrics(self, sample_context):
+        """Run a pipeline that populates metrics via SNRCalculator."""
+        from facet.evaluation import SNRCalculator
+        from facet.preprocessing import UpSample, DownSample
+        from facet.correction import AASCorrection
+
+        pipeline = Pipeline([
+            UpSample(factor=2),
+            AASCorrection(window_size=3),
+            DownSample(factor=2),
+            SNRCalculator(),
+        ])
+        return pipeline.run(initial_context=sample_context)
+
+    def test_metrics_returns_dict(self, sample_context):
+        """result.metrics is a dict."""
+        result = self._make_result_with_metrics(sample_context)
+        assert isinstance(result.metrics, dict)
+
+    def test_metrics_contains_snr(self, sample_context):
+        """result.metrics contains 'snr' after SNRCalculator."""
+        result = self._make_result_with_metrics(sample_context)
+        assert "snr" in result.metrics
+
+    def test_metrics_empty_on_failure(self, sample_context):
+        """result.metrics is empty dict when pipeline fails."""
+        def explode(ctx):
+            raise RuntimeError("boom")
+
+        result = Pipeline([explode]).run(initial_context=sample_context)
+        assert result.metrics == {}
+
+    def test_metrics_df_is_series(self, sample_context):
+        """result.metrics_df is a pandas Series (or None if pandas absent)."""
+        pytest.importorskip("pandas")
+        result = self._make_result_with_metrics(sample_context)
+        import pandas as pd
+        assert isinstance(result.metrics_df, pd.Series)
+
+    def test_metrics_df_contains_snr(self, sample_context):
+        """result.metrics_df includes the snr entry."""
+        pytest.importorskip("pandas")
+        result = self._make_result_with_metrics(sample_context)
+        assert "snr" in result.metrics_df.index
+
+
+@pytest.mark.unit
+class TestPipelineMap:
+    """Tests for Pipeline.map() batch helper."""
+
+    def test_map_with_contexts(self, sample_context):
+        """map() accepts a list of ProcessingContext objects."""
+        pipeline = Pipeline([create_mock_processor("p")])
+        results = pipeline.map([sample_context, sample_context])
+
+        assert len(results) == 2
+        assert all(r.success for r in results)
+
+    def test_map_with_loader_factory(self, sample_edf_file):
+        """map() uses loader_factory to load each file path."""
+        from facet.io import EDFLoader
+        from facet.preprocessing import TriggerDetector
+
+        pipeline = Pipeline([TriggerDetector(regex=r"\b1\b")])
+        results = pipeline.map(
+            [str(sample_edf_file)],
+            loader_factory=lambda p: EDFLoader(path=p, preload=True),
+        )
+
+        assert len(results) == 1
+        assert results[0].success is True
+
+    def test_map_on_error_continue(self, sample_context):
+        """on_error='continue' skips failed inputs instead of raising."""
+        def explode(ctx):
+            raise RuntimeError("fail")
+
+        pipeline = Pipeline([explode])
+        results = pipeline.map(
+            [sample_context, sample_context],
+            on_error="continue",
+        )
+
+        assert len(results) == 2
+        assert all(not r.success for r in results)
+
+    def test_map_on_error_raise(self, sample_context):
+        """on_error='raise' re-raises the first failure."""
+        def explode(ctx):
+            raise RuntimeError("fail")
+
+        pipeline = Pipeline([explode])
+        with pytest.raises(RuntimeError, match="fail"):
+            pipeline.map([sample_context], on_error="raise")

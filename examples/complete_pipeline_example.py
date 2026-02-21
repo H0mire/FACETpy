@@ -1,11 +1,10 @@
 """
 Complete FACETpy Pipeline Example
 
-This example demonstrates a full end-to-end artifact correction pipeline
-using the new modular architecture.
+Demonstrates the full range of FACETpy capabilities using the modular
+processor-pipeline architecture.
 
 Author: FACETpy Team
-Date: 2025-01-12
 """
 
 import os
@@ -18,25 +17,32 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 MPLCONFIG_PATH = OUTPUT_DIR / "mpl_config"
 MPLCONFIG_PATH.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("MPLCONFIGDIR", str(MPLCONFIG_PATH.resolve()))
-os.environ["FACET_CONSOLE_MODE"] = "modern" # "classic" or "modern"
+os.environ["FACET_CONSOLE_MODE"] = "modern"  # "classic" or "modern"
 
 
-from facet.core import Pipeline, LambdaProcessor
-from facet.io import EDFLoader, EDFExporter
-from facet.preprocessing import (
+# Everything is available directly from the top-level `facet` package
+import facet
+from facet import (
+    Pipeline,
+    LambdaProcessor,
+    ConditionalProcessor,
+    # I/O
+    EDFLoader,
+    EDFExporter,
+    # Preprocessing
     HighPassFilter,
     LowPassFilter,
     UpSample,
+    DownSample,
     TriggerDetector,
     TriggerAligner,
-    DownSample
-)
-from facet.correction import (
+    Crop,
+    RawTransform,
+    # Correction
     AASCorrection,
     ANCCorrection,
-    PCACorrection
-)
-from facet.evaluation import (
+    PCACorrection,
+    # Evaluation
     SNRCalculator,
     LegacySNRCalculator,
     RMSCalculator,
@@ -45,120 +51,77 @@ from facet.evaluation import (
     FFTAllenCalculator,
     FFTNiazyCalculator,
     MetricsReport,
-    RawPlotter
-)
-from facet.helpers import WaitForConfirmation
-
-from facet import (
-    create_standard_pipeline
+    RawPlotter,
+    # Factory
+    create_standard_pipeline,
 )
 
-file_path = "./examples/datasets/NiazyFMRI.edf"
-# Event Regex assuming using stim channel
-event_regex = r"\b1\b"
-# Upsampling factor
-upsample_factor = 10
-# unwanted channels
-unwanted_bad_channels = ["EKG", "EMG", "EOG", "ECG"]
-# Add Artifact to Trigger Offset in seconds. Adjust this if the trigger events are not aligned with the artifact occurence
-artifact_to_trigger_offset = -0.005
-# Crop window (seconds). Adjust as needed to trim the recording before processing.
-crop_tmin = 0
-crop_tmax = 162
+INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+OUTPUT_FILE = str(OUTPUT_DIR / "corrected.edf")
 
+TRIGGER_REGEX = r"\b1\b"
+UPSAMPLE_FACTOR = 10
+BAD_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
+ARTIFACT_TO_TRIGGER_OFFSET = -0.005
+CROP_TMIN = 0
+CROP_TMAX = 162
+
+
+# ---------------------------------------------------------------------------
+# 1. Full custom pipeline
+# ---------------------------------------------------------------------------
 def main():
-    """
-    Run a complete fMRI artifact correction pipeline.
+    """Complete fMRI artifact correction pipeline with all steps."""
 
-    Steps:
-    1. Load EEG data and optionally crop to a time window
-    2. Detect triggers
-    3. Upsample for better precision
-    4. Align triggers using cross-correlation
-    5. Apply AAS correction
-    6. Apply ANC correction (optional)
-    7. Apply PCA correction (optional)
-    8. Downsample back to original rate
-    9. Apply final highpass filter
-    10. Evaluate results
-    11. Visualise before/after snippets
-    12. Optionally pause for manual inspection
-    13. Export corrected data
-    """
-
-    # Configuration
-    input_file = "./examples/datasets/NiazyFMRI.edf"
-    output_file = str(OUTPUT_DIR / "corrected.edf")
-    trigger_pattern = r"\b1\b"  # Regex pattern for trigger detection
-
-    eval_results = {}
-    # Build the pipeline
     pipeline = Pipeline([
-        # 1. Load data
+        # Load data
         EDFLoader(
-            path=input_file,
+            path=INPUT_FILE,
             preload=True,
-            bad_channels=unwanted_bad_channels,
-            artifact_to_trigger_offset=artifact_to_trigger_offset,
+            bad_channels=BAD_CHANNELS,
+            artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET,
         ),
 
-        # 1b. Optionally crop the raw to a specific interval before further processing
-        LambdaProcessor(
-            name="crop_raw_to_interval",
-            func=lambda ctx: ctx.with_raw(
-                ctx.get_raw().copy().crop(tmin=crop_tmin, tmax=crop_tmax)
-            )
-        ),
+        # Crop to region of interest (new Crop processor)
+        Crop(tmin=CROP_TMIN, tmax=CROP_TMAX),
 
-        # 2. Detect triggers
-        TriggerDetector(
-            regex=trigger_pattern
-        ),
+        # Detect fMRI slice triggers
+        TriggerDetector(regex=TRIGGER_REGEX),
 
-        HighPassFilter(
-            freq=1.0
-        ),
+        HighPassFilter(freq=1.0),
 
-        # 3. Upsample for precision
-        UpSample(
-            factor=10
-        ),
+        # Upsample for sub-sample trigger precision
+        UpSample(factor=UPSAMPLE_FACTOR),
 
-        # 4. Align triggers
+        # Align triggers using cross-correlation
         TriggerAligner(
             ref_trigger_index=0,
-            upsample_for_alignment=False  # Already upsampled
+            upsample_for_alignment=False,
         ),
 
-        # 5. AAS Correction (main algorithm)
+        # Averaged Artifact Subtraction (AAS) — primary correction
         AASCorrection(
             window_size=30,
             correlation_threshold=0.975,
             realign_after_averaging=True,
-            plot_artifacts=False
+            plot_artifacts=False,
         ),
 
-        # 9. PCA Correction (optional, for systematic artifacts)
+        # PCA — remove systematic residual components
         PCACorrection(
-            n_components=0.95,  # Keep 95% of variance
-            hp_freq=1.0
+            n_components=0.95,
+            hp_freq=1.0,
         ),
 
-        # 6. Downsample back to original rate
-        DownSample(
-            factor=10
-        ),
+        # Downsample back to original rate
+        DownSample(factor=UPSAMPLE_FACTOR),
 
-        LowPassFilter(
-            freq=70
-        ),        
+        LowPassFilter(freq=70),
 
-        # 8. ANC Correction (for residual artifacts)
-        ANCCorrection(
-            use_c_extension=True
-        ),
+        # Adaptive Noise Cancellation — remove remaining gradient noise
+        ANCCorrection(use_c_extension=True),
 
-        # 10. Evaluate results
+        # --- Evaluation ---
         SNRCalculator(),
         LegacySNRCalculator(),
         RMSCalculator(),
@@ -166,59 +129,42 @@ def main():
         MedianArtifactCalculator(),
         FFTAllenCalculator(),
         FFTNiazyCalculator(),
-        MetricsReport(store=eval_results),
+        MetricsReport(),
 
-        # 11. Visualise results (configurable plotting step)
+        # Visualise corrected signal
         RawPlotter(
-            mode="mne",     # Use MNE interactive plotter
-            start=5.0,      # Start at 5 seconds
-            duration=5.0,   # Show 5 seconds
-            picks=None,     # None = show all channels (scrollable in interactive view)
-            save_path=str(OUTPUT_DIR / "eeg_generation_visualization.png"),
-            show=True,      # Display the plot interactively
-            auto_close=False,  # Keep plot open
-            mne_kwargs={
-                'scalings': 'auto'  # Auto-scale channels for better visibility
-            }
+            mode="mne",
+            start=5.0,
+            duration=5.0,
+            save_path=str(OUTPUT_DIR / "eeg_visualization.png"),
+            show=True,
+            auto_close=False,
+            mne_kwargs={"scalings": "auto"},
         ),
 
-        # 13. Export corrected data
-        EDFExporter(
-            path=output_file,
-            overwrite=True
-        )
+        # Export corrected recording
+        EDFExporter(path=OUTPUT_FILE, overwrite=True),
     ], name="fMRI Artifact Correction Pipeline")
 
-    # Run the pipeline
-    print("Starting pipeline execution...")
-    result = pipeline.run() 
-
-    MetricsReport.plot(eval_results, metrics=['snr', 'rms_residual', 'median_artifact', 'fft_allen', 'fft_niazy'])
+    result = pipeline.run()
 
     if result.success:
-        print("\n✓ Pipeline completed successfully!")
-        print(f"Execution time: {result.execution_time:.2f} seconds")
+        print(f"\n✓ Pipeline completed in {result.execution_time:.2f}s")
 
-        # Access metrics
-        metrics = result.context.metadata.custom.get('metrics', {})
-        print("\nFinal Metrics:")
-        print(f"  SNR: {metrics.get('snr', 'N/A')}")
-        print(f"  Legacy SNR: {metrics.get('legacy_snr', 'N/A')}")
-        print(f"  RMS Ratio: {metrics.get('rms_ratio', 'N/A')}")
-        print(f"  RMS Residual: {metrics.get('rms_residual', 'N/A')}")
-        print(f"  Median Artifact: {metrics.get('median_artifact', 'N/A')}")
-        if 'median_artifact_ratio' in metrics:
-            print(f"  Median Artifact Ratio: {metrics.get('median_artifact_ratio', 'N/A')}")
-        
-        if 'fft_allen' in metrics:
-            print("  FFT Allen (Diff %):")
-            for band, val in metrics['fft_allen'].items():
-                print(f"    {band}: {val:.2f}%")
+        # Metrics are now a first-class attribute on the result
+        print("\nFinal metrics:")
+        for key, value in result.metrics.items():
+            if isinstance(value, dict):
+                print(f"  {key}:")
+                for sub_key, sub_val in value.items():
+                    print(f"    {sub_key}: {sub_val:.3g}")
+            else:
+                print(f"  {key}: {value:.4g}")
 
-        plot_output = OUTPUT_DIR / "pipeline_before_after.png"
-        if plot_output.exists():
-            print(f"\nVisual inspection plot saved to: {plot_output}")
-            print("Adjust the RawPlotter step to change channels, duration, or plotting mode.")
+        # pandas Series (if pandas is installed)
+        df = result.metrics_df
+        if df is not None:
+            print("\nmetrics_df:\n", df.to_string())
 
     else:
         print(f"\n✗ Pipeline failed: {result.error}")
@@ -226,70 +172,95 @@ def main():
         if result.failed_processor:
             print(f"Failed at: {result.failed_processor}")
 
+
+# ---------------------------------------------------------------------------
+# 2. One-liner: factory with built-in evaluation
+# ---------------------------------------------------------------------------
 def example_standard_pipeline():
     """
-    Example of running the standard pipeline.
+    Simplest possible usage: factory + evaluate=True means no manual metric
+    processors and no need to collect results in a side-channel dict.
     """
-    pipeline = create_standard_pipeline("./examples/datasets/NiazyFMRI.edf",
-                                        "./examples/datasets/corrected.edf", use_anc=True)
-    
-    pipeline.extend([ 
+    pipeline = create_standard_pipeline(
+        INPUT_FILE,
+        OUTPUT_FILE,
+        use_anc=True,
+        evaluate=True,
+        plot=True,
+        plot_kwargs={
+            "mode": "matplotlib",
+            "channel": "Fp1",
+            "start": 25.0,
+            "duration": 20.0,
+            "overlay_original": True,
+            "save_path": str(OUTPUT_DIR / "pipeline_before_after.png"),
+            "show": True,
+            "auto_close": False,
+            "title": "Fp1 – Before vs After",
+        },
+    )
+
+    result = pipeline.run()
+    print(result.metrics)          # {'snr': …, 'rms_ratio': …, …}
+    return result
+
+
+# ---------------------------------------------------------------------------
+# 3. Compare two pipelines with MetricsReport.compare()
+# ---------------------------------------------------------------------------
+def example_compare_pipelines():
+    """Compare AAS-only vs AAS+PCA using the new MetricsReport.compare() API."""
+
+    base = [
+        EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET),
+        TriggerDetector(regex=TRIGGER_REGEX),
+        HighPassFilter(freq=1.0),
+        UpSample(factor=UPSAMPLE_FACTOR),
+        TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
+        AASCorrection(window_size=30),
+        DownSample(factor=UPSAMPLE_FACTOR),
+        LowPassFilter(freq=70),
         SNRCalculator(),
         RMSCalculator(),
         RMSResidualCalculator(),
         MedianArtifactCalculator(),
-        LegacySNRCalculator(),
-        FFTAllenCalculator(),
-        FFTNiazyCalculator(),
         MetricsReport(),
-        RawPlotter(
-            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
-            channel="Fp1",
-            start=25.0,
-            duration=20.0,
-            overlay_original=False,
-            save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
-            show=True,
-            auto_close=False,
-            title="Fp1 – Before vs After (first 120s)"
-        )])
-    
+    ]
 
-    return pipeline.run()
+    result_aas = Pipeline(base, name="AAS only").run()
+    result_pca = Pipeline(
+        base[:-1] + [PCACorrection(n_components=0.95)] + base[-1:],
+        name="AAS + PCA",
+    ).run()
 
+    # New compare() API — accepts PipelineResult objects directly
+    MetricsReport.compare(
+        [result_aas, result_pca],
+        labels=["AAS only", "AAS + PCA"],
+        metrics=["snr", "rms_ratio", "rms_residual", "median_artifact"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# 4. Parallel execution
+# ---------------------------------------------------------------------------
 def example_parallel_execution():
-    """
-    Example of running pipeline with parallel processing.
-    """
-    input_file = "./examples/datasets/NiazyFMRI.edf"
-    output_file = "./examples/datasets/corrected.edf"
+    """Run AAS correction with channel-wise parallelisation."""
 
     pipeline = Pipeline([
-        EDFLoader(path=input_file, preload=True, artifact_to_trigger_offset=-0.005),
-        TriggerDetector(regex=r"\b1\b", ),
+        EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET),
+        TriggerDetector(regex=TRIGGER_REGEX),
         HighPassFilter(freq=0.5),
-        UpSample(factor=10),
+        UpSample(factor=UPSAMPLE_FACTOR),
         TriggerAligner(ref_trigger_index=0),
-
-        # AAS correction with channel-wise parallelization
-        AASCorrection(
-            window_size=30,
-            correlation_threshold=0.975
-        ),
-
-        DownSample(factor=10),
+        AASCorrection(window_size=30, correlation_threshold=0.975),
+        DownSample(factor=UPSAMPLE_FACTOR),
         LowPassFilter(freq=70),
-        
-        # Evaluation
         SNRCalculator(),
         RMSCalculator(),
-        RMSResidualCalculator(),
-        MedianArtifactCalculator(),
-        FFTAllenCalculator(),
-        
         MetricsReport(),
         RawPlotter(
-            mode="matplotlib",  # Switch to "mne" for interactive Raw.plot()
+            mode="matplotlib",
             channel="Fp1",
             start=25.0,
             duration=120.0,
@@ -297,136 +268,146 @@ def example_parallel_execution():
             save_path=str(OUTPUT_DIR / "pipeline_before_after.png"),
             show=True,
             auto_close=True,
-            title="Fp1 – Before vs After (first 120s)"
+            title="Fp1 – Before vs After (parallel)",
         ),
-        EDFExporter(path=output_file, overwrite=True)
+        EDFExporter(path=OUTPUT_FILE, overwrite=True),
     ], name="Parallel Pipeline")
 
-    # Run with parallel execution (automatically parallelizes compatible processors)
-    result = pipeline.run(parallel=True, n_jobs=-1)  # -1 = use all cores
+    result = pipeline.run(parallel=True, n_jobs=-1)
+    print(f"Completed in {result.execution_time:.2f}s")
+    print(result.metrics)
 
-    if not result.success:
-        print(f"Parallel pipeline failed: {result.error}")
-        return
 
-    print(f"Pipeline completed in {result.execution_time:.2f}s")
-
+# ---------------------------------------------------------------------------
+# 5. Minimal pipeline
+# ---------------------------------------------------------------------------
 def example_minimal_pipeline():
-    """
-    Minimal pipeline for basic correction.
-    """
+    """Fewest possible steps for a quick correction."""
+
     pipeline = Pipeline([
-        EDFLoader(path="./examples/datasets/NiazyFMRI.edf", preload=True),
-        TriggerDetector(regex=r"\b1\b"),
-        UpSample(factor=10),
+        EDFLoader(path=INPUT_FILE, preload=True),
+        TriggerDetector(regex=TRIGGER_REGEX),
+        UpSample(factor=UPSAMPLE_FACTOR),
         AASCorrection(window_size=30),
-        DownSample(factor=10),
-        EDFExporter(path="corrected.edf")
+        DownSample(factor=UPSAMPLE_FACTOR),
+        EDFExporter(path=OUTPUT_FILE),
     ], name="Minimal Pipeline")
 
     return pipeline.run()
 
 
-def example_custom_workflow():
-    """
-    Example of building a custom workflow with conditional processing.
-    """
-    from facet.core import ConditionalProcessor
-
-    def should_apply_pca(context):
-        """Only apply PCA if SNR is below threshold."""
-        metrics = context.metadata.custom.get('metrics', {})
-        snr = metrics.get('snr', float('inf'))
-        return snr < 10  # Apply PCA if SNR is poor
+# ---------------------------------------------------------------------------
+# 6. Crop + RawTransform inline transforms
+# ---------------------------------------------------------------------------
+def example_inline_transforms():
+    """Demonstrate Crop and RawTransform as clean alternatives to LambdaProcessor."""
 
     pipeline = Pipeline([
-        EDFLoader(path="./examples/datasets/NiazyFMRI.edf", preload=True),
-        TriggerDetector(regex=r"\b1\b"),
-        UpSample(factor=10),
-        AASCorrection(window_size=30),
+        EDFLoader(path=INPUT_FILE, preload=True),
 
-        # Calculate intermediate SNR
-        SNRCalculator(),
+        # Dedicated Crop processor — no lambda boilerplate
+        Crop(tmin=10, tmax=120),
 
-        # Conditionally apply PCA based on SNR
-        ConditionalProcessor(
-            condition=should_apply_pca,
-            processor=PCACorrection(n_components=0.95)
+        # RawTransform for arbitrary one-liners
+        RawTransform(
+            "drop_non_eeg",
+            lambda raw: raw.copy().pick_types(eeg=True, stim=True),
         ),
 
-        DownSample(factor=10),
-        MetricsReport(),
-        EDFExporter(path="corrected.edf")
+        TriggerDetector(regex=TRIGGER_REGEX),
+        UpSample(factor=UPSAMPLE_FACTOR),
+        AASCorrection(window_size=30),
+        DownSample(factor=UPSAMPLE_FACTOR),
+        EDFExporter(path=OUTPUT_FILE),
     ])
 
     return pipeline.run()
 
 
-def example_batch_processing():
-    """
-    Example of processing multiple files with the same pipeline.
-    """
-    from facet.core import ProcessingContext
+# ---------------------------------------------------------------------------
+# 7. Conditional processing
+# ---------------------------------------------------------------------------
+def example_custom_workflow():
+    """Apply PCA only when SNR is below a threshold."""
 
-    # Define pipeline (reusable)
-    correction_pipeline = Pipeline([
-        TriggerDetector(regex=r"\b1\b"),
-        UpSample(factor=10),
+    def should_apply_pca(context):
+        snr = context.metadata.custom.get('metrics', {}).get('snr', float('inf'))
+        return snr < 10
+
+    pipeline = Pipeline([
+        EDFLoader(path=INPUT_FILE, preload=True),
+        TriggerDetector(regex=TRIGGER_REGEX),
+        UpSample(factor=UPSAMPLE_FACTOR),
         AASCorrection(window_size=30),
-        DownSample(factor=10),
-        HighPassFilter(freq=0.5),
-        ANCCorrection()
+        SNRCalculator(),
+        ConditionalProcessor(
+            condition=should_apply_pca,
+            processor=PCACorrection(n_components=0.95),
+        ),
+        DownSample(factor=UPSAMPLE_FACTOR),
+        MetricsReport(),
+        EDFExporter(path=OUTPUT_FILE),
     ])
 
-    # Process multiple files
+    return pipeline.run()
+
+
+# ---------------------------------------------------------------------------
+# 8. Batch processing with Pipeline.map()
+# ---------------------------------------------------------------------------
+def example_batch_processing():
+    """Process multiple files with Pipeline.map() — no manual context wiring."""
+
+    correction_pipeline = Pipeline([
+        TriggerDetector(regex=TRIGGER_REGEX),
+        HighPassFilter(freq=1.0),
+        UpSample(factor=UPSAMPLE_FACTOR),
+        TriggerAligner(ref_trigger_index=0),
+        AASCorrection(window_size=30),
+        DownSample(factor=UPSAMPLE_FACTOR),
+        LowPassFilter(freq=70),
+        SNRCalculator(),
+        MetricsReport(),
+    ])
+
     input_files = [
-        "./examples/datasets/NiazyFMRI.edf",
-        "./examples/datasets/NiazyFMRI.edf",
-        "./examples/datasets/NiazyFMRI.edf",
+        INPUT_FILE,
+        INPUT_FILE,  # Replace with different subjects in real use
+        INPUT_FILE,
     ]
 
-    for input_file in input_files:
-        print(f"\nProcessing {input_file}...")
+    results = correction_pipeline.map(
+        input_files,
+        loader_factory=lambda p: EDFLoader(path=p, preload=True,
+                                           artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET),
+    )
 
-        # Load data
-        loader = EDFLoader(path=input_file, preload=True)
-        initial_context = loader.execute(None)
-
-        # Run correction pipeline
-        result = correction_pipeline.run(initial_context=initial_context)
-
-        if result.success:
-            # Export
-            output_file = input_file.replace('.edf', '_corrected.edf')
-            exporter = EDFExporter(path=output_file, overwrite=True)
-            exporter.execute(result.context)
-            print(f"  ✓ Saved to {output_file}")
-        else:
-            print(f"  ✗ Failed: {result.error}")
+    for path, result in zip(input_files, results):
+        status = "✓" if result.success else "✗"
+        snr = result.metrics.get('snr', 'N/A')
+        print(f"{status} {path}  SNR={snr}")
 
 
 if __name__ == "__main__":
-    # Run the main example
-    # Note: Update file paths before running
-
     print("FACETpy Complete Pipeline Example")
     print("=" * 60)
-    print("\nThis example demonstrates the full capabilities of FACETpy's")
-    print("new modular architecture for fMRI artifact correction.")
-    print("\nPlease update the file paths in the code before running.")
     print("\nAvailable examples:")
-    print("  1. main() - Complete pipeline with all corrections")
-    print("  2. example_parallel_execution() - Parallel processing")
-    print("  3. example_minimal_pipeline() - Minimal correction")
-    print("  4. example_custom_workflow() - Conditional processing")
-    print("  5. example_batch_processing() - Batch file processing")
-    print("\nTo run an example, uncomment the corresponding line below:")
+    print("  1. main()                     – Full custom pipeline")
+    print("  2. example_standard_pipeline()– Factory with evaluate=True")
+    print("  3. example_compare_pipelines()– MetricsReport.compare()")
+    print("  4. example_parallel_execution()– Parallel AAS")
+    print("  5. example_minimal_pipeline() – Fewest steps")
+    print("  6. example_inline_transforms()– Crop + RawTransform")
+    print("  7. example_custom_workflow()  – ConditionalProcessor")
+    print("  8. example_batch_processing() – Pipeline.map()")
     print("=" * 60)
 
-    # Uncomment one of these to run:
+    # Uncomment one example to run:
     main()
     # example_standard_pipeline()
+    # example_compare_pipelines()
     # example_parallel_execution()
     # example_minimal_pipeline()
+    # example_inline_transforms()
     # example_custom_workflow()
     # example_batch_processing()

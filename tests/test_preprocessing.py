@@ -327,6 +327,94 @@ class TestFiltering:
         assert np.all(np.isfinite(filtered_data))
 
 
+@pytest.mark.unit
+class TestCrop:
+    """Tests for the Crop processor."""
+
+    def test_crop_tmin_tmax(self, sample_context):
+        """Crop with tmin and tmax shortens the recording."""
+        from facet.preprocessing import Crop
+
+        raw = sample_context.get_raw()
+        original_duration = raw.times[-1]
+
+        tmin = 1.0
+        tmax = original_duration - 1.0
+        result = sample_context | Crop(tmin=tmin, tmax=tmax)
+
+        new_duration = result.get_raw().times[-1]
+        assert new_duration < original_duration
+
+    def test_crop_tmin_only(self, sample_context):
+        """Crop with only tmin trims the start."""
+        from facet.preprocessing import Crop
+
+        raw = sample_context.get_raw()
+        original_n_times = raw.n_times
+
+        result = sample_context | Crop(tmin=1.0)
+        assert result.get_raw().n_times < original_n_times
+
+    def test_crop_no_args_is_passthrough(self, sample_context):
+        """Crop with no arguments keeps the recording unchanged."""
+        from facet.preprocessing import Crop
+
+        original_n_times = sample_context.get_raw().n_times
+        result = sample_context | Crop()
+        assert result.get_raw().n_times == original_n_times
+
+    def test_crop_preserves_metadata(self, sample_context):
+        """Crop preserves triggers and other metadata."""
+        from facet.preprocessing import Crop
+
+        result = sample_context | Crop(tmin=0.0)
+        assert result.has_triggers()
+
+
+@pytest.mark.unit
+class TestRawTransform:
+    """Tests for the RawTransform processor."""
+
+    def test_transform_is_applied(self, sample_context):
+        """RawTransform calls the supplied function."""
+        from facet.preprocessing import RawTransform
+
+        called = []
+
+        def my_transform(raw):
+            called.append(True)
+            return raw.copy()
+
+        result = sample_context | RawTransform("my_transform", my_transform)
+
+        assert called == [True]
+        assert isinstance(result.get_raw(), type(sample_context.get_raw()))
+
+    def test_transform_modifies_raw(self, sample_context):
+        """RawTransform can return a modified Raw object."""
+        from facet.preprocessing import RawTransform
+        import numpy as np
+
+        original_max = np.abs(sample_context.get_raw()._data).max()
+
+        def scale_up(raw):
+            r = raw.copy()
+            r._data *= 100
+            return r
+
+        result = sample_context | RawTransform("scale_up", scale_up)
+        new_max = np.abs(result.get_raw()._data).max()
+        assert new_max > original_max
+
+    def test_transform_name_used_in_history(self, sample_context):
+        """The name passed to RawTransform appears in processor repr."""
+        from facet.preprocessing import RawTransform
+
+        proc = RawTransform("my_custom_step", lambda raw: raw.copy())
+        # The name attribute is set on the instance
+        assert proc.name == "my_custom_step"
+
+
 @pytest.mark.integration
 class TestPreprocessingIntegration:
     """Integration tests for preprocessing workflow."""

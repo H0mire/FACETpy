@@ -16,6 +16,17 @@ from .preprocessing import (
     SubsampleAligner,
 )
 from .correction import AASCorrection
+from .evaluation import (
+    SNRCalculator,
+    LegacySNRCalculator,
+    RMSCalculator,
+    RMSResidualCalculator,
+    MedianArtifactCalculator,
+    FFTAllenCalculator,
+    FFTNiazyCalculator,
+    MetricsReport,
+    RawPlotter,
+)
 
 try:
     from .correction import ANCCorrection
@@ -40,6 +51,9 @@ def create_standard_pipeline(
     upsample_factor: int = 10,
     use_anc: bool = True,
     use_pca: bool = True,
+    evaluate: bool = False,
+    plot: bool = False,
+    plot_kwargs: dict | None = None,
 ) -> Pipeline:
     """
     Create a standard fMRI artifact correction pipeline.
@@ -52,16 +66,36 @@ def create_standard_pipeline(
         upsample_factor: Upsampling factor for alignment
         use_anc: Whether to apply ANC correction
         use_pca: Whether to apply PCA correction
+        evaluate: Append all standard evaluation metrics (SNR, RMS, Median, FFT)
+                  and a MetricsReport step automatically.
+        plot: Append a RawPlotter step after evaluation. Implies *evaluate=True*.
+        plot_kwargs: Extra keyword arguments forwarded to ``RawPlotter``.
 
     Returns:
         Configured Pipeline instance
 
-    Example:
+    Example::
+
+        # Minimal — just correction + export
+        pipeline = create_standard_pipeline("data.edf", "corrected.edf")
+        result = pipeline.run()
+        
+        # With automatic evaluation
         pipeline = create_standard_pipeline(
             "data.edf",
             "corrected.edf",
-            trigger_regex=r"\\b1\\b",
-            artifact_to_trigger_offset=-0.005,
+            evaluate=True,
+        )
+        result = pipeline.run()
+        print(result.metrics)
+
+        # With evaluation and interactive plot
+        pipeline = create_standard_pipeline(
+            "data.edf",
+            "corrected.edf",
+            evaluate=True,
+            plot=True,
+            plot_kwargs={"channel": "Fp1", "start": 5.0, "duration": 10.0},
         )
         result = pipeline.run()
     """
@@ -90,5 +124,20 @@ def create_standard_pipeline(
     processors.append(
         EDFExporter(path=output_path, overwrite=True),
     )
+
+    if evaluate or plot:
+        processors.extend([
+            SNRCalculator(),
+            LegacySNRCalculator(),
+            RMSCalculator(),
+            RMSResidualCalculator(),
+            MedianArtifactCalculator(),
+            FFTAllenCalculator(),
+            FFTNiazyCalculator(),
+            MetricsReport(),
+        ])
+
+    if plot:
+        processors.append(RawPlotter(**(plot_kwargs or {})))
 
     return Pipeline(processors, name="Standard fMRI Correction Pipeline")

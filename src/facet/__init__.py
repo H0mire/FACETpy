@@ -79,6 +79,10 @@ from .preprocessing import (
     # Acquisition window
     CutAcquisitionWindow,
     PasteAcquisitionWindow,
+
+    # Transforms
+    Crop,
+    RawTransform,
 )
 
 # Correction processors
@@ -103,9 +107,14 @@ except ImportError:
 # Evaluation processors
 from .evaluation import (
     SNRCalculator,
+    LegacySNRCalculator,
     RMSCalculator,
+    RMSResidualCalculator,
     MedianArtifactCalculator,
-    MetricsReport
+    FFTAllenCalculator,
+    FFTNiazyCalculator,
+    MetricsReport,
+    RawPlotter,
 )
 
 # Miscellaneous utilities
@@ -165,6 +174,8 @@ __all__ = [
     'SubsampleAligner',
     'CutAcquisitionWindow',
     'PasteAcquisitionWindow',
+    'Crop',
+    'RawTransform',
 
     # Correction
     'AASCorrection',
@@ -172,9 +183,14 @@ __all__ = [
 
     # Evaluation
     'SNRCalculator',
+    'LegacySNRCalculator',
     'RMSCalculator',
+    'RMSResidualCalculator',
     'MedianArtifactCalculator',
+    'FFTAllenCalculator',
+    'FFTNiazyCalculator',
     'MetricsReport',
+    'RawPlotter',
 
     # Miscellaneous / Synthetic Data Generation
     'EEGGenerator',

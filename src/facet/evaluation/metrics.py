@@ -898,6 +898,67 @@ class MetricsReport(Processor):
         return context
 
     @staticmethod
+    def compare(
+        results,
+        labels: Optional[List[str]] = None,
+        title: str = "Metrics Comparison",
+        save_path: Optional[str] = None,
+        show: bool = True,
+        metrics: Optional[List[str]] = None,
+    ):
+        """
+        Compare metrics from a list of ``PipelineResult`` objects (or a plain dict).
+
+        Accepts either:
+        - A list of ``PipelineResult`` instances (optionally named via *labels*)
+        - The legacy ``{name: {metric: value}}`` dict format used by ``MetricsReport.plot``
+
+        Args:
+            results: List of PipelineResult objects **or** legacy dict.
+            labels: Names for each result when passing a list. Defaults to
+                    ``["Result 1", "Result 2", …]``.
+            title: Plot title.
+            save_path: If set, save the figure to this path.
+            show: Whether to display the figure interactively.
+            metrics: Optional subset of metric keys to show.
+
+        Example::
+
+            result_a = pipeline_aas.run()
+            result_b = pipeline_aas_pca.run()
+
+            MetricsReport.compare(
+                [result_a, result_b],
+                labels=["AAS only", "AAS + PCA"],
+            )
+        """
+        # Accept either a list of PipelineResult or the legacy dict
+        if isinstance(results, dict):
+            MetricsReport.plot(results, title=title, save_path=save_path, show=show, metrics=metrics)
+            return
+
+        # Build the legacy dict from PipelineResult objects
+        if labels is None:
+            labels = [f"Result {i + 1}" for i in range(len(results))]
+
+        results_dict: Dict[str, Dict[str, float]] = {}
+        for label, result in zip(labels, results):
+            raw_metrics = result.metrics if hasattr(result, 'metrics') else {}
+            flat: Dict[str, float] = {}
+            for k, v in raw_metrics.items():
+                if isinstance(v, (int, float)):
+                    flat[k] = float(v)
+                elif k == 'fft_allen' and isinstance(v, dict):
+                    for band, val in v.items():
+                        flat[f"fft_allen_{band}"] = float(val)
+                elif k == 'fft_niazy' and isinstance(v, dict):
+                    if 'slice' in v:
+                        flat['fft_niazy_slice_h1'] = float(v['slice'].get('h1', 0))
+            results_dict[label] = flat
+
+        MetricsReport.plot(results_dict, title=title, save_path=save_path, show=show, metrics=metrics)
+
+    @staticmethod
     def plot(results: Dict[str, Dict[str, float]], 
              title: str = "Metrics Comparison", 
              save_path: Optional[str] = None, 

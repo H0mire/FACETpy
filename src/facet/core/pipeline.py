@@ -7,7 +7,7 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Optional, Dict, Any, Tuple, Callable, Union
 from loguru import logger
 from .processor import Processor
 from .context import ProcessingContext
@@ -69,6 +69,66 @@ class PipelineResult:
         """Check if pipeline succeeded."""
         return self.success
 
+    @property
+    def metrics(self) -> Dict[str, Any]:
+        """
+        Shortcut to evaluation metrics stored in context.
+
+        Returns the ``metrics`` dict from ``context.metadata.custom``, or an
+        empty dict if no metrics have been calculated yet.
+
+        Example::
+
+            result = pipeline.run()
+            print(result.metrics['snr'])
+        """
+        if self.context is None:
+            return {}
+        return self.context.metadata.custom.get('metrics', {})
+
+    @property
+    def metrics_df(self):
+        """
+        Return scalar evaluation metrics as a ``pandas.Series``.
+
+        Nested dicts (e.g. ``fft_allen``) are flattened with ``_`` separators.
+        Returns ``None`` if pandas is not available.
+
+        Example::
+
+            result = pipeline.run()
+            print(result.metrics_df)
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            return None
+
+        flat: Dict[str, Any] = {}
+        for k, v in self.metrics.items():
+            if isinstance(v, (int, float)):
+                flat[k] = v
+            elif isinstance(v, dict):
+                for sub_k, sub_v in v.items():
+                    if isinstance(sub_v, (int, float)):
+                        flat[f"{k}_{sub_k}"] = sub_v
+        return pd.Series(flat, name=self.context.metadata.custom.get('pipeline_name', 'metrics'))
+
+    def plot(self, **kwargs):
+        """
+        Plot the corrected data using ``RawPlotter`` defaults.
+
+        Accepts any keyword arguments supported by ``RawPlotter``.
+
+        Example::
+
+            result = pipeline.run()
+            result.plot(channel="Fp1", start=5.0, duration=10.0)
+        """
+        from ..evaluation import RawPlotter
+        plotter = RawPlotter(**kwargs)
+        plotter.execute(self.context)
+
     def __repr__(self) -> str:
         status = "SUCCESS" if self.success else "FAILED"
         return f"PipelineResult({status}, time={self.execution_time:.2f}s)"
@@ -103,28 +163,59 @@ class Pipeline:
 
     def __init__(
         self,
-        processors: List[Processor],
+        processors: List[Union[Processor, Callable]],
         name: Optional[str] = None
     ):
         """
         Initialize pipeline.
 
+        Plain callables (``Callable[[ProcessingContext], ProcessingContext]``)
+        are automatically wrapped in a :class:`~facet.core.LambdaProcessor` so
+        they can be used as inline steps without ceremony::
+
+            pipeline = Pipeline([
+                EDFLoader("data.edf"),
+                HighPassFilter(1.0),
+                lambda ctx: (print(ctx.get_sfreq()) or ctx),
+                AASCorrection(),
+            ])
+
         Args:
-            processors: List of processors to execute in order
+            processors: List of :class:`~facet.core.Processor` instances **or**
+                plain callables to execute in order.
             name: Optional pipeline name (for logging)
         """
-        self.processors = processors
+        self.processors = self._normalise_processors(processors)
         self.name = name or "Pipeline"
-        self._validate_pipeline()
+
+    @staticmethod
+    def _normalise_processors(
+        items: List[Union[Processor, Callable]],
+        _index_offset: int = 0,
+    ) -> List[Processor]:
+        """
+        Coerce each item to a :class:`Processor`.
+
+        Plain callables are wrapped in a :class:`~facet.core.LambdaProcessor`.
+        Anything else that is not a :class:`Processor` raises :exc:`TypeError`.
+        """
+        from .processor import LambdaProcessor
+        result: List[Processor] = []
+        for i, p in enumerate(items):
+            if isinstance(p, Processor):
+                result.append(p)
+            elif callable(p):
+                display_name = getattr(p, '__name__', None) or f"step_{_index_offset + i}"
+                result.append(LambdaProcessor(name=display_name, func=p))
+            else:
+                raise TypeError(
+                    f"Item at index {_index_offset + i} must be a Processor instance "
+                    f"or a callable, got {type(p)}"
+                )
+        return result
 
     def _validate_pipeline(self) -> None:
-        """Validate pipeline structure."""
-        for i, proc in enumerate(self.processors):
-            if not isinstance(proc, Processor):
-                raise TypeError(
-                    f"Processor at index {i} must be a Processor instance, "
-                    f"got {type(proc)}"
-                )
+        """No-op — validation now happens in _normalise_processors."""
 
     def run(
         self,
@@ -243,44 +334,48 @@ class Pipeline:
                 failed_processor_index=current_processor[0] if current_processor else None
             )
 
-    def add(self, processor: Processor) -> 'Pipeline':
+    def add(self, processor: Union[Processor, Callable]) -> 'Pipeline':
         """
-        Add processor to pipeline (fluent API).
+        Add a processor or callable to the pipeline (fluent API).
 
         Args:
-            processor: Processor to add
+            processor: :class:`~facet.core.Processor` instance or callable.
 
         Returns:
             Self for chaining
         """
-        self.processors.append(processor)
+        [normalised] = self._normalise_processors([processor], _index_offset=len(self.processors))
+        self.processors.append(normalised)
         return self
-    
-    def extend(self, processors: List[Processor]) -> 'Pipeline':
+
+    def extend(self, processors: List[Union[Processor, Callable]]) -> 'Pipeline':
         """
-        Extend pipeline with multiple processors.
+        Extend pipeline with multiple processors or callables.
 
         Args:
-            processors: List of processors to add
+            processors: List of processors or callables to add.
 
         Returns:
             Self for chaining
         """
-        self.processors.extend(processors)
+        self.processors.extend(
+            self._normalise_processors(processors, _index_offset=len(self.processors))
+        )
         return self
 
-    def insert(self, index: int, processor: Processor) -> 'Pipeline':
+    def insert(self, index: int, processor: Union[Processor, Callable]) -> 'Pipeline':
         """
-        Insert processor at specific position.
+        Insert a processor or callable at a specific position.
 
         Args:
             index: Position to insert
-            processor: Processor to insert
+            processor: :class:`~facet.core.Processor` instance or callable.
 
         Returns:
             Self for chaining
         """
-        self.processors.insert(index, processor)
+        [normalised] = self._normalise_processors([processor], _index_offset=index)
+        self.processors.insert(index, normalised)
         return self
 
     def remove(self, index: int) -> 'Pipeline':
@@ -351,6 +446,134 @@ class Pipeline:
                 for proc in self.processors
             ]
         }
+
+    def map(
+        self,
+        inputs: List[Union[str, ProcessingContext]],
+        loader_factory: Optional[Callable[[str], 'Processor']] = None,
+        parallel: bool = False,
+        n_jobs: int = -1,
+        on_error: str = "continue",
+    ) -> List[PipelineResult]:
+        """
+        Run the pipeline on multiple inputs and return a result per input.
+
+        Each input can be:
+
+        - A ``ProcessingContext`` — passed directly as ``initial_context``.
+        - A **file path string** — a loader is looked up or created automatically.
+          The pipeline must contain a loader as its first processor **or** you
+          must supply *loader_factory* so the method can create one per file.
+
+        Args:
+            inputs: List of file paths or ``ProcessingContext`` objects.
+            loader_factory: ``Callable[[path], Processor]`` that creates a fresh
+                loader for each path string.  When not provided the first
+                processor in the pipeline is expected to be a loader that exposes
+                a ``path`` attribute; a shallow copy of it is made for each file.
+            parallel: Whether to pass ``parallel=True`` to each ``pipeline.run()``.
+            n_jobs: Passed through to ``pipeline.run()``.
+            on_error: ``"continue"`` (default) — log failures and keep going;
+                      ``"raise"`` — re-raise the first error encountered.
+
+        Returns:
+            List of ``PipelineResult`` objects, one per input, in the same order.
+
+        Example::
+
+            pipeline = Pipeline([
+                TriggerDetector(regex=r"\\b1\\b"),
+                UpSample(factor=10),
+                AASCorrection(window_size=30),
+                DownSample(factor=10),
+            ])
+
+            results = pipeline.map(
+                ["sub-01.edf", "sub-02.edf", "sub-03.edf"],
+                loader_factory=lambda p: EDFLoader(path=p, preload=True),
+            )
+
+            for path, result in zip(files, results):
+                if result.success:
+                    print(f"{path}: SNR={result.metrics.get('snr', 'N/A')}")
+        """
+        results: List[PipelineResult] = []
+
+        for item in inputs:
+            if isinstance(item, ProcessingContext):
+                initial_ctx = item
+                label = repr(item)
+            else:
+                label = str(item)
+                initial_ctx = None
+
+                if loader_factory is not None:
+                    loader = loader_factory(item)
+                    try:
+                        initial_ctx = loader.execute(None)
+                    except Exception as exc:
+                        logger.error(f"Loader failed for '{label}': {exc}")
+                        result = PipelineResult(
+                            context=None,
+                            success=False,
+                            error=exc,
+                            failed_processor=getattr(loader, 'name', 'loader'),
+                        )
+                        results.append(result)
+                        if on_error == "raise":
+                            raise
+                        continue
+                else:
+                    # Attempt to patch the path attribute of the first processor
+                    first = self.processors[0] if self.processors else None
+                    if first is not None and hasattr(first, 'path'):
+                        import copy
+                        patched = copy.copy(first)
+                        patched.path = item
+                        try:
+                            initial_ctx = patched.execute(None)
+                        except Exception as exc:
+                            logger.error(f"Loader failed for '{label}': {exc}")
+                            result = PipelineResult(
+                                context=None,
+                                success=False,
+                                error=exc,
+                                failed_processor=getattr(patched, 'name', 'loader'),
+                            )
+                            results.append(result)
+                            if on_error == "raise":
+                                raise
+                            continue
+                    else:
+                        raise ValueError(
+                            f"Cannot load '{label}': supply a loader_factory or "
+                            "ensure the first pipeline processor has a 'path' attribute."
+                        )
+
+            logger.info(f"Pipeline.map: processing '{label}'")
+
+            # Skip the first processor if we already ran it as a loader above
+            skip_first = not isinstance(item, ProcessingContext) and initial_ctx is not None
+            if skip_first and len(self.processors) > 1:
+                tail_pipeline = Pipeline(self.processors[1:], name=self.name)
+                result = tail_pipeline.run(
+                    initial_context=initial_ctx,
+                    parallel=parallel,
+                    n_jobs=n_jobs,
+                )
+            else:
+                result = self.run(
+                    initial_context=initial_ctx,
+                    parallel=parallel,
+                    n_jobs=n_jobs,
+                )
+
+            results.append(result)
+
+            if not result.success and on_error == "raise":
+                raise result.error
+
+        return results
 
     def __len__(self) -> int:
         """Get number of processors."""
