@@ -104,6 +104,8 @@ class Processor(ABC):
 
         # Process
         result = self.process(context)
+        if result is None:
+            result = context
 
         # Add to history
         result.add_history_entry(
@@ -148,7 +150,8 @@ class Processor(ABC):
             context: Input processing context
 
         Returns:
-            Output processing context
+            Output processing context. If None is returned, the input
+            context is used (no-op behavior).
         """
         pass
 

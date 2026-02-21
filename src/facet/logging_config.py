@@ -25,7 +25,7 @@ _LOGGING_CONFIGURED = False
 
 
 def _resolve_console_mode() -> ConsoleMode:
-    value = os.environ.get("FACET_CONSOLE_MODE", "modern").strip().lower()
+    value = os.environ.get("FACET_CONSOLE_MODE", "classic").strip().lower()
     if value in {"classic", "legacy", "loguru"}:
         return ConsoleMode.CLASSIC
     return ConsoleMode.MODERN

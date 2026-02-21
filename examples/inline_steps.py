@@ -40,6 +40,7 @@ OUTPUT_FILE = "./output/corrected_inline.edf"
 # ---------------------------------------------------------------------------
 #
 # Any function that takes a ProcessingContext and returns one is a valid step.
+# But returning nothing is equivalent to returning the context unchanged.
 # Use a def for anything that needs more than one line.
 
 def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
