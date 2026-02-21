@@ -157,6 +157,34 @@ examples/
 ```
 
 
+## VS Code Tasks
+
+Tasks are defined in `.vscode/tasks.json` and can be run via **Ctrl+Shift+P** → **Tasks: Run Task**.
+
+| Task | Shortcut | Description |
+|---|---|---|
+| **Test: Run All** | default test task | Full test suite with coverage report |
+| **Test: Run Current File** | | Run pytest on the file open in the editor |
+| **Test: Unit Only** | | Only tests marked `@pytest.mark.unit` |
+| **Test: Integration Only** | | Only tests marked `@pytest.mark.integration` |
+| **Test: Skip Slow** | | All tests except those marked `@pytest.mark.slow` |
+| **Test: Show Coverage Report** | | Open `htmlcov/index.html` in the browser |
+| **Lint: Check (Ruff)** | | Check `src/` and `tests/` for lint errors |
+| **Lint: Fix (Ruff)** | | Auto-fix lint errors in place |
+| **Format: Check (Ruff)** | | Verify formatting without changing files |
+| **Format: Apply (Ruff)** | | Apply ruff formatting to `src/` and `tests/` |
+| **Build: FastRANC C Extension** | | Compile the FastRANC C extension |
+| **Build: Install Dependencies** | | `poetry install` |
+| **Build: Install All Extras** | | `poetry install -E all` |
+| **Build: Update Dependencies** | | `poetry update` |
+| **Docs: Build HTML** | | Build Sphinx documentation |
+| **Docs: Open in Browser** | | Open the built docs in the browser |
+| **Docs: Build & Open** | | Build docs and open immediately |
+| **Run: Current Python File** | | Execute the file open in the editor |
+| **Review: Uncommitted Changes (Codex)** | | Codex AI review of all local changes |
+| **Review: Against Branch (Codex)** | | Codex AI review against a selected base branch (prompts for branch) |
+| **QA: Full Check (Lint + Format + Test)** | | Lint + format check + full test suite in sequence |
+
 ## License
 
 GPLv3 — see `LICENSE` for details.
