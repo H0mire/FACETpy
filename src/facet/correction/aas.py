@@ -1,13 +1,10 @@
 """
-Averaged Artifact Subtraction (AAS) Module
-
-This module contains processors for AAS-based artifact correction.
-
-Author: FACETpy Team
-Date: 2025-01-12
+Averaged Artifact Subtraction (AAS) correction processor.
 """
 
-from typing import Optional, Dict
+import random
+from typing import Dict, List
+from matplotlib import pyplot as plt
 import mne
 import numpy as np
 from loguru import logger
@@ -20,26 +17,46 @@ from ..helpers.crosscorr import crosscorrelation
 
 @register_processor
 class AASCorrection(Processor):
-    """
-    Averaged Artifact Subtraction (AAS) correction processor.
+    """Remove fMRI gradient artifacts using Averaged Artifact Subtraction.
 
-    This processor implements the AAS algorithm for fMRI artifact removal:
-    1. Creates epochs around each trigger
-    2. For each epoch, finds highly correlated epochs within a sliding window
-    3. Averages the correlated epochs to create an artifact template
-    4. Subtracts the template from each epoch
+    For each trigger epoch, finds highly correlated epochs within a sliding
+    window and computes a weighted average. The averaged template is then
+    subtracted from the original epoch. The algorithm adapts to non-stationary
+    artifacts through correlation-based epoch selection.
 
-    The algorithm adapts to non-stationary artifacts by using correlation-based
-    epoch selection within a sliding window.
+    References
+    ----------
+    Allen et al., 2000. "A method for removing imaging artifact from continuous
+    EEG recorded during functional MRI." NeuroImage, 12(2), 230-239.
 
-    Example:
-        correction = AASCorrection(window_size=30, correlation_threshold=0.975)
-        context = correction.execute(context)
+    Parameters
+    ----------
+    window_size : int
+        Number of epochs to consider in the sliding window (default: 30).
+    rel_window_position : float
+        Relative position of the window center between -1 and 1, where 0 is
+        centered on the current epoch (default: 0.0).
+    correlation_threshold : float
+        Minimum Pearson r required to include an epoch in the average
+        (default: 0.975).
+    plot_artifacts : bool
+        If True, plots a randomly selected averaged artifact after computation
+        (default: False).
+    realign_after_averaging : bool
+        If True, realigns trigger positions to the averaged artifact templates
+        using cross-correlation (default: True).
+    search_window_factor : float
+        Multiplier of the upsampling factor used as the cross-correlation
+        search window (default: 3.0).
     """
 
     name = "aas_correction"
     description = "Averaged Artifact Subtraction for fMRI artifacts"
+    version = "1.0.0"
+
     requires_triggers = True
+    requires_raw = True
+    modifies_raw = True
     parallel_safe = True
     parallelize_by_channels = True
 
@@ -50,19 +67,8 @@ class AASCorrection(Processor):
         correlation_threshold: float = 0.975,
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
-        search_window_factor: float = 3.0
-    ):
-        """
-        Initialize AAS correction.
-
-        Args:
-            window_size: Number of epochs to consider in sliding window
-            rel_window_position: Relative position of window (-1 to 1, 0 is centered)
-            correlation_threshold: Correlation threshold for epoch selection
-            plot_artifacts: Whether to plot averaged artifacts (for debugging)
-            realign_after_averaging: Realign triggers after computing averages
-            search_window_factor: Search window for realignment (multiplier of upsampling)
-        """
+        search_window_factor: float = 3.0,
+    ) -> None:
         self.window_size = window_size
         self.rel_window_position = rel_window_position
         self.correlation_threshold = correlation_threshold
@@ -72,153 +78,283 @@ class AASCorrection(Processor):
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
-        """Validate prerequisites."""
         super().validate(context)
+        if self.window_size < 1:
+            raise ProcessorValidationError(
+                f"window_size must be >= 1, got {self.window_size}"
+            )
+        if not (0 < self.correlation_threshold <= 1):
+            raise ProcessorValidationError(
+                f"correlation_threshold must be in (0, 1], got {self.correlation_threshold}"
+            )
+        if not (-1.0 <= self.rel_window_position <= 1.0):
+            raise ProcessorValidationError(
+                f"rel_window_position must be in [-1, 1], got {self.rel_window_position}"
+            )
+        if self.search_window_factor <= 0:
+            raise ProcessorValidationError(
+                f"search_window_factor must be positive, got {self.search_window_factor}"
+            )
         if context.get_artifact_length() is None:
             raise ProcessorValidationError(
                 "Artifact length not set. Run TriggerDetector first."
             )
-        if len(context.get_triggers()) < self.window_size:
+        n_triggers = len(context.get_triggers())
+        if n_triggers < self.window_size:
             logger.warning(
-                f"Number of triggers ({len(context.get_triggers())}) is less than "
-                f"window size ({self.window_size}). Using smaller window."
+                "Number of triggers ({}) is less than window size ({}). "
+                "Using smaller window.",
+                n_triggers,
+                self.window_size,
             )
+        eeg_channels = mne.pick_types(
+            context.get_raw().info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+        if len(eeg_channels) == 0:
+            raise ProcessorValidationError("No EEG channels found in raw data.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        logger.info("Applying Averaged Artifact Subtraction (AAS)")
-
-        raw = context.get_raw()
+        # --- EXTRACT ---
+        raw = context.get_raw().copy()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
+        sfreq = context.get_sfreq()
         upsampling_factor = context.metadata.upsampling_factor
-
+        artifact_offset = context.metadata.artifact_to_trigger_offset
         eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
         )
 
-        if len(eeg_channels) == 0:
-            logger.warning("No EEG channels found, skipping AAS")
-            return context
+        # --- LOG ---
+        logger.info(
+            "Applying AAS correction: {} channels, {} triggers, window={}",
+            len(eeg_channels), len(triggers), self.window_size,
+        )
 
-        tmin = context.metadata.artifact_to_trigger_offset
+        # --- COMPUTE ---
+        epochs = self._build_epochs(
+            raw, triggers, artifact_length, eeg_channels, artifact_offset, sfreq
+        )
+        if len(epochs) != len(triggers):
+            logger.warning(
+                "Number of epochs ({}) != triggers ({}). Data may be incomplete.",
+                len(epochs), len(triggers),
+            )
+        averaging_matrices = self._compute_averaging_matrices(
+            epochs, eeg_channels, raw.ch_names
+        )
+        artifacts_per_channel = self._calc_averaged_artifacts(
+            raw, averaging_matrices, triggers, artifact_length, artifact_offset, sfreq
+        )
+
+        if self.plot_artifacts and artifacts_per_channel:
+            self._plot_artifact_debug(raw, averaging_matrices, artifacts_per_channel)
+
+        aligned_triggers = self._get_aligned_triggers(
+            raw, averaging_matrices, artifacts_per_channel,
+            triggers, artifact_offset, artifact_length, sfreq, upsampling_factor,
+        )
+        artifact_offset_samples = int(artifact_offset * sfreq)
+        estimated_artifacts = self._remove_artifacts(
+            raw, averaging_matrices, artifacts_per_channel,
+            aligned_triggers, artifact_offset_samples, artifact_length,
+        )
+
+        # --- NOISE ---
+        new_ctx = context.with_raw(raw)
+        new_ctx.accumulate_noise(estimated_artifacts)
+
+        # --- BUILD RESULT ---
+        if self.realign_after_averaging and not np.array_equal(aligned_triggers, triggers):
+            logger.debug("Triggers realigned after AAS averaging")
+            new_ctx = new_ctx.with_triggers(aligned_triggers)
+
+        # --- RETURN ---
+        logger.info("AAS correction complete: {} artifacts, {} channels", len(triggers), len(eeg_channels))
+        return new_ctx
+
+    # -------------------------------------------------------------------------
+    # Private Helpers
+    # -------------------------------------------------------------------------
+
+    def _build_epochs(
+        self,
+        raw: mne.io.Raw,
+        triggers: np.ndarray,
+        artifact_length: int,
+        eeg_channels: np.ndarray,
+        artifact_offset: float,
+        sfreq: float,
+    ) -> mne.Epochs:
+        """Build MNE Epochs around each trigger position.
+
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            EEG data to epoch.
+        triggers : np.ndarray
+            Trigger sample positions.
+        artifact_length : int
+            Length of each artifact in samples.
+        eeg_channels : np.ndarray
+            Channel indices to include.
+        artifact_offset : float
+            Time offset of artifact relative to trigger, in seconds.
+        sfreq : float
+            Sampling frequency in Hz.
+
+        Returns
+        -------
+        mne.Epochs
+            Epoched EEG data aligned to triggers.
+        """
+        tmin = artifact_offset
         tmax = tmin + (artifact_length / sfreq)
-
         events = np.column_stack([
             triggers,
             np.zeros(len(triggers), dtype=int),
-            np.ones(len(triggers), dtype=int)
+            np.ones(len(triggers), dtype=int),
         ])
-
-        epochs = mne.Epochs(
-            raw,
-            events=events,
-            tmin=tmin,
-            tmax=tmax,
-            baseline=None,
-            reject=None,
-            preload=True,
-            picks=eeg_channels,
-            verbose=False
+        return mne.Epochs(
+            raw, events=events, tmin=tmin, tmax=tmax,
+            baseline=None, reject=None, preload=True,
+            picks=eeg_channels, verbose=False,
         )
 
-        if len(epochs) != len(triggers):
-            logger.warning(
-                f"Number of epochs ({len(epochs)}) != number of triggers ({len(triggers)}). "
-                "Data may be incomplete."
-            )
+    def _compute_averaging_matrices(
+        self,
+        epochs: mne.Epochs,
+        eeg_channels: np.ndarray,
+        ch_names: List[str],
+    ) -> Dict[int, np.ndarray]:
+        """Compute per-channel averaging matrices from epoched data.
 
-        logger.debug(f"Computing averaging matrices for {len(eeg_channels)} channels")
-        averaging_matrices = {}
+        Parameters
+        ----------
+        epochs : mne.Epochs
+            Epoched EEG data (n_epochs, n_channels, n_times).
+        eeg_channels : np.ndarray
+            Channel indices corresponding to epoch axis 1.
+        ch_names : List[str]
+            Full channel name list from raw (indexed by ch_idx).
+
+        Returns
+        -------
+        dict
+            Mapping from channel index to averaging matrix (n_epochs, n_epochs).
+        """
+        logger.debug("Computing averaging matrices for {} channels", len(eeg_channels))
+        averaging_matrices: Dict[int, np.ndarray] = {}
 
         with processor_progress(
             total=len(eeg_channels) or None,
             message="Averaging matrices",
         ) as progress:
             for idx, ch_idx in enumerate(eeg_channels):
-                ch_name = raw.ch_names[ch_idx]
-                logger.debug(f"  Channel {ch_idx}: {ch_name}")
-
-                epochs_single_channel = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
-
+                ch_name = ch_names[ch_idx]
+                channel_epochs = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
                 avg_matrix = self._calc_averaging_matrix(
-                    epochs_single_channel,
+                    channel_epochs,
                     window_size=self.window_size,
                     rel_window_offset=self.rel_window_position,
-                    correlation_threshold=self.correlation_threshold
+                    correlation_threshold=self.correlation_threshold,
                 )
-
                 averaging_matrices[ch_idx] = avg_matrix
                 progress.advance(
-                    1,
-                    message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
+                    1, message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
                 )
 
-        logger.debug("Computing averaged artifacts")
-        artifacts_per_channel = self._calc_averaged_artifacts(
-            raw,
-            averaging_matrices,
+        return averaging_matrices
+
+    def _get_aligned_triggers(
+        self,
+        raw: mne.io.Raw,
+        averaging_matrices: Dict[int, np.ndarray],
+        artifacts_per_channel: List[np.ndarray],
+        triggers: np.ndarray,
+        artifact_offset: float,
+        artifact_length: int,
+        sfreq: float,
+        upsampling_factor: int,
+    ) -> np.ndarray:
+        """Return realigned triggers or the original triggers unchanged.
+
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            EEG data (used to read the first processed channel).
+        averaging_matrices : dict
+            Averaging matrices keyed by channel index.
+        artifacts_per_channel : List[np.ndarray]
+            Averaged artifact arrays, one per channel.
+        triggers : np.ndarray
+            Original trigger sample positions.
+        artifact_offset : float
+            Artifact-to-trigger offset in seconds.
+        artifact_length : int
+            Artifact length in samples.
+        sfreq : float
+            Sampling frequency in Hz.
+        upsampling_factor : int
+            Current upsampling factor (used to scale the search window).
+
+        Returns
+        -------
+        np.ndarray
+            Aligned or unchanged trigger positions.
+        """
+        if not self.realign_after_averaging:
+            return triggers
+
+        search_window = int(self.search_window_factor * upsampling_factor)
+        first_ch_idx = list(averaging_matrices.keys())[0]
+        # Direct _data access avoids a full array copy for this read-only use
+        first_channel_data = raw._data[first_ch_idx]
+        return self._align_triggers_to_artifacts(
+            first_channel_data,
+            artifacts_per_channel[0],
             triggers,
+            int(artifact_offset * sfreq),
             artifact_length,
-            context.metadata.artifact_to_trigger_offset,
-            sfreq
+            search_window,
         )
 
-        if self.plot_artifacts and artifacts_per_channel:
-            try:
-                import random
-                from matplotlib import pyplot as plt
+    def _remove_artifacts(
+        self,
+        raw: mne.io.Raw,
+        averaging_matrices: Dict[int, np.ndarray],
+        artifacts_per_channel: List[np.ndarray],
+        aligned_triggers: np.ndarray,
+        artifact_offset_samples: int,
+        artifact_length: int,
+    ) -> np.ndarray:
+        """Subtract averaged artifacts from raw data in-place.
 
-                processed_channels = list(averaging_matrices.keys())
-                random_ch_list_idx = random.randint(0, len(processed_channels) - 1)
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            EEG data modified in-place; must be a copy of the original.
+        averaging_matrices : dict
+            Averaging matrices keyed by channel index.
+        artifacts_per_channel : List[np.ndarray]
+            Averaged artifact arrays, one per channel.
+        aligned_triggers : np.ndarray
+            (Possibly realigned) trigger sample positions.
+        artifact_offset_samples : int
+            Artifact-to-trigger offset in samples.
+        artifact_length : int
+            Artifact length in samples.
 
-                ch_idx = processed_channels[random_ch_list_idx]
-                ch_name = raw.ch_names[ch_idx]
-
-                artifacts = artifacts_per_channel[random_ch_list_idx]
-
-                if len(artifacts) > 0:
-                    random_epoch_idx = random.randint(0, len(artifacts) - 1)
-                    artifact_segment = artifacts[random_epoch_idx]
-
-                    logger.info(f"Plotting random artifact for channel {ch_name}, epoch {random_epoch_idx}")
-
-                    plt.figure(figsize=(10, 4))
-                    plt.plot(artifact_segment)
-                    plt.title(f"Estimated Artifact: Channel {ch_name} (Epoch {random_epoch_idx})")
-                    plt.xlabel("Samples")
-                    plt.ylabel("Amplitude")
-                    plt.grid(True, alpha=0.3)
-                    plt.tight_layout()
-                    plt.show()
-            except Exception as e:
-                logger.warning(f"Failed to plot random artifact: {e}")
-
-        if self.realign_after_averaging:
-            logger.debug("Realigning triggers to averaged artifacts")
-            search_window = int(self.search_window_factor * upsampling_factor)
-            first_channel_data = raw.get_data(picks=[list(averaging_matrices.keys())[0]])[0]
-            aligned_triggers = self._align_triggers_to_artifacts(
-                first_channel_data,
-                artifacts_per_channel[0],
-                triggers,
-                int(context.metadata.artifact_to_trigger_offset * sfreq),
-                artifact_length,
-                search_window
-            )
-        else:
-            aligned_triggers = triggers
-
-        logger.info(f"Removing artifacts from {len(eeg_channels)} channels")
-        raw_corrected = raw.copy()
-
-        if not context.has_estimated_noise():
-            estimated_noise = np.zeros(raw._data.shape)
-        else:
-            estimated_noise = context.get_estimated_noise().copy()
-
-        smin = int(context.metadata.artifact_to_trigger_offset * sfreq)
+        Returns
+        -------
+        np.ndarray
+            Estimated artifact array, same shape as ``raw._data``.
+        """
+        smin = artifact_offset_samples
         smax = smin + artifact_length
+        n_samples = raw._data.shape[1]
+        # Direct _data access avoids a full array copy on large datasets
+        estimated_artifacts = np.zeros(raw._data.shape)
 
         with processor_progress(
             total=len(averaging_matrices) or None,
@@ -226,90 +362,114 @@ class AASCorrection(Processor):
         ) as progress:
             for ch_list_idx, ch_idx in enumerate(averaging_matrices.keys()):
                 ch_name = raw.ch_names[ch_idx]
-                logger.debug(f"  Removing artifacts from {ch_name}")
-
                 artifacts = artifacts_per_channel[ch_list_idx]
 
                 for epoch_idx, trigger_pos in enumerate(aligned_triggers):
                     start = trigger_pos + smin
-                    stop = min(trigger_pos + smax, raw_corrected._data.shape[1])
-
-                    if start < 0 or start >= raw_corrected._data.shape[1]:
+                    stop = min(trigger_pos + smax, n_samples)
+                    if start < 0 or start >= n_samples:
                         continue
-
                     artifact_segment = artifacts[epoch_idx, :stop - start]
-                    raw_corrected._data[ch_idx, start:stop] -= artifact_segment
-                    estimated_noise[ch_idx, start:stop] += artifact_segment
+                    raw._data[ch_idx, start:stop] -= artifact_segment
+                    estimated_artifacts[ch_idx, start:stop] += artifact_segment
 
                 progress.advance(
                     1,
-                    message=f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})",
+                    message=(
+                        f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})"
+                    ),
                 )
 
-        new_context = context.with_raw(raw_corrected)
-        new_context.set_estimated_noise(estimated_noise)
+        return estimated_artifacts
 
-        if self.realign_after_averaging and not np.array_equal(aligned_triggers, triggers):
-            new_metadata = new_context.metadata.copy()
-            new_metadata.triggers = aligned_triggers
-            new_context._metadata = new_metadata
-            logger.info(f"Triggers realigned after averaging")
+    def _plot_artifact_debug(
+        self,
+        raw: mne.io.Raw,
+        averaging_matrices: Dict[int, np.ndarray],
+        artifacts_per_channel: List[np.ndarray],
+    ) -> None:
+        """Plot a randomly selected averaged artifact for visual debugging.
 
-        logger.info("AAS correction completed")
-        return new_context
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            EEG data (used for channel name lookup).
+        averaging_matrices : dict
+            Averaging matrices keyed by channel index.
+        artifacts_per_channel : List[np.ndarray]
+            Averaged artifact arrays, one per channel.
+        """
+        try:
+            processed_channels = list(averaging_matrices.keys())
+            random_ch_list_idx = random.randint(0, len(processed_channels) - 1)
+            ch_idx = processed_channels[random_ch_list_idx]
+            ch_name = raw.ch_names[ch_idx]
+            artifacts = artifacts_per_channel[random_ch_list_idx]
+
+            if len(artifacts) == 0:
+                return
+
+            random_epoch_idx = random.randint(0, len(artifacts) - 1)
+            artifact_segment = artifacts[random_epoch_idx]
+            logger.debug(
+                "Plotting random artifact for channel {}, epoch {}",
+                ch_name, random_epoch_idx,
+            )
+            plt.figure(figsize=(10, 4))
+            plt.plot(artifact_segment)
+            plt.title(f"Estimated Artifact: Channel {ch_name} (Epoch {random_epoch_idx})")
+            plt.xlabel("Samples")
+            plt.ylabel("Amplitude")
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+        except Exception as exc:
+            logger.warning("Failed to plot random artifact: {}", exc)
 
     def _calc_averaging_matrix(
         self,
         epochs: np.ndarray,
         window_size: int,
         rel_window_offset: float,
-        correlation_threshold: float
+        correlation_threshold: float,
     ) -> np.ndarray:
-        """
-        Calculate averaging matrix using correlation-based epoch selection.
+        """Calculate averaging matrix using correlation-based epoch selection.
 
         For each epoch, finds highly correlated epochs within a sliding window
         and creates a weighted average.
 
-        Args:
-            epochs: Epochs array (n_epochs, n_times)
-            window_size: Size of sliding window
-            rel_window_offset: Relative offset of window
-            correlation_threshold: Correlation threshold
+        Parameters
+        ----------
+        epochs : np.ndarray
+            Epochs array of shape (n_epochs, n_times).
+        window_size : int
+            Size of the sliding window.
+        rel_window_offset : float
+            Relative offset of the window center.
+        correlation_threshold : float
+            Minimum Pearson r for an epoch to be included.
 
-        Returns:
-            Averaging matrix (n_epochs, n_epochs) where each row sums to 1
+        Returns
+        -------
+        np.ndarray
+            Averaging matrix of shape (n_epochs, n_epochs) where each row sums to 1.
         """
         n_epochs = len(epochs)
         averaging_matrix = np.zeros((n_epochs, n_epochs))
-
-        # Calculate window offset in epoch units
         window_offset = int(window_size * rel_window_offset)
 
-        # Sliding window over epochs
         for idx in range(0, n_epochs, window_size):
             offset_idx = idx + window_offset
-
-            # Reference epochs (first 5 in window)
             reference_indices = np.arange(idx, min(idx + 5, n_epochs))
-
-            # Candidate epochs to average
             candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
-            candidates = candidates[candidates >= 0]  # Remove negative indices
+            candidates = candidates[candidates >= 0]
 
-            # Find highly correlated epochs
             chosen = self._find_correlated_epochs(
-                epochs,
-                candidates,
-                reference_indices,
-                correlation_threshold
+                epochs, candidates, reference_indices, correlation_threshold
             )
-
             if len(chosen) == 0:
-                # Fallback: use reference epochs if no correlated found
                 chosen = reference_indices
 
-            # Set weights (uniform average over chosen epochs)
             target_indices = np.arange(idx, min(idx + window_size, n_epochs))
             weight = 1.0 / len(chosen)
             averaging_matrix[np.ix_(target_indices, chosen)] = weight
@@ -321,40 +481,40 @@ class AASCorrection(Processor):
         all_epochs: np.ndarray,
         candidate_indices: np.ndarray,
         reference_indices: np.ndarray,
-        threshold: float
+        threshold: float,
     ) -> np.ndarray:
-        """
-        Find epochs that are highly correlated with reference epochs.
+        """Find epochs that are highly correlated with the running average.
 
-        Iteratively adds epochs that correlate well with the running average.
+        Iteratively adds epochs whose Pearson r with the running average
+        exceeds *threshold*.
 
-        Args:
-            all_epochs: All epochs (n_epochs, n_times)
-            candidate_indices: Indices of candidate epochs to check
-            reference_indices: Indices of reference epochs
-            threshold: Correlation threshold
+        Parameters
+        ----------
+        all_epochs : np.ndarray
+            All epochs of shape (n_epochs, n_times).
+        candidate_indices : np.ndarray
+            Indices of candidate epochs to check.
+        reference_indices : np.ndarray
+            Indices of seed epochs used to initialise the running average.
+        threshold : float
+            Minimum correlation to accept a candidate.
 
-        Returns:
-            Array of selected epoch indices
+        Returns
+        -------
+        np.ndarray
+            Indices of accepted epochs.
         """
         if len(reference_indices) == 0:
             return np.array([])
 
-        # Start with reference epochs
         sum_data = np.sum(all_epochs[reference_indices], axis=0)
         chosen = list(reference_indices)
 
-        # Check each candidate
         for idx in candidate_indices:
             if idx in chosen:
                 continue
-
-            # Current average
             avg_data = sum_data / len(chosen)
-
-            # Correlation with candidate
             corr = np.corrcoef(avg_data.squeeze(), all_epochs[idx].squeeze())[0, 1]
-
             if corr > threshold:
                 sum_data += all_epochs[idx]
                 chosen.append(idx)
@@ -368,47 +528,51 @@ class AASCorrection(Processor):
         triggers: np.ndarray,
         artifact_length: int,
         artifact_offset: float,
-        sfreq: float
-    ) -> list:
-        """
-        Calculate averaged artifacts for each channel.
+        sfreq: float,
+    ) -> List[np.ndarray]:
+        """Calculate averaged artifact templates for each channel.
 
-        Args:
-            raw: Raw EEG data
-            averaging_matrices: Averaging matrix for each channel
-            triggers: Trigger positions
-            artifact_length: Artifact length in samples
-            artifact_offset: Artifact offset in seconds
-            sfreq: Sampling frequency
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            EEG data.
+        averaging_matrices : dict
+            Averaging matrices keyed by channel index.
+        triggers : np.ndarray
+            Trigger sample positions.
+        artifact_length : int
+            Artifact length in samples.
+        artifact_offset : float
+            Artifact-to-trigger offset in seconds.
+        sfreq : float
+            Sampling frequency in Hz.
 
-        Returns:
-            List of averaged artifacts per channel (list of n_epochs x n_times arrays)
+        Returns
+        -------
+        List[np.ndarray]
+            Averaged artifact arrays per channel; each element has shape
+            (n_epochs, n_times).
         """
         artifacts_per_channel = []
         trigger_offset_samples = int(artifact_offset * sfreq)
 
         for ch_idx, avg_matrix in averaging_matrices.items():
-            # Get channel data (zero-mean for better averaging)
+            # Direct _data access avoids a full array copy on large datasets
             ch_data = raw._data[ch_idx]
             ch_data_zero_mean = ch_data - np.mean(ch_data)
 
-            # Split into epochs
             epoch_data = split_vector(
                 ch_data_zero_mean,
                 triggers + trigger_offset_samples,
-                artifact_length
+                artifact_length,
             )
 
-            # Handle case where epochs don't match matrix size
             while len(epoch_data) > len(avg_matrix):
                 epoch_data = epoch_data[:-1]
 
-            # Calculate averaged artifacts using matrix multiplication
             averaged_artifacts = np.dot(avg_matrix, epoch_data)
 
-            # Handle case where matrix size doesn't match triggers
             if len(averaged_artifacts) < len(triggers):
-                # Pad with last artifact
                 last_artifact = averaged_artifacts[-1].reshape(1, -1)
                 padding_needed = len(triggers) - len(averaged_artifacts)
                 padding = np.repeat(last_artifact, padding_needed, axis=0)
@@ -425,40 +589,41 @@ class AASCorrection(Processor):
         triggers: np.ndarray,
         smin: int,
         smax: int,
-        search_window: int
+        search_window: int,
     ) -> np.ndarray:
-        """
-        Align triggers to averaged artifacts using cross-correlation.
+        """Align triggers to averaged artifacts using cross-correlation.
 
-        Args:
-            channel_data: Single channel data
-            artifacts: Averaged artifacts (n_epochs, n_times)
-            triggers: Original trigger positions
-            smin: Start offset
-            smax: End offset (relative to trigger)
-            search_window: Search window size
+        Parameters
+        ----------
+        channel_data : np.ndarray
+            Single-channel time series.
+        artifacts : np.ndarray
+            Averaged artifacts of shape (n_epochs, n_times).
+        triggers : np.ndarray
+            Original trigger sample positions.
+        smin : int
+            Artifact start offset in samples relative to trigger.
+        smax : int
+            Artifact end offset in samples relative to trigger.
+        search_window : int
+            Half-width of the cross-correlation search window in samples.
 
-        Returns:
-            Aligned trigger positions
+        Returns
+        -------
+        np.ndarray
+            Realigned trigger sample positions.
         """
         aligned_triggers = []
-
         for i, trigger in enumerate(triggers):
-            # Get data segment with search window
             start = trigger + smin
             stop = trigger + smax + search_window
-
             if stop > len(channel_data):
                 aligned_triggers.append(trigger)
                 continue
-
             segment = channel_data[start:stop]
             artifact = artifacts[i, :]
-
-            # Find best alignment using cross-correlation
             corr = crosscorrelation(segment, artifact, search_window)
             best_shift = np.argmax(corr) - search_window
-
             aligned_triggers.append(trigger + best_shift)
 
         return np.array(aligned_triggers)

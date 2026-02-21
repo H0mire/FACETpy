@@ -8,6 +8,7 @@ Date: 2025-01-12
 """
 
 from numbers import Integral, Real
+from pathlib import Path
 from typing import Optional, List, Tuple
 
 import mne
@@ -43,7 +44,7 @@ def _coerce_sample_index(value: Optional[float], default: int, name: str) -> int
 def _apply_sample_window(
     raw: BaseRaw,
     start_sample: Optional[int],
-    stop_sample: Optional[int]
+    stop_sample: Optional[int],
 ) -> Tuple[BaseRaw, int, int]:
     """Restrict a Raw object to the requested sample window."""
     n_times = raw.n_times
@@ -77,23 +78,75 @@ def _apply_sample_window(
     return raw, start, stop
 
 
+def _configure_bad_channels(raw: mne.io.Raw, bad_channels: List[str]) -> None:
+    """Mark specified channels as bad in the Raw object.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        The Raw object to update in-place.
+    bad_channels : list of str
+        Channel names to mark as bad.
+    """
+    if not bad_channels:
+        return
+
+    existing = set(raw.ch_names)
+    valid_bads = [ch for ch in bad_channels if ch in existing]
+    missing = set(bad_channels) - existing
+
+    if missing:
+        logger.warning(
+            "Skipping {} bad channel(s) not present in data: {}",
+            len(missing),
+            ", ".join(sorted(missing)),
+        )
+        logger.debug("Available channels: {}", ", ".join(raw.ch_names))
+
+    raw.info["bads"] = valid_bads
+
+    if valid_bads:
+        logger.debug(
+            "Marked {} bad channel(s): {}", len(valid_bads), ", ".join(valid_bads)
+        )
+    else:
+        logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
+
+
 @register_processor
 class EDFLoader(Processor):
-    """
-    Load EEG data from EDF format.
+    """Load EEG data from an EDF file.
 
-    Example:
-        loader = EDFLoader(
-            path="data.edf",
-            bad_channels=["EKG", "EOG"],
-            preload=True
-        )
-        context = loader.execute(None)
+    Creates a new ProcessingContext from the file at the given path.
+    Optionally restricts the recording to a sample window and marks
+    a list of channels as bad before returning.
+
+    Parameters
+    ----------
+    path : str
+        Path to the EDF file to load.
+    bad_channels : list of str, optional
+        Channel names to mark as bad (default: none).
+    preload : bool, optional
+        Whether to load data into memory immediately (default: True).
+    artifact_to_trigger_offset : float, optional
+        Offset of the artifact relative to the trigger, in seconds (default: 0.0).
+    upsampling_factor : int, optional
+        Upsampling factor stored in metadata for downstream processors (default: 1).
+    start_sample : int, optional
+        First sample index to keep, inclusive (default: first sample).
+    stop_sample : int, optional
+        Last sample index to keep, exclusive (default: last sample).
     """
 
     name = "edf_loader"
     description = "Load EEG data from EDF file"
-    requires_raw = False  # Creates raw
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = False
+    modifies_raw = True
+    parallel_safe = False
 
     def __init__(
         self,
@@ -104,19 +157,7 @@ class EDFLoader(Processor):
         upsampling_factor: int = 1,
         start_sample: Optional[int] = None,
         stop_sample: Optional[int] = None,
-    ):
-        """
-        Initialize EDF loader.
-
-        Args:
-            path: Path to EDF file
-            bad_channels: List of bad channel names to exclude
-            preload: Whether to load data into memory
-            artifact_to_trigger_offset: Offset of artifact relative to trigger
-            upsampling_factor: Upsampling factor to apply later
-            start_sample: Optional first sample (inclusive) to keep
-            stop_sample: Optional last sample (exclusive) to keep
-        """
+    ) -> None:
         self.path = path
         self.bad_channels = bad_channels or []
         self.preload = preload
@@ -126,54 +167,34 @@ class EDFLoader(Processor):
         self.stop_sample = stop_sample
         super().__init__()
 
-    def validate(self, context: Optional[ProcessingContext]) -> None:
-        pass
-
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        logger.info(f"Loading EDF file: {self.path}")
+        # --- LOG ---
+        logger.info("Loading EDF file: {}", self.path)
 
+        # --- COMPUTE ---
         with suppress_stdout():
             raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
 
-        if self.bad_channels:
-            available_channels = set(raw.ch_names)
-            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
-            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
-
-            if missing_channels:
-                logger.warning(
-                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
-                    f"{', '.join(missing_channels)}"
-                )
-                logger.debug(
-                    f"Available channels: {', '.join(raw.ch_names)}"
-                )
-
-            raw.info['bads'] = valid_bad_channels
-            if valid_bad_channels:
-                logger.debug(
-                    f"Marked {len(valid_bad_channels)} bad channel(s): "
-                    f"{', '.join(valid_bad_channels)}"
-                )
-            else:
-                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
+        _configure_bad_channels(raw, self.bad_channels)
 
         full_n_times = raw.n_times
         try:
-            raw, start_idx, stop_idx = _apply_sample_window(raw, self.start_sample, self.stop_sample)
+            raw, start_idx, stop_idx = _apply_sample_window(
+                raw, self.start_sample, self.stop_sample
+            )
         except ValueError as exc:
             raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
 
         if start_idx != 0 or stop_idx != full_n_times:
             logger.info(
-                "Applied sample window: start=%d, stop=%d (exclusive), kept %d/%d samples",
+                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
                 start_idx,
                 stop_idx,
                 raw.n_times,
                 full_n_times,
             )
 
-        # Store sample window in metadata when a non-trivial window was requested
+        # --- BUILD RESULT ---
         acq_start = start_idx if start_idx != 0 else None
         acq_end = stop_idx if stop_idx != full_n_times else None
         if self.start_sample is not None:
@@ -188,35 +209,58 @@ class EDFLoader(Processor):
             acq_end_sample=acq_end,
         )
 
-        ctx = ProcessingContext(raw=raw, metadata=metadata)
-
         logger.info(
-            f"Loaded {len(raw.ch_names)} channels, "
-            f"{raw.n_times} samples, "
-            f"{raw.info['sfreq']}Hz"
+            "Loaded {} channels, {} samples, {}Hz",
+            len(raw.ch_names),
+            raw.n_times,
+            raw.info["sfreq"],
         )
 
-        return ctx
+        # --- RETURN ---
+        return ProcessingContext(raw=raw, metadata=metadata)
 
 
 @register_processor
 class BIDSLoader(Processor):
-    """
-    Load EEG data from BIDS format.
+    """Load EEG data from a BIDS dataset.
 
-    Example:
-        loader = BIDSLoader(
-            root="data/",
-            subject="01",
-            session="01",
-            task="rest",
-            bad_channels=["EKG"]
-        )
+    Creates a new ProcessingContext by reading EEG data identified by
+    subject, task, and optional session from a BIDS-compliant directory.
+    Optionally restricts the recording to a sample window and marks
+    a list of channels as bad before returning.
+
+    Parameters
+    ----------
+    root : str
+        Path to the BIDS root directory.
+    subject : str
+        Subject identifier (without the ``sub-`` prefix).
+    task : str
+        Task name.
+    session : str, optional
+        Session identifier (without the ``ses-`` prefix).
+    bad_channels : list of str, optional
+        Channel names to mark as bad (default: none).
+    preload : bool, optional
+        Whether to load data into memory immediately (default: True).
+    artifact_to_trigger_offset : float, optional
+        Offset of the artifact relative to the trigger, in seconds (default: 0.0).
+    upsampling_factor : int, optional
+        Upsampling factor stored in metadata for downstream processors (default: 1).
+    start_sample : int, optional
+        First sample index to keep, inclusive (default: first sample).
+    stop_sample : int, optional
+        Last sample index to keep, exclusive (default: last sample).
     """
 
     name = "bids_loader"
     description = "Load EEG data from BIDS dataset"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = False
+    modifies_raw = True
+    parallel_safe = False
 
     def __init__(
         self,
@@ -230,22 +274,7 @@ class BIDSLoader(Processor):
         upsampling_factor: int = 1,
         start_sample: Optional[int] = None,
         stop_sample: Optional[int] = None,
-    ):
-        """
-        Initialize BIDS loader.
-
-        Args:
-            root: BIDS root directory
-            subject: Subject ID
-            task: Task name
-            session: Session ID (optional)
-            bad_channels: List of bad channel names
-            preload: Whether to load data into memory
-            artifact_to_trigger_offset: Offset of artifact relative to trigger
-            upsampling_factor: Upsampling factor
-            start_sample: Optional first sample (inclusive) to keep
-            stop_sample: Optional last sample (exclusive) to keep
-        """
+    ) -> None:
         self.root = root
         self.subject = subject
         self.task = task
@@ -259,99 +288,107 @@ class BIDSLoader(Processor):
         super().__init__()
 
     def validate(self, context: Optional[ProcessingContext]) -> None:
-        pass
+        # Don't call super() — loaders create the context, there is nothing to validate
+        if not Path(self.root).exists():
+            raise ProcessorValidationError(f"BIDS root directory not found: {self.root}")
 
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
+        # --- LOG ---
         logger.info(
-            f"Loading BIDS data: subject={self.subject}, task={self.task}, "
-            f"session={self.session}"
+            "Loading BIDS data: subject={}, task={}, session={}",
+            self.subject,
+            self.task,
+            self.session,
         )
 
+        # --- COMPUTE ---
         bids_path = BIDSPath(
             subject=self.subject,
             session=self.session,
             task=self.task,
-            root=self.root
+            root=self.root,
         )
 
-        raw = read_raw_bids(bids_path, verbose=False)
+        with suppress_stdout():
+            raw = read_raw_bids(bids_path, verbose=False)
 
         if self.preload:
             raw.load_data()
 
         full_n_times = raw.n_times
 
-        if self.bad_channels:
-            available_channels = set(raw.ch_names)
-            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
-            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
-
-            if missing_channels:
-                logger.warning(
-                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
-                    f"{', '.join(missing_channels)}"
-                )
-                logger.debug(
-                    f"Available channels: {', '.join(raw.ch_names)}"
-                )
-
-            raw.info['bads'] = valid_bad_channels
-            if valid_bad_channels:
-                logger.debug(
-                    f"Marked {len(valid_bad_channels)} bad channel(s): "
-                    f"{', '.join(valid_bad_channels)}"
-                )
-            else:
-                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
+        _configure_bad_channels(raw, self.bad_channels)
 
         try:
-            raw, start_idx, stop_idx = _apply_sample_window(raw, self.start_sample, self.stop_sample)
+            raw, start_idx, stop_idx = _apply_sample_window(
+                raw, self.start_sample, self.stop_sample
+            )
         except ValueError as exc:
             raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
 
         if start_idx != 0 or stop_idx != full_n_times:
             logger.info(
-                "Applied sample window: start=%d, stop=%d (exclusive), kept %d/%d samples",
+                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
                 start_idx,
                 stop_idx,
                 raw.n_times,
                 full_n_times,
             )
 
+        # --- BUILD RESULT ---
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor
+            upsampling_factor=self.upsampling_factor,
         )
-        metadata.custom['bids_path'] = bids_path
+        metadata.custom["bids_path"] = bids_path
         metadata.acq_start_sample = start_idx
         metadata.acq_end_sample = stop_idx
 
-        ctx = ProcessingContext(raw=raw, metadata=metadata)
-
         logger.info(
-            f"Loaded {len(raw.ch_names)} channels, "
-            f"{raw.n_times} samples, "
-            f"{raw.info['sfreq']}Hz"
+            "Loaded {} channels, {} samples, {}Hz",
+            len(raw.ch_names),
+            raw.n_times,
+            raw.info["sfreq"],
         )
 
-        return ctx
+        # --- RETURN ---
+        return ProcessingContext(raw=raw, metadata=metadata)
 
 
 @register_processor
 class GDFLoader(Processor):
-    """
-    Load EEG data from GDF format.
+    """Load EEG data from a GDF file.
 
-    Example:
-        loader = GDFLoader(
-            path="data.gdf",
-            bad_channels=["EKG"]
-        )
+    Creates a new ProcessingContext from the file at the given path.
+    Optionally restricts the recording to a sample window and marks
+    a list of channels as bad before returning.
+
+    Parameters
+    ----------
+    path : str
+        Path to the GDF file to load.
+    bad_channels : list of str, optional
+        Channel names to mark as bad (default: none).
+    preload : bool, optional
+        Whether to load data into memory immediately (default: True).
+    artifact_to_trigger_offset : float, optional
+        Offset of the artifact relative to the trigger, in seconds (default: 0.0).
+    upsampling_factor : int, optional
+        Upsampling factor stored in metadata for downstream processors (default: 1).
+    start_sample : int, optional
+        First sample index to keep, inclusive (default: first sample).
+    stop_sample : int, optional
+        Last sample index to keep, exclusive (default: last sample).
     """
 
     name = "gdf_loader"
     description = "Load EEG data from GDF file"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = False
+    modifies_raw = True
+    parallel_safe = False
 
     def __init__(
         self,
@@ -362,19 +399,7 @@ class GDFLoader(Processor):
         upsampling_factor: int = 1,
         start_sample: Optional[int] = None,
         stop_sample: Optional[int] = None,
-    ):
-        """
-        Initialize GDF loader.
-
-        Args:
-            path: Path to GDF file
-            bad_channels: List of bad channel names
-            preload: Whether to load data into memory
-            artifact_to_trigger_offset: Offset of artifact relative to trigger
-            upsampling_factor: Upsampling factor
-            start_sample: Optional first sample (inclusive) to keep
-            stop_sample: Optional last sample (exclusive) to keep
-        """
+    ) -> None:
         self.path = path
         self.bad_channels = bad_channels or []
         self.preload = preload
@@ -384,66 +409,48 @@ class GDFLoader(Processor):
         self.stop_sample = stop_sample
         super().__init__()
 
-    def validate(self, context: Optional[ProcessingContext]) -> None:
-        pass
-
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        logger.info(f"Loading GDF file: {self.path}")
+        # --- LOG ---
+        logger.info("Loading GDF file: {}", self.path)
 
-        raw = mne.io.read_raw_gdf(self.path, preload=self.preload)
+        # --- COMPUTE ---
+        with suppress_stdout():
+            raw = mne.io.read_raw_gdf(self.path, preload=self.preload)
 
         full_n_times = raw.n_times
 
-        if self.bad_channels:
-            available_channels = set(raw.ch_names)
-            valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
-            missing_channels = [ch for ch in self.bad_channels if ch not in available_channels]
-
-            if missing_channels:
-                logger.warning(
-                    f"Skipping {len(missing_channels)} bad channel(s) not present in data: "
-                    f"{', '.join(missing_channels)}"
-                )
-                logger.debug(
-                    f"Available channels: {', '.join(raw.ch_names)}"
-                )
-
-            raw.info['bads'] = valid_bad_channels
-            if valid_bad_channels:
-                logger.debug(
-                    f"Marked {len(valid_bad_channels)} bad channel(s): "
-                    f"{', '.join(valid_bad_channels)}"
-                )
-            else:
-                logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
+        _configure_bad_channels(raw, self.bad_channels)
 
         try:
-            raw, start_idx, stop_idx = _apply_sample_window(raw, self.start_sample, self.stop_sample)
+            raw, start_idx, stop_idx = _apply_sample_window(
+                raw, self.start_sample, self.stop_sample
+            )
         except ValueError as exc:
             raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
 
         if start_idx != 0 or stop_idx != full_n_times:
             logger.info(
-                "Applied sample window: start=%d, stop=%d (exclusive), kept %d/%d samples",
+                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
                 start_idx,
                 stop_idx,
                 raw.n_times,
                 full_n_times,
             )
 
+        # --- BUILD RESULT ---
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor
+            upsampling_factor=self.upsampling_factor,
         )
         metadata.acq_start_sample = start_idx
         metadata.acq_end_sample = stop_idx
 
-        ctx = ProcessingContext(raw=raw, metadata=metadata)
-
         logger.info(
-            f"Loaded {len(raw.ch_names)} channels, "
-            f"{raw.n_times} samples, "
-            f"{raw.info['sfreq']}Hz"
+            "Loaded {} channels, {} samples, {}Hz",
+            len(raw.ch_names),
+            raw.n_times,
+            raw.info["sfreq"],
         )
 
-        return ctx
+        # --- RETURN ---
+        return ProcessingContext(raw=raw, metadata=metadata)

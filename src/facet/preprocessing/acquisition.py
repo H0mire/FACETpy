@@ -1,5 +1,4 @@
-"""
-Acquisition Window Processors
+"""Acquisition Window Processors
 
 Processors that manage the acquisition window metadata used by the
 Cut/Paste correction steps.
@@ -31,18 +30,30 @@ def _derive_pre_post_samples(
     pre_override: Optional[int] = None,
     post_override: Optional[int] = None,
 ) -> Tuple[int, int]:
-    """
-    Derive pre- and post-trigger sample counts based on the current metadata.
+    """Derive pre- and post-trigger sample counts from current metadata.
 
-    Args:
-        metadata: Processing metadata
-        sfreq: Sampling frequency
-        artifact_length: Artifact window length in samples
-        pre_override: Optional explicit number of samples before the trigger
-        post_override: Optional explicit number of samples after the trigger
+    Parameters
+    ----------
+    metadata : ProcessingMetadata
+        Processing metadata carrying existing window hints.
+    sfreq : float
+        Sampling frequency in Hz.
+    artifact_length : int
+        Artifact window length in samples.
+    pre_override : int, optional
+        Explicit number of samples before the trigger.
+    post_override : int, optional
+        Explicit number of samples after the trigger.
 
-    Returns:
-        Tuple of (pre_samples, post_samples)
+    Returns
+    -------
+    tuple of (int, int)
+        ``(pre_samples, post_samples)`` clamped to ``[0, artifact_length]``.
+
+    Raises
+    ------
+    ProcessorValidationError
+        If ``artifact_length`` is not a positive integer.
     """
     if artifact_length is None or artifact_length <= 0:
         raise ProcessorValidationError("Artifact length must be a positive integer")
@@ -75,39 +86,42 @@ def _derive_pre_post_samples(
 
 @register_processor
 class CutAcquisitionWindow(Processor):
-    """
-    Derive acquisition window bounds similarly to MATLAB's RACut step.
+    """Derive acquisition window bounds similarly to MATLAB's RACut step.
 
-    The processor records:
-      - acquisition start/end sample indices
-      - samples before/after each trigger that form the artifact window
+    Records the acquisition start/end sample indices and the per-trigger
+    pre/post sample counts in metadata so that downstream processors can
+    operate on consistent artifact windows without accessing raw signal data
+    directly.
 
-    Downstream processors rely on these metadata entries to operate on
-    consistent segments without mutating the raw data directly.
+    Parameters
+    ----------
+    pre_padding_samples : int, optional
+        Explicit number of samples before each trigger. When ``None`` the
+        value is derived from ``metadata.artifact_to_trigger_offset``.
+    post_padding_samples : int, optional
+        Explicit number of samples after each trigger. When ``None`` the
+        remaining artifact window is used.
     """
 
     name = "cut_acquisition_window"
     description = "Record acquisition window boundaries for artifact processing"
+    version = "1.0.0"
+
     requires_triggers = True
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
 
     def __init__(
         self,
         pre_padding_samples: Optional[int] = None,
         post_padding_samples: Optional[int] = None,
-    ):
-        """
-        Initialize the acquisition window processor.
-
-        Args:
-            pre_padding_samples: Optional explicit number of samples before each trigger.
-            post_padding_samples: Optional explicit number of samples after each trigger.
-        """
+    ) -> None:
         self.pre_padding_samples = pre_padding_samples
         self.post_padding_samples = post_padding_samples
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
-        """Ensure artifact length is available."""
         super().validate(context)
         if context.get_artifact_length() is None:
             raise ProcessorValidationError(
@@ -115,15 +129,20 @@ class CutAcquisitionWindow(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         raw = context.get_raw()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
         sfreq = raw.info["sfreq"]
 
-        if triggers is None or len(triggers) == 0:
-            logger.warning("CutAcquisitionWindow received empty trigger list")
-            return context
+        # --- LOG ---
+        logger.info(
+            "Computing acquisition window for {} triggers (artifact_length={})",
+            len(triggers),
+            artifact_length,
+        )
 
+        # --- COMPUTE ---
         pre_samples, post_samples = _derive_pre_post_samples(
             metadata=context.metadata,
             sfreq=sfreq,
@@ -135,6 +154,7 @@ class CutAcquisitionWindow(Processor):
         acq_start = int(max(0, triggers[0] - pre_samples))
         acq_end = int(min(raw.n_times, triggers[-1] + post_samples))
 
+        # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         new_metadata.acq_start_sample = acq_start
         new_metadata.acq_end_sample = acq_end
@@ -153,7 +173,7 @@ class CutAcquisitionWindow(Processor):
         )
 
         logger.debug(
-            "Acquisition window computed: pre=%d, post=%d, start=%d, end=%d",
+            "Acquisition window: pre={}, post={}, start={}, end={}",
             pre_samples,
             post_samples,
             acq_start,
@@ -163,34 +183,47 @@ class CutAcquisitionWindow(Processor):
         # Cache window info for downstream steps (non-serialized)
         context.cache_set("acquisition_window", (acq_start, acq_end))
 
+        # --- RETURN ---
         return context.with_metadata(new_metadata)
 
 
 @register_processor
 class PasteAcquisitionWindow(Processor):
-    """
-    Placeholder for the MATLAB RAPaste step.
+    """Finalize acquisition metadata and clear cached window segments.
 
-    FACETpy keeps the full-length raw data throughout the pipeline,
-    so this processor currently ensures acquisition metadata is present
-    and clears any cached segments set by CutAcquisitionWindow.
+    FACETpy keeps the full-length raw data throughout the pipeline, so this
+    processor ensures acquisition metadata is present and clears any cached
+    segments set by :class:`CutAcquisitionWindow`.
     """
 
     name = "paste_acquisition_window"
     description = "Finalize acquisition metadata and clear cached window segments"
+    version = "1.0.0"
+
     requires_triggers = False
+    requires_raw = False
+    modifies_raw = False
+    parallel_safe = False
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         metadata = context.metadata.copy()
 
+        # --- LOG ---
+        logger.info("Finalizing acquisition window metadata")
+
+        # --- COMPUTE ---
         if metadata.acq_start_sample is None or metadata.acq_end_sample is None:
             logger.debug("PasteAcquisitionWindow found no acquisition bounds; nothing to do")
             return context
 
+        # --- BUILD RESULT ---
         acquisition_info = metadata.custom.setdefault("acquisition", {})
         acquisition_info["paste_applied"] = True
 
-        logger.debug("PasteAcquisitionWindow metadata: %s", asdict(metadata))
+        logger.debug("PasteAcquisitionWindow metadata: {}", asdict(metadata))
 
         context.cache_clear()
+
+        # --- RETURN ---
         return context.with_metadata(metadata)

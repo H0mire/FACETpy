@@ -14,25 +14,30 @@ from ..core import Processor, ProcessingContext, register_processor
 
 @register_processor
 class Crop(Processor):
-    """
-    Crop the Raw recording to a time interval.
+    """Crop the Raw recording to a time interval.
 
     A concise alternative to ``LambdaProcessor`` for the common pattern of
     restricting the recording to a specific window before processing.
 
-    Example::
+    Parameters
+    ----------
+    tmin : float, optional
+        Start time in seconds.  ``None`` keeps the original start.
+    tmax : float, optional
+        End time in seconds.  ``None`` keeps the original end.
+
+    Examples
+    --------
+    ::
 
         Crop(tmin=0, tmax=162)
-
-        # Equivalent LambdaProcessor form (no longer necessary):
-        # LambdaProcessor(
-        #     name="crop",
-        #     func=lambda ctx: ctx.with_raw(ctx.get_raw().copy().crop(tmin=0, tmax=162))
-        # )
     """
 
     name = "crop"
     description = "Crop Raw recording to a time interval"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
@@ -42,36 +47,48 @@ class Crop(Processor):
         tmin: Optional[float] = None,
         tmax: Optional[float] = None,
     ):
-        """
-        Args:
-            tmin: Start time in seconds (``None`` keeps the original start).
-            tmax: End time in seconds (``None`` keeps the original end).
-        """
         self.tmin = tmin
         self.tmax = tmax
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         raw = context.get_raw().copy()
+
+        # --- LOG ---
+        logger.info("Cropping raw: tmin={}, tmax={}", self.tmin, self.tmax)
+
+        # --- COMPUTE ---
         kwargs = {}
         if self.tmin is not None:
             kwargs['tmin'] = self.tmin
         if self.tmax is not None:
             kwargs['tmax'] = self.tmax
-        logger.info(f"Cropping raw: tmin={self.tmin}, tmax={self.tmax}")
         raw.crop(**kwargs)
+
+        # --- RETURN ---
         return context.with_raw(raw)
 
 
 @register_processor
 class PickChannels(Processor):
-    """
-    Keep only the specified channels or channel types.
+    """Keep only the specified channels or channel types.
 
     A named, reusable alternative to the common ``lambda ctx: ctx.with_raw(
     ctx.get_raw().copy().pick(...))`` pattern.
 
-    Example::
+    Parameters
+    ----------
+    picks : str or list of str
+        Channel type (``"eeg"``, ``"stim"``, …) or list of channel
+        names / types accepted by :meth:`mne.io.Raw.pick`.
+    on_missing : str, optional
+        Passed to MNE.  ``"ignore"`` (default) silently skips channels
+        that are absent from the recording.
+
+    Examples
+    --------
+    ::
 
         # Keep only EEG and stimulus channels
         PickChannels(picks=["eeg", "stim"])
@@ -82,6 +99,9 @@ class PickChannels(Processor):
 
     name = "pick_channels"
     description = "Keep only the specified channels or channel types"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
@@ -91,32 +111,37 @@ class PickChannels(Processor):
         picks: Union[str, List[str]],
         on_missing: str = "ignore",
     ):
-        """
-        Args:
-            picks: Channel type (``"eeg"``, ``"stim"``, …) or list of channel
-                names / types accepted by :meth:`mne.io.Raw.pick`.
-            on_missing: Passed to MNE.  ``"ignore"`` (default) silently skips
-                channels that are absent from the recording.
-        """
         self.picks = picks
         self.on_missing = on_missing
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        logger.info(f"Picking channels: {self.picks}")
+        # --- LOG ---
+        logger.info("Picking channels: {}", self.picks)
+
+        # --- COMPUTE + RETURN ---
         raw = context.get_raw().copy().pick(picks=self.picks, verbose=False)
         return context.with_raw(raw)
 
 
 @register_processor
 class DropChannels(Processor):
-    """
-    Remove named channels from the recording.
+    """Remove named channels from the recording.
 
     A named, reusable alternative to the ``lambda ctx: ...drop_channels(...)``
     pattern commonly seen in inline pipeline steps.
 
-    Example::
+    Parameters
+    ----------
+    channels : list of str
+        List of channel names to remove.
+    on_missing : str, optional
+        ``"ignore"`` (default) skips absent names silently;
+        ``"raise"`` raises an error when a channel is not found.
+
+    Examples
+    --------
+    ::
 
         # Drop typical non-EEG channels that may be present in EDF files
         DropChannels(channels=["EKG", "EMG", "EOG", "ECG"])
@@ -124,43 +149,54 @@ class DropChannels(Processor):
 
     name = "drop_channels"
     description = "Remove named channels from the recording"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
 
     def __init__(self, channels: List[str], on_missing: str = "ignore"):
-        """
-        Args:
-            channels: List of channel names to remove.
-            on_missing: ``"ignore"`` (default) skips absent names silently;
-                ``"raise"`` raises an error when a channel is not found.
-        """
         self.channels = channels
         self.on_missing = on_missing
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         raw = context.get_raw().copy()
+
+        # --- COMPUTE ---
         if self.on_missing == "ignore":
             to_drop = [ch for ch in self.channels if ch in raw.ch_names]
         else:
             to_drop = self.channels
+
         if to_drop:
-            logger.info(f"Dropping channels: {to_drop}")
+            logger.info("Dropping channels: {}", to_drop)
             raw.drop_channels(to_drop)
+
+        # --- RETURN ---
         return context.with_raw(raw)
 
 
 @register_processor
 class PrintMetric(Processor):
-    """
-    Print one or more evaluation metric values — useful for debugging pipelines.
+    """Print one or more evaluation metric values — useful for debugging pipelines.
 
     Inserts a transparent logging step that reads from the shared metrics dict
     populated by evaluation processors (e.g. :class:`~facet.evaluation.SNRCalculator`).
     The context is returned unchanged.
 
-    Example::
+    Parameters
+    ----------
+    *metric_names : str
+        One or more metric names to print (e.g. ``'snr'``, ``'rms_ratio'``).
+    label : str, optional
+        Optional prefix shown in brackets, e.g. ``"after PCA"``.
+
+    Examples
+    --------
+    ::
 
         pipeline = Pipeline([
             ...,
@@ -174,47 +210,60 @@ class PrintMetric(Processor):
 
     name = "print_metric"
     description = "Print evaluation metric values for debugging"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = False
     modifies_raw = False
     parallel_safe = False
 
     def __init__(self, *metric_names: str, label: Optional[str] = None):
-        """
-        Args:
-            *metric_names: One or more metric names to print
-                (e.g. ``'snr'``, ``'rms_ratio'``).
-            label: Optional prefix shown in brackets, e.g. ``"after PCA"``.
-        """
         self._metric_names = metric_names
         self._label = label
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- COMPUTE ---
         parts = []
         for name in self._metric_names:
             val = context.get_metric(name)
             if isinstance(val, float):
-                parts.append(f"{name}={val:.3f}")
+                parts.append("{}={:.3f}".format(name, val))
             elif val is not None:
-                parts.append(f"{name}={val}")
+                parts.append("{}={}".format(name, val))
             else:
-                parts.append(f"{name}=N/A")
-        prefix = f"[{self._label}] " if self._label else ""
-        logger.info(f"{prefix}{', '.join(parts)}")
-        print(f"  {prefix}{', '.join(parts)}")
+                parts.append("{}=N/A".format(name))
+
+        prefix = "[{}] ".format(self._label) if self._label else ""
+        message = "{}{}".format(prefix, ', '.join(parts))
+
+        # --- LOG ---
+        logger.info("{}", message)
+        print("  {}".format(message))
+
+        # --- RETURN ---
         return context
 
 
 @register_processor
 class RawTransform(Processor):
-    """
-    Apply an arbitrary callable to the Raw object.
+    """Apply an arbitrary callable to the Raw object.
 
     A lighter-weight alternative to ``LambdaProcessor`` when only the Raw
     object needs to be modified.  The callable receives the **current** Raw
     object and must return a *new* (or modified copy of a) Raw object.
 
-    Example::
+    Parameters
+    ----------
+    name : str
+        Human-readable label shown in pipeline logs and progress.
+    func : callable
+        ``Callable[[mne.io.Raw], mne.io.Raw]`` — receives the current Raw
+        object, must return a (possibly new) Raw object.
+
+    Examples
+    --------
+    ::
 
         # Drop bad channels inline
         RawTransform("drop_bad", lambda raw: raw.copy().pick_channels(
@@ -227,22 +276,22 @@ class RawTransform(Processor):
 
     name = "raw_transform"
     description = "Apply a callable transform to the Raw object"
+    version = "1.0.0"
+
+    requires_triggers = False
     requires_raw = True
     modifies_raw = True
     parallel_safe = False
 
     def __init__(self, name: str, func: Callable):
-        """
-        Args:
-            name: Human-readable label shown in pipeline logs and progress.
-            func: ``Callable[[mne.io.Raw], mne.io.Raw]`` — receives the current
-                  Raw object, must return a (possibly new) Raw object.
-        """
         self.name = name
         self._func = func
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        logger.info(f"Applying raw transform: {self.name}")
+        # --- LOG ---
+        logger.info("Applying raw transform: {}", self.name)
+
+        # --- COMPUTE + RETURN ---
         new_raw = self._func(context.get_raw())
         return context.with_raw(new_raw)

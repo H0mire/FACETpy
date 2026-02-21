@@ -1,19 +1,12 @@
 """
-PCA-based Artifact Correction Module
-
-This module contains processors for PCA-based artifact removal.
-
-Author: FACETpy Team
-Date: 2025-01-12
+PCA-based artifact correction processor.
 """
 
 from typing import Optional, Union
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import filtfilt
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+from scipy.signal import filtfilt, butter
 
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 from ..console import processor_progress
@@ -22,36 +15,41 @@ from ..helpers.utils import split_vector
 
 @register_processor
 class PCACorrection(Processor):
-    """
-    PCA-based artifact correction processor.
+    """Remove fMRI artifacts from EEG data using Principal Component Analysis.
 
-    This processor applies Principal Component Analysis to remove artifacts
-    from EEG data. The algorithm:
+    Splits the acquisition window into trigger-aligned epochs, applies PCA to
+    each epoch, reconstructs the data using the retained components, and
+    subtracts the reconstruction from the original signal.  The subtracted
+    portion is treated as the artifact estimate.
 
-    1. Splits data into epochs based on trigger positions
-    2. Applies highpass filtering to each epoch (optional)
-    3. Standardizes epoch data
-    4. Applies PCA to find principal components
-    5. Reconstructs data using selected components
-    6. Subtracts reconstruction from original to get residuals (artifacts)
-    7. Removes residuals from original data
+    The number of retained components can be controlled precisely:
 
-    The number of components can be specified as:
-    - An integer: exact number of components
-    - A float (0 < n < 1): fraction of variance to retain
-    - 0: skip PCA for this channel
+    - An integer keeps exactly that many components.
+    - A float in (0, 1) retains enough components to explain that fraction of
+      the total variance (e.g. 0.95 → 95 %).
+    - 0 skips PCA for all channels.
 
-    Example:
-        correction = PCACorrection(n_components=0.95)  # Keep 95% variance
-        context = correction.execute(context)
-
-        correction = PCACorrection(n_components=5)  # Keep 5 components
-        context = correction.execute(context)
+    Parameters
+    ----------
+    n_components : int or float
+        Number of PCA components to retain (int) or variance fraction to
+        retain (float in (0, 1)).  Default: 0.95.
+    hp_freq : float, optional
+        High-pass cutoff frequency in Hz applied before PCA. None skips
+        filtering (default: None).
+    hp_filter_weights : np.ndarray, optional
+        Pre-computed filter weights; overrides ``hp_freq`` when provided.
+    exclude_channels : list, optional
+        Channel indices to skip during PCA (default: empty list).
     """
 
     name = "pca_correction"
     description = "PCA-based artifact removal"
+    version = "1.0.0"
+
     requires_triggers = True
+    requires_raw = True
+    modifies_raw = True
     parallel_safe = True
     parallelize_by_channels = True
 
@@ -60,17 +58,8 @@ class PCACorrection(Processor):
         n_components: Union[int, float] = 0.95,
         hp_freq: Optional[float] = None,
         hp_filter_weights: Optional[np.ndarray] = None,
-        exclude_channels: Optional[list] = None
-    ):
-        """
-        Initialize PCA correction.
-
-        Args:
-            n_components: Number of components to keep (int) or variance fraction (float)
-            hp_freq: Highpass frequency for preprocessing (None to skip)
-            hp_filter_weights: Pre-computed filter weights (overrides hp_freq)
-            exclude_channels: List of channel indices to exclude from PCA
-        """
+        exclude_channels: Optional[list] = None,
+    ) -> None:
         self.n_components = n_components
         self.hp_freq = hp_freq
         self.hp_filter_weights = hp_filter_weights
@@ -78,7 +67,6 @@ class PCACorrection(Processor):
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
-        """Validate prerequisites."""
         super().validate(context)
         if context.get_artifact_length() is None:
             raise ProcessorValidationError(
@@ -86,36 +74,28 @@ class PCACorrection(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        logger.info("Applying PCA artifact correction")
-
-        raw = context.get_raw()
+        # --- EXTRACT ---
+        raw = context.get_raw().copy()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
-
         eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
+            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+        )
+
+        # --- LOG ---
+        logger.info(
+            "Applying PCA artifact correction to {} channels", len(eeg_channels)
         )
 
         if len(eeg_channels) == 0:
             logger.warning("No EEG channels found, skipping PCA")
             return context
 
-        if self.hp_filter_weights is not None:
-            hp_weights = self.hp_filter_weights
-        elif self.hp_freq is not None and self.hp_freq > 0:
-            hp_weights = self._create_hp_filter(sfreq)
-        else:
-            hp_weights = None
-
+        # --- COMPUTE ---
+        hp_weights = self._resolve_hp_weights(raw.info["sfreq"])
         s_acq_start, s_acq_end = self._get_acquisition_window(context)
-
-        raw_corrected = raw.copy()
-
-        if not context.has_estimated_noise():
-            estimated_noise = np.zeros(raw._data.shape)
-        else:
-            estimated_noise = context.get_estimated_noise().copy()
+        # Direct _data access avoids a full array copy on large datasets
+        estimated_artifacts = np.zeros(raw._data.shape)
 
         with processor_progress(
             total=len(eeg_channels) or None,
@@ -123,42 +103,59 @@ class PCACorrection(Processor):
         ) as progress:
             for idx, ch_idx in enumerate(eeg_channels):
                 ch_name = raw.ch_names[ch_idx]
-                logger.debug(f"  Applying PCA to {ch_name}")
                 status_prefix = f"{idx + 1}/{len(eeg_channels)} • {ch_name}"
 
                 if ch_idx in self.exclude_channels:
-                    logger.debug(f"  Skipping {ch_name} (excluded)")
                     progress.advance(1, message=f"{status_prefix} (excluded)")
                     continue
 
                 if self.n_components == 0:
-                    logger.debug(f"  Skipping {ch_name} (n_components=0)")
                     progress.advance(1, message=f"{status_prefix} (disabled)")
                     continue
 
                 try:
                     residuals = self._calc_pca_residuals(
-                        raw_corrected._data[ch_idx],
-                        triggers,
-                        artifact_length,
-                        s_acq_start,
-                        s_acq_end,
-                        hp_weights
+                        raw._data[ch_idx], triggers, artifact_length,
+                        s_acq_start, s_acq_end, hp_weights,
                     )
-
-                    raw_corrected._data[ch_idx][s_acq_start:s_acq_end] -= residuals
-                    estimated_noise[ch_idx][s_acq_start:s_acq_end] += residuals
+                    raw._data[ch_idx][s_acq_start:s_acq_end] -= residuals
+                    estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += residuals
                     progress.advance(1, message=status_prefix)
-                except Exception as ex:
-                    logger.error(f"PCA failed for channel {ch_name}: {ex}")
-                    logger.warning(f"Skipping PCA for channel {ch_name}")
+                except Exception as exc:
+                    logger.error("PCA failed for channel {}: {}", ch_name, exc)
                     progress.advance(1, message=f"{status_prefix} (error)")
 
-        new_context = context.with_raw(raw_corrected)
-        new_context.set_estimated_noise(estimated_noise)
+        # --- NOISE ---
+        new_ctx = context.with_raw(raw)
+        new_ctx.accumulate_noise(estimated_artifacts)
 
+        # --- RETURN ---
         logger.info("PCA correction completed")
-        return new_context
+        return new_ctx
+
+    # -------------------------------------------------------------------------
+    # Private Helpers
+    # -------------------------------------------------------------------------
+
+    def _resolve_hp_weights(self, sfreq: float) -> Optional[np.ndarray]:
+        """Return the appropriate high-pass filter weights.
+
+        Parameters
+        ----------
+        sfreq : float
+            Sampling frequency in Hz.
+
+        Returns
+        -------
+        np.ndarray or None
+            Filter weights for use with ``scipy.signal.filtfilt``, or None
+            when high-pass filtering is disabled.
+        """
+        if self.hp_filter_weights is not None:
+            return self.hp_filter_weights
+        if self.hp_freq is not None and self.hp_freq > 0:
+            return self._create_hp_filter(sfreq)
+        return None
 
     def _calc_pca_residuals(
         self,
@@ -167,21 +164,29 @@ class PCACorrection(Processor):
         artifact_length: int,
         s_acq_start: int,
         s_acq_end: int,
-        hp_weights: Optional[np.ndarray]
+        hp_weights: Optional[np.ndarray],
     ) -> np.ndarray:
-        """
-        Calculate PCA residuals for a single channel.
+        """Calculate PCA-based artifact residuals for a single channel.
 
-        Args:
-            ch_data: Channel data
-            triggers: Trigger positions
-            artifact_length: Length of artifacts in samples
-            s_acq_start: Start of acquisition window
-            s_acq_end: End of acquisition window
-            hp_weights: Highpass filter weights (or None)
+        Parameters
+        ----------
+        ch_data : np.ndarray
+            Full time series for one channel.
+        triggers : np.ndarray
+            Trigger sample positions.
+        artifact_length : int
+            Artifact length in samples.
+        s_acq_start : int
+            Acquisition window start sample.
+        s_acq_end : int
+            Acquisition window end sample.
+        hp_weights : np.ndarray or None
+            High-pass filter weights (or None to skip filtering).
 
-        Returns:
-            Residuals (artifacts) as array
+        Returns
+        -------
+        np.ndarray
+            Residual (artifact) signal of length ``s_acq_end - s_acq_start``.
         """
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
@@ -191,25 +196,20 @@ class PCACorrection(Processor):
             ch_data_filtered = ch_data_acq
 
         adjusted_triggers = triggers - s_acq_start
-        offset = int(artifact_length * 0.1)  # Small offset for epoch extraction
+        # Small offset prevents epoch boundaries from sitting exactly on the trigger
+        offset = int(artifact_length * 0.1)
 
         epochs = split_vector(
-            ch_data_filtered,
-            adjusted_triggers + offset,
-            artifact_length
+            ch_data_filtered, adjusted_triggers + offset, artifact_length
         )
-
         residuals_per_epoch = self._calc_pca(epochs)
 
         fitted_res = np.zeros(len(ch_data_acq))
-
         for i, trigger in enumerate(adjusted_triggers):
             start_pos = trigger + offset
             end_pos = start_pos + artifact_length
-
             if start_pos < 0:
                 continue
-
             if end_pos > len(ch_data_acq):
                 epoch_length = len(ch_data_acq) - start_pos
                 if epoch_length <= 0:
@@ -221,63 +221,45 @@ class PCACorrection(Processor):
         return fitted_res
 
     def _calc_pca(self, epochs: np.ndarray) -> np.ndarray:
-        """
-        Apply PCA to epochs and calculate residuals.
+        """Apply PCA to epochs and return the artifact residuals.
 
-        Args:
-            epochs: Epochs array (n_epochs, n_times)
+        Parameters
+        ----------
+        epochs : np.ndarray
+            Epoch matrix of shape (n_epochs, n_times).
 
-        Returns:
-            Residuals array (n_epochs, n_times)
+        Returns
+        -------
+        np.ndarray
+            Residual (artifact) matrix of shape (n_epochs, n_times).
         """
-        # Transpose to (n_times, n_epochs) for sklearn
         epochs_t = epochs.T
 
-        # Identify columns with sufficient variance to avoid scaling issues
         col_var = np.var(epochs_t, axis=0)
         variance_threshold = 1e-12
         valid_mask = col_var > variance_threshold
 
         if np.count_nonzero(valid_mask) < 2:
-            # Not enough informative samples for PCA
             return np.zeros_like(epochs)
 
         X_valid = epochs_t[:, valid_mask]
-
-        # Standardize the data on informative columns only
         mean_valid = np.mean(X_valid, axis=0)
         std_valid = np.std(X_valid, axis=0, ddof=0)
         std_valid = np.where(std_valid < variance_threshold, 1.0, std_valid)
         X_centered = (X_valid - mean_valid) / std_valid
 
-        # Compute SVD
         try:
             U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
-        except np.linalg.LinAlgError as ex:
-            logger.warning(f"PCA SVD failed ({ex}); skipping channel")
+        except np.linalg.LinAlgError as exc:
+            logger.warning("PCA SVD failed ({}); skipping channel", exc)
             return np.zeros_like(epochs)
 
-        # Determine number of components to retain
         max_components = min(X_centered.shape[0], X_centered.shape[1])
-        if isinstance(self.n_components, int):
-            n_components = min(self.n_components, max_components)
-        else:
-            n_components = self.n_components
-
         if max_components <= 1:
             return np.zeros_like(epochs)
 
-        if isinstance(n_components, float):
-            if not 0 < n_components < 1:
-                raise ValueError("n_components as float must be between 0 and 1.")
-            explained_var = (S ** 2) / (X_centered.shape[0] - 1)
-            explained_ratio = np.cumsum(explained_var) / np.sum(explained_var)
-            n_components = np.searchsorted(explained_ratio, n_components) + 1
-            n_components = max(1, min(n_components, max_components))
-        else:
-            n_components = max(1, n_components)
+        n_components = self._select_n_components(S, max_components, X_centered.shape[0])
 
-        # Reconstruct data using retained components
         U_reduced = U[:, :n_components]
         S_reduced = S[:n_components]
         Vt_reduced = Vt[:n_components, :]
@@ -285,41 +267,72 @@ class PCACorrection(Processor):
             (U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid
         ) + mean_valid
 
-        # Calculate residuals (artifact = original - reconstructed)
         residuals_valid = X_valid - X_reconstructed_valid
-
-        # Reinsert residuals into full matrix
         residuals_full = np.zeros_like(epochs_t)
         residuals_full[:, valid_mask] = residuals_valid
 
-        # Transpose back to (n_epochs, n_times)
         return residuals_full.T
 
+    def _select_n_components(
+        self, singular_values: np.ndarray, max_components: int, n_samples: int
+    ) -> int:
+        """Determine the number of PCA components to retain.
+
+        Parameters
+        ----------
+        singular_values : np.ndarray
+            Singular values from the SVD decomposition.
+        max_components : int
+            Upper bound on the number of components.
+        n_samples : int
+            Number of samples (time points) used in the SVD.
+
+        Returns
+        -------
+        int
+            Number of components to retain (≥ 1).
+        """
+        if isinstance(self.n_components, int):
+            return max(1, min(self.n_components, max_components))
+
+        if not 0 < self.n_components < 1:
+            raise ValueError("n_components as float must be between 0 and 1.")
+
+        explained_var = (singular_values ** 2) / (n_samples - 1)
+        explained_ratio = np.cumsum(explained_var) / np.sum(explained_var)
+        n = np.searchsorted(explained_ratio, self.n_components) + 1
+        return max(1, min(int(n), max_components))
+
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
-        """
-        Create highpass filter weights.
+        """Create Butterworth high-pass filter weights.
 
-        Args:
-            sfreq: Sampling frequency
+        Parameters
+        ----------
+        sfreq : float
+            Sampling frequency in Hz.
 
-        Returns:
-            Filter weights for filtfilt
+        Returns
+        -------
+        np.ndarray
+            Filter weights for use with ``scipy.signal.filtfilt``.
         """
-        from scipy.signal import butter
         nyq = 0.5 * sfreq
         normalized_cutoff = self.hp_freq / nyq
-        b, a = butter(5, normalized_cutoff, btype='high')
+        b, _ = butter(5, normalized_cutoff, btype="high")
         return b
 
     def _get_acquisition_window(self, context: ProcessingContext) -> tuple:
-        """
-        Get acquisition window (start and end samples).
+        """Return the start and end sample indices of the acquisition window.
 
-        Args:
-            context: Processing context
+        Parameters
+        ----------
+        context : ProcessingContext
+            Current processing context.
 
-        Returns:
-            Tuple of (s_acq_start, s_acq_end)
+        Returns
+        -------
+        tuple
+            ``(s_acq_start, s_acq_end)`` as integers.
         """
         raw = context.get_raw()
         triggers = context.get_triggers()
@@ -331,8 +344,6 @@ class PCACorrection(Processor):
         if artifact_length is None:
             return 0, raw.n_times
 
-        # Use trigger positions to define acquisition window
         s_acq_start = max(0, triggers[0] - artifact_length)
         s_acq_end = min(raw.n_times, triggers[-1] + artifact_length)
-
         return s_acq_start, s_acq_end

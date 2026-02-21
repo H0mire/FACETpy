@@ -13,22 +13,44 @@ from loguru import logger
 import numpy as np
 
 from ..core import Processor, ProcessingContext, register_processor
+from ..logging_config import suppress_stdout
 
 
 @register_processor
 class Filter(Processor):
-    """
-    Generic filter processor.
+    """Apply MNE's generic band/high/low-pass filter to EEG data.
 
-    Applies MNE's filter method with specified parameters.
+    Wraps :meth:`mne.io.Raw.filter` with configurable FIR/IIR parameters.
+    If a noise estimate is present in the context, the same filter is applied
+    to the noise so that downstream evaluation steps remain consistent.
 
-    Example:
-        filter = Filter(l_freq=1.0, h_freq=70.0)
-        context = filter.execute(context)
+    Parameters
+    ----------
+    l_freq : float, optional
+        Low cutoff frequency in Hz (``None`` for no highpass).
+    h_freq : float, optional
+        High cutoff frequency in Hz (``None`` for no lowpass).
+    picks : str or list of str, optional
+        Channels to filter.  ``None`` filters all channels.
+    filter_length : str, optional
+        Length of the FIR filter (default: ``'auto'``).
+    method : str, optional
+        Filter method, ``'fir'`` or ``'iir'`` (default: ``'fir'``).
+    phase : str, optional
+        Phase of the filter (default: ``'zero'``).
+    fir_window : str, optional
+        Window function for FIR filter (default: ``'hamming'``).
+    verbose : bool, optional
+        MNE verbosity flag passed to ``raw.filter()`` (default: ``False``).
     """
 
     name = "filter"
     description = "Apply generic filter to EEG data"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
     parallel_safe = True
     parallelize_by_channels = True
 
@@ -43,19 +65,6 @@ class Filter(Processor):
         fir_window: str = 'hamming',
         verbose: bool = False
     ):
-        """
-        Initialize filter.
-
-        Args:
-            l_freq: Low cutoff frequency (None for no highpass)
-            h_freq: High cutoff frequency (None for no lowpass)
-            picks: Channels to filter (None for all)
-            filter_length: Length of the FIR filter
-            method: Filter method ('fir' or 'iir')
-            phase: Phase of the filter ('zero', 'zero-double', 'minimum')
-            fir_window: Window to use for FIR filter
-            verbose: Verbose output
-        """
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.picks = picks
@@ -67,19 +76,21 @@ class Filter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         raw = context.get_raw().copy()
 
+        # --- LOG ---
         if self.l_freq and self.h_freq:
-            filter_type = f"bandpass ({self.l_freq}-{self.h_freq}Hz)"
+            filter_type = "bandpass ({}-{}Hz)".format(self.l_freq, self.h_freq)
         elif self.l_freq:
-            filter_type = f"highpass ({self.l_freq}Hz)"
+            filter_type = "highpass ({}Hz)".format(self.l_freq)
         elif self.h_freq:
-            filter_type = f"lowpass ({self.h_freq}Hz)"
+            filter_type = "lowpass ({}Hz)".format(self.h_freq)
         else:
             filter_type = "no filter"
+        logger.info("Applying {}", filter_type)
 
-        logger.info(f"Applying {filter_type}")
-
+        # --- COMPUTE ---
         raw.filter(
             l_freq=self.l_freq,
             h_freq=self.h_freq,
@@ -91,11 +102,12 @@ class Filter(Processor):
             verbose=self.verbose
         )
 
-        new_context = context.with_raw(raw)
+        # --- NOISE ---
+        new_ctx = context.with_raw(raw)
         if context.has_estimated_noise():
             noise = context.get_estimated_noise().copy()
-            noise_raw = raw.copy()
-            noise_raw._data = noise
+            with suppress_stdout():
+                noise_raw = mne.io.RawArray(noise, raw.info)
             noise_raw.filter(
                 l_freq=self.l_freq,
                 h_freq=self.h_freq,
@@ -106,23 +118,45 @@ class Filter(Processor):
                 fir_window=self.fir_window,
                 verbose=False
             )
-            new_context.set_estimated_noise(noise_raw._data)
+            new_ctx.set_estimated_noise(noise_raw.get_data())
+        else:
+            logger.debug("No noise estimate present — skipping noise propagation")
 
-        return new_context
+        # --- RETURN ---
+        return new_ctx
 
 
 @register_processor
 class HighPassFilter(Filter):
-    """
-    Highpass filter processor.
+    """Apply a highpass filter to EEG data.
 
-    Example:
-        filter = HighPassFilter(freq=1.0)
-        context = filter.execute(context)
+    Convenience subclass of :class:`Filter` that exposes a single ``freq``
+    parameter instead of separate ``l_freq``/``h_freq``.
+
+    Parameters
+    ----------
+    freq : float
+        Highpass cutoff frequency in Hz.
+    picks : str or list of str, optional
+        Channels to filter.  ``None`` filters all channels.
+    filter_length : str, optional
+        Length of the FIR filter (default: ``'auto'``).
+    method : str, optional
+        Filter method, ``'fir'`` or ``'iir'`` (default: ``'fir'``).
+    phase : str, optional
+        Phase of the filter (default: ``'zero'``).
+    fir_window : str, optional
+        Window function for FIR filter (default: ``'hamming'``).
     """
 
     name = "highpass_filter"
     description = "Apply highpass filter to EEG data"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
 
     def __init__(
         self,
@@ -133,17 +167,6 @@ class HighPassFilter(Filter):
         phase: str = 'zero',
         fir_window: str = 'hamming'
     ):
-        """
-        Initialize highpass filter.
-
-        Args:
-            freq: Highpass cutoff frequency in Hz
-            picks: Channels to filter (None for all)
-            filter_length: Length of the FIR filter
-            method: Filter method ('fir' or 'iir')
-            phase: Phase of the filter
-            fir_window: Window to use for FIR filter
-        """
         super().__init__(
             l_freq=freq,
             h_freq=None,
@@ -168,16 +191,35 @@ class HighPassFilter(Filter):
 
 @register_processor
 class LowPassFilter(Filter):
-    """
-    Lowpass filter processor.
+    """Apply a lowpass filter to EEG data.
 
-    Example:
-        filter = LowPassFilter(freq=70.0)
-        context = filter.execute(context)
+    Convenience subclass of :class:`Filter` that exposes a single ``freq``
+    parameter instead of separate ``l_freq``/``h_freq``.
+
+    Parameters
+    ----------
+    freq : float
+        Lowpass cutoff frequency in Hz.
+    picks : str or list of str, optional
+        Channels to filter.  ``None`` filters all channels.
+    filter_length : str, optional
+        Length of the FIR filter (default: ``'auto'``).
+    method : str, optional
+        Filter method, ``'fir'`` or ``'iir'`` (default: ``'fir'``).
+    phase : str, optional
+        Phase of the filter (default: ``'zero'``).
+    fir_window : str, optional
+        Window function for FIR filter (default: ``'hamming'``).
     """
 
     name = "lowpass_filter"
     description = "Apply lowpass filter to EEG data"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
 
     def __init__(
         self,
@@ -188,17 +230,6 @@ class LowPassFilter(Filter):
         phase: str = 'zero',
         fir_window: str = 'hamming'
     ):
-        """
-        Initialize lowpass filter.
-
-        Args:
-            freq: Lowpass cutoff frequency in Hz
-            picks: Channels to filter (None for all)
-            filter_length: Length of the FIR filter
-            method: Filter method ('fir' or 'iir')
-            phase: Phase of the filter
-            fir_window: Window to use for FIR filter
-        """
         super().__init__(
             l_freq=None,
             h_freq=freq,
@@ -223,16 +254,37 @@ class LowPassFilter(Filter):
 
 @register_processor
 class BandPassFilter(Filter):
-    """
-    Bandpass filter processor.
+    """Apply a bandpass filter to EEG data.
 
-    Example:
-        filter = BandPassFilter(l_freq=1.0, h_freq=70.0)
-        context = filter.execute(context)
+    Convenience subclass of :class:`Filter` that requires both ``l_freq``
+    and ``h_freq`` to be specified.
+
+    Parameters
+    ----------
+    l_freq : float
+        Low cutoff frequency in Hz.
+    h_freq : float
+        High cutoff frequency in Hz.
+    picks : str or list of str, optional
+        Channels to filter.  ``None`` filters all channels.
+    filter_length : str, optional
+        Length of the FIR filter (default: ``'auto'``).
+    method : str, optional
+        Filter method, ``'fir'`` or ``'iir'`` (default: ``'fir'``).
+    phase : str, optional
+        Phase of the filter (default: ``'zero'``).
+    fir_window : str, optional
+        Window function for FIR filter (default: ``'hamming'``).
     """
 
     name = "bandpass_filter"
     description = "Apply bandpass filter to EEG data"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
 
     def __init__(
         self,
@@ -244,18 +296,6 @@ class BandPassFilter(Filter):
         phase: str = 'zero',
         fir_window: str = 'hamming'
     ):
-        """
-        Initialize bandpass filter.
-
-        Args:
-            l_freq: Low cutoff frequency in Hz
-            h_freq: High cutoff frequency in Hz
-            picks: Channels to filter (None for all)
-            filter_length: Length of the FIR filter
-            method: Filter method ('fir' or 'iir')
-            phase: Phase of the filter
-            fir_window: Window to use for FIR filter
-        """
         super().__init__(
             l_freq=l_freq,
             h_freq=h_freq,
@@ -269,16 +309,38 @@ class BandPassFilter(Filter):
 
 @register_processor
 class NotchFilter(Processor):
-    """
-    Notch filter processor for removing line noise.
+    """Apply a notch filter to remove line noise from EEG data.
 
-    Example:
-        filter = NotchFilter(freqs=[50, 100])
-        context = filter.execute(context)
+    Wraps :meth:`mne.io.Raw.notch_filter` with configurable FIR/IIR
+    parameters.  Typical use is to remove 50 Hz or 60 Hz mains interference
+    and their harmonics.  If a noise estimate is present in the context, the
+    same filter is applied to keep evaluation results consistent.
+
+    Parameters
+    ----------
+    freqs : float or list of float
+        Frequencies to notch out in Hz (e.g., ``[50, 100]``).
+    picks : str or list of str, optional
+        Channels to filter.  ``None`` filters all channels.
+    filter_length : str, optional
+        Length of the FIR filter (default: ``'auto'``).
+    notch_widths : float or list of float, optional
+        Width of each notch filter.  ``None`` uses MNE defaults.
+    method : str, optional
+        Filter method, ``'fir'`` or ``'iir'`` (default: ``'fir'``).
+    phase : str, optional
+        Phase of the filter (default: ``'zero'``).
+    fir_window : str, optional
+        Window function for FIR filter (default: ``'hamming'``).
     """
 
     name = "notch_filter"
     description = "Apply notch filter to remove line noise"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
     parallel_safe = True
     parallelize_by_channels = True
 
@@ -292,18 +354,6 @@ class NotchFilter(Processor):
         phase: str = 'zero',
         fir_window: str = 'hamming'
     ):
-        """
-        Initialize notch filter.
-
-        Args:
-            freqs: Frequencies to notch filter (e.g., 50, 60 Hz for line noise)
-            picks: Channels to filter (None for all)
-            filter_length: Length of the FIR filter
-            notch_widths: Width of each notch filter (None for default)
-            method: Filter method ('fir' or 'iir')
-            phase: Phase of the filter
-            fir_window: Window to use for FIR filter
-        """
         self.freqs = freqs if isinstance(freqs, list) else [freqs]
         self.picks = picks
         self.filter_length = filter_length
@@ -314,10 +364,13 @@ class NotchFilter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
         raw = context.get_raw().copy()
 
-        logger.info(f"Applying notch filter at {self.freqs}Hz")
+        # --- LOG ---
+        logger.info("Applying notch filter at {} Hz", self.freqs)
 
+        # --- COMPUTE ---
         raw.notch_filter(
             freqs=self.freqs,
             picks=self.picks,
@@ -329,11 +382,12 @@ class NotchFilter(Processor):
             verbose=False
         )
 
-        new_context = context.with_raw(raw)
+        # --- NOISE ---
+        new_ctx = context.with_raw(raw)
         if context.has_estimated_noise():
             noise = context.get_estimated_noise().copy()
-            noise_raw = raw.copy()
-            noise_raw._data = noise
+            with suppress_stdout():
+                noise_raw = mne.io.RawArray(noise, raw.info)
             noise_raw.notch_filter(
                 freqs=self.freqs,
                 picks=self.picks,
@@ -344,6 +398,9 @@ class NotchFilter(Processor):
                 fir_window=self.fir_window,
                 verbose=False
             )
-            new_context.set_estimated_noise(noise_raw._data)
+            new_ctx.set_estimated_noise(noise_raw.get_data())
+        else:
+            logger.debug("No noise estimate present — skipping noise propagation")
 
-        return new_context
+        # --- RETURN ---
+        return new_ctx

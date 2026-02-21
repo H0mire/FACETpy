@@ -13,20 +13,39 @@ from loguru import logger
 import numpy as np
 
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..logging_config import suppress_stdout
 
 
 @register_processor
 class Resample(Processor):
-    """
-    Generic resampling processor.
+    """Resample EEG data to a fixed target sampling frequency.
 
-    Example:
-        resample = Resample(sfreq=1000.0)
-        context = resample.execute(context)
+    Wraps :meth:`mne.io.Raw.resample`.  Trigger positions are scaled
+    proportionally after resampling.  If a noise estimate is present in
+    the context, it is resampled with identical parameters so that
+    downstream evaluation steps remain consistent.
+
+    Parameters
+    ----------
+    sfreq : float
+        Target sampling frequency in Hz.
+    npad : str, optional
+        Amount to pad the start and end of the data (default: ``'auto'``).
+    window : str, optional
+        Window to use for resampling (default: ``'boxcar'``).
+    n_jobs : int, optional
+        Number of parallel jobs for resampling (default: ``1``).
+    verbose : bool, optional
+        MNE verbosity flag passed to ``raw.resample()`` (default: ``False``).
     """
 
     name = "resample"
     description = "Resample EEG data to a new sampling frequency"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
     parallel_safe = True
     parallelize_by_channels = True
 
@@ -38,16 +57,6 @@ class Resample(Processor):
         n_jobs: int = 1,
         verbose: bool = False
     ):
-        """
-        Initialize resampler.
-
-        Args:
-            sfreq: Target sampling frequency in Hz
-            npad: Amount to pad the start and end of the data
-            window: Window to use for resampling
-            n_jobs: Number of parallel jobs for resampling
-            verbose: Verbose output
-        """
         self.sfreq = sfreq
         self.npad = npad
         self.window = window
@@ -56,69 +65,104 @@ class Resample(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        old_sfreq = context.get_sfreq()
+
+        # --- LOG ---
+        logger.info("Resampling from {} Hz to {} Hz", old_sfreq, self.sfreq)
+
+        # --- COMPUTE + NOISE + RETURN ---
+        return self._do_resample(context, self.sfreq)
+
+    def _do_resample(
+        self, context: ProcessingContext, target_sfreq: float
+    ) -> ProcessingContext:
+        """Resample raw and noise to *target_sfreq* and update triggers.
+
+        Parameters
+        ----------
+        context : ProcessingContext
+            Input context (not mutated).
+        target_sfreq : float
+            Target sampling frequency in Hz.
+
+        Returns
+        -------
+        ProcessingContext
+            New context with resampled raw, updated triggers, and propagated
+            noise estimate.
+        """
         raw = context.get_raw().copy()
         old_sfreq = raw.info['sfreq']
 
-        logger.info(f"Resampling from {old_sfreq}Hz to {self.sfreq}Hz")
-
-        noise_raw = None
-        if context.has_estimated_noise():
-            noise_raw = raw.copy()
-            noise_raw._data = context.get_estimated_noise().copy()
-
         raw.resample(
-            sfreq=self.sfreq,
+            sfreq=target_sfreq,
             npad=self.npad,
             window=self.window,
             n_jobs=self.n_jobs,
             verbose=self.verbose
         )
 
-        new_metadata = context.metadata.copy()
+        # --- BUILD RESULT ---
+        new_ctx = context.with_raw(raw)
 
         if context.has_triggers():
             triggers = context.get_triggers()
-            resampling_factor = self.sfreq / old_sfreq
-            new_triggers = np.array([
-                int(trigger * resampling_factor) for trigger in triggers
-            ])
-            new_metadata.triggers = new_triggers
-            logger.debug(f"Updated {len(new_triggers)} trigger positions")
+            scale_factor = target_sfreq / old_sfreq
+            new_triggers = (triggers * scale_factor).astype(int)
+            logger.debug("Updated {} trigger positions", len(new_triggers))
+            new_ctx = new_ctx.with_triggers(new_triggers)
 
-        new_context = context.with_raw(raw)
-        new_context._metadata = new_metadata
-
+        # --- NOISE ---
         if context.has_estimated_noise():
-            if noise_raw is None:
-                noise_resampled = np.zeros(new_context.get_raw()._data.shape)
-            else:
-                noise_raw.resample(
-                    sfreq=self.sfreq,
-                    npad=self.npad,
-                    window=self.window,
-                    n_jobs=self.n_jobs,
-                    verbose=False
-                )
-                noise_resampled = noise_raw._data.copy()
-            new_context.set_estimated_noise(noise_resampled)
+            noise = context.get_estimated_noise().copy()
+            with suppress_stdout():
+                noise_raw = mne.io.RawArray(noise, raw.info)
+            noise_raw.resample(
+                sfreq=target_sfreq,
+                npad=self.npad,
+                window=self.window,
+                n_jobs=self.n_jobs,
+                verbose=False
+            )
+            new_ctx.set_estimated_noise(noise_raw.get_data())
+        else:
+            logger.debug("No noise estimate present — skipping noise propagation")
 
-        return new_context
+        # --- RETURN ---
+        return new_ctx
 
 
 @register_processor
 class UpSample(Resample):
-    """
-    Upsample processor.
+    """Upsample EEG data by a fixed integer factor.
 
-    Increases sampling frequency by a factor.
+    Increases the sampling frequency by multiplying it by *factor*.  Trigger
+    positions and any noise estimate are scaled accordingly.
 
-    Example:
-        upsample = UpSample(factor=10)
-        context = upsample.execute(context)
+    Parameters
+    ----------
+    factor : int, optional
+        Upsampling factor, e.g. ``10`` increases the sampling frequency
+        ten-fold (default: ``10``).
+    npad : str, optional
+        Amount to pad the start and end of the data (default: ``'auto'``).
+    window : str, optional
+        Window to use for resampling (default: ``'boxcar'``).
+    n_jobs : int, optional
+        Number of parallel jobs for resampling (default: ``1``).
+    verbose : bool, optional
+        MNE verbosity flag passed to ``raw.resample()`` (default: ``False``).
     """
 
     name = "upsample"
     description = "Upsample EEG data by a factor"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
 
     def __init__(
         self,
@@ -128,28 +172,16 @@ class UpSample(Resample):
         n_jobs: int = 1,
         verbose: bool = False
     ):
-        """
-        Initialize upsampler.
-
-        Args:
-            factor: Upsampling factor (e.g., 10 means 10x increase)
-            npad: Amount to pad the start and end of the data
-            window: Window to use for resampling
-            n_jobs: Number of parallel jobs
-            verbose: Verbose output
-        """
         self.factor = factor
-        # Initialize parent with a dummy sfreq (will be overridden in process)
-        super().__init__(
-            sfreq=1.0,  # Dummy value, set properly in process()
-            npad=npad,
-            window=window,
-            n_jobs=n_jobs,
-            verbose=verbose
-        )
+        self.npad = npad
+        self.window = window
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        # Bypass Resample.__init__ — no fixed target sfreq at construction time.
+        Processor.__init__(self)
 
     def _get_parameters(self):
-        """Override to include factor instead of sfreq."""
+        """Expose factor instead of sfreq for history/serialization."""
         return {
             'factor': self.factor,
             'npad': self.npad,
@@ -158,31 +190,50 @@ class UpSample(Resample):
         }
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        raw = context.get_raw()
-        old_sfreq = raw.info['sfreq']
+        # --- EXTRACT ---
+        old_sfreq = context.get_sfreq()
         target_sfreq = old_sfreq * self.factor
 
-        self.sfreq = target_sfreq
+        # --- LOG ---
+        logger.info(
+            "Upsampling by factor {} ({} Hz -> {} Hz)",
+            self.factor, old_sfreq, target_sfreq
+        )
 
-        logger.info(f"Upsampling by factor {self.factor} ({old_sfreq}Hz -> {target_sfreq}Hz)")
-
-        return super().process(context)
+        # --- COMPUTE + NOISE + RETURN ---
+        return self._do_resample(context, target_sfreq)
 
 
 @register_processor
 class DownSample(Resample):
-    """
-    Downsample processor.
+    """Downsample EEG data by a fixed integer factor.
 
-    Decreases sampling frequency by a factor.
+    Decreases the sampling frequency by dividing it by *factor*.  Trigger
+    positions and any noise estimate are scaled accordingly.
 
-    Example:
-        downsample = DownSample(factor=10)
-        context = downsample.execute(context)
+    Parameters
+    ----------
+    factor : int, optional
+        Downsampling factor, e.g. ``10`` reduces the sampling frequency
+        ten-fold (default: ``10``).
+    npad : str, optional
+        Amount to pad the start and end of the data (default: ``'auto'``).
+    window : str, optional
+        Window to use for resampling (default: ``'boxcar'``).
+    n_jobs : int, optional
+        Number of parallel jobs for resampling (default: ``1``).
+    verbose : bool, optional
+        MNE verbosity flag passed to ``raw.resample()`` (default: ``False``).
     """
 
     name = "downsample"
     description = "Downsample EEG data by a factor"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
 
     def __init__(
         self,
@@ -192,28 +243,16 @@ class DownSample(Resample):
         n_jobs: int = 1,
         verbose: bool = False
     ):
-        """
-        Initialize downsampler.
-
-        Args:
-            factor: Downsampling factor (e.g., 10 means 10x decrease)
-            npad: Amount to pad the start and end of the data
-            window: Window to use for resampling
-            n_jobs: Number of parallel jobs
-            verbose: Verbose output
-        """
         self.factor = factor
-        # Initialize parent with a dummy sfreq (will be overridden in process)
-        super().__init__(
-            sfreq=1.0,  # Dummy value, set properly in process()
-            npad=npad,
-            window=window,
-            n_jobs=n_jobs,
-            verbose=verbose
-        )
+        self.npad = npad
+        self.window = window
+        self.n_jobs = n_jobs
+        self.verbose = verbose
+        # Bypass Resample.__init__ — no fixed target sfreq at construction time.
+        Processor.__init__(self)
 
     def _get_parameters(self):
-        """Override to include factor instead of sfreq."""
+        """Expose factor instead of sfreq for history/serialization."""
         return {
             'factor': self.factor,
             'npad': self.npad,
@@ -222,23 +261,25 @@ class DownSample(Resample):
         }
 
     def validate(self, context: ProcessingContext) -> None:
-        """Validate that downsampling is possible."""
+        """Check that the resulting sampling frequency is at least 1 Hz."""
         super().validate(context)
-        raw = context.get_raw()
-        target_sfreq = raw.info['sfreq'] / self.factor
+        target_sfreq = context.get_sfreq() / self.factor
         if target_sfreq < 1:
             raise ProcessorValidationError(
-                f"Downsampling factor {self.factor} would result in "
-                f"sampling frequency < 1Hz"
+                "Downsampling factor {} would result in sampling frequency < 1 Hz "
+                "(current sfreq={} Hz)".format(self.factor, context.get_sfreq())
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        raw = context.get_raw()
-        old_sfreq = raw.info['sfreq']
+        # --- EXTRACT ---
+        old_sfreq = context.get_sfreq()
         target_sfreq = old_sfreq / self.factor
 
-        self.sfreq = target_sfreq
+        # --- LOG ---
+        logger.info(
+            "Downsampling by factor {} ({} Hz -> {} Hz)",
+            self.factor, old_sfreq, target_sfreq
+        )
 
-        logger.info(f"Downsampling by factor {self.factor} ({old_sfreq}Hz -> {target_sfreq}Hz)")
-
-        return super().process(context)
+        # --- COMPUTE + NOISE + RETURN ---
+        return self._do_resample(context, target_sfreq)
