@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 from abc import ABC
 from enum import Enum
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Generator, Optional, List
 
 
 class ConsoleMode(str, Enum):
@@ -78,6 +79,15 @@ class BaseConsole(ABC):
         """
         return None
 
+    @contextlib.contextmanager
+    def suspend_raw_mode(self) -> Generator[None, None, None]:
+        """Temporarily restore cooked terminal mode for input()/readline() calls.
+
+        The default implementation is a no-op; ``ModernConsole`` overrides it
+        to pause the raw-mode keyboard listener for the duration of the block.
+        """
+        yield
+
     def shutdown(self) -> None:
         """Release console resources (if any)."""
 
@@ -137,6 +147,10 @@ class NullConsole(BaseConsole):
 
     def get_rich_console(self) -> Any:  # noqa: D401
         return None
+
+    @contextlib.contextmanager
+    def suspend_raw_mode(self) -> Generator[None, None, None]:  # noqa: D401
+        yield
 
     def shutdown(self) -> None:  # noqa: D401
         return None

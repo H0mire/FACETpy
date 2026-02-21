@@ -15,6 +15,7 @@ from typing import Optional
 
 from loguru import logger
 
+from ..console import suspend_raw_mode
 from ..core import Processor, ProcessingContext, register_processor
 
 
@@ -66,15 +67,18 @@ class WaitForConfirmation(Processor):
             logger.warning("Standard input is not interactive; continuing automatically.")
             return context
 
-        try:
-            if self.timeout is None:
-                input(f"{self.message} ")
-            else:
-                self._prompt_with_timeout()
-        except (EOFError, KeyboardInterrupt):
-            logger.info("User aborted confirmation step; continuing execution.")
-        except TimeoutError as exc:
-            logger.warning(str(exc))
+        # Suspend raw terminal mode while waiting so input()/readline() work
+        # correctly even when the ModernConsole keyboard listener is active.
+        with suspend_raw_mode():
+            try:
+                if self.timeout is None:
+                    input(f"{self.message} ")
+                else:
+                    self._prompt_with_timeout()
+            except (EOFError, KeyboardInterrupt):
+                logger.info("User aborted confirmation step; continuing execution.")
+            except TimeoutError as exc:
+                logger.warning(str(exc))
         return context
 
     def _prompt_with_timeout(self) -> None:

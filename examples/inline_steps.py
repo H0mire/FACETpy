@@ -14,6 +14,7 @@ PrintMetric that eliminate common boilerplate lambdas.
 """
 
 from facet import (
+    MetricsReport,
     Pipeline,
     ProcessingContext,
     EDFLoader,
@@ -44,15 +45,13 @@ OUTPUT_FILE = "./output/corrected_inline.edf"
 # Use a def for anything that needs more than one line.
 
 def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
-    """Print current sampling frequency — handy for sanity-checking."""
-    print(f"  sfreq = {ctx.get_sfreq()} Hz, "
-          f"n_triggers = {len(ctx.get_triggers() or [])}")
+    triggers = ctx.get_triggers()
+    n_triggers = len(triggers) if triggers is not None else 0
+    print(f"  sfreq = {ctx.get_sfreq()} Hz, " f"n_triggers = {n_triggers}")
     return ctx
-
 
 pipeline = Pipeline([
     EDFLoader(path=INPUT_FILE, preload=True),
-
     # Drop non-EEG channels by name — no lambda needed
     DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
 
@@ -96,8 +95,19 @@ ctx = (
     | AASCorrection(window_size=30)
     | DownSample(factor=10)
     | SNRCalculator()
+    | MetricsReport(name="Pipe-operator result")
 )
 
+from rich import print
+from rich.panel import Panel
+
+print(
+    Panel.fit(
+        "[bold green]✨ Execution finished! ✨\n\n[dim]Press [bold]q[/bold] to quit.",
+        border_style="green",
+        title="FACETpy",
+    )
+)
 print(f"\nPipe-operator result: SNR = {ctx.get_metric('snr', 'N/A'):.3f}")
 
 # Custom def steps also work with |

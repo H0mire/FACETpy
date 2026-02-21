@@ -124,16 +124,19 @@ def configure_logging(force: bool = False) -> Optional[Path]:
     logger.remove()
 
     # Console sink keeps interactive feedback.
+    # enqueue=False keeps logging synchronous so message ordering is preserved —
+    # with enqueue=True the background dispatch thread interleaves logger.info()
+    # calls with direct print() writes, producing scrambled log output.
     if console_renderer.enabled and console_renderer.requires_sink:
         logger.add(
             console_renderer.log_sink,
             level=console_level,
-            enqueue=True,
+            enqueue=False,
             backtrace=False,
             diagnose=False,
         )
     else:
-        logger.add(sys.stderr, level=console_level, enqueue=True, backtrace=True, diagnose=False)
+        logger.add(sys.stderr, level=console_level, enqueue=False, backtrace=True, diagnose=False)
 
     # File sink is opt-in: set FACET_LOG_FILE=1 to enable per-run log files.
     log_file = None
