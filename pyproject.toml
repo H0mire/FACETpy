@@ -3,7 +3,7 @@ name = "facet"
 version = "2.0.0"
 description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
 authors = ["Janik Michael Mueller <janik.michael.mueller@gmail.com>"]
-license = "GNUv3"
+license = "GPL-3.0-only"
 readme = "README.rst"
 
 [tool.poetry.dependencies]
@@ -39,3 +39,25 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 build-fastranc = "facet.build:compile_fastranc"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # line length (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["facet"]
