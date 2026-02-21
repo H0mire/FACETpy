@@ -150,4 +150,7 @@ export/
 *.pth.tar.gz
 *.pth.tar.bz2
 
+# project specific
 logs/
+output/
+docs/build/
