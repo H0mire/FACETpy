@@ -16,6 +16,11 @@ from ..console import get_console
 from ..console.progress import set_current_step_index
 
 
+class PipelineError(Exception):
+    """Base exception for pipeline-related errors."""
+    pass
+
+
 class PipelineResult:
     """
     Result of pipeline execution.
@@ -114,9 +119,6 @@ class Pipeline:
 
     def _validate_pipeline(self) -> None:
         """Validate pipeline structure."""
-        if not self.processors:
-            raise ValueError("Pipeline must contain at least one processor")
-
         for i, proc in enumerate(self.processors):
             if not isinstance(proc, Processor):
                 raise TypeError(

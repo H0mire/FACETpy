@@ -77,7 +77,7 @@ class TestProcessorBase:
 
         history = result.get_history()
         assert len(history) == 1
-        assert history[0]['processor'] == "test"
+        assert history[0].name == "test"
 
     def test_processor_get_parameters(self):
         """Test _get_parameters method."""
@@ -217,7 +217,7 @@ class TestSwitchProcessor:
 
         switch = SwitchProcessor(
             selector=lambda ctx: "a",
-            processors={"a": proc_a, "b": proc_b}
+            cases={"a": proc_a, "b": proc_b}
         )
 
         result = switch.execute(sample_context)
@@ -237,7 +237,7 @@ class TestSwitchProcessor:
 
         switch = SwitchProcessor(
             selector=selector,
-            processors={"low": proc_low, "high": proc_high}
+            cases={"low": proc_low, "high": proc_high}
         )
 
         result = switch.execute(sample_context)
@@ -253,7 +253,7 @@ class TestSwitchProcessor:
 
         switch = SwitchProcessor(
             selector=lambda ctx: "unknown",
-            processors={"a": proc_a},
+            cases={"a": proc_a},
             default=proc_default
         )
 
@@ -269,7 +269,7 @@ class TestSwitchProcessor:
 
         switch = SwitchProcessor(
             selector=lambda ctx: "unknown",
-            processors={"a": proc_a}
+            cases={"a": proc_a}
         )
 
         with pytest.raises(ProcessorError):

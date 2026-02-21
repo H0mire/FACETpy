@@ -1,8 +1,23 @@
+"""
+MATLAB Reference Implementation — Sub-sample Alignment
+
+This module is a direct port of the MATLAB RAAlignSubSample routine kept as a
+reference for the algorithm.  It is **not** used by the v2.0 pipeline; see
+``facet.preprocessing.alignment.SubsampleAligner`` for the production processor.
+"""
+
 import numpy as np
 
 
-class YourClass:
-    # Assuming the presence of required attributes and methods like SplitVector, ProfileStart, and ProfileStop
+class MatlabSubSampleAlignment:
+    """Reference port of the MATLAB sub-sample alignment algorithm.
+
+    This class relies on attributes (``TriggersUp``, ``SplitVector``, etc.)
+    that only existed in the pre-v2.0 monolithic class and is therefore not
+    directly usable in the current architecture.  It is retained solely for
+    algorithmic reference.
+    """
+
     def AlignSubSample(self):
         # maximum distance between triggers
         MaxTrigDist = np.max(np.diff(self.TriggersUp))

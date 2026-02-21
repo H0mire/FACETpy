@@ -106,7 +106,7 @@ class ANCCorrection(Processor):
             logger.warning("No EEG channels found, skipping ANC")
             return context
 
-        # Derive ANC parameters (mirrors legacy behaviour)
+        # Derive ANC parameters from artifact length and sampling rate
         artifact_length = context.get_artifact_length()
         if artifact_length is None or artifact_length <= 0:
             raise ProcessorValidationError(
@@ -174,7 +174,7 @@ class ANCCorrection(Processor):
                 except Exception as ex:
                     logger.error(f"ANC failed for channel {ch_name}: {ex}")
                     logger.warning(f"Skipping ANC for channel {ch_name}")
-                    status = f"\{idx + 1}/{len(eeg_channels)} • {ch_name} (skipped)"
+                    status = f"\t{idx + 1}/{len(eeg_channels)} • {ch_name} (skipped)"
 
                 progress.advance(1, message=status)
 
@@ -368,7 +368,7 @@ class ANCCorrection(Processor):
         sfreq: float
     ) -> Dict[str, Any]:
         """
-        Derive ANC parameters using legacy heuristics.
+        Derive ANC parameters from trigger rate and sampling frequency.
         """
         triggers = context.get_triggers()
         if triggers is None:
@@ -401,7 +401,7 @@ class ANCCorrection(Processor):
 
     def _design_highpass(self, cutoff_hz: float, sfreq: float) -> np.ndarray:
         """
-        Design high-pass FIR filter using firls (legacy-style).
+        Design high-pass FIR filter using firls.
         """
         from scipy.signal import firls
 

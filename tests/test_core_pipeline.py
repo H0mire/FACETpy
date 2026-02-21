@@ -102,7 +102,7 @@ class TestPipeline:
         assert len(history) >= 2
 
         # Check processors are recorded
-        processor_names = [h['processor'] for h in history]
+        processor_names = [h.name for h in history]
         assert "proc1" in processor_names
         assert "proc2" in processor_names
 
@@ -122,7 +122,7 @@ class TestPipeline:
 
         repr_str = repr(pipeline)
         assert "My Pipeline" in repr_str
-        assert "1 processors" in repr_str
+        assert "n_processors=1" in repr_str
 
 
 @pytest.mark.unit

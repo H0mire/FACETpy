@@ -61,8 +61,7 @@ ENV/
 # macOS
 .DS_Store
 
-# Poetry
-poetry.lock
+# Poetry lock file is tracked for reproducible builds
 
 # Compiled C extensions
 *.so

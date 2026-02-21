@@ -1,8 +1,8 @@
 """
 Acquisition Window Processors
 
-Processors that manage the acquisition window metadata used by the legacy
-FACET pipeline (Cut/Paste steps).
+Processors that manage the acquisition window metadata used by the
+Cut/Paste correction steps.
 
 These processors do not mutate the raw signal directly; instead they record
 window bounds and trigger offsets in the processing metadata so downstream

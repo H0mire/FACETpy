@@ -38,7 +38,9 @@ from .core import (
     ParallelExecutor,
 
     # Exceptions
-    ProcessorValidationError
+    ProcessorError,
+    ProcessorValidationError,
+    PipelineError
 )
 
 # I/O processors
@@ -135,7 +137,9 @@ __all__ = [
     'get_processor',
     'list_processors',
     'ParallelExecutor',
+    'ProcessorError',
     'ProcessorValidationError',
+    'PipelineError',
 
     # I/O
     'EDFLoader',

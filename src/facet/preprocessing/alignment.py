@@ -244,7 +244,7 @@ class TriggerAligner(Processor):
 
 @register_processor
 class SliceAligner(TriggerAligner):
-    """Align slices on already upsampled data (legacy RAAlignSlices)."""
+    """Align slices on already upsampled data (skips internal upsampling)."""
 
     name = "slice_aligner"
     description = "Align slice triggers on upsampled data"

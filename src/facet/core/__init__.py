@@ -10,6 +10,7 @@ Date: 2025-01-12
 from .context import ProcessingContext, ProcessingMetadata, ProcessingStep
 from .processor import (
     Processor,
+    ProcessorError,
     ProcessorValidationError,
     SequenceProcessor,
     ConditionalProcessor,
@@ -17,7 +18,7 @@ from .processor import (
     NoOpProcessor,
     LambdaProcessor
 )
-from .pipeline import Pipeline, PipelineBuilder, PipelineResult
+from .pipeline import Pipeline, PipelineBuilder, PipelineResult, PipelineError
 from .registry import (
     ProcessorRegistry,
     register_processor,
@@ -34,6 +35,7 @@ __all__ = [
 
     # Processor
     'Processor',
+    'ProcessorError',
     'ProcessorValidationError',
     'SequenceProcessor',
     'ConditionalProcessor',
@@ -45,6 +47,7 @@ __all__ = [
     'Pipeline',
     'PipelineBuilder',
     'PipelineResult',
+    'PipelineError',
 
     # Registry
     'ProcessorRegistry',

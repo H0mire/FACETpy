@@ -14,7 +14,12 @@ from loguru import logger
 from .context import ProcessingContext
 
 
-class ProcessorValidationError(Exception):
+class ProcessorError(Exception):
+    """Base exception for all processor-related errors."""
+    pass
+
+
+class ProcessorValidationError(ProcessorError):
     """Raised when processor validation fails."""
     pass
 

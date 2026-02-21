@@ -181,9 +181,9 @@ class TestProcessingContext:
         # Check it's recorded
         history = sample_context.get_history()
         assert len(history) == 1
-        assert history[0]['processor'] == "test_processor"
-        assert history[0]['parameters'] == {'param1': 'value1'}
-        assert 'timestamp' in history[0]
+        assert history[0].name == "test_processor"
+        assert history[0].parameters == {'param1': 'value1'}
+        assert history[0].timestamp > 0
 
     def test_to_dict(self, sample_context):
         """Test serialization to dict."""

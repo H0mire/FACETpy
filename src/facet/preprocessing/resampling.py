@@ -62,7 +62,7 @@ class Resample(Processor):
 
         logger.info(f"Resampling from {old_sfreq}Hz to {self.sfreq}Hz")
 
-        # Prepare estimated noise resampling (mirrors legacy behaviour)
+        # Resample estimated noise alongside the main signal to keep them in sync
         noise_raw = None
         if context.has_estimated_noise():
             noise_raw = raw.copy()
