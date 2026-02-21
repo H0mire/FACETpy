@@ -426,7 +426,7 @@ class AASCorrection(Processor):
                 epoch_data = epoch_data[:-1]
 
             # Calculate averaged artifacts using matrix multiplication
-            averaged_artifacts = avg_matrix @ epoch_data
+            averaged_artifacts = np.dot(avg_matrix, epoch_data)
 
             # Handle case where matrix size doesn't match triggers
             if len(averaged_artifacts) < len(triggers):

@@ -69,6 +69,7 @@ class ANCCorrection(Processor):
         self.filter_order_override = (
             max(1, int(filter_order)) if filter_order is not None else None
         )
+        self.filter_order = self.filter_order_override
         self.hp_freq = hp_freq
         self.hp_filter_weights = hp_filter_weights
         self.use_c_extension = use_c_extension

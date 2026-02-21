@@ -177,10 +177,20 @@ class EDFLoader(Processor):
                 full_n_times,
             )
 
+        # Store sample window in metadata when a non-trivial window was requested
+        acq_start = start_idx if start_idx != 0 else None
+        acq_end = stop_idx if stop_idx != full_n_times else None
+        if self.start_sample is not None:
+            acq_start = start_idx
+        if self.stop_sample is not None:
+            acq_end = stop_idx
+
         # Create metadata
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor
+            upsampling_factor=self.upsampling_factor,
+            acq_start_sample=acq_start,
+            acq_end_sample=acq_end,
         )
 
         # Create context

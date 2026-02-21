@@ -28,10 +28,10 @@ class ProcessingMetadata:
     acq_end_sample: Optional[int] = None
     pre_trigger_samples: Optional[int] = None
     post_trigger_samples: Optional[int] = None
-    upsampling_factor: int = 1
+    upsampling_factor: int = 10
     artifact_length: Optional[int] = None
     slices_per_volume: Optional[int] = None
-    volume_gaps: Optional[bool] = None
+    volume_gaps: bool = False
     custom: Dict[str, Any] = field(default_factory=dict)
 
     def copy(self) -> 'ProcessingMetadata':
@@ -49,6 +49,44 @@ class ProcessingMetadata:
             slices_per_volume=self.slices_per_volume,
             volume_gaps=self.volume_gaps,
             custom=deepcopy(self.custom)
+        )
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize metadata to dictionary."""
+        return {
+            'triggers': self.triggers.tolist() if self.triggers is not None else None,
+            'trigger_regex': self.trigger_regex,
+            'artifact_to_trigger_offset': self.artifact_to_trigger_offset,
+            'acq_start_sample': self.acq_start_sample,
+            'acq_end_sample': self.acq_end_sample,
+            'pre_trigger_samples': self.pre_trigger_samples,
+            'post_trigger_samples': self.post_trigger_samples,
+            'upsampling_factor': self.upsampling_factor,
+            'artifact_length': self.artifact_length,
+            'slices_per_volume': self.slices_per_volume,
+            'volume_gaps': self.volume_gaps,
+            'custom': deepcopy(self.custom),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'ProcessingMetadata':
+        """Deserialize metadata from dictionary."""
+        triggers = data.get('triggers')
+        if triggers is not None:
+            triggers = np.array(triggers)
+        return cls(
+            triggers=triggers,
+            trigger_regex=data.get('trigger_regex'),
+            artifact_to_trigger_offset=data.get('artifact_to_trigger_offset', 0.0),
+            acq_start_sample=data.get('acq_start_sample'),
+            acq_end_sample=data.get('acq_end_sample'),
+            pre_trigger_samples=data.get('pre_trigger_samples'),
+            post_trigger_samples=data.get('post_trigger_samples'),
+            upsampling_factor=data.get('upsampling_factor', 10),
+            artifact_length=data.get('artifact_length'),
+            slices_per_volume=data.get('slices_per_volume'),
+            volume_gaps=data.get('volume_gaps', False),
+            custom=deepcopy(data.get('custom', {})),
         )
 
 
@@ -98,7 +136,7 @@ class ProcessingContext:
             metadata: Processing metadata (if None, creates empty)
         """
         self._raw = raw
-        self._raw_original = raw_original if raw_original is not None else raw.copy()
+        self._raw_original = raw_original if raw_original is not None else raw
         self._metadata = metadata if metadata is not None else ProcessingMetadata()
         self._history: List[ProcessingStep] = []
         self._estimated_noise: Optional[np.ndarray] = None
@@ -222,20 +260,23 @@ class ProcessingContext:
 
     def add_history_entry(
         self,
-        name: str,
-        processor_type: str,
-        parameters: Dict[str, Any]
+        name: Optional[str] = None,
+        processor_type: str = "",
+        parameters: Optional[Dict[str, Any]] = None,
+        *,
+        processor_name: Optional[str] = None,
     ) -> None:
         """Add entry to processing history."""
         import time
+        resolved_name = processor_name if processor_name is not None else (name or "")
         step = ProcessingStep(
-            name=name,
+            name=resolved_name,
             processor_type=processor_type,
-            parameters=parameters,
+            parameters=parameters or {},
             timestamp=time.time()
         )
         self._history.append(step)
-        logger.debug(f"Added processing step: {name}")
+        logger.debug(f"Added processing step: {resolved_name}")
 
     # =========================================================================
     # Cache Management
@@ -346,22 +387,19 @@ class ProcessingContext:
             Dictionary representation
         """
         return {
+            'raw': self._raw,
             'raw_data': self._call_raw_get_data(copy=False),
             'raw_info': self._raw.info,
-            'metadata': {
-                'triggers': self._metadata.triggers,
-                'trigger_regex': self._metadata.trigger_regex,
-                'artifact_to_trigger_offset': self._metadata.artifact_to_trigger_offset,
-                'acq_start_sample': self._metadata.acq_start_sample,
-                'acq_end_sample': self._metadata.acq_end_sample,
-                'pre_trigger_samples': self._metadata.pre_trigger_samples,
-                'post_trigger_samples': self._metadata.post_trigger_samples,
-                'upsampling_factor': self._metadata.upsampling_factor,
-                'artifact_length': self._metadata.artifact_length,
-                'slices_per_volume': self._metadata.slices_per_volume,
-                'volume_gaps': self._metadata.volume_gaps,
-                'custom': self._metadata.custom
-            },
+            'metadata': self._metadata.to_dict(),
+            'history': [
+                {
+                    'name': step.name,
+                    'processor_type': step.processor_type,
+                    'parameters': step.parameters,
+                    'timestamp': step.timestamp,
+                }
+                for step in self._history
+            ],
             'estimated_noise': self._estimated_noise
         }
 

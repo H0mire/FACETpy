@@ -107,21 +107,45 @@ def sample_context(sample_raw, sample_triggers):
 
 
 @pytest.fixture
-def sample_edf_file(temp_dir, sample_raw_with_artifacts, sample_triggers):
-    """Create a sample EDF file with triggers."""
-    # Add trigger annotations
-    trigger_times = sample_triggers / TEST_SFREQ
+def sample_edf_file(temp_dir):
+    """Create a sample EDF file with triggers and pre/post-acquisition padding."""
+    rng = np.random.RandomState(0)
+
+    # Add 2 s of pre-acquisition and 2 s of post-acquisition padding so that
+    # SNR / RMS calculators can find clean reference data outside the
+    # acquisition window.
+    pre_acq_samples = 2 * TEST_SFREQ   # 500 samples @ 250 Hz
+    post_acq_samples = 2 * TEST_SFREQ  # 500 samples @ 250 Hz
+    acq_n_samples = TEST_N_TRIGGERS * (TEST_SFREQ // TEST_N_TRIGGERS) * TEST_N_TRIGGERS
+    total_samples = pre_acq_samples + acq_n_samples + post_acq_samples
+
+    data = rng.randn(TEST_N_CHANNELS, total_samples) * 1e-6
+
+    # Add simulated artifacts at regular intervals starting after pre-acq padding
+    interval = acq_n_samples // TEST_N_TRIGGERS
+    artifact_amplitude = 50e-6
+    trigger_positions = []
+    for i in range(TEST_N_TRIGGERS):
+        start = pre_acq_samples + i * interval
+        end = start + TEST_ARTIFACT_LENGTH
+        if end <= total_samples:
+            data[:, start:end] += artifact_amplitude
+            trigger_positions.append(start)
+
+    ch_names = [f'EEG{i+1:03d}' for i in range(TEST_N_CHANNELS)]
+    info = mne.create_info(ch_names=ch_names, sfreq=TEST_SFREQ, ch_types=['eeg'] * TEST_N_CHANNELS)
+    raw = mne.io.RawArray(data, info, verbose=False)
+
+    trigger_times = np.array(trigger_positions) / TEST_SFREQ
     annotations = mne.Annotations(
         onset=trigger_times,
         duration=np.zeros(len(trigger_times)),
         description=['1'] * len(trigger_times)
     )
-    sample_raw_with_artifacts.set_annotations(annotations)
+    raw.set_annotations(annotations)
 
-    # Save to EDF
     edf_path = temp_dir / "test_data.edf"
-    sample_raw_with_artifacts.export(str(edf_path), verbose=False)
-
+    raw.export(str(edf_path), verbose=False)
     return edf_path
 
 

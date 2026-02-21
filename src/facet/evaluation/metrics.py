@@ -109,12 +109,11 @@ class ReferenceDataMixin:
             return np.array([])
             
         # Define acquisition window with small margin to cover full artifacts
-        # Similar to MATLAB's logic using triggers
         acq_start = max(0, triggers[0] - int(artifact_length * 0.5))
         acq_end = min(raw.n_times, triggers[-1] + int(artifact_length * 1.5))
         
         tmin = acq_start / sfreq
-        tmax = acq_end / sfreq
+        tmax = min(acq_end / sfreq, raw.times[-1])
         
         return raw.copy().crop(tmin=tmin, tmax=tmax).get_data(picks=eeg_picks)
 
@@ -288,7 +287,7 @@ class LegacySNRCalculator(Processor):
     def validate(self, context: ProcessingContext) -> None:
         """Validate prerequisites."""
         super().validate(context)
-        if context.get_raw_original() is None:
+        if context.get_raw_original() is context.get_raw():
             raise ProcessorValidationError(
                 "Original raw data not available. Cannot calculate legacy SNR."
             )
@@ -325,7 +324,7 @@ class LegacySNRCalculator(Processor):
         acq_end = min(raw_corrected.n_times, triggers[-1] + int(artifact_length * 1.5))
 
         acq_tmin = acq_start / sfreq
-        acq_tmax = acq_end / sfreq
+        acq_tmax = min(acq_end / sfreq, raw_corrected.times[-1])
 
         corrected_data = raw_corrected.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=picks)
 
@@ -421,7 +420,7 @@ class RMSCalculator(Processor):
         acq_end = min(raw.n_times, triggers[-1] + int(artifact_length * 1.5))
 
         acq_tmin = acq_start / sfreq
-        acq_tmax = acq_end / sfreq
+        acq_tmax = min(acq_end / sfreq, raw.times[-1])
 
         # Get data
         data_corrected = raw.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=eeg_channels)
@@ -634,18 +633,17 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
             logger.warning("Insufficient data for FFT Allen")
             return context
             
-        # Calculate PSD (Welch)
-        # Average across channels
+        # Use the same nperseg for both to ensure matching frequency resolution
+        nperseg = min(n_fft, ref_data.shape[1], corr_data.shape[1])
         
         def calc_psd(data):
-            # Compute PSD for each channel
-            freqs, psd = signal.welch(data, fs=sfreq, nperseg=min(n_fft, data.shape[1]), axis=1)
+            freqs, psd = signal.welch(data, fs=sfreq, nperseg=nperseg, axis=1)
             return freqs, psd
 
         freqs_ref, psd_ref = calc_psd(ref_data)
         freqs_corr, psd_corr = calc_psd(corr_data)
         
-        # Ensure freqs match (they should if nperseg is same)
+        # Ensure freqs match (they should since we use the same nperseg)
         if not np.array_equal(freqs_ref, freqs_corr):
             logger.warning("Frequency mismatch in FFT Allen")
             return context
