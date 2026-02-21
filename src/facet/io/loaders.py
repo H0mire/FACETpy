@@ -127,18 +127,14 @@ class EDFLoader(Processor):
         super().__init__()
 
     def validate(self, context: Optional[ProcessingContext]) -> None:
-        """No validation needed for loader."""
         pass
 
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        """Load EDF file."""
         logger.info(f"Loading EDF file: {self.path}")
 
-        # Load raw data (suppress MNE's verbose print output)
         with suppress_stdout():
             raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
 
-        # Mark bad channels with validation against available channels
         if self.bad_channels:
             available_channels = set(raw.ch_names)
             valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
@@ -185,7 +181,6 @@ class EDFLoader(Processor):
         if self.stop_sample is not None:
             acq_end = stop_idx
 
-        # Create metadata
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
             upsampling_factor=self.upsampling_factor,
@@ -193,7 +188,6 @@ class EDFLoader(Processor):
             acq_end_sample=acq_end,
         )
 
-        # Create context
         ctx = ProcessingContext(raw=raw, metadata=metadata)
 
         logger.info(
@@ -265,17 +259,14 @@ class BIDSLoader(Processor):
         super().__init__()
 
     def validate(self, context: Optional[ProcessingContext]) -> None:
-        """No validation needed for loader."""
         pass
 
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        """Load BIDS data."""
         logger.info(
             f"Loading BIDS data: subject={self.subject}, task={self.task}, "
             f"session={self.session}"
         )
 
-        # Create BIDS path
         bids_path = BIDSPath(
             subject=self.subject,
             session=self.session,
@@ -283,7 +274,6 @@ class BIDSLoader(Processor):
             root=self.root
         )
 
-        # Load raw data
         raw = read_raw_bids(bids_path, verbose=False)
 
         if self.preload:
@@ -291,7 +281,6 @@ class BIDSLoader(Processor):
 
         full_n_times = raw.n_times
 
-        # Mark bad channels with validation against available channels
         if self.bad_channels:
             available_channels = set(raw.ch_names)
             valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
@@ -329,7 +318,6 @@ class BIDSLoader(Processor):
                 full_n_times,
             )
 
-        # Create metadata
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
             upsampling_factor=self.upsampling_factor
@@ -338,7 +326,6 @@ class BIDSLoader(Processor):
         metadata.acq_start_sample = start_idx
         metadata.acq_end_sample = stop_idx
 
-        # Create context
         ctx = ProcessingContext(raw=raw, metadata=metadata)
 
         logger.info(
@@ -398,19 +385,15 @@ class GDFLoader(Processor):
         super().__init__()
 
     def validate(self, context: Optional[ProcessingContext]) -> None:
-        """No validation needed for loader."""
         pass
 
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        """Load GDF file."""
         logger.info(f"Loading GDF file: {self.path}")
 
-        # Load raw data
         raw = mne.io.read_raw_gdf(self.path, preload=self.preload)
 
         full_n_times = raw.n_times
 
-        # Mark bad channels with validation against available channels
         if self.bad_channels:
             available_channels = set(raw.ch_names)
             valid_bad_channels = [ch for ch in self.bad_channels if ch in available_channels]
@@ -448,7 +431,6 @@ class GDFLoader(Processor):
                 full_n_times,
             )
 
-        # Create metadata
         metadata = ProcessingMetadata(
             artifact_to_trigger_offset=self.artifact_to_trigger_offset,
             upsampling_factor=self.upsampling_factor
@@ -456,7 +438,6 @@ class GDFLoader(Processor):
         metadata.acq_start_sample = start_idx
         metadata.acq_end_sample = stop_idx
 
-        # Create context
         ctx = ProcessingContext(raw=raw, metadata=metadata)
 
         logger.info(

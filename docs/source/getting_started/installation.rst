@@ -4,51 +4,44 @@ Installation
 Requirements
 ------------
 
-* Python 3.8 or higher
-* MNE-Python >= 1.0.0
-* NumPy >= 1.20.0
-* SciPy >= 1.7.0
-* scikit-learn >= 1.0.0
-
-Install from PyPI
------------------
-
-The easiest way to install FACETpy is via pip:
-
-.. code-block:: bash
-
-   pip install facetpy
-
-This will install FACETpy and all required dependencies.
+* Python 3.11 or higher
+* MNE-Python 1.10.2
+* NumPy 2.1.3
+* SciPy >= 1.15.3
+* scikit-learn >= 1.4.2
+* `Poetry <https://python-poetry.org>`_ >= 1.4 (package manager)
 
 Install from Source
 -------------------
 
-To get the latest development version:
+FACETpy is managed with Poetry. Clone the repository and install:
 
 .. code-block:: bash
 
    git clone https://github.com/your-org/facetpy.git
    cd facetpy
-   pip install -e .
+   poetry install
+
+Activate the virtual environment:
+
+.. code-block:: bash
+
+   poetry shell
+
+Optional extras:
+
+.. code-block:: bash
+
+   poetry install -E deeplearning   # TensorFlow-based extras
+   poetry install -E notebooks      # Jupyter notebook support
+   poetry install -E gui            # PyQt6 GUI components
+   poetry install -E all            # all optional dependencies
 
 Development Installation
 ------------------------
 
-For development, install with additional dependencies:
-
-.. code-block:: bash
-
-   git clone https://github.com/your-org/facetpy.git
-   cd facetpy
-   pip install -e ".[dev]"
-
-This includes:
-
-* pytest - for running tests
-* sphinx - for building documentation
-* black - for code formatting
-* mypy - for type checking
+The standard ``poetry install`` includes all development dependencies
+(pytest, Sphinx, ruff, etc.).
 
 Optional Components
 -------------------
@@ -56,12 +49,11 @@ Optional Components
 C Extension for ANC
 ~~~~~~~~~~~~~~~~~~~
 
-For faster Adaptive Noise Cancellation, compile the C extension:
+For faster Adaptive Noise Cancellation, compile the C extension once after installing:
 
 .. code-block:: bash
 
-   cd src/facet/helpers
-   python build.py
+   poetry run build-fastranc
 
 This will create:
 
@@ -69,7 +61,8 @@ This will create:
 * ``libfastranc.dylib`` (macOS)
 * ``fastranc.dll`` (Windows)
 
-If the C extension is not available, FACETpy will automatically fall back to a Python implementation.
+If the C extension is not compiled, ``ANCCorrection`` is unavailable but the rest of
+the toolbox works normally.
 
 Verify Installation
 -------------------
@@ -80,9 +73,8 @@ To verify your installation:
 
    import facet
    print(facet.__version__)
-   print(facet.list_processors())
 
-This should print the version number and list of available processors.
+This should print the version number without errors.
 
 Troubleshooting
 ---------------
@@ -101,25 +93,8 @@ See `MNE installation guide <https://mne.tools/stable/install/index.html>`_ for 
 Import Errors
 ~~~~~~~~~~~~~
 
-If you get import errors, ensure all dependencies are installed:
+If you get import errors, reinstall dependencies:
 
 .. code-block:: bash
 
-   pip install -r requirements.txt
-
-Permission Errors
-~~~~~~~~~~~~~~~~~
-
-On Linux/macOS, if you encounter permission errors:
-
-.. code-block:: bash
-
-   pip install --user facetpy
-
-Or use a virtual environment:
-
-.. code-block:: bash
-
-   python -m venv facetpy_env
-   source facetpy_env/bin/activate  # On Windows: facetpy_env\Scripts\activate
-   pip install facetpy
+   poetry install

@@ -436,11 +436,10 @@ class ProcessingContext:
         Returns:
             ProcessingContext instance
         """
-        # Reconstruct Raw object (suppress MNE's verbose print output)
+        # suppress_stdout: RawArray creation prints verbose MNE messages
         with suppress_stdout():
             raw = mne.io.RawArray(data['raw_data'], data['raw_info'])
 
-        # Reconstruct metadata
         metadata = ProcessingMetadata(
             triggers=data['metadata']['triggers'],
             trigger_regex=data['metadata']['trigger_regex'],

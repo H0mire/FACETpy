@@ -50,7 +50,6 @@ class TriggerDetector(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Detect triggers."""
         logger.info(f"Detecting triggers with pattern: {self.regex}")
 
         raw = context.get_raw()
@@ -81,17 +80,14 @@ class TriggerDetector(Processor):
             logger.warning("No triggers found!")
             return context
 
-        # Extract trigger positions
         triggers = np.array([event[0] for event in filtered_events])
 
         logger.info(f"Found {len(triggers)} triggers")
 
-        # Update metadata
         new_metadata = context.metadata.copy()
         new_metadata.triggers = triggers
         new_metadata.trigger_regex = self.regex
 
-        # Derive artifact length from trigger spacing
         if len(triggers) > 1:
             trigger_diffs = np.diff(triggers)
             ptp = np.ptp(trigger_diffs)
@@ -132,7 +128,6 @@ class TriggerDetector(Processor):
             logger.debug(f"Artifact length: {new_metadata.artifact_length} samples")
             logger.debug(f"Volume gaps: {new_metadata.volume_gaps}")
 
-        # Save to annotations if requested
         if self.save_to_annotations:
             raw_copy = raw.copy()
             raw_copy.set_annotations(
@@ -174,22 +169,18 @@ class QRSTriggerDetector(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Detect QRS peaks."""
         from ..helpers import bcg_detector
 
         logger.info("Detecting QRS complexes")
 
         raw = context.get_raw()
 
-        # Detect QRS peaks
         peaks = bcg_detector.fmrib_qrsdetect(raw)
 
         logger.info(f"Found {len(peaks)} QRS peaks")
 
-        # Create events
         triggers = np.array(peaks, dtype=np.int32)
 
-        # Update metadata
         new_metadata = context.metadata.copy()
         new_metadata.triggers = triggers
         new_metadata.trigger_regex = "QRS"
@@ -202,7 +193,6 @@ class QRSTriggerDetector(Processor):
             new_metadata.artifact_length = median_rr // 2
             new_metadata.artifact_to_trigger_offset = -new_metadata.artifact_length / (2 * raw.info['sfreq'])
 
-        # Save to annotations if requested
         if self.save_to_annotations:
             raw_copy = raw.copy()
             raw_copy.set_annotations(
@@ -264,7 +254,6 @@ class MissingTriggerDetector(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Detect missing triggers."""
         logger.info("Searching for missing triggers")
 
         raw = context.get_raw()
@@ -272,16 +261,13 @@ class MissingTriggerDetector(Processor):
         artifact_length = context.get_artifact_length()
         sfreq = raw.info['sfreq']
 
-        # Calculate offset in samples
         tmin = int(context.metadata.artifact_to_trigger_offset * sfreq)
         tmax = tmin + artifact_length
 
         search_window = int(self.search_window_factor * artifact_length)
 
-        # Create template from first few triggers
         ref_channel_data = raw.get_data(picks=[self.ref_channel])[0]
 
-        # Average first 5 triggers for template
         n_template = min(5, len(triggers))
         template_epochs = []
         for i in range(n_template):
@@ -294,7 +280,6 @@ class MissingTriggerDetector(Processor):
 
         missing_triggers = []
 
-        # Check for gaps in trigger sequence
         for i in range(len(triggers) - 1):
             gap = triggers[i + 1] - triggers[i]
             if gap > artifact_length * 1.9:  # Significant gap
@@ -309,11 +294,9 @@ class MissingTriggerDetector(Processor):
                     tmax
                 )
 
-                # Validate with correlation
                 if self._is_artifact(ref_channel_data, template, new_trigger, tmin, artifact_length):
                     missing_triggers.append(new_trigger)
 
-        # Check beginning
         search_pos = triggers[0] - artifact_length
         if search_pos > 0:
             new_trigger = self._align_to_template(
@@ -327,7 +310,6 @@ class MissingTriggerDetector(Processor):
             if self._is_artifact(ref_channel_data, template, new_trigger, tmin, artifact_length):
                 missing_triggers.insert(0, new_trigger)
 
-        # Check end
         search_pos = triggers[-1] + artifact_length
         if search_pos + tmax < len(ref_channel_data):
             new_trigger = self._align_to_template(
@@ -346,7 +328,6 @@ class MissingTriggerDetector(Processor):
         if len(missing_triggers) == 0:
             return context
 
-        # Add to context if requested
         if self.add_to_context:
             all_triggers = np.sort(np.concatenate([triggers, missing_triggers]))
             new_metadata = context.metadata.copy()
@@ -386,7 +367,6 @@ class MissingTriggerDetector(Processor):
         tmin: int,
         tmax: int
     ) -> int:
-        """Align position to template using cross-correlation."""
         segment = data[position + tmin:position + tmax + search_window]
         corr = self._cross_correlation(segment, template, search_window)
         max_idx = np.argmax(corr)
@@ -399,7 +379,6 @@ class MissingTriggerDetector(Processor):
         template: np.ndarray,
         search_window: int
     ) -> np.ndarray:
-        """Calculate cross-correlation."""
         from ..helpers.crosscorr import crosscorrelation
         return crosscorrelation(signal, template, search_window)
 
@@ -427,5 +406,5 @@ class MissingTriggerDetector(Processor):
         try:
             corr = np.abs(pearsonr(segment, template_segment)[0])
             return corr > self.correlation_threshold
-        except:
+        except ValueError:
             return False

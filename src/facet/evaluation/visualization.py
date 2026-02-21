@@ -125,10 +125,7 @@ class RawPlotter(Processor):
             self.picks
         )
 
-        fig = raw.plot(block=not self.auto_close,**plot_kwargs)
-
         if self.save_path:
-            from matplotlib import pyplot as plt  # Lazy import
             self.save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(self.save_path, dpi=150, bbox_inches="tight")
             logger.info(f"Saved MNE plot to {self.save_path}")
@@ -225,7 +222,10 @@ class RawPlotter(Processor):
         title = self.title or f"{channel_name} – {self.duration:.1f}s snippet"
         ax.set_title(title)
 
+        fig = raw.plot(block=not self.auto_close,**plot_kwargs)
+
         if self.save_path:
+            from matplotlib import pyplot as plt  # Lazy import
             self.save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(self.save_path, dpi=150, bbox_inches="tight")
             logger.info(f"Saved Matplotlib plot to {self.save_path}")

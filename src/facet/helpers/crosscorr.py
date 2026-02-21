@@ -12,7 +12,6 @@ def crosscorrelation(x, y, maxlag, mode="corr"):
 
     The return vaue has length 2*maxlag + 1.
     """
-    # ensure that x an y are the same length
     len_diff = len(x) - len(y)
 
     if len_diff > 0:

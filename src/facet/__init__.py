@@ -95,7 +95,6 @@ from .correction import (
     AveragedArtifactSubtraction  # Alias
 )
 
-# Import optional correction processors
 try:
     from .correction import ANCCorrection, AdaptiveNoiseCancellation
     _has_anc = True
@@ -131,7 +130,6 @@ from .misc import (
     generate_synthetic_eeg,
 )
 
-# Build __all__ dynamically
 __all__ = [
     # Version
     '__version__',
@@ -209,7 +207,6 @@ __all__ = [
     'generate_synthetic_eeg',
 ]
 
-# Add optional exports
 if _has_anc:
     __all__.extend(['ANCCorrection', 'AdaptiveNoiseCancellation'])
 

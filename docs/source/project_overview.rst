@@ -54,14 +54,6 @@ Key Features and Capabilities
    - Ballistocardiogram (BCG) artifact detection and correction
    - Adaptive Noise Cancellation (ANC) for residual artifact removal
 
-**Advanced Deep Learning Methods**
-   FACETpy includes cutting-edge deep learning approaches for artifact correction:
-   
-   - **Autoencoder-based correction**: Neural networks trained to learn artifact patterns and remove them more effectively than traditional methods
-   - **PyTorch and TensorFlow implementations**: Support for both major deep learning frameworks
-   - **Curriculum learning**: Progressive training strategies that improve correction performance
-   - **Data augmentation**: Techniques to enhance model robustness with limited training data
-
 **Robust Evaluation Framework**
    - Multiple quality metrics including Signal-to-Noise Ratio (SNR), Root Mean Square (RMS) ratios
    - Automated before/after correction comparisons
@@ -91,32 +83,34 @@ Use Cases and Applications
 Technical Architecture
 ----------------------
 
-FACETpy is built with a modular architecture consisting of three main frameworks:
+FACETpy is built with a modular, pipeline-based architecture. Every processing step is
+a **Processor** that receives a ``ProcessingContext``, performs a single operation, and
+returns a new context. Processors are composed into **Pipelines** that execute them in
+sequence and collect results in a ``PipelineResult``.
 
-**Analysis Framework** (`analysis.py`)
-   Handles data import, trigger detection, parameter derivation, and data export functionalities.
+The main modules are:
 
-**Correction Framework** (`correction.py`)
-   Implements all artifact correction algorithms including AAS, deep learning methods, filtering, and signal processing operations.
-
-**Evaluation Framework** (`evaluation.py`)
-   Provides comprehensive tools for assessing correction quality and comparing different methods.
+- ``facet.core`` — ``Pipeline``, ``Processor``, ``ProcessingContext``, ``PipelineResult``, registry
+- ``facet.io`` — ``EDFLoader``, ``GDFLoader``, ``BIDSLoader``, ``EDFExporter``, ``BIDSExporter``
+- ``facet.preprocessing`` — Filters, resampling, trigger detection, alignment
+- ``facet.correction`` — ``AASCorrection``, ``ANCCorrection``, ``PCACorrection``
+- ``facet.evaluation`` — ``SNRCalculator``, ``RMSCalculator``, ``MetricsReport``, and more
 
 The toolbox is built on top of established scientific Python libraries:
    - **MNE-Python**: For EEG data handling and basic processing
    - **NumPy/SciPy**: For numerical computations and signal processing
-   - **PyTorch/TensorFlow**: For deep learning implementations
-   - **Scikit-learn**: For machine learning utilities
+   - **Scikit-learn**: For PCA-based correction
    - **Matplotlib**: For visualization and plotting
+   - **rich**: For terminal progress display and formatted output
 
 Integration and Workflow
 ------------------------
 
 FACETpy integrates seamlessly into standard neuroimaging workflows:
 
-1. **Data Import**: Load EEG data from various formats with automatic parameter detection
-2. **Preprocessing**: Apply necessary filtering and trigger detection
-3. **Artifact Correction**: Choose from traditional AAS or advanced deep learning methods
+1. **Data Import**: Load EEG data from EDF, GDF, or BIDS formats
+2. **Preprocessing**: Apply filtering, resampling, trigger detection, and alignment
+3. **Artifact Correction**: Apply AAS, ANC, or PCA correction
 4. **Quality Assessment**: Evaluate correction effectiveness using built-in metrics
 5. **Export**: Save corrected data in standard formats for further analysis
 

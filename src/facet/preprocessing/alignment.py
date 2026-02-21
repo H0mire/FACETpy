@@ -128,7 +128,6 @@ class TriggerAligner(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Align triggers."""
         logger.info("Aligning triggers using cross-correlation")
 
         raw = context.get_raw()
@@ -137,7 +136,6 @@ class TriggerAligner(Processor):
         sfreq = raw.info['sfreq']
         upsampling_factor = context.metadata.upsampling_factor
 
-        # Get reference channel
         if self.ref_channel is None:
             eeg_channels = mne.pick_types(
                 raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
@@ -146,13 +144,11 @@ class TriggerAligner(Processor):
         else:
             ref_channel = self.ref_channel
 
-        # Determine search window
         if self.search_window is None:
             search_window = 3 * upsampling_factor
         else:
             search_window = self.search_window
 
-        # Check if we need to upsample
         working_raw = raw
         working_triggers = triggers
         needed_to_upsample = False
@@ -165,32 +161,26 @@ class TriggerAligner(Processor):
             working_triggers = temp_context.get_triggers()
             needed_to_upsample = True
 
-        # Calculate sample offsets
         tmin = int(context.metadata.artifact_to_trigger_offset * working_raw.info['sfreq'])
         tmax = tmin + (artifact_length * upsampling_factor if needed_to_upsample else artifact_length)
 
-        # Get data from reference channel
         ref_data = working_raw.get_data(picks=[ref_channel])[0]
 
-        # Get reference artifact
         ref_trigger = working_triggers[self.ref_trigger_index]
         ref_artifact = ref_data[ref_trigger + tmin:ref_trigger + tmax]
 
         logger.debug(f"Using trigger {self.ref_trigger_index} as reference")
         logger.debug(f"Reference artifact shape: {ref_artifact.shape}")
 
-        # Align all triggers
         aligned_triggers = working_triggers.copy()
         for i, trigger in enumerate(working_triggers):
             if i == self.ref_trigger_index:
                 continue
 
-            # Get current artifact with search window
             current_artifact = ref_data[
                 trigger + tmin:trigger + tmax + search_window
             ]
 
-            # Find max cross-correlation
             corr = self._cross_correlation(current_artifact, ref_artifact, search_window)
             max_idx = np.argmax(corr)
             shift = max_idx - search_window
@@ -199,11 +189,9 @@ class TriggerAligner(Processor):
 
         logger.info(f"Aligned {len(aligned_triggers)} triggers")
 
-        # Convert back to original sampling rate if upsampled
         if needed_to_upsample:
             aligned_triggers = (aligned_triggers / upsampling_factor).astype(int)
 
-        # Update metadata
         new_metadata = context.metadata.copy()
         new_metadata.triggers = aligned_triggers
 
@@ -217,7 +205,6 @@ class TriggerAligner(Processor):
             else:
                 new_metadata.artifact_length = int(np.max(trigger_diffs))
 
-        # Save to annotations if requested
         if self.save_to_annotations:
             raw_copy = raw.copy()
             raw_copy.set_annotations(
@@ -237,7 +224,6 @@ class TriggerAligner(Processor):
         template: np.ndarray,
         search_window: int
     ) -> np.ndarray:
-        """Calculate cross-correlation."""
         from ..helpers.crosscorr import crosscorrelation
         return crosscorrelation(signal, template, search_window)
 

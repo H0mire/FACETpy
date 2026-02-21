@@ -56,19 +56,16 @@ class Resample(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Resample data."""
         raw = context.get_raw().copy()
         old_sfreq = raw.info['sfreq']
 
         logger.info(f"Resampling from {old_sfreq}Hz to {self.sfreq}Hz")
 
-        # Resample estimated noise alongside the main signal to keep them in sync
         noise_raw = None
         if context.has_estimated_noise():
             noise_raw = raw.copy()
             noise_raw._data = context.get_estimated_noise().copy()
 
-        # Resample raw data
         raw.resample(
             sfreq=self.sfreq,
             npad=self.npad,
@@ -77,10 +74,8 @@ class Resample(Processor):
             verbose=self.verbose
         )
 
-        # Update metadata
         new_metadata = context.metadata.copy()
 
-        # Update triggers if they exist
         if context.has_triggers():
             triggers = context.get_triggers()
             resampling_factor = self.sfreq / old_sfreq
@@ -90,14 +85,11 @@ class Resample(Processor):
             new_metadata.triggers = new_triggers
             logger.debug(f"Updated {len(new_triggers)} trigger positions")
 
-        # Create new context
         new_context = context.with_raw(raw)
         new_context._metadata = new_metadata
 
-        # Resample estimated noise if it exists
         if context.has_estimated_noise():
             if noise_raw is None:
-                # Should not happen, but guard for safety
                 noise_resampled = np.zeros(new_context.get_raw()._data.shape)
             else:
                 noise_raw.resample(
@@ -166,17 +158,14 @@ class UpSample(Resample):
         }
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Upsample data."""
         raw = context.get_raw()
         old_sfreq = raw.info['sfreq']
         target_sfreq = old_sfreq * self.factor
 
-        # Temporarily set sfreq for parent class
         self.sfreq = target_sfreq
 
         logger.info(f"Upsampling by factor {self.factor} ({old_sfreq}Hz -> {target_sfreq}Hz)")
 
-        # Call parent process method
         return super().process(context)
 
 
@@ -244,15 +233,12 @@ class DownSample(Resample):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Downsample data."""
         raw = context.get_raw()
         old_sfreq = raw.info['sfreq']
         target_sfreq = old_sfreq / self.factor
 
-        # Temporarily set sfreq for parent class
         self.sfreq = target_sfreq
 
         logger.info(f"Downsampling by factor {self.factor} ({old_sfreq}Hz -> {target_sfreq}Hz)")
 
-        # Call parent process method
         return super().process(context)

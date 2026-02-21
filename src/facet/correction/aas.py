@@ -85,7 +85,6 @@ class AASCorrection(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Apply AAS correction."""
         logger.info("Applying Averaged Artifact Subtraction (AAS)")
 
         raw = context.get_raw()
@@ -94,7 +93,6 @@ class AASCorrection(Processor):
         sfreq = raw.info['sfreq']
         upsampling_factor = context.metadata.upsampling_factor
 
-        # Get EEG channels
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
         )
@@ -103,11 +101,9 @@ class AASCorrection(Processor):
             logger.warning("No EEG channels found, skipping AAS")
             return context
 
-        # Calculate time windows
         tmin = context.metadata.artifact_to_trigger_offset
         tmax = tmin + (artifact_length / sfreq)
 
-        # Create epochs for averaging matrix calculation
         events = np.column_stack([
             triggers,
             np.zeros(len(triggers), dtype=int),
@@ -132,7 +128,6 @@ class AASCorrection(Processor):
                 "Data may be incomplete."
             )
 
-        # Calculate averaging matrices for each channel
         logger.debug(f"Computing averaging matrices for {len(eeg_channels)} channels")
         averaging_matrices = {}
 
@@ -144,10 +139,8 @@ class AASCorrection(Processor):
                 ch_name = raw.ch_names[ch_idx]
                 logger.debug(f"  Channel {ch_idx}: {ch_name}")
 
-                # Get single-channel epochs
                 epochs_single_channel = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
 
-                # Calculate averaging matrix using correlation-based selection
                 avg_matrix = self._calc_averaging_matrix(
                     epochs_single_channel,
                     window_size=self.window_size,
@@ -161,7 +154,6 @@ class AASCorrection(Processor):
                     message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
                 )
 
-        # Calculate averaged artifacts for each channel
         logger.debug("Computing averaged artifacts")
         artifacts_per_channel = self._calc_averaged_artifacts(
             raw,
@@ -172,23 +164,19 @@ class AASCorrection(Processor):
             sfreq
         )
 
-        # Plot a random artifact if requested
         if self.plot_artifacts and artifacts_per_channel:
             try:
                 import random
                 from matplotlib import pyplot as plt
 
-                # Pick a random channel index from the list of processed channels
                 processed_channels = list(averaging_matrices.keys())
                 random_ch_list_idx = random.randint(0, len(processed_channels) - 1)
 
                 ch_idx = processed_channels[random_ch_list_idx]
                 ch_name = raw.ch_names[ch_idx]
 
-                # Get artifacts for that channel
                 artifacts = artifacts_per_channel[random_ch_list_idx]
 
-                # Pick a random epoch
                 if len(artifacts) > 0:
                     random_epoch_idx = random.randint(0, len(artifacts) - 1)
                     artifact_segment = artifacts[random_epoch_idx]
@@ -206,7 +194,6 @@ class AASCorrection(Processor):
             except Exception as e:
                 logger.warning(f"Failed to plot random artifact: {e}")
 
-        # Realign triggers to averaged artifacts if requested
         if self.realign_after_averaging:
             logger.debug("Realigning triggers to averaged artifacts")
             search_window = int(self.search_window_factor * upsampling_factor)
@@ -222,11 +209,9 @@ class AASCorrection(Processor):
         else:
             aligned_triggers = triggers
 
-        # Remove artifacts from all channels
         logger.info(f"Removing artifacts from {len(eeg_channels)} channels")
         raw_corrected = raw.copy()
 
-        # Initialize or get estimated noise
         if not context.has_estimated_noise():
             estimated_noise = np.zeros(raw._data.shape)
         else:
@@ -252,13 +237,8 @@ class AASCorrection(Processor):
                     if start < 0 or start >= raw_corrected._data.shape[1]:
                         continue
 
-                    # Get artifact for this epoch (handle boundary)
                     artifact_segment = artifacts[epoch_idx, :stop - start]
-
-                    # Subtract artifact
                     raw_corrected._data[ch_idx, start:stop] -= artifact_segment
-
-                    # Accumulate to estimated noise
                     estimated_noise[ch_idx, start:stop] += artifact_segment
 
                 progress.advance(
@@ -266,11 +246,9 @@ class AASCorrection(Processor):
                     message=f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})",
                 )
 
-        # Create new context with corrected data
         new_context = context.with_raw(raw_corrected)
         new_context.set_estimated_noise(estimated_noise)
 
-        # Update triggers if realigned
         if self.realign_after_averaging and not np.array_equal(aligned_triggers, triggers):
             new_metadata = new_context.metadata.copy()
             new_metadata.triggers = aligned_triggers

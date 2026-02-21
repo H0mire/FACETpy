@@ -816,7 +816,6 @@ def generate_synthetic_eeg(
     if random_seed is not None:
         np.random.seed(random_seed)
     
-    # Use default parameters if not provided
     if oscillation_params is None:
         oscillation_params = OscillationParams()
     if noise_params is None:
@@ -825,17 +824,14 @@ def generate_synthetic_eeg(
         artifact_params = ArtifactParams()
     if spike_params is None:
         spike_params = SpikeParams(enabled=False)
-    
+
     n_samples = int(duration * sfreq)
     n_total_channels = channel_schema.get_total_channels()
-    
+
     spike_info = "with epileptic spikes" if spike_params.enabled else "without spikes"
     logger.info(f"Generating synthetic EEG: {duration}s, {sfreq}Hz, {n_total_channels} channels ({spike_info})")
-    
-    # Initialize data array
+
     data = np.zeros((n_total_channels, n_samples))
-    
-    # Channel names and types
     ch_names = []
     ch_types = []
     
@@ -882,19 +878,14 @@ def generate_synthetic_eeg(
     for ch_idx in range(channel_schema.eeg_channels):
         eeg_signal = np.zeros(n_samples)
         
-        # Add oscillations with spatial variation
         for freq_range, amp in bands:
             # Vary amplitude across channels (posterior alpha, frontal theta, etc.)
             spatial_factor = np.random.uniform(0.5, 1.5)
             eeg_signal += generate_oscillation(n_samples, sfreq, freq_range, amp * spatial_factor)
         
-        # Add 1/f noise
         eeg_signal += generate_pink_noise(n_samples, noise_params.pink_noise_amplitude)
-        
-        # Add white noise
         eeg_signal += np.random.normal(0, noise_params.white_noise_amplitude, n_samples)
-        
-        # Add line noise
+
         if noise_params.line_noise_amplitude > 0:
             t = np.arange(n_samples) / sfreq
             line_phase = np.random.uniform(0, 2 * np.pi)
@@ -918,14 +909,12 @@ def generate_synthetic_eeg(
         ch_names.extend(eog_names)
         ch_types.extend(['eog'] * channel_schema.eog_channels)
         
-        # Generate blink artifacts (affects all EOG channels similarly)
         blink_signal = generate_blink_artifact(
             n_samples, sfreq, 
             artifact_params.blink_rate, 
             artifact_params.blink_amplitude
         )
         
-        # Generate saccade artifacts (opposite polarity for horizontal EOG)
         saccade_signal = generate_saccade_artifact(
             n_samples, sfreq,
             artifact_params.saccade_rate,
@@ -935,14 +924,9 @@ def generate_synthetic_eeg(
         for i in range(channel_schema.eog_channels):
             eog_signal = np.zeros(n_samples)
             
-            # Add blinks
             eog_signal += blink_signal * np.random.uniform(0.8, 1.2)
-            
-            # Add saccades (opposite polarity for left/right)
-            polarity = 1 if i % 2 == 0 else -1
+            polarity = 1 if i % 2 == 0 else -1  # opposite polarity for left/right
             eog_signal += saccade_signal * polarity
-            
-            # Add some noise
             eog_signal += generate_pink_noise(n_samples, 5.0)
             eog_signal += np.random.normal(0, 2.0, n_samples)
             
@@ -993,7 +977,6 @@ def generate_synthetic_eeg(
             channel_names=eeg_names
         )
         
-        # Add spikes to EEG channels
         data[:channel_schema.eeg_channels] += spike_signals
         
         logger.info(f"Added {len(spike_events)} epileptic spikes to EEG data")
@@ -1008,7 +991,6 @@ def generate_synthetic_eeg(
             # EMG is broadband high-frequency activity
             emg_signal = np.random.normal(0, artifact_params.emg_amplitude, n_samples)
             
-            # Add some bursts of activity
             n_bursts = np.random.randint(5, 20)
             for _ in range(n_bursts):
                 burst_start = np.random.randint(0, n_samples - int(sfreq))
@@ -1037,17 +1019,14 @@ def generate_synthetic_eeg(
         
         current_idx += channel_schema.misc_channels
     
-    # Convert to Volts (MNE expects Volts, we generated in μV)
-    data = data * 1e-6
-    
-    # Create MNE Info object
+    data = data * 1e-6  # MNE expects Volts; we generated in μV
+
     info = mne.create_info(
         ch_names=ch_names,
         sfreq=sfreq,
         ch_types=ch_types
     )
     
-    # Create RawArray
     raw = mne.io.RawArray(data, info, verbose=False)
     
     # Try to set montage for EEG channels
@@ -1123,7 +1102,6 @@ class EEGGenerator(Processor):
         self.duration = duration
         self.random_seed = random_seed
         
-        # Convert dicts to dataclass instances
         if isinstance(channel_schema, dict):
             self.channel_schema = ChannelSchema(**channel_schema)
         elif channel_schema is None:
@@ -1196,13 +1174,11 @@ class EEGGenerator(Processor):
             random_seed=self.random_seed
         )
 
-        # Build a new context, carrying over any existing metadata
         if context is not None:
             new_ctx = context.with_raw(raw)
         else:
             new_ctx = ProcessingContext(raw)
 
-        # Store generation parameters in metadata.custom
         new_ctx.metadata.custom['eeg_generator'] = {
             'duration': self.duration,
             'sampling_rate': self.sampling_rate,

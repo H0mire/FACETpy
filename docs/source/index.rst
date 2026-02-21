@@ -22,11 +22,13 @@ Version 2.0 introduces a completely refactored architecture with:
 Quick Start
 -----------
 
-Install FACETpy:
+Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.4):
 
 .. code-block:: bash
 
-   pip install facetpy
+   git clone https://github.com/your-org/facetpy.git
+   cd facetpy
+   poetry install
 
 Run a complete correction pipeline:
 
@@ -163,27 +165,22 @@ Available Processors
    * EDFExporter, BIDSExporter
 
 **Preprocessing**
-   * Filtering: HighPass, LowPass, BandPass, Notch
+   * Filtering: HighPassFilter, LowPassFilter, BandPassFilter, NotchFilter
    * Resampling: UpSample, DownSample, Resample
    * Triggers: TriggerDetector, QRSTriggerDetector, MissingTriggerDetector
-   * Alignment: TriggerAligner, SubsampleAligner
+   * Alignment: TriggerAligner, SliceAligner, SubsampleAligner
+   * Transforms: CutAcquisitionWindow, PasteAcquisitionWindow, Crop, PickChannels, DropChannels
 
 **Correction**
    * AASCorrection - Averaged Artifact Subtraction
-   * ANCCorrection - Adaptive Noise Cancellation
+   * ANCCorrection - Adaptive Noise Cancellation (requires compiled C extension)
    * PCACorrection - PCA-based artifact removal
 
 **Evaluation**
-   * SNRCalculator, RMSCalculator
+   * SNRCalculator, RMSCalculator, RMSResidualCalculator
    * MedianArtifactCalculator
-   * MetricsReport
-
-Support & Community
--------------------
-
-* **Issues:** `GitHub Issues <https://github.com/your-org/facetpy/issues>`_
-* **Discussions:** `GitHub Discussions <https://github.com/your-org/facetpy/discussions>`_
-* **Email:** support@facetpy.org
+   * FFTAllenCalculator, FFTNiazyCalculator
+   * MetricsReport, RawPlotter
 
 Citation
 --------
@@ -194,16 +191,15 @@ If you use FACETpy in your research, please cite:
 
    @software{facetpy2025,
      title = {FACETpy: fMRI Artifact Correction and Evaluation Toolbox for Python},
-     author = {FACETpy Team},
+     author = {Mueller, Janik Michael},
      year = {2025},
-     version = {2.0.0},
-     url = {https://github.com/your-org/facetpy}
+     version = {2.0.0}
    }
 
 License
 -------
 
-FACETpy is released under the MIT License. See LICENSE file for details.
+FACETpy is released under the **GPLv3** license. See the ``LICENSE`` file for details.
 
 Indices and Tables
 ==================

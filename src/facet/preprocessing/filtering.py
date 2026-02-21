@@ -67,10 +67,8 @@ class Filter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Apply filter."""
         raw = context.get_raw().copy()
 
-        # Log filter type
         if self.l_freq and self.h_freq:
             filter_type = f"bandpass ({self.l_freq}-{self.h_freq}Hz)"
         elif self.l_freq:
@@ -82,7 +80,6 @@ class Filter(Processor):
 
         logger.info(f"Applying {filter_type}")
 
-        # Apply filter
         raw.filter(
             l_freq=self.l_freq,
             h_freq=self.h_freq,
@@ -94,7 +91,6 @@ class Filter(Processor):
             verbose=self.verbose
         )
 
-        # Also filter estimated noise if it exists
         new_context = context.with_raw(raw)
         if context.has_estimated_noise():
             noise = context.get_estimated_noise().copy()
@@ -318,12 +314,10 @@ class NotchFilter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Apply notch filter."""
         raw = context.get_raw().copy()
 
         logger.info(f"Applying notch filter at {self.freqs}Hz")
 
-        # Apply notch filter
         raw.notch_filter(
             freqs=self.freqs,
             picks=self.picks,
@@ -335,7 +329,6 @@ class NotchFilter(Processor):
             verbose=False
         )
 
-        # Also filter estimated noise if it exists
         new_context = context.with_raw(raw)
         if context.has_estimated_noise():
             noise = context.get_estimated_noise().copy()

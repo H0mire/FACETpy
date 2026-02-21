@@ -239,15 +239,14 @@ Trigger Detection
    triggers = context.get_triggers()
    print(f"Found {len(triggers)} triggers")
 
-**QRSTriggerDetector** - Detect R-peaks for cardiac artifact
+**QRSTriggerDetector** - Detect R-peaks for cardiac (BCG) artifact correction
 
 .. code-block:: python
 
    from facet.preprocessing import QRSTriggerDetector
 
    detector = QRSTriggerDetector(
-       ecg_channel="ECG",
-       method="pan-tompkins"
+       save_to_annotations=False  # Optionally persist peaks as MNE annotations
    )
 
 **MissingTriggerDetector** - Detect and interpolate missing triggers
@@ -286,6 +285,54 @@ Alignment
        ref_trigger_index=0,
        upsample_factor=10
    )
+
+**SliceAligner** - Align artifacts slice-by-slice
+
+.. code-block:: python
+
+   from facet.preprocessing import SliceAligner
+
+   aligner = SliceAligner()
+   context = aligner.execute(context)
+
+Data Transforms
+^^^^^^^^^^^^^^^
+
+**CutAcquisitionWindow** / **PasteAcquisitionWindow** - Remove and restore the
+acquisition window around fMRI triggers for cleaner downstream processing.
+
+.. code-block:: python
+
+   from facet.preprocessing import CutAcquisitionWindow, PasteAcquisitionWindow
+
+   cutter = CutAcquisitionWindow()
+   paster = PasteAcquisitionWindow()
+
+**Crop** - Crop the raw recording to a time range
+
+.. code-block:: python
+
+   from facet.preprocessing import Crop
+
+   crop = Crop(tmin=10.0, tmax=300.0)  # Keep 10 s – 300 s
+
+**PickChannels** / **DropChannels** - Select or remove channels
+
+.. code-block:: python
+
+   from facet.preprocessing import PickChannels, DropChannels
+
+   picker = PickChannels(channels=["Fp1", "Fp2", "F3", "F4"])
+   dropper = DropChannels(channels=["ECG", "EOG"])
+
+**PrintMetric** - Print a context metadata value to the console
+
+.. code-block:: python
+
+   from facet.preprocessing import PrintMetric
+
+   printer = PrintMetric(key="triggers")
+   printer.execute(context)
 
 Correction Processors
 ~~~~~~~~~~~~~~~~~~~~~
@@ -371,6 +418,35 @@ Evaluation Processors
 
    median_artifact = context.metadata.custom['metrics']['median_artifact']
 
+**RMSResidualCalculator** - Calculate RMS residual ratio
+
+.. code-block:: python
+
+   from facet.evaluation import RMSResidualCalculator
+
+   rms_res = RMSResidualCalculator()
+   context = rms_res.execute(context)
+
+   rms_residual = context.metadata.custom['metrics']['rms_residual']
+
+**FFTAllenCalculator** - FFT-based quality metric (Allen 2000)
+
+.. code-block:: python
+
+   from facet.evaluation import FFTAllenCalculator
+
+   allen = FFTAllenCalculator()
+   context = allen.execute(context)
+
+**FFTNiazyCalculator** - FFT-based quality metric (Niazy 2005)
+
+.. code-block:: python
+
+   from facet.evaluation import FFTNiazyCalculator
+
+   niazy = FFTNiazyCalculator()
+   context = niazy.execute(context)
+
 **MetricsReport** - Print metrics report
 
 .. code-block:: python
@@ -378,7 +454,7 @@ Evaluation Processors
    from facet.evaluation import MetricsReport
 
    report = MetricsReport()
-   report.execute(context)  # Prints formatted report
+   report.execute(context)
 
 Composite Processors
 ~~~~~~~~~~~~~~~~~~~~
@@ -549,8 +625,9 @@ Get processor by name:
    for name, proc_class in all_processors.items():
        print(f"{name}: {proc_class.__name__}")
 
-   # List by category
+   # List by module category
    correction_processors = list_processors(category="correction")
+   preprocessing_processors = list_processors(category="preprocessing")
 
 Best Practices
 --------------

@@ -91,14 +91,12 @@ class ANCCorrection(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Apply ANC correction."""
         logger.info("Applying Adaptive Noise Cancellation (ANC)")
 
         raw = context.get_raw()
         estimated_noise = context.get_estimated_noise()
         sfreq = raw.info['sfreq']
 
-        # Get EEG channels
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
         )
@@ -107,7 +105,6 @@ class ANCCorrection(Processor):
             logger.warning("No EEG channels found, skipping ANC")
             return context
 
-        # Derive ANC parameters from artifact length and sampling rate
         artifact_length = context.get_artifact_length()
         if artifact_length is None or artifact_length <= 0:
             raise ProcessorValidationError(
@@ -130,11 +127,9 @@ class ANCCorrection(Processor):
             hp_weights = derived_params['hp_weights']
             hp_cutoff = derived_params['hp_freq']
 
-        # Check if C extension is available
         if self.use_c_extension and self._fastranc_available is None:
             self._fastranc_available = self._check_fastranc()
 
-        # Determine acquisition window
         s_acq_start, s_acq_end = self._get_acquisition_window(context)
         window_length = max(1, s_acq_end - s_acq_start)
 
@@ -145,7 +140,6 @@ class ANCCorrection(Processor):
 
         filter_order = max(1, int(filter_order))
 
-        # Apply ANC to each channel
         raw_corrected = raw.copy()
         noise_updated = estimated_noise.copy()
 
@@ -157,7 +151,6 @@ class ANCCorrection(Processor):
                 ch_name = raw.ch_names[ch_idx]
                 logger.debug(f"  Applying ANC to {ch_name}")
 
-                # Apply ANC to this channel
                 try:
                     corrected_data, filtered_noise = self._anc_single_channel(
                         raw_corrected._data[ch_idx],
@@ -179,7 +172,6 @@ class ANCCorrection(Processor):
 
                 progress.advance(1, message=status)
 
-        # Create new context
         new_context = context.with_raw(raw_corrected)
         new_context.set_estimated_noise(noise_updated)
 
@@ -221,7 +213,6 @@ class ANCCorrection(Processor):
         Returns:
             Tuple of (corrected_data, filtered_noise)
         """
-        # Extract acquisition segments
         reference = noise_data[s_acq_start:s_acq_end].astype(float, copy=True)
         segment_len = reference.size
 
@@ -234,7 +225,6 @@ class ANCCorrection(Processor):
             )
             return eeg_data, np.zeros(segment_len, dtype=float)
 
-        # Apply highpass filter to data
         if hp_weights is not None:
             data = filtfilt(hp_weights, 1, eeg_data, axis=0, padtype='odd')
             data = data[s_acq_start:s_acq_end].astype(float)
@@ -260,19 +250,16 @@ class ANCCorrection(Processor):
             logger.warning(f"[Channel: {ch_name}] Reference variance is zero, skipping ANC")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
-        logger.error("filter_order is " + str(filter_order) + " and var_ref is " + str(var_ref))
         mu = float(self.mu_factor / (filter_order * var_ref))
         if not np.isfinite(mu) or mu <= 0:
             logger.warning(f"[Channel: {ch_name}] Computed ANC learning rate is invalid, skipping")
             return eeg_data, np.zeros(segment_len, dtype=float)
 
-        # Apply adaptive filtering
         if self._fastranc_available:
             filtered_noise = self._anc_fast(reference, data, mu, filter_order)
         else:
             filtered_noise = self._anc_python(reference, data, mu, filter_order)
 
-        # Check for numerical issues
         max_filtered = np.max(np.abs(filtered_noise))
         if not np.isfinite(max_filtered):
             logger.error(f"[Channel: {ch_name}] ANC produced invalid values (inf/nan), skipping")
@@ -291,7 +278,6 @@ class ANCCorrection(Processor):
             )
             return eeg_data, np.zeros(segment_len, dtype=float)
 
-        # Subtract filtered noise from original data
         corrected_data = eeg_data.copy()
         corrected_data[s_acq_start:s_acq_end] -= filtered_noise
 

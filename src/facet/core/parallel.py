@@ -44,18 +44,14 @@ def _worker_function(processor_config: dict, context_data: dict) -> dict:
     Returns:
         Serialized result context
     """
-    # Reconstruct processor
     processor_class = processor_config['class']
     processor_params = processor_config['parameters']
     processor = processor_class(**processor_params)
 
-    # Reconstruct context
     context = ProcessingContext.from_dict(context_data)
 
-    # Process
     result = processor.execute(context)
 
-    # Serialize result
     return result.to_dict()
 
 
@@ -133,11 +129,9 @@ class ParallelExecutor:
             )
             return processor.execute(context)
 
-        # Check if we can parallelize by channels
         if hasattr(processor, 'parallelize_by_channels') and processor.parallelize_by_channels:
             return self._execute_channel_wise(processor, context)
 
-        # Check if we can parallelize by epochs
         if hasattr(processor, 'parallelize_by_epochs') and processor.parallelize_by_epochs:
             return self._execute_epoch_wise(processor, context)
 
@@ -174,7 +168,6 @@ class ParallelExecutor:
             logger.warning("No channels available for parallel execution")
             return context
 
-        # Split channels into chunks
         channel_chunks = self._split_into_chunks(
             list(range(n_channels)),
             self.n_jobs
@@ -221,7 +214,6 @@ class ParallelExecutor:
                     progress_callback=_update_progress,
                 )
 
-        # Merge results
         return self._merge_channel_results(context, results)
 
     def _execute_epoch_wise(
@@ -244,14 +236,12 @@ class ParallelExecutor:
             f"across {self.n_jobs} jobs"
         )
 
-        # Get epochs
         if not context.has_triggers():
             raise ValueError("Context has no triggers for epoch-wise processing")
 
         triggers = context.get_triggers()
         n_epochs = len(triggers)
 
-        # Split epochs into chunks
         epoch_chunks = self._split_into_chunks(
             list(range(n_epochs)),
             self.n_jobs
@@ -276,7 +266,6 @@ class ParallelExecutor:
                 epoch_chunks
             )
 
-        # Merge results
         return self._merge_epoch_results(context, results)
 
     def _execute_multiprocessing(
@@ -287,20 +276,16 @@ class ParallelExecutor:
         progress_callback: Optional[Callable[[int], None]] = None,
     ) -> List[ProcessingContext]:
         """Execute using multiprocessing."""
-        # Prepare processor config
         processor_config = {
             'class': processor.__class__,
             'parameters': processor._parameters
         }
 
-        # Create contexts for each chunk
         chunk_contexts = []
         for chunk in channel_chunks:
-            # Create a context with only selected channels
             chunk_context = self._create_channel_subset_context(context, chunk)
             chunk_contexts.append(chunk_context.to_dict())
 
-        # Execute in parallel
         worker = functools.partial(_worker_function, processor_config)
         contexts: List[ProcessingContext] = []
         with mp.Pool(processes=self.n_jobs) as pool:
@@ -399,7 +384,6 @@ class ParallelExecutor:
             name: idx for idx, name in enumerate(original_raw.ch_names)
         }
 
-        # Merge data from all chunks
         for result_ctx in results:
             result_raw = result_ctx.get_raw()
             result_data = result_ctx.get_data(copy=False)

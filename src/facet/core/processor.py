@@ -98,16 +98,13 @@ class Processor(ABC):
         Raises:
             ProcessorValidationError: If validation fails
         """
-        # Validate prerequisites
         logger.debug(f"Executing processor: {self.name}")
         self.validate(context)
 
-        # Process
         result = self.process(context)
         if result is None:
             result = context
 
-        # Add to history
         result.add_history_entry(
             name=self.name,
             processor_type=self.__class__.__name__,

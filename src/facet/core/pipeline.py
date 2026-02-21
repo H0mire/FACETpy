@@ -468,7 +468,6 @@ class Pipeline:
             context = initial_context
             current_processor: Optional[Tuple[int, Processor]] = None
 
-            # Execute processors
             for i, processor in enumerate(self.processors):
                 current_processor = (i, processor)
                 logger.info(
@@ -501,7 +500,6 @@ class Pipeline:
                     },
                 )
 
-            # Success
             execution_time = time.time() - start_time
             logger.info(
                 f"Pipeline completed successfully in {execution_time:.2f}s"

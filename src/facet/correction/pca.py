@@ -86,7 +86,6 @@ class PCACorrection(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Apply PCA correction."""
         logger.info("Applying PCA artifact correction")
 
         raw = context.get_raw()
@@ -94,7 +93,6 @@ class PCACorrection(Processor):
         artifact_length = context.get_artifact_length()
         sfreq = raw.info['sfreq']
 
-        # Get EEG channels
         eeg_channels = mne.pick_types(
             raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
         )
@@ -103,7 +101,6 @@ class PCACorrection(Processor):
             logger.warning("No EEG channels found, skipping PCA")
             return context
 
-        # Prepare highpass filter if needed
         if self.hp_filter_weights is not None:
             hp_weights = self.hp_filter_weights
         elif self.hp_freq is not None and self.hp_freq > 0:
@@ -111,13 +108,10 @@ class PCACorrection(Processor):
         else:
             hp_weights = None
 
-        # Determine acquisition window
         s_acq_start, s_acq_end = self._get_acquisition_window(context)
 
-        # Apply PCA to each channel
         raw_corrected = raw.copy()
 
-        # Initialize or get estimated noise
         if not context.has_estimated_noise():
             estimated_noise = np.zeros(raw._data.shape)
         else:
@@ -132,19 +126,16 @@ class PCACorrection(Processor):
                 logger.debug(f"  Applying PCA to {ch_name}")
                 status_prefix = f"{idx + 1}/{len(eeg_channels)} • {ch_name}"
 
-                # Check if channel should be excluded
                 if ch_idx in self.exclude_channels:
                     logger.debug(f"  Skipping {ch_name} (excluded)")
                     progress.advance(1, message=f"{status_prefix} (excluded)")
                     continue
 
-                # Skip if n_components is 0
                 if self.n_components == 0:
                     logger.debug(f"  Skipping {ch_name} (n_components=0)")
                     progress.advance(1, message=f"{status_prefix} (disabled)")
                     continue
 
-                # Apply PCA to this channel
                 try:
                     residuals = self._calc_pca_residuals(
                         raw_corrected._data[ch_idx],
@@ -155,10 +146,7 @@ class PCACorrection(Processor):
                         hp_weights
                     )
 
-                    # Subtract residuals from data
                     raw_corrected._data[ch_idx][s_acq_start:s_acq_end] -= residuals
-
-                    # Add to estimated noise
                     estimated_noise[ch_idx][s_acq_start:s_acq_end] += residuals
                     progress.advance(1, message=status_prefix)
                 except Exception as ex:
@@ -166,7 +154,6 @@ class PCACorrection(Processor):
                     logger.warning(f"Skipping PCA for channel {ch_name}")
                     progress.advance(1, message=f"{status_prefix} (error)")
 
-        # Create new context
         new_context = context.with_raw(raw_corrected)
         new_context.set_estimated_noise(estimated_noise)
 
@@ -196,17 +183,13 @@ class PCACorrection(Processor):
         Returns:
             Residuals (artifacts) as array
         """
-        # Get acquisition data
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
-        # Apply highpass filter if specified
         if hp_weights is not None:
             ch_data_filtered = filtfilt(hp_weights, 1, ch_data_acq)
         else:
             ch_data_filtered = ch_data_acq
 
-        # Split into epochs
-        # Adjust triggers to acquisition window coordinates
         adjusted_triggers = triggers - s_acq_start
         offset = int(artifact_length * 0.1)  # Small offset for epoch extraction
 
@@ -216,17 +199,14 @@ class PCACorrection(Processor):
             artifact_length
         )
 
-        # Apply PCA
         residuals_per_epoch = self._calc_pca(epochs)
 
-        # Reconstruct full residuals array
         fitted_res = np.zeros(len(ch_data_acq))
 
         for i, trigger in enumerate(adjusted_triggers):
             start_pos = trigger + offset
             end_pos = start_pos + artifact_length
 
-            # Handle boundary conditions
             if start_pos < 0:
                 continue
 

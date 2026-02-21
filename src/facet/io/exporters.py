@@ -47,7 +47,6 @@ class EDFExporter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Export to EDF."""
         logger.info(f"Exporting to EDF: {self.path}")
 
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
@@ -104,13 +103,11 @@ class BIDSExporter(Processor):
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Export to BIDS."""
         logger.info(
             f"Exporting to BIDS: subject={self.subject}, task={self.task}"
         )
 
         Path(self.root).mkdir(parents=True, exist_ok=True)
-        # Create BIDS path
         bids_path = BIDSPath(
             subject=self.subject,
             session=self.session,
@@ -125,7 +122,6 @@ class BIDSExporter(Processor):
         if len(stim_channels) > 0:
             raw.drop_channels([raw.ch_names[ch] for ch in stim_channels])
 
-        # Get events if triggers exist
         events = None
         if context.has_triggers():
             triggers = context.get_triggers()
@@ -135,7 +131,6 @@ class BIDSExporter(Processor):
             import numpy as np
             events = np.array(events, dtype=np.int32)
 
-        # Write BIDS
         write_raw_bids(
             raw=raw,
             bids_path=bids_path,

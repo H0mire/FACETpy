@@ -239,8 +239,8 @@ Discovery
 
    # List all registered processors
    all_processors = list_processors()
-   for name, info in all_processors.items():
-       print(f"{name}: {info['description']}")
+   for name, proc_class in all_processors.items():
+       print(f"{name}: {proc_class.__name__}")
 
 Parallel Execution
 ------------------

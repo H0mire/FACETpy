@@ -115,7 +115,6 @@ class CutAcquisitionWindow(Processor):
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Compute acquisition metadata."""
         raw = context.get_raw()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
@@ -182,7 +181,6 @@ class PasteAcquisitionWindow(Processor):
     requires_triggers = False
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        """Validate metadata and clear caches."""
         metadata = context.metadata.copy()
 
         if metadata.acq_start_sample is None or metadata.acq_end_sample is None:
