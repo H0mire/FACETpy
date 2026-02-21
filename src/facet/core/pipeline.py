@@ -143,36 +143,125 @@ class PipelineResult:
             result = pipeline.run()
             result.print_metrics()
         """
-        from rich.table import Table
+        import numpy as np
+        from rich import box
         from rich.console import Console as RichConsole
+        from rich.panel import Panel
+        from rich.table import Table
+        from rich.text import Text
 
         metrics = self.metrics
         if not metrics:
             print("No metrics available — did you add evaluation processors?")
             return
 
-        con = RichConsole()
+        con = get_console().get_rich_console() or RichConsole(highlight=False)
         table = Table(
-            title="Evaluation Metrics",
-            show_header=True,
-            header_style="bold cyan",
-            min_width=40,
+            box=None, show_header=True, padding=(0, 2), expand=True,
+            show_edge=False,
         )
-        table.add_column("Metric", style="bold")
-        table.add_column("Value", justify="right")
+        table.add_column("Metric", style="bold", ratio=3)
+        table.add_column("Value", style="white", ratio=2, justify="left")
+        table.add_column("", style="dim italic", ratio=1)
 
-        for key, val in metrics.items():
-            if isinstance(val, dict):
-                for sub_k, sub_v in val.items():
-                    label = f"{key} / {sub_k}"
-                    formatted = f"{sub_v:.4g}" if isinstance(sub_v, float) else str(sub_v)
-                    table.add_row(label, formatted)
-            elif isinstance(val, float):
-                table.add_row(key, f"{val:.4g}")
-            else:
-                table.add_row(key, str(val))
+        def _section(title: str) -> None:
+            table.add_row("", "", "")
+            table.add_row(Text(title, style="bold yellow underline"), "", "")
 
-        con.print(table)
+        def _fmt_per_channel(val: list) -> str:
+            arr = np.asarray(val, dtype=float)
+            return (
+                f"mean {arr.mean():.3g}  "
+                f"± {arr.std():.3g}  "
+                f"[dim](min {arr.min():.3g} – max {arr.max():.3g})[/]"
+            )
+
+        def _color_snr(v: float) -> str:
+            return "green" if v > 10 else ("yellow" if v > 3 else "red")
+
+        def _color_ratio(v: float) -> str:
+            return "green" if abs(v - 1.0) < 0.1 else ("yellow" if abs(v - 1.0) < 0.3 else "red")
+
+        # --- Core scalar metrics ---
+        core_keys = ('snr', 'rms_ratio', 'rms_residual', 'median_artifact', 'legacy_snr')
+        if any(k in metrics for k in core_keys):
+            _section("Core Metrics")
+            if 'snr' in metrics:
+                snr = metrics['snr']
+                c = _color_snr(snr)
+                table.add_row("SNR (Signal-to-Noise Ratio)", f"[{c}]{snr:.2f}[/]", "")
+            if 'rms_ratio' in metrics:
+                table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
+            if 'rms_residual' in metrics:
+                r = metrics['rms_residual']
+                c = _color_ratio(r)
+                table.add_row("RMS Residual Ratio", f"[{c}]{r:.2f}[/]", "target: 1.0")
+            if 'median_artifact' in metrics:
+                table.add_row("Median Artifact Amplitude", f"{metrics['median_artifact']:.2e}", "")
+                if 'median_artifact_ratio' in metrics:
+                    r = metrics['median_artifact_ratio']
+                    c = "green" if abs(r - 1.0) < 0.2 else ("yellow" if abs(r - 1.0) < 0.6 else "red")
+                    table.add_row("Median Artifact Ratio", f"[{c}]{r:.2f}[/]", "target: 1.0")
+            if 'legacy_snr' in metrics:
+                table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
+
+        # --- Per-channel breakdowns ---
+        per_ch = {k: v for k, v in metrics.items() if k.endswith('_per_channel') and isinstance(v, list)}
+        if per_ch:
+            _section("Per-Channel Summary  (mean ± std,  min – max)")
+            for key, val in per_ch.items():
+                label = key.replace('_per_channel', '').replace('_', ' ').title()
+                table.add_row(label, _fmt_per_channel(val), "")
+
+        # --- FFT Allen ---
+        if 'fft_allen' in metrics:
+            _section("FFT Allen — Spectral Diff to Reference")
+            for band, val in metrics['fft_allen'].items():
+                table.add_row(f"{band.capitalize()}", f"{val:.2f}%", "")
+
+        # --- FFT Niazy ---
+        if 'fft_niazy' in metrics:
+            _section("FFT Niazy — Power Ratio (Uncorr / Corr)")
+            if 'slice' in metrics['fft_niazy']:
+                harmonics = "  ".join(
+                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['slice'].items()
+                )
+                table.add_row("Slice Harmonics", harmonics, "dB")
+            if 'volume' in metrics['fft_niazy']:
+                harmonics = "  ".join(
+                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['volume'].items()
+                )
+                table.add_row("Volume Harmonics", harmonics, "dB")
+
+        # --- Other unknown keys ---
+        known = set(core_keys) | set(per_ch) | {'median_artifact_ratio', 'median_artifact_reference',
+                                                 'fft_allen', 'fft_niazy'}
+        extras = {k: v for k, v in metrics.items() if k not in known}
+        if extras:
+            _section("Other")
+            for key, val in extras.items():
+                label = key.replace('_', ' ').title()
+                if isinstance(val, float):
+                    formatted = f"{val:.4g}"
+                elif isinstance(val, dict):
+                    formatted = "  ".join(f"{k}: {v:.3g}" if isinstance(v, float) else f"{k}: {v}"
+                                          for k, v in val.items())
+                elif isinstance(val, list):
+                    formatted = _fmt_per_channel(val) if val and isinstance(val[0], (int, float)) else str(val)
+                else:
+                    formatted = str(val)
+                table.add_row(label, formatted, "")
+
+        con.print()
+        con.print(
+            Panel(
+                table,
+                title="[bold white] Evaluation Metrics Report [/]",
+                border_style="cyan",
+                box=box.ROUNDED,
+                padding=(1, 2),
+            )
+        )
 
     def print_summary(self) -> None:
         """
@@ -188,7 +277,7 @@ class PipelineResult:
         """
         from rich.console import Console as RichConsole
 
-        con = RichConsole()
+        con = get_console().get_rich_console() or RichConsole()
         if self.success:
             parts = [f"[green]Done[/green] in {self.execution_time:.2f}s"]
             for name in ("snr", "rms_ratio", "rms_residual", "median_artifact"):
@@ -279,20 +368,22 @@ class BatchResult:
             results = pipeline.map(files, loader_factory=...)
             results.print_summary()
         """
+        from rich import box
         from rich.table import Table
         from rich.console import Console as RichConsole
 
-        con = RichConsole()
+        con = get_console().get_rich_console() or RichConsole(highlight=False)
         table = Table(
             title="Batch Results",
             show_header=True,
             header_style="bold cyan",
+            box=box.SIMPLE_HEAVY,
+            padding=(0, 1),
         )
         table.add_column("File", style="bold", no_wrap=True)
-        table.add_column("Status", justify="center")
-        table.add_column("Time", justify="right")
+        table.add_column("Status", justify="left")
+        table.add_column("Time", justify="left")
 
-        # Collect the union of metric names across all successful runs
         metric_names: List[str] = []
         for r in self._results:
             for k, v in r.metrics.items():
@@ -300,7 +391,7 @@ class BatchResult:
                     metric_names.append(k)
 
         for m in metric_names:
-            table.add_column(m, justify="right")
+            table.add_column(m, justify="left")
 
         for label, result in zip(self._labels, self._results):
             status = "[green]OK[/green]" if result.success else "[red]FAIL[/red]"

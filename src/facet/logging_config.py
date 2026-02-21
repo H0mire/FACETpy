@@ -22,10 +22,11 @@ from loguru import logger
 from .console import ConsoleMode, configure_console
 
 _LOGGING_CONFIGURED = False
+DEFAULT_FACET_CONSOLE_MODE = "modern"
 
 
 def _resolve_console_mode() -> ConsoleMode:
-    value = os.environ.get("FACET_CONSOLE_MODE", "classic").strip().lower()
+    value = os.environ.get("FACET_CONSOLE_MODE", DEFAULT_FACET_CONSOLE_MODE).strip().lower()
     if value in {"classic", "legacy", "loguru"}:
         return ConsoleMode.CLASSIC
     return ConsoleMode.MODERN

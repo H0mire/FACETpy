@@ -21,11 +21,13 @@ rich = "^14.2.0"
 tensorflow = {version = "^2.19.0", optional = true}
 pyqt6 = {version = "^6.6.1", optional = true}
 notebook = {version = "^7.1.2", optional = true}
+# Pin IPython <9 until matplotlib supports IPython 9's get_ipython API change
+ipython = {version = ">=7.23.1,<9", optional = true}
 
 [tool.poetry.extras]
 deeplearning = ["tensorflow"]
 gui = ["pyqt6"]
-notebooks = ["notebook"]
+notebooks = ["notebook", "ipython"]
 all = ["tensorflow", "pyqt6", "notebook"]
 
 [tool.poetry.group.dev.dependencies]

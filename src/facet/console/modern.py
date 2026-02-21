@@ -176,6 +176,9 @@ class ModernConsole(BaseConsole):
     # ------------------------------------------------------------------
     # Public API used by the pipeline/logging configuration
     # ------------------------------------------------------------------
+    def get_rich_console(self) -> Any:
+        return self.console
+
     def set_pipeline_metadata(self, metadata: Dict[str, Any]) -> None:
         with self._lock:
             for key, value in metadata.items():
@@ -427,14 +430,14 @@ class ModernConsole(BaseConsole):
         return Panel(text, border_style="bright_black", padding=(0, 1))
 
     def _render_steps_panel(self) -> Panel:
-        table = Table.grid(expand=True)
-        table.add_column("Processor", style="bold", ratio=2)
-        table.add_column("Status", style="white", width=12)
-        table.add_column("Progress", style="white", width=24)
-        table.add_column("Duration", style="white", width=10)
+        table = Table.grid(expand=True, padding=(0, 1))
+        table.add_column("Processor", style="bold", ratio=3)
+        table.add_column("Status", style="white", width=14, justify="left")
+        table.add_column("Progress", style="white", width=22)
+        table.add_column("Duration", style="white", width=8, justify="left")
 
         if not self.step_states:
-            table.add_row("Waiting for pipeline", "idle", "", "–")
+            table.add_row("Waiting for pipeline", "[dim]idle[/]", "", "–")
         else:
             for step in self.step_states:
                 icon, style = self._status_badge(step.status)
@@ -450,9 +453,9 @@ class ModernConsole(BaseConsole):
         return Panel(table, title="Processors", border_style="bright_black", box=box.ROUNDED)
 
     def _render_metrics_panel(self) -> Panel:
-        table = Table.grid(expand=True)
-        table.add_column("Metric", style="bold", width=16)
-        table.add_column("Value", style="white")
+        table = Table.grid(expand=True, padding=(0, 1))
+        table.add_column("Metric", style="bold", width=16, justify="left")
+        table.add_column("Value", style="white", justify="left")
 
         table.add_row("Progress", self._progress_bar())
         table.add_row("Completed", f"{self.completed_steps}/{max(self.total_steps, 1)}")
@@ -467,7 +470,7 @@ class ModernConsole(BaseConsole):
 
         if reported:
             table.add_row("", "")
-            table.add_row("[bold]Reported Metrics[/]", "")
+            table.add_row(Text("Reported", style="bold yellow underline"), "")
             for key, value in reported:
                 table.add_row(key.replace("_", " ").title(), value)
 

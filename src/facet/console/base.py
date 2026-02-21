@@ -67,6 +67,17 @@ class BaseConsole(ABC):
     def log_sink(self, message: Any) -> None:
         """Optional log sink wired into loguru."""
 
+    def get_rich_console(self) -> Any:
+        """Return a Rich Console that bypasses any output interception.
+
+        When the modern live display is active, printing through
+        ``sys.stdout`` would be captured by the log tee and garbled.
+        This method returns a Console wired to the real TTY so callers
+        (e.g. ``PipelineResult.print_metrics``) can render Rich panels
+        cleanly.  Returns ``None`` when no special routing is needed.
+        """
+        return None
+
     def shutdown(self) -> None:
         """Release console resources (if any)."""
 
@@ -122,6 +133,9 @@ class NullConsole(BaseConsole):
         return None
 
     def log_sink(self, message: Any) -> None:  # noqa: D401
+        return None
+
+    def get_rich_console(self) -> Any:  # noqa: D401
         return None
 
     def shutdown(self) -> None:  # noqa: D401

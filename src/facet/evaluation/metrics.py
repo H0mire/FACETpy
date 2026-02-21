@@ -952,11 +952,6 @@ class MetricsReport(Processor):
         # --- EXTRACT ---
         metrics = context.metadata.custom.get('metrics', {})
 
-        # --- LOG ---
-        logger.info("=" * 60)
-        logger.info("EVALUATION METRICS REPORT")
-        logger.info("=" * 60)
-
         # --- COMPUTE ---
         if not metrics:
             logger.warning("No metrics available")
@@ -973,7 +968,107 @@ class MetricsReport(Processor):
         return context
 
     def _log_metrics(self, metrics: Dict[str, Any]) -> None:
-        """Log all available metrics in a formatted summary."""
+        """Render all available metrics — rich panel when available, plain log fallback."""
+        from ..console import get_console
+
+        if get_console().enabled:
+            self._plain_log_metrics(metrics)
+            return
+        try:
+            self._rich_log_metrics(metrics)
+        except Exception:
+            self._plain_log_metrics(metrics)
+
+    def _rich_log_metrics(self, metrics: Dict[str, Any]) -> None:
+        """Render metrics as a rich-formatted panel."""
+        from rich import box
+        from rich.console import Console as RichConsole
+        from rich.panel import Panel
+        from rich.table import Table
+        from rich.text import Text
+
+        console = RichConsole(highlight=False)
+        table = Table(
+            box=None, show_header=True, padding=(0, 2), expand=True,
+            show_edge=False,
+        )
+        table.add_column("Metric", style="bold", ratio=3)
+        table.add_column("Value", style="white", ratio=2, justify="left")
+        table.add_column("", style="dim italic", ratio=1)
+
+        def _section(title: str) -> None:
+            table.add_row("", "", "")
+            table.add_row(Text(title, style="bold yellow underline"), "", "")
+
+        # --- Core Metrics ---
+        core_keys = ('snr', 'rms_ratio', 'rms_residual', 'median_artifact', 'legacy_snr')
+        if any(k in metrics for k in core_keys):
+            _section("Core Metrics")
+
+            if 'snr' in metrics:
+                snr = metrics['snr']
+                color = "green" if snr > 10 else ("yellow" if snr > 3 else "red")
+                table.add_row("SNR (Signal-to-Noise Ratio)", f"[{color}]{snr:.2f}[/]", "")
+
+            if 'rms_ratio' in metrics:
+                table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
+
+            if 'rms_residual' in metrics:
+                r = metrics['rms_residual']
+                color = "green" if abs(r - 1.0) < 0.1 else ("yellow" if abs(r - 1.0) < 0.3 else "red")
+                table.add_row("RMS Residual Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0")
+
+            if 'median_artifact' in metrics:
+                table.add_row(
+                    "Median Artifact Amplitude", f"{metrics['median_artifact']:.2e}", ""
+                )
+                if 'median_artifact_ratio' in metrics:
+                    r = metrics['median_artifact_ratio']
+                    color = "green" if abs(r - 1.0) < 0.2 else ("yellow" if abs(r - 1.0) < 0.6 else "red")
+                    table.add_row(
+                        "Median Artifact Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0"
+                    )
+
+            if 'legacy_snr' in metrics:
+                table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
+
+        # --- FFT Allen ---
+        if 'fft_allen' in metrics:
+            _section("FFT Allen — Spectral Diff to Reference")
+            for band, val in metrics['fft_allen'].items():
+                table.add_row(f"{band.capitalize()}", f"{val:.2f}%", "")
+
+        # --- FFT Niazy ---
+        if 'fft_niazy' in metrics:
+            _section("FFT Niazy — Power Ratio (Uncorr / Corr)")
+            if 'slice' in metrics['fft_niazy']:
+                harmonics = "  ".join(
+                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['slice'].items()
+                )
+                table.add_row("Slice Harmonics", harmonics, "dB")
+            if 'volume' in metrics['fft_niazy']:
+                harmonics = "  ".join(
+                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['volume'].items()
+                )
+                table.add_row("Volume Harmonics", harmonics, "dB")
+
+        console.print()
+        console.print(
+            Panel(
+                table,
+                title="[bold white] Evaluation Metrics Report [/]",
+                border_style="cyan",
+                box=box.ROUNDED,
+                padding=(1, 2),
+            )
+        )
+
+    def _plain_log_metrics(self, metrics: Dict[str, Any]) -> None:
+        """Fallback plain loguru output for the interactive console / no-TTY case."""
+        logger.info("=" * 60)
+        logger.info("EVALUATION METRICS REPORT")
+        logger.info("=" * 60)
+
         if 'snr' in metrics:
             logger.info("SNR (Signal-to-Noise Ratio):     {:.2f}", metrics['snr'])
 
@@ -987,9 +1082,7 @@ class MetricsReport(Processor):
             )
 
         if 'median_artifact' in metrics:
-            logger.info(
-                "Median Artifact Amplitude:       {:.2e}", metrics['median_artifact']
-            )
+            logger.info("Median Artifact Amplitude:       {:.2e}", metrics['median_artifact'])
             if 'median_artifact_ratio' in metrics:
                 logger.info(
                     "Median Artifact Ratio (to ref):  {:.2f} (target: 1.0)",
