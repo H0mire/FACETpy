@@ -322,7 +322,7 @@ class BatchResult:
 
     Example::
 
-        results = pipeline.map(files, loader_factory=lambda p: EDFLoader(p))
+        results = pipeline.map(files, loader_factory=lambda p: Loader(p))
         results.print_summary()
         df = results.summary_df
     """
@@ -446,7 +446,7 @@ class Pipeline:
     Example::
 
         pipeline = Pipeline([
-            EDFLoader("data.edf"),
+            Loader("data.edf"),
             HighPassFilter(freq=1.0),
             UpSample(factor=10),
             TriggerDetector(regex=r"\\btrigger\\b"),
@@ -476,7 +476,7 @@ class Pipeline:
         they can be used as inline steps without ceremony::
 
             pipeline = Pipeline([
-                EDFLoader("data.edf"),
+                Loader("data.edf"),
                 HighPassFilter(1.0),
                 lambda ctx: (print(ctx.get_sfreq()) or ctx),
                 AASCorrection(),
@@ -794,7 +794,7 @@ class Pipeline:
 
             results = pipeline.map(
                 ["sub-01.edf", "sub-02.edf", "sub-03.edf"],
-                loader_factory=lambda p: EDFLoader(path=p, preload=True),
+                loader_factory=lambda p: Loader(path=p, preload=True),
             )
             results.print_summary()
         """
@@ -900,7 +900,7 @@ class PipelineBuilder:
     Example::
 
         pipeline = (PipelineBuilder()
-            .load_edf("data.edf")
+            .add(Loader("data.edf"))
             .highpass(1.0)
             .upsample(10)
             .detect_triggers(r"\\btrigger\\b")

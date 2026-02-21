@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .core import Pipeline
-from .io import EDFLoader, EDFExporter
+from .io import Loader, EDFExporter
 from .preprocessing import (
     TriggerDetector,
     CutAcquisitionWindow,
@@ -100,7 +100,7 @@ def create_standard_pipeline(
         result = pipeline.run()
     """
     processors = [
-        EDFLoader(path=input_path, preload=True, artifact_to_trigger_offset=artifact_to_trigger_offset),
+        Loader(path=input_path, preload=True, artifact_to_trigger_offset=artifact_to_trigger_offset),
         TriggerDetector(regex=trigger_regex),
         CutAcquisitionWindow(),
         HighPassFilter(freq=1.0),

@@ -1592,15 +1592,15 @@ The following issues were identified during the audit that triggered this guidel
 | Direct `context._metadata` mutation | Resample, AASCorrection, TriggerAligner, ANCCorrection | §3.3 |
 | Direct `raw._data` write without copy first | Filter (noise), SubsampleAligner | §3.2 |
 | Inconsistent noise estimate propagation | Filter, NotchFilter, Resample | §3.6 |
-| Missing `suppress_stdout()` on MNE calls | GDFLoader, BIDSLoader | §3.7 |
-| Empty `validate()` overrides | EDFLoader, BIDSLoader, GDFLoader | §4.3, §15.7 |
+| Missing `suppress_stdout()` on MNE calls | BIDSLoader | §3.7 |
+| Empty `validate()` overrides | BIDSLoader | §4.3, §15.7 |
 | `process()` exceeds 100 lines | AASCorrection, ANCCorrection, MissingTriggerDetector, SubsampleAligner, TriggerDetector | §5.1 |
 | Lazy imports for core deps (scipy, random) | AASCorrection, ANCCorrection, TriggerAligner, QRSTriggerDetector | §11.1 |
 | Missing type annotations | Various | §2.7 |
 | Inconsistent docstring format | Various | §2.8 |
 | No processor registration | Various | §12.1 |
 | `self` mutation in `process()` | UpSample, DownSample | §15.4 |
-| Duplicated bad-channel logic | EDFLoader, BIDSLoader, GDFLoader | §6.4, §15.10 |
+| Duplicated bad-channel logic | BIDSLoader | §6.4, §15.10 |
 | f-strings in logger calls | Various | §7.2 |
 | Silent early returns on error | ANCCorrection | §9.2 |
 | Inconsistent parameter naming | HighPassFilter vs LowPassFilter vs BandPassFilter | §15.9 |

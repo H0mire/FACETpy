@@ -574,11 +574,11 @@ Integration Tests
 
    def test_in_pipeline(sample_edf_file):
        """Test processor in complete pipeline."""
-       from facet.io import EDFLoader
+       from facet.io import Loader
        from facet.core import Pipeline
 
        pipeline = Pipeline([
-           EDFLoader(path=str(sample_edf_file)),
+           Loader(path=str(sample_edf_file)),
            MyProcessor(param1="value"),
            # ... other processors
        ])
@@ -689,7 +689,7 @@ Chaining Custom Processors
 
    # Use in pipeline
    pipeline = Pipeline([
-       EDFLoader(path="data.edf"),
+       Loader(path="data.edf"),
        custom_sequence,
        EDFExporter(path="output.edf")
    ])

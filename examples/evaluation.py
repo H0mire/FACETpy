@@ -12,7 +12,7 @@ from pathlib import Path
 
 from facet import (
     Pipeline,
-    EDFLoader,
+    Loader,
     TriggerDetector,
     HighPassFilter,
     LowPassFilter,
@@ -43,7 +43,7 @@ UPSAMPLE      = 10
 # ---------------------------------------------------------------------------
 def base_steps():
     return [
-        EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
         TriggerDetector(regex=TRIGGER_REGEX),
         HighPassFilter(freq=1.0),
         UpSample(factor=UPSAMPLE),

@@ -8,10 +8,10 @@ I/O processors for loading and exporting EEG data.
 Loaders
 -------
 
-EDFLoader
-~~~~~~~~~
+Loader
+~~~~~~~~~~
 
-.. autoclass:: EDFLoader
+.. autoclass:: Loader
    :members:
    :undoc-members:
    :show-inheritance:
@@ -20,14 +20,6 @@ BIDSLoader
 ~~~~~~~~~~
 
 .. autoclass:: BIDSLoader
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-GDFLoader
-~~~~~~~~~
-
-.. autoclass:: GDFLoader
    :members:
    :undoc-members:
    :show-inheritance:

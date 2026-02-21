@@ -46,11 +46,10 @@ from .core import (
 
 # I/O processors
 from .io import (
-    EDFLoader,
+    Loader,
     BIDSLoader,
-    GDFLoader,
     EDFExporter,
-    BIDSExporter
+    BIDSExporter,
 )
 
 # Preprocessing processors
@@ -120,6 +119,9 @@ from .evaluation import (
     RawPlotter,
 )
 
+# Interactive helpers
+from .helpers import ArtifactOffsetFinder, WaitForConfirmation
+
 # Miscellaneous utilities
 from .misc import (
     EEGGenerator,
@@ -154,9 +156,8 @@ __all__ = [
     'PipelineError',
 
     # I/O
-    'EDFLoader',
+    'Loader',
     'BIDSLoader',
-    'GDFLoader',
     'EDFExporter',
     'BIDSExporter',
 
@@ -198,6 +199,10 @@ __all__ = [
     'MetricsReport',
     'RawPlotter',
 
+    # Interactive helpers
+    'ArtifactOffsetFinder',
+    'WaitForConfirmation',
+
     # Miscellaneous / Synthetic Data Generation
     'EEGGenerator',
     'ChannelSchema',
@@ -219,31 +224,33 @@ from .pipelines import create_standard_pipeline  # noqa: E402
 __all__.append('create_standard_pipeline')
 
 
-def load_edf(path: str, **kwargs) -> 'ProcessingContext':
+def load(path: str, **kwargs) -> 'ProcessingContext':
+    """Load an EEG file and return a :class:`ProcessingContext`.
+
+    Automatically detects the file format from the extension (EDF, BDF, GDF,
+    BrainVision, EEGLAB, FIF).  For BIDS datasets, use :class:`BIDSLoader`.
+
+    Parameters
+    ----------
+    path : str
+        Path to the EEG data file.
+    **kwargs
+        Additional keyword arguments forwarded to
+        :class:`~facet.io.Loader` (e.g. ``preload``,
+        ``artifact_to_trigger_offset``, ``bad_channels``).
+
+    Returns
+    -------
+    ProcessingContext
+        Context containing the loaded recording.
+
+    Examples
+    --------
+    >>> import facet
+    >>> ctx = facet.load("./data/subject01.edf", preload=True)
+    >>> ctx = ctx | facet.HighPassFilter(1.0) | facet.TriggerDetector(r"\\b1\\b")
     """
-    Load an EDF file and return a :class:`ProcessingContext`.
-
-    A convenience shortcut so you can start working with a recording without
-    constructing an :class:`~facet.io.EDFLoader` processor explicitly.  Any
-    keyword argument accepted by :class:`~facet.io.EDFLoader` (e.g.
-    ``preload``, ``artifact_to_trigger_offset``) can be passed here.
-
-    Args:
-        path: Path to the EDF file.
-        **kwargs: Additional keyword arguments forwarded to
-            :class:`~facet.io.EDFLoader`.
-
-    Returns:
-        :class:`ProcessingContext` containing the loaded recording.
-
-    Example::
-
-        import facet
-
-        ctx = facet.load_edf("./data/subject01.edf", preload=True)
-        ctx = ctx | facet.HighPassFilter(1.0) | facet.TriggerDetector(r"\\b1\\b")
-    """
-    return EDFLoader(path=path, **kwargs).execute(None)
+    return Loader(path=path, **kwargs).execute(None)
 
 
-__all__.append('load_edf')
+__all__.append('load')

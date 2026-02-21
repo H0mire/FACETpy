@@ -91,7 +91,7 @@ sequence and collect results in a ``PipelineResult``.
 The main modules are:
 
 - ``facet.core`` — ``Pipeline``, ``Processor``, ``ProcessingContext``, ``PipelineResult``, registry
-- ``facet.io`` — ``EDFLoader``, ``GDFLoader``, ``BIDSLoader``, ``EDFExporter``, ``BIDSExporter``
+- ``facet.io`` — ``Loader``, ``BIDSLoader``, ``EDFExporter``, ``BIDSExporter``
 - ``facet.preprocessing`` — Filters, resampling, trigger detection, alignment
 - ``facet.correction`` — ``AASCorrection``, ``ANCCorrection``, ``PCACorrection``
 - ``facet.evaluation`` — ``SNRCalculator``, ``RMSCalculator``, ``MetricsReport``, and more

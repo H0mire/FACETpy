@@ -78,8 +78,13 @@ Enabling Parallelization
 
 .. code-block:: python
 
+   from facet.core import Pipeline
+   from facet.io import Loader
+   from facet.preprocessing import TriggerDetector
+   from facet.correction import AASCorrection
+
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        AASCorrection(window_size=30)  # parallel_safe = True
    ])
@@ -136,7 +141,7 @@ Processors that are NOT parallel safe:
 
 - ``TriggerDetector`` (operates on annotations)
 - ``TriggerAligner`` (requires cross-channel information)
-- ``EDFLoader``/``EDFExporter`` (I/O operations)
+- ``Loader``/``EDFExporter`` (I/O operations)
 
 ParallelExecutor
 ~~~~~~~~~~~~~~~~
@@ -169,7 +174,7 @@ Use Python's ``concurrent.futures`` to process multiple files in parallel:
        output_path = f"corrected/{Path(input_path).stem}_corrected.edf"
 
        pipeline = Pipeline([
-           EDFLoader(path=input_path, preload=True),
+           Loader(path=input_path, preload=True),
            TriggerDetector(regex=r"\b1\b"),
            AASCorrection(window_size=30),
            EDFExporter(path=output_path, overwrite=True)

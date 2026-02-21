@@ -118,9 +118,10 @@ Compose processors into declarative pipelines:
 .. code-block:: python
 
    from facet.core import Pipeline
+   from facet.io import Loader, EDFExporter
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf"),
+       Loader(path="data.edf"),
        TriggerDetector(regex=r"\b1\b"),
        UpSample(factor=10),
        AASCorrection(window_size=30),
@@ -161,7 +162,7 @@ Available Processors
 --------------------
 
 **I/O**
-   * EDFLoader, BIDSLoader, GDFLoader
+   * Loader, BIDSLoader
    * EDFExporter, BIDSExporter
 
 **Preprocessing**

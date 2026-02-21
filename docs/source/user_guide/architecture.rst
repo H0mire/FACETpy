@@ -285,7 +285,7 @@ The ``ParallelExecutor`` automatically splits by channels:
 .. code-block:: python
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf"),
+       Loader(path="data.edf"),
        TriggerDetector(regex=r"\b1\b"),
        AASCorrection(window_size=30)  # Will parallelize by channel
    ])
@@ -300,7 +300,7 @@ Typical data flow through FACETpy:
 .. code-block:: text
 
    ┌─────────────┐
-   │ Load Data   │ EDFLoader
+   │ Load Data   │ Loader
    └──────┬──────┘
           │
           ▼

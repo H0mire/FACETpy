@@ -27,12 +27,12 @@ results with minimal code.
 
 ```python
 from facet import (
-    Pipeline, EDFLoader, EDFExporter,
+    Pipeline, Loader, EDFExporter,
     TriggerDetector, UpSample, DownSample, AASCorrection,
 )
 
 pipeline = Pipeline([
-    EDFLoader(path="data.edf", preload=True),
+    Loader(path="data.edf", preload=True),
     TriggerDetector(regex=r"\b1\b"),
     UpSample(factor=10),
     AASCorrection(window_size=30),
@@ -139,7 +139,7 @@ Full online documentation: https://facetpy.readthedocs.io/
 ```
 src/facet/
 ├── core/           Pipeline, Processor, ProcessingContext, BatchResult
-├── io/             EDFLoader, GDFLoader, BIDSLoader, EDFExporter, BIDSExporter
+├── io/             Loader, BIDSLoader, EDFExporter, BIDSExporter
 ├── preprocessing/  Filters, Resample, TriggerDetector, Alignment, Transforms
 ├── correction/     AASCorrection, PCACorrection, ANCCorrection
 ├── evaluation/     SNRCalculator, RMSCalculator, MetricsReport, RawPlotter

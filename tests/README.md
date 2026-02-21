@@ -134,7 +134,7 @@ Creates a temporary EDF file with annotations.
 
 ```python
 def test_loader(sample_edf_file):
-    loader = EDFLoader(path=str(sample_edf_file))
+    loader = Loader(path=str(sample_edf_file))
 ```
 
 #### `temp_dir`
@@ -192,7 +192,7 @@ class TestMyWorkflow:
     def test_complete_workflow(self, sample_edf_file):
         """Test complete processing workflow."""
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file)),
+            Loader(path=str(sample_edf_file)),
             MyProcessor1(),
             MyProcessor2(),
             MyProcessor3()

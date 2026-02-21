@@ -27,10 +27,10 @@ class TestTriggerDetector:
 
     def test_trigger_detection_from_annotations(self, sample_edf_file):
         """Test detecting triggers from annotations."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
 
         # Load file with triggers
-        loader = EDFLoader(path=str(sample_edf_file), preload=True)
+        loader = Loader(path=str(sample_edf_file), preload=True)
         context = loader.execute(None)
 
         # Detect triggers
@@ -44,9 +44,9 @@ class TestTriggerDetector:
 
     def test_trigger_detection_sets_artifact_length(self, sample_edf_file):
         """Test that trigger detection calculates artifact length."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
 
-        loader = EDFLoader(path=str(sample_edf_file), preload=True)
+        loader = Loader(path=str(sample_edf_file), preload=True)
         context = loader.execute(None)
 
         detector = TriggerDetector(regex=r"\b1\b")
@@ -421,11 +421,11 @@ class TestPreprocessingIntegration:
 
     def test_full_preprocessing_workflow(self, sample_edf_file):
         """Test complete preprocessing workflow."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
         from facet.core import Pipeline
 
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file), preload=True),
+            Loader(path=str(sample_edf_file), preload=True),
             TriggerDetector(regex=r"\b1\b"),
             UpSample(factor=2),
             TriggerAligner(ref_trigger_index=0),

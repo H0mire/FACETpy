@@ -9,7 +9,7 @@ Call results.print_summary() for a formatted table — no manual formatting need
 
 from facet import (
     Pipeline,
-    EDFLoader,
+    Loader,
     TriggerDetector,
     HighPassFilter,
     LowPassFilter,
@@ -42,7 +42,7 @@ pipeline = Pipeline([
 
 results = pipeline.map(
     INPUT_FILES,
-    loader_factory=lambda p: EDFLoader(
+    loader_factory=lambda p: Loader(
         path=p,
         preload=True,
         artifact_to_trigger_offset=-0.005,

@@ -44,9 +44,9 @@ class TestPipeline:
 
     def test_pipeline_with_loader(self, sample_edf_file):
         """Test pipeline with loader creating initial context."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
 
-        loader = EDFLoader(path=str(sample_edf_file), preload=True)
+        loader = Loader(path=str(sample_edf_file), preload=True)
         proc1 = create_mock_processor("proc1")
 
         pipeline = Pipeline([loader, proc1])
@@ -173,7 +173,7 @@ class TestPipelineIntegration:
 
     def test_simple_correction_pipeline(self, sample_edf_file):
         """Test a simple correction pipeline."""
-        from facet.io import EDFLoader, EDFExporter
+        from facet.io import Loader, EDFExporter
         from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.correction import AASCorrection
         import tempfile
@@ -183,7 +183,7 @@ class TestPipelineIntegration:
             output_path = tmp.name
 
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file), preload=True),
+            Loader(path=str(sample_edf_file), preload=True),
             TriggerDetector(regex=r"\b1\b"),
             UpSample(factor=2),  # Small factor for speed
             AASCorrection(window_size=5),  # Small window for speed
@@ -207,13 +207,13 @@ class TestPipelineIntegration:
     @pytest.mark.slow
     def test_full_correction_pipeline(self, sample_edf_file):
         """Test a full correction pipeline with multiple steps."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
         from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.correction import AASCorrection
         from facet.evaluation import SNRCalculator, RMSCalculator
 
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file), preload=True),
+            Loader(path=str(sample_edf_file), preload=True),
             TriggerDetector(regex=r"\b1\b"),
             UpSample(factor=2),
             AASCorrection(window_size=5),
@@ -376,13 +376,13 @@ class TestPipelineMap:
 
     def test_map_with_loader_factory(self, sample_edf_file):
         """map() uses loader_factory to load each file path."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
         from facet.preprocessing import TriggerDetector
 
         pipeline = Pipeline([TriggerDetector(regex=r"\b1\b")])
         results = pipeline.map(
             [str(sample_edf_file)],
-            loader_factory=lambda p: EDFLoader(path=p, preload=True),
+            loader_factory=lambda p: Loader(path=p, preload=True),
         )
 
         assert len(results) == 1

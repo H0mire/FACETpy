@@ -331,13 +331,13 @@ class TestEvaluationPipeline:
 
     def test_evaluation_after_correction(self, sample_edf_file):
         """Test evaluation after correction."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
         from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.correction import AASCorrection
         from facet.core import Pipeline
 
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file), preload=True),
+            Loader(path=str(sample_edf_file), preload=True),
             TriggerDetector(regex=r"\b1\b"),
             UpSample(factor=2),
             AASCorrection(window_size=5),

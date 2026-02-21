@@ -139,12 +139,12 @@ The v2.0 architecture uses a pipeline pattern where:
 Example:
 ```python
 from facet.core import Pipeline
-from facet.io import EDFLoader, EDFExporter
+from facet.io import Loader, EDFExporter
 from facet.preprocessing import TriggerDetector, UpSample
 from facet.correction import AASCorrection
 
 pipeline = Pipeline([
-    EDFLoader(path="data.edf", preload=True),
+    Loader(path="data.edf", preload=True),
     TriggerDetector(regex=r"\b1\b"),
     UpSample(factor=10),
     AASCorrection(window_size=30),

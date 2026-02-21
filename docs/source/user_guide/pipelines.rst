@@ -36,12 +36,12 @@ Create a pipeline by passing a list of processors:
 .. code-block:: python
 
    from facet.core import Pipeline
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
    from facet.preprocessing import TriggerDetector
    from facet.correction import AASCorrection
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        AASCorrection(window_size=30),
        EDFExporter(path="output.edf", overwrite=True)
@@ -195,7 +195,7 @@ The ``PipelineBuilder`` provides a fluent interface for constructing pipelines:
    builder = PipelineBuilder(name="My Workflow")
 
    pipeline = (builder
-       .add(EDFLoader(path="data.edf"))
+       .add(Loader(path="data.edf"))
        .add(TriggerDetector(regex=r"\b1\b"))
        .add(UpSample(factor=10))
        .add(AASCorrection(window_size=30))
@@ -247,7 +247,7 @@ Custom Correction Pipeline
 .. code-block:: python
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        UpSample(factor=10),
        TriggerAligner(ref_trigger_index=0),
@@ -274,7 +274,7 @@ Process multiple files:
    # Create pipeline template
    def create_pipeline(input_path, output_path):
        return Pipeline([
-           EDFLoader(path=input_path, preload=True),
+           Loader(path=input_path, preload=True),
            TriggerDetector(regex=r"\b1\b"),
            AASCorrection(window_size=30),
            EDFExporter(path=output_path, overwrite=True)
@@ -297,7 +297,7 @@ Evaluate already corrected data:
 .. code-block:: python
 
    pipeline = Pipeline([
-       EDFLoader(path="corrected.edf", preload=True),
+       Loader(path="corrected.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        SNRCalculator(),
        RMSCalculator(),
@@ -358,7 +358,7 @@ Performance Tips
 
    .. code-block:: python
 
-      EDFLoader(path="data.edf", preload=True)
+      Loader(path="data.edf", preload=True)
 
 3. **Optimize Window Size**
    Larger AAS window sizes are faster but less adaptive:

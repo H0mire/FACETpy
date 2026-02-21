@@ -28,12 +28,12 @@ Correct ballistocardiogram (BCG) artifacts:
 .. code-block:: python
 
    from facet.core import Pipeline
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
    from facet.preprocessing import QRSTriggerDetector
    from facet.correction import AASCorrection
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        QRSTriggerDetector(),  # Detect QRS complexes
        AASCorrection(window_size=20),  # Smaller window for BCG
        EDFExporter(path="corrected.edf")
@@ -49,7 +49,7 @@ Process multiple files:
 .. code-block:: python
 
    from facet.core import Pipeline, ProcessingContext
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
 
    # Define correction pipeline
    correction = Pipeline([
@@ -63,7 +63,7 @@ Process multiple files:
    files = ["s1.edf", "s2.edf", "s3.edf"]
 
    for file in files:
-       loader = EDFLoader(path=file, preload=True)
+       loader = Loader(path=file, preload=True)
        context = loader.execute(ProcessingContext())
 
        result = correction.run(initial_context=context)
@@ -132,7 +132,7 @@ Create your own processor:
 
    # Use it
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        CustomDenoiser(threshold=0.5),
        EDFExporter(path="denoised.edf")
    ])
@@ -171,7 +171,7 @@ Provide triggers manually instead of detecting:
    from facet.core import ProcessingContext, ProcessingMetadata
 
    # Load data
-   loader = EDFLoader(path="data.edf", preload=True)
+   loader = Loader(path="data.edf", preload=True)
    context = loader.execute(ProcessingContext())
 
    # Manually set triggers
@@ -217,10 +217,10 @@ GDF Format
 
 .. code-block:: python
 
-   from facet.io import GDFLoader
+   from facet.io import Loader
 
    pipeline = Pipeline([
-       GDFLoader(path="data.gdf", preload=True),
+       Loader(path="data.gdf", preload=True),
        # ... correction ...
        EDFExporter(path="corrected.edf")
    ])
@@ -269,7 +269,7 @@ Save Intermediate Results
 
    # Create sub-pipelines to save intermediate results
    preprocessing = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        UpSample(factor=10)
    ])

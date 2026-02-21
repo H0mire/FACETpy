@@ -8,6 +8,7 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import time
 from pathlib import Path
 from typing import Optional, Union, Sequence, Dict, Any
 
@@ -16,6 +17,7 @@ from matplotlib import pyplot as plt
 from scipy import signal
 from loguru import logger
 
+from ..console import suspend_raw_mode
 from ..core import Processor, ProcessingContext, register_processor
 
 
@@ -139,16 +141,21 @@ class RawPlotter(Processor):
             self.picks,
         )
 
-        fig = raw.plot(block=not self.auto_close, **plot_kwargs)
+        plot_kwargs["block"] = False
+        fig = raw.plot(**plot_kwargs)
 
         if self.save_path:
             self.save_path.parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(self.save_path, dpi=150, bbox_inches="tight")
             logger.info("Saved MNE plot to {}", self.save_path)
-            if self.auto_close:
-                plt.close(fig)
 
-        if not self.show and self.auto_close and not self.save_path:
+        if self.show:
+            with suspend_raw_mode():
+                plt.show(block=False)
+                while plt.fignum_exists(fig.number):
+                    fig.canvas.flush_events()
+                    time.sleep(0.05)
+        elif self.auto_close or self.save_path:
             plt.close(fig)
 
     def _plot_with_matplotlib(self, raw, context: ProcessingContext) -> None:
@@ -196,7 +203,11 @@ class RawPlotter(Processor):
             logger.info("Saved Matplotlib plot to {}", self.save_path)
 
         if self.show:
-            plt.show(block=True)
+            with suspend_raw_mode():
+                plt.show(block=False)
+                while plt.fignum_exists(fig.number):
+                    fig.canvas.flush_events()
+                    time.sleep(0.05)
         elif self.auto_close or self.save_path:
             plt.close(fig)
 

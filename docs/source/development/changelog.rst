@@ -26,9 +26,8 @@ Added
 
 *I/O:*
 
-- ``EDFLoader`` - Load EDF/EDF+ files
+- ``Loader`` - Load EEG data with automatic format detection (EDF, BDF, GDF, BrainVision, EEGLAB, FIF)
 - ``BIDSLoader`` - Load BIDS format data
-- ``GDFLoader`` - Load GDF format data
 - ``EDFExporter`` - Export to EDF format
 - ``BIDSExporter`` - Export to BIDS format
 

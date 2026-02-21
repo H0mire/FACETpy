@@ -90,13 +90,13 @@ I/O Processors
 Loading Data
 ^^^^^^^^^^^^
 
-**EDFLoader** - Load EDF/EDF+ files
+**Loader** - Load EEG data with automatic format detection
 
 .. code-block:: python
 
-   from facet.io import EDFLoader
+   from facet.io import Loader
 
-   loader = EDFLoader(
+   loader = Loader(
        path="data.edf",
        preload=True,  # Load into memory
        stim_channel="auto"  # Auto-detect stimulus channel
@@ -116,14 +116,6 @@ Loading Data
        task="rest",
        run="01"
    )
-
-**GDFLoader** - Load GDF format data
-
-.. code-block:: python
-
-   from facet.io import GDFLoader
-
-   loader = GDFLoader(path="data.gdf", preload=True)
 
 Exporting Data
 ^^^^^^^^^^^^^^
@@ -572,7 +564,7 @@ Add to pipeline:
 .. code-block:: python
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf"),
+       Loader(path="data.edf"),
        TriggerDetector(regex=r"\b1\b"),
        AASCorrection(window_size=30)
    ])
@@ -758,10 +750,10 @@ Performance Tips
    .. code-block:: python
 
       # Small files - preload
-      EDFLoader(path="small.edf", preload=True)
+      Loader(path="small.edf", preload=True)
 
       # Large files - don't preload
-      EDFLoader(path="large.edf", preload=False)
+      Loader(path="large.edf", preload=False)
 
 Next Steps
 ----------

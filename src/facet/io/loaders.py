@@ -9,7 +9,7 @@ Date: 2025-01-12
 
 from numbers import Integral, Real
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Any, Callable, Dict, Optional, List, Tuple
 
 import mne
 from mne.io import BaseRaw
@@ -24,6 +24,52 @@ from ..core import (
     register_processor,
 )
 from facet.logging_config import suppress_stdout
+
+
+_EXTENSION_READERS: Dict[str, Tuple[Callable[..., BaseRaw], str]] = {
+    ".edf": (mne.io.read_raw_edf, "EDF"),
+    ".bdf": (mne.io.read_raw_bdf, "BDF"),
+    ".gdf": (mne.io.read_raw_gdf, "GDF"),
+    ".vhdr": (mne.io.read_raw_brainvision, "BrainVision"),
+    ".set": (mne.io.read_raw_eeglab, "EEGLAB"),
+    ".fif": (mne.io.read_raw_fif, "FIF"),
+    ".mff": (mne.io.read_raw_egi, "MFF"),
+}
+
+SUPPORTED_EXTENSIONS: List[str] = sorted(_EXTENSION_READERS.keys())
+
+
+def _detect_format(path: Path) -> Tuple[Callable[..., BaseRaw], str]:
+    """Detect the EEG file format from the file extension.
+
+    Parameters
+    ----------
+    path : Path
+        Path to the EEG data file (or directory for MFF format).
+
+    Returns
+    -------
+    tuple of (callable, str)
+        The MNE reader function and a human-readable format name.
+
+    Raises
+    ------
+    ProcessorValidationError
+        If the extension is not recognized.
+    """
+    suffixes = path.suffixes
+    if len(suffixes) >= 2 and suffixes[-2] == ".fif" and suffixes[-1] == ".gz":
+        return _EXTENSION_READERS[".fif"]
+
+    ext = path.suffix.lower()
+    if ext in _EXTENSION_READERS:
+        return _EXTENSION_READERS[ext]
+
+    raise ProcessorValidationError(
+        f"Unsupported file extension '{ext}' for '{path.name}'. "
+        f"Supported extensions: {', '.join(SUPPORTED_EXTENSIONS)}. "
+        f"For BIDS datasets, use BIDSLoader directly."
+    )
 
 
 def _coerce_sample_index(value: Optional[float], default: int, name: str) -> int:
@@ -113,18 +159,97 @@ def _configure_bad_channels(raw: mne.io.Raw, bad_channels: List[str]) -> None:
         logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
 
 
-@register_processor
-class EDFLoader(Processor):
-    """Load EEG data from an EDF file.
+def _build_context_from_raw(
+    raw: BaseRaw,
+    bad_channels: List[str],
+    start_sample: Optional[int],
+    stop_sample: Optional[int],
+    artifact_to_trigger_offset: float,
+    upsampling_factor: int,
+    extra_custom: Optional[Dict[str, Any]] = None,
+) -> ProcessingContext:
+    """Post-read pipeline shared by all loaders.
 
-    Creates a new ProcessingContext from the file at the given path.
-    Optionally restricts the recording to a sample window and marks
-    a list of channels as bad before returning.
+    Applies bad-channel marking, sample windowing, metadata construction,
+    and result logging.
+
+    Parameters
+    ----------
+    raw : BaseRaw
+        The MNE Raw object returned by the format-specific reader.
+    bad_channels : list of str
+        Channel names to mark as bad.
+    start_sample : int or None
+        First sample to keep (inclusive).
+    stop_sample : int or None
+        Last sample to keep (exclusive).
+    artifact_to_trigger_offset : float
+        Offset in seconds stored in metadata.
+    upsampling_factor : int
+        Upsampling factor stored in metadata.
+    extra_custom : dict, optional
+        Additional entries for ``metadata.custom``.
+
+    Returns
+    -------
+    ProcessingContext
+        New context wrapping the (possibly cropped) Raw object.
+    """
+    _configure_bad_channels(raw, bad_channels)
+
+    full_n_times = raw.n_times
+    try:
+        raw, start_idx, stop_idx = _apply_sample_window(
+            raw, start_sample, stop_sample
+        )
+    except ValueError as exc:
+        raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
+
+    if start_idx != 0 or stop_idx != full_n_times:
+        logger.info(
+            "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
+            start_idx,
+            stop_idx,
+            raw.n_times,
+            full_n_times,
+        )
+
+    acq_start = start_idx if start_sample is not None else None
+    acq_end = stop_idx if stop_sample is not None else None
+
+    metadata = ProcessingMetadata(
+        artifact_to_trigger_offset=artifact_to_trigger_offset,
+        upsampling_factor=upsampling_factor,
+        acq_start_sample=acq_start,
+        acq_end_sample=acq_end,
+    )
+    if extra_custom:
+        metadata.custom.update(extra_custom)
+
+    logger.info(
+        "Loaded {} channels, {} samples, {} Hz",
+        len(raw.ch_names),
+        raw.n_times,
+        raw.info["sfreq"],
+    )
+
+    return ProcessingContext(raw=raw, metadata=metadata)
+
+
+@register_processor
+class Loader(Processor):
+    """Load EEG data with automatic file-format detection.
+
+    Inspects the file extension and selects the appropriate MNE reader.
+    Supports EDF, BDF, GDF, BrainVision (.vhdr), EEGLAB (.set),
+    FIF (.fif / .fif.gz), and EGI MFF (.mff). For BIDS datasets use
+    :class:`BIDSLoader`. Note: MFF format uses a directory structure;
+    pass the path to the .mff directory (e.g. recording.mff).
 
     Parameters
     ----------
     path : str
-        Path to the EDF file to load.
+        Path to the EEG data file.
     bad_channels : list of str, optional
         Channel names to mark as bad (default: none).
     preload : bool, optional
@@ -139,14 +264,14 @@ class EDFLoader(Processor):
         Last sample index to keep, exclusive (default: last sample).
     """
 
-    name = "edf_loader"
-    description = "Load EEG data from EDF file"
-    version = "1.0.0"
+    name: str = "auto_loader"
+    description: str = "Load EEG data with automatic format detection"
+    version: str = "1.0.0"
 
-    requires_triggers = False
-    requires_raw = False
-    modifies_raw = True
-    parallel_safe = False
+    requires_triggers: bool = False
+    requires_raw: bool = False
+    modifies_raw: bool = True
+    parallel_safe: bool = False
 
     def __init__(
         self,
@@ -167,57 +292,41 @@ class EDFLoader(Processor):
         self.stop_sample = stop_sample
         super().__init__()
 
+    def validate(self, context: Optional[ProcessingContext]) -> None:
+        resolved = Path(self.path)
+        if not resolved.exists():
+            raise ProcessorValidationError(f"File not found: {self.path}")
+        if resolved.is_dir():
+            if resolved.suffix.lower() != ".mff":
+                raise ProcessorValidationError(
+                    f"Path is a directory: {self.path}. "
+                    "For BIDS datasets, use BIDSLoader. For MFF format, the path must "
+                    "have a .mff extension (e.g. recording.mff)."
+                )
+        _detect_format(resolved)
+
     def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
+        # --- EXTRACT ---
+        resolved = Path(self.path)
+        reader_fn, format_name = _detect_format(resolved)
+
         # --- LOG ---
-        logger.info("Loading EDF file: {}", self.path)
+        logger.info("Loading {} file: {}", format_name, self.path)
 
         # --- COMPUTE ---
         with suppress_stdout():
-            raw = mne.io.read_raw_edf(self.path, preload=self.preload, verbose=False)
-
-        _configure_bad_channels(raw, self.bad_channels)
-
-        full_n_times = raw.n_times
-        try:
-            raw, start_idx, stop_idx = _apply_sample_window(
-                raw, self.start_sample, self.stop_sample
-            )
-        except ValueError as exc:
-            raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
-
-        if start_idx != 0 or stop_idx != full_n_times:
-            logger.info(
-                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
-                start_idx,
-                stop_idx,
-                raw.n_times,
-                full_n_times,
-            )
-
-        # --- BUILD RESULT ---
-        acq_start = start_idx if start_idx != 0 else None
-        acq_end = stop_idx if stop_idx != full_n_times else None
-        if self.start_sample is not None:
-            acq_start = start_idx
-        if self.stop_sample is not None:
-            acq_end = stop_idx
-
-        metadata = ProcessingMetadata(
-            artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor,
-            acq_start_sample=acq_start,
-            acq_end_sample=acq_end,
-        )
-
-        logger.info(
-            "Loaded {} channels, {} samples, {}Hz",
-            len(raw.ch_names),
-            raw.n_times,
-            raw.info["sfreq"],
-        )
+            raw = reader_fn(str(resolved), preload=self.preload, verbose=False)
 
         # --- RETURN ---
-        return ProcessingContext(raw=raw, metadata=metadata)
+        return _build_context_from_raw(
+            raw,
+            self.bad_channels,
+            self.start_sample,
+            self.stop_sample,
+            self.artifact_to_trigger_offset,
+            self.upsampling_factor,
+            extra_custom={"source_format": format_name},
+        )
 
 
 @register_processor
@@ -288,7 +397,6 @@ class BIDSLoader(Processor):
         super().__init__()
 
     def validate(self, context: Optional[ProcessingContext]) -> None:
-        # Don't call super() — loaders create the context, there is nothing to validate
         if not Path(self.root).exists():
             raise ProcessorValidationError(f"BIDS root directory not found: {self.root}")
 
@@ -315,142 +423,13 @@ class BIDSLoader(Processor):
         if self.preload:
             raw.load_data()
 
-        full_n_times = raw.n_times
-
-        _configure_bad_channels(raw, self.bad_channels)
-
-        try:
-            raw, start_idx, stop_idx = _apply_sample_window(
-                raw, self.start_sample, self.stop_sample
-            )
-        except ValueError as exc:
-            raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
-
-        if start_idx != 0 or stop_idx != full_n_times:
-            logger.info(
-                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
-                start_idx,
-                stop_idx,
-                raw.n_times,
-                full_n_times,
-            )
-
-        # --- BUILD RESULT ---
-        metadata = ProcessingMetadata(
-            artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor,
-        )
-        metadata.custom["bids_path"] = bids_path
-        metadata.acq_start_sample = start_idx
-        metadata.acq_end_sample = stop_idx
-
-        logger.info(
-            "Loaded {} channels, {} samples, {}Hz",
-            len(raw.ch_names),
-            raw.n_times,
-            raw.info["sfreq"],
-        )
-
         # --- RETURN ---
-        return ProcessingContext(raw=raw, metadata=metadata)
-
-
-@register_processor
-class GDFLoader(Processor):
-    """Load EEG data from a GDF file.
-
-    Creates a new ProcessingContext from the file at the given path.
-    Optionally restricts the recording to a sample window and marks
-    a list of channels as bad before returning.
-
-    Parameters
-    ----------
-    path : str
-        Path to the GDF file to load.
-    bad_channels : list of str, optional
-        Channel names to mark as bad (default: none).
-    preload : bool, optional
-        Whether to load data into memory immediately (default: True).
-    artifact_to_trigger_offset : float, optional
-        Offset of the artifact relative to the trigger, in seconds (default: 0.0).
-    upsampling_factor : int, optional
-        Upsampling factor stored in metadata for downstream processors (default: 1).
-    start_sample : int, optional
-        First sample index to keep, inclusive (default: first sample).
-    stop_sample : int, optional
-        Last sample index to keep, exclusive (default: last sample).
-    """
-
-    name = "gdf_loader"
-    description = "Load EEG data from GDF file"
-    version = "1.0.0"
-
-    requires_triggers = False
-    requires_raw = False
-    modifies_raw = True
-    parallel_safe = False
-
-    def __init__(
-        self,
-        path: str,
-        bad_channels: Optional[List[str]] = None,
-        preload: bool = True,
-        artifact_to_trigger_offset: float = 0.0,
-        upsampling_factor: int = 1,
-        start_sample: Optional[int] = None,
-        stop_sample: Optional[int] = None,
-    ) -> None:
-        self.path = path
-        self.bad_channels = bad_channels or []
-        self.preload = preload
-        self.artifact_to_trigger_offset = artifact_to_trigger_offset
-        self.upsampling_factor = upsampling_factor
-        self.start_sample = start_sample
-        self.stop_sample = stop_sample
-        super().__init__()
-
-    def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
-        # --- LOG ---
-        logger.info("Loading GDF file: {}", self.path)
-
-        # --- COMPUTE ---
-        with suppress_stdout():
-            raw = mne.io.read_raw_gdf(self.path, preload=self.preload)
-
-        full_n_times = raw.n_times
-
-        _configure_bad_channels(raw, self.bad_channels)
-
-        try:
-            raw, start_idx, stop_idx = _apply_sample_window(
-                raw, self.start_sample, self.stop_sample
-            )
-        except ValueError as exc:
-            raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
-
-        if start_idx != 0 or stop_idx != full_n_times:
-            logger.info(
-                "Applied sample window: start={}, stop={} (exclusive), kept {}/{} samples",
-                start_idx,
-                stop_idx,
-                raw.n_times,
-                full_n_times,
-            )
-
-        # --- BUILD RESULT ---
-        metadata = ProcessingMetadata(
-            artifact_to_trigger_offset=self.artifact_to_trigger_offset,
-            upsampling_factor=self.upsampling_factor,
+        return _build_context_from_raw(
+            raw,
+            self.bad_channels,
+            self.start_sample,
+            self.stop_sample,
+            self.artifact_to_trigger_offset,
+            self.upsampling_factor,
+            extra_custom={"bids_path": bids_path},
         )
-        metadata.acq_start_sample = start_idx
-        metadata.acq_end_sample = stop_idx
-
-        logger.info(
-            "Loaded {} channels, {} samples, {}Hz",
-            len(raw.ch_names),
-            raw.n_times,
-            raw.info["sfreq"],
-        )
-
-        # --- RETURN ---
-        return ProcessingContext(raw=raw, metadata=metadata)

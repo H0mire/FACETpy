@@ -12,7 +12,7 @@ from pathlib import Path
 
 from facet import (
     Pipeline,
-    EDFLoader,
+    Loader,
     EDFExporter,
     TriggerDetector,
     TriggerAligner,
@@ -48,7 +48,7 @@ def example_conditional():
         return ctx.get_metric("snr", default=float("inf")) < 10
 
     pipeline = Pipeline([
-        EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
         TriggerDetector(regex=TRIGGER_REGEX),
         HighPassFilter(freq=1.0),
         UpSample(factor=UPSAMPLE),
@@ -75,7 +75,7 @@ def example_conditional():
 # ---------------------------------------------------------------------------
 def example_parallel():
     pipeline = Pipeline([
-        EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
         TriggerDetector(regex=TRIGGER_REGEX),
         HighPassFilter(freq=1.0),
         UpSample(factor=UPSAMPLE),

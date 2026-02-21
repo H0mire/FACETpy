@@ -20,11 +20,11 @@ First, let's load the EEG data:
 
 .. code-block:: python
 
-   from facet.io import EDFLoader
+   from facet.io import Loader
    from facet.core import ProcessingContext
 
-   # Load EDF file
-   loader = EDFLoader(path="my_data.edf", preload=True)
+   # Load EEG file (EDF, GDF, etc.)
+   loader = Loader(path="my_data.edf", preload=True)
    context = loader.execute(ProcessingContext())
 
    # Inspect the data
@@ -202,7 +202,7 @@ Here's the complete workflow as a pipeline:
 .. code-block:: python
 
    from facet.core import Pipeline
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
    from facet.preprocessing import (
        TriggerDetector, UpSample, TriggerAligner,
        DownSample, HighPassFilter
@@ -212,7 +212,7 @@ Here's the complete workflow as a pipeline:
 
    # Build pipeline
    pipeline = Pipeline([
-       EDFLoader(path="my_data.edf", preload=True),
+       Loader(path="my_data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),
        UpSample(factor=10),
        TriggerAligner(ref_trigger_index=0),

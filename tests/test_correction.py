@@ -234,12 +234,12 @@ class TestCorrectionPipeline:
 
     def test_full_correction_pipeline(self, sample_edf_file):
         """Test full correction pipeline."""
-        from facet.io import EDFLoader
+        from facet.io import Loader
         from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.core import Pipeline
 
         pipeline = Pipeline([
-            EDFLoader(path=str(sample_edf_file), preload=True),
+            Loader(path=str(sample_edf_file), preload=True),
             TriggerDetector(regex=r"\b1\b"),
             UpSample(factor=2),
             AASCorrection(window_size=5),

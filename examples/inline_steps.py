@@ -14,10 +14,11 @@ PrintMetric that eliminate common boilerplate lambdas.
 """
 
 from facet import (
+    ArtifactOffsetFinder,
     MetricsReport,
     Pipeline,
     ProcessingContext,
-    EDFLoader,
+    Loader,
     EDFExporter,
     TriggerDetector,
     HighPassFilter,
@@ -27,9 +28,8 @@ from facet import (
     AASCorrection,
     SNRCalculator,
     DropChannels,
-    PickChannels,
     PrintMetric,
-    load_edf,
+    load,
 )
 from facet.helpers.interactive import WaitForConfirmation
 
@@ -52,11 +52,12 @@ def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
     return ctx
 
 pipeline = Pipeline([
-    EDFLoader(path=INPUT_FILE, preload=True),
+    Loader(path=INPUT_FILE, preload=True),
     # Drop non-EEG channels by name — no lambda needed
     DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
 
     TriggerDetector(regex=r"\b1\b"),
+    ArtifactOffsetFinder(),
 
     # Custom def step: log sampling frequency for verification
     log_sfreq,
@@ -75,30 +76,29 @@ pipeline = Pipeline([
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
 ], name="Inline Steps")
 
-# result = pipeline.run()
-# result.print_summary()
+result = pipeline.run()
+result.print_summary()
 
 
 # ---------------------------------------------------------------------------
 # B. Pipe operator — chain processors outside a Pipeline
 # ---------------------------------------------------------------------------
 #
-# load_edf() gives you a ProcessingContext without importing MNE directly.
+# load() gives you a ProcessingContext without importing MNE directly.
 # Then chain processors with | — ideal for notebooks or exploratory scripts.
 
-ctx = load_edf(INPUT_FILE, preload=True)
+ctx = load(INPUT_FILE, preload=True)
 
 ctx = (
     ctx
     | HighPassFilter(1.0)
     | TriggerDetector(regex=r"\b1\b")
+    | ArtifactOffsetFinder()
     | UpSample(factor=10)
     | AASCorrection(window_size=30)
     | DownSample(factor=10)
     | SNRCalculator()
-    | WaitForConfirmation(
-    message="✅ Execution Finished! Press Enter to print the result..."
-    )
+    | WaitForConfirmation(message="✅ Execution Finished! Press Enter to print the result...")
     | MetricsReport(name="Pipe-operator result")
 )
 

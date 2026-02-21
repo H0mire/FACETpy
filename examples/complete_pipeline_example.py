@@ -19,8 +19,9 @@ For shorter introductions, see:
 from pathlib import Path
 
 from facet import (
+    ArtifactOffsetFinder,
     Pipeline,
-    EDFLoader,
+    Loader,
     EDFExporter,
     TriggerDetector,
     TriggerAligner,
@@ -76,7 +77,7 @@ except ImportError:
 # ---------------------------------------------------------------------------
 steps = [
     # 1. Load
-    EDFLoader(
+    Loader(
         path=INPUT_FILE,
         preload=True,
         artifact_to_trigger_offset=-0.005,
@@ -90,6 +91,8 @@ steps = [
 
     # 4. Detect fMRI slice-onset triggers
     TriggerDetector(regex=TRIGGER_REGEX),
+
+    ArtifactOffsetFinder(),
 
     # 5. High-pass filter to remove slow drifts before correction
     HighPassFilter(freq=1.0),
@@ -143,7 +146,7 @@ steps += [
         duration=20.0,
         overlay_original=True,
         save_path=str(OUTPUT_DIR / "before_after.png"),
-        show=False,
+        show=True,
         auto_close=True,
         title="Fp1 — Before vs After Correction",
     ),

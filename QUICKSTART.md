@@ -42,7 +42,7 @@ else:
 
 ```python
 from facet.core import Pipeline
-from facet.io import EDFLoader, EDFExporter
+from facet.io import Loader, EDFExporter
 from facet.preprocessing import TriggerDetector, UpSample, DownSample
 from facet.correction import AASCorrection, ANCCorrection
 from facet.evaluation import SNRCalculator, MetricsReport
@@ -50,7 +50,7 @@ from facet.evaluation import SNRCalculator, MetricsReport
 # Build your custom pipeline
 pipeline = Pipeline([
     # Load data
-    EDFLoader(path="data.edf", preload=True),
+    Loader(path="data.edf", preload=True),
 
     # Detect triggers
     TriggerDetector(regex=r"\b1\b"),
@@ -89,12 +89,12 @@ result = pipeline.run(parallel=True, n_jobs=-1)
 
 ```python
 from facet.core import ProcessingContext
-from facet.io import EDFLoader
+from facet.io import Loader
 from facet.preprocessing import TriggerDetector, UpSample
 from facet.correction import AASCorrection
 
 # Load data
-loader = EDFLoader(path="data.edf", preload=True)
+loader = Loader(path="data.edf", preload=True)
 context = loader.execute(ProcessingContext())
 
 # Detect triggers
@@ -122,7 +122,7 @@ corrected_raw.save("corrected.fif")
 
 ```python
 from facet.core import Pipeline, ProcessingContext
-from facet.io import EDFLoader, EDFExporter
+from facet.io import Loader, EDFExporter
 from facet.preprocessing import TriggerDetector, UpSample, DownSample
 from facet.correction import AASCorrection
 
@@ -141,7 +141,7 @@ for input_file in files:
     print(f"\nProcessing {input_file}...")
 
     # Load
-    loader = EDFLoader(path=input_file, preload=True)
+    loader = Loader(path=input_file, preload=True)
     context = loader.execute(ProcessingContext())
 
     # Correct
@@ -273,7 +273,7 @@ print(raw.annotations)
 
 ```python
 # For large files, ensure preload is managed
-loader = EDFLoader(path="large_file.edf", preload=True)
+loader = Loader(path="large_file.edf", preload=True)
 
 # Or process in chunks (future feature)
 ```

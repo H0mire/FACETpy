@@ -55,14 +55,14 @@ For more control, build a custom pipeline:
 .. code-block:: python
 
    from facet.core import Pipeline
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
    from facet.preprocessing import TriggerDetector, UpSample, DownSample
    from facet.correction import AASCorrection
    from facet.evaluation import SNRCalculator, MetricsReport
 
    pipeline = Pipeline([
        # Load your data
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
 
        # Detect fMRI triggers
        TriggerDetector(regex=r"\b1\b"),
@@ -98,12 +98,12 @@ For maximum control, process step by step:
 .. code-block:: python
 
    from facet.core import ProcessingContext
-   from facet.io import EDFLoader
+   from facet.io import Loader
    from facet.preprocessing import TriggerDetector, UpSample
    from facet.correction import AASCorrection
 
    # 1. Load data
-   loader = EDFLoader(path="data.edf", preload=True)
+   loader = Loader(path="data.edf", preload=True)
    context = loader.execute(ProcessingContext())
 
    # 2. Detect triggers
@@ -152,7 +152,7 @@ For ballistocardiogram (BCG) artifact correction:
    from facet.correction import AASCorrection
 
    pipeline = Pipeline([
-       EDFLoader(path="data.edf", preload=True),
+       Loader(path="data.edf", preload=True),
        QRSTriggerDetector(),  # Detect QRS complexes
        AASCorrection(window_size=20),  # Smaller window for BCG
        EDFExporter(path="corrected.edf")
@@ -166,7 +166,7 @@ Process multiple files with the same pipeline:
 .. code-block:: python
 
    from facet.core import Pipeline, ProcessingContext
-   from facet.io import EDFLoader, EDFExporter
+   from facet.io import Loader, EDFExporter
 
    # Define reusable correction pipeline
    correction = Pipeline([
@@ -183,7 +183,7 @@ Process multiple files with the same pipeline:
        print(f"Processing {input_file}...")
 
        # Load
-       loader = EDFLoader(path=input_file, preload=True)
+       loader = Loader(path=input_file, preload=True)
        context = loader.execute(ProcessingContext())
 
        # Correct
