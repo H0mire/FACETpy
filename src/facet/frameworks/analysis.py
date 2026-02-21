@@ -63,16 +63,32 @@ class AnalysisFramework:
             filename (str): The path to the EEG file.
             artifact_to_trigger_offset (float): The relative position of the trigger in the data.
             upsampling_factor (int): The factor by which to upsample the data.
-            fmt (str): The format of the EEG file (either "edf" or "gdf").
+            fmt (str): The format of the EEG file ("edf", "gdf", "mff", "bids", or "eeglab").
+                       Use "auto" to detect format from file extension.
             bads (list): A list of bad channels to exclude from the data.
 
         Returns:
             EEG: The EEG object containing the imported data and metadata.
         """
+        # Auto-detect format from file extension if fmt is "auto"
+        if fmt == "auto":
+            if path.endswith(".edf"):
+                fmt = "edf"
+            elif path.endswith(".gdf"):
+                fmt = "gdf"
+            elif path.endswith(".mff"):
+                fmt = "mff"
+            elif path.endswith(".set"):
+                fmt = "eeglab"
+            else:
+                raise ValueError(f"Cannot auto-detect format for: {path}")
+
         if fmt == "edf":
             raw = mne.io.read_raw_edf(path)
         elif fmt == "gdf":
             raw = mne.io.read_raw_gdf(path)
+        elif fmt == "mff":
+            raw = mne.io.read_raw_egi(path, verbose=False)
         elif fmt == "bids":
             bids_path_i = BIDSPath(
                 subject=subject, session=session, task=task, root=path
@@ -215,7 +231,7 @@ class AnalysisFramework:
 
         self.derive_parameters()
 
-    def find_triggers_qrs(self, save=False):
+    def find_triggers_qrs(self, save=False, ref_channel=None):
         """
         Find triggers in the EEG data based on the QRS complex of an ECG channel using the BCG detector.
         This implementation uses a robust QRS peak detection algorithm based on combined adaptive 
@@ -225,6 +241,9 @@ class AnalysisFramework:
         ----------
         save : bool, optional
             Whether to save the detected triggers as annotations in the raw object.
+        ref_channel : str or int, optional
+            The name or index of the channel to use for QRS detection.
+            If None, the ECG channel will be detected automatically.
 
         Returns
         -------
@@ -233,20 +252,47 @@ class AnalysisFramework:
         """
         raw = self._eeg.mne_raw
         
+        if ref_channel is not None:
+            logger.info(f"Using channel for QRS detection: {ref_channel}")
+        
         # Detect QRS peaks using the BCG detector
-        peaks = bcg_detector.fmrib_qrsdetect(raw)
+        peaks = bcg_detector.fmrib_qrsdetect(raw, ecg_channel=ref_channel)
 
         logger.debug(f"Found {len(peaks)} peaks")
         logger.debug("Loading events...")
+        
+        # Store the events in the EEG object temporarily to derive artifact length
+        self._eeg.last_trigger_search_regex = "QRS"
+        self._eeg.loaded_triggers = list(map(int, peaks))
+        
+        logger.debug("Deriving parameters...")
+        self._eeg.volume_gaps = True
+        self._derive_art_length()
+        self._eeg.artifact_length = int(self._eeg.artifact_length * 0.5)
+        self._eeg.artifact_to_trigger_offset = (-1) * self._eeg.artifact_duration * 0.5
+        logger.warning(self._eeg.artifact_duration)
+        
+        # Remove triggers that are too close together (closer than artifact_length)
+        # This prevents overlapping epochs which cause index errors
+        peaks = np.array(self._eeg.loaded_triggers)
+        min_distance = self._eeg.artifact_length
+        if len(peaks) > 1 and min_distance > 0:
+            filtered_peaks = [peaks[0]]
+            for peak in peaks[1:]:
+                if peak - filtered_peaks[-1] >= min_distance:
+                    filtered_peaks.append(peak)
+            removed_count = len(peaks) - len(filtered_peaks)
+            if removed_count > 0:
+                logger.warning(f"Removed {removed_count} triggers that were too close together (< {min_distance} samples)")
+            peaks = np.array(filtered_peaks)
+        
+        # Update loaded_triggers with filtered peaks
+        self._eeg.loaded_triggers = list(map(int, peaks))
         
         # Create events based on the peak positions
         events = np.zeros((len(peaks), 3))
         events[:, 0] = peaks
         events[:, 2] = 1
-
-        # Store the events in the EEG object
-        self._eeg.last_trigger_search_regex = "QRS"
-        self._eeg.loaded_triggers = list(map(int, events[:, 0]))
 
         if save:
             # replace the triggers as events in the raw object
@@ -257,13 +303,7 @@ class AnalysisFramework:
                     description=["Trigger"] * len(events),
                 )
             )
-            
-        logger.debug("Deriving parameters...")
-        self._eeg.volume_gaps = True
-        self._derive_art_length()
-        self._eeg.artifact_length = int(self._eeg.artifact_length * 0.5)
-        self._eeg.artifact_to_trigger_offset = (-1) * self._eeg.artifact_duration * 0.5
-        logger.warning(self._eeg.artifact_duration)
+        
         self._derive_times()
         self._derive_tmin_tmax()
 
@@ -336,7 +376,10 @@ class AnalysisFramework:
         """
         # Check if there are annotations and convert
         if self._eeg.mne_raw.annotations:
-            return mne.events_from_annotations(self._eeg.mne_raw)[0]
+            try:
+                return mne.events_from_annotations(self._eeg.mne_raw)[0]
+            except ValueError:
+                pass
 
         # Check if there are events
         if hasattr(self._eeg.mne_raw, "events"):
@@ -412,6 +455,90 @@ class AnalysisFramework:
         ).tolist()
 
         self.derive_parameters()
+
+    def pad_missing_triggers(self, count_before=0, count_after=0, save=True):
+        """
+        Pad triggers at the beginning and/or end of the data based on artifact length.
+
+        This method adds a specified number of triggers before the first existing trigger
+        and/or after the last existing trigger, spaced by the artifact length.
+
+        Parameters:
+            count_before (int, optional): Number of triggers to add before the first trigger.
+                Defaults to 0.
+            count_after (int, optional): Number of triggers to add after the last trigger.
+                Defaults to 0.
+            save (bool, optional): Whether to save the padded triggers as "pad_trigger" 
+                annotations in the raw object. Defaults to True.
+
+        Raises:
+            ValueError: If artifact_length is not set (call find_triggers first).
+
+        Returns:
+            None
+        """
+        if not hasattr(self._eeg, "artifact_length") or self._eeg.artifact_length is None:
+            raise ValueError(
+                "artifact_length is not set. Call find_triggers() first to derive artifact length."
+            )
+
+        if count_before == 0 and count_after == 0:
+            logger.warning("Both count_before and count_after are 0. No triggers added.")
+            return
+
+        new_triggers = []
+        artifact_length = self._eeg.artifact_length
+
+        if count_before > 0:
+            first_trigger = self._eeg.loaded_triggers[0]
+            for i in range(1, count_before + 1):
+                new_trigger = first_trigger - (i * artifact_length)
+                if new_trigger >= 0:
+                    new_triggers.append(int(new_trigger))
+                else:
+                    logger.warning(
+                        f"Cannot add trigger at position {new_trigger} (before data start). Stopping."
+                    )
+                    break
+            logger.info(f"Added {len(new_triggers)} triggers before the first trigger")
+
+        count_added_before = len(new_triggers)
+
+        if count_after > 0:
+            last_trigger = self._eeg.loaded_triggers[-1]
+            n_times = self._eeg.mne_raw.n_times
+            for i in range(1, count_after + 1):
+                new_trigger = last_trigger + (i * artifact_length)
+                if new_trigger <= n_times:
+                    new_triggers.append(int(new_trigger))
+                else:
+                    logger.warning(
+                        f"Cannot add trigger at position {new_trigger} (after data end). Stopping."
+                    )
+                    break
+            logger.info(
+                f"Added {len(new_triggers) - count_added_before} triggers after the last trigger"
+            )
+
+        if new_triggers:
+            self.add_triggers(np.array(new_triggers))
+
+            if save:
+                # Add pad_trigger annotations to the existing annotations
+                sfreq = self._eeg.mne_raw.info["sfreq"]
+                existing_annotations = self._eeg.mne_raw.annotations
+                # Use the same orig_time as existing annotations for compatibility
+                orig_time = existing_annotations.orig_time if existing_annotations else None
+                new_annotations = mne.Annotations(
+                    onset=np.array(new_triggers) / sfreq,
+                    duration=np.zeros(len(new_triggers)),
+                    description=["pad_trigger"] * len(new_triggers),
+                    orig_time=orig_time,
+                )
+                # Append to existing annotations
+                combined_annotations = existing_annotations + new_annotations
+                self._eeg.mne_raw.set_annotations(combined_annotations)
+                logger.info(f"Saved {len(new_triggers)} pad_trigger annotations")
 
     def find_missing_triggers(
         self,

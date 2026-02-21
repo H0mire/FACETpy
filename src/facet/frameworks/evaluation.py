@@ -169,7 +169,7 @@ class EvaluationFramework:
         rms_uncorrected = np.sqrt(np.mean(data_uncorrected**2, axis=1))
 
         # Calculate Ratio (add epsilon to prevent division by zero)
-        rms = rms_uncorrected / (rms_corrected )
+        rms = rms_uncorrected / (rms_corrected + 1e-10)
         return np.median(rms)
 
     def evaluate_RMS_residual_ratio(self, mnedict):
@@ -191,7 +191,7 @@ class EvaluationFramework:
         rms_ref = np.sqrt(np.mean(data_ref**2, axis=1))
 
         # Calculate Ratio (add epsilon to prevent division by zero)
-        rms = rms_corrected / (rms_ref )
+        rms = rms_corrected / (rms_ref + 1e-10)
         return np.median(rms)
 
     def calculate_median_imaging_artifact(self, mnedict):
@@ -273,7 +273,7 @@ class EvaluationFramework:
         power_residual = power_corrected - power_without
 
         # Calculate SNR (add epsilon to prevent division by zero)
-        snr = np.abs(power_without / (power_residual ))
+        snr = np.abs(power_without / (power_residual + 1e-10))
 
         return np.mean(snr)
 

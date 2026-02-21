@@ -87,6 +87,24 @@ class facet:
             add_sub_periodic_artifacts=add_sub_periodic_artifacts,
         )
 
+    def add_triggers(self, trigger):
+        logger.info(f"Adding trigger {trigger}")
+        self._analysis.add_triggers(trigger)
+
+    def pad_missing_triggers(self, count_before=0, count_after=0, save=True):
+        """
+        Pad triggers at the beginning and/or end of the data based on artifact length.
+
+        Parameters:
+            count_before (int, optional): Number of triggers to add before the first trigger.
+            count_after (int, optional): Number of triggers to add after the last trigger.
+            save (bool, optional): Whether to save as "pad_trigger" annotations. Defaults to True.
+        """
+        logger.info(f"Padding triggers: {count_before} before, {count_after} after")
+        self._analysis.pad_missing_triggers(
+            count_before=count_before, count_after=count_after, save=save
+        )
+
     def prepare(self):
         self._correction.prepare()
 

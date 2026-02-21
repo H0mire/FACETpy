@@ -246,6 +246,7 @@ class CorrectionFramework:
             reject=None,
             preload=True,
             picks=eeg_channels,
+            event_repeated='drop',  # Handle duplicate event times
         )
         if len(epochs) != len(self._eeg.loaded_triggers):
             # Because of possible bad triggers, we need to check if the number of epochs is equal to the number of triggers

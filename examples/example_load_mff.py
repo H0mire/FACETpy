@@ -34,6 +34,7 @@ f.import_by_eeg_obj(eeg)
 f.highpass(1)
 f.upsample()
 f.find_triggers(r"\b1\b", save=True)
+f.pad_missing_triggers(count_before=10, count_after=0)
 f.align_triggers(0)
 # f.align_subsample(0)
 # Calculate the averaging matrix
@@ -41,6 +42,9 @@ f.calc_matrix_aas()
 
 print(f.get_eeg().estimated_noise.shape)
 # Calculate the artifacts and remove them
+f.remove_artifacts(plot_artifacts=True)
+f.get_analysis().find_triggers_qrs()
+f.calc_matrix_aas()
 f.remove_artifacts(plot_artifacts=True)
 
 # Define a clean reference interval (without artifacts) for evaluation
@@ -62,10 +66,10 @@ results_after_aas = f.evaluate(
     ref_end_time=ref_end_time
 )
 # Now Postprocess the data
-f.get_correction().apply_PCA()
+#f.get_correction().apply_PCA()
 f.downsample()
 f.lowpass(70)
-f.apply_ANC()
+#f.apply_ANC()
 results_after_anc = f.evaluate(
     f.get_eeg(), 
     measures=evaluation_measures, 
@@ -80,5 +84,5 @@ f.plot_eeg(title="after postprocessing")
 print(results_after_aas)
 print(results_after_anc)
 f.plot([results_after_aas, results_after_anc], plot_measures=evaluation_measures)
-
+f.export_eeg(file_path.replace(".mff", "_processed.edf"), fmt="edf")
 input("Press Enter to end the script...")
