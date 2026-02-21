@@ -114,6 +114,94 @@ class PipelineResult:
                         flat[f"{k}_{sub_k}"] = sub_v
         return pd.Series(flat, name=self.context.metadata.custom.get('pipeline_name', 'metrics'))
 
+    def metric(self, name: str, default=None):
+        """
+        Return a single evaluation metric by name.
+
+        Shortcut for ``result.metrics.get(name, default)`` that avoids having
+        to remember the dict key and provides a clean default.
+
+        Args:
+            name: Metric name (e.g. ``'snr'``, ``'rms_ratio'``).
+            default: Value returned when the metric is absent.
+
+        Example::
+
+            snr = result.metric('snr')
+            print(f"SNR = {snr:.2f} dB")
+        """
+        return self.metrics.get(name, default)
+
+    def print_metrics(self) -> None:
+        """
+        Print a formatted table of all evaluation metrics.
+
+        Uses *rich* for colour and alignment when available.
+
+        Example::
+
+            result = pipeline.run()
+            result.print_metrics()
+        """
+        from rich.table import Table
+        from rich.console import Console as RichConsole
+
+        metrics = self.metrics
+        if not metrics:
+            print("No metrics available — did you add evaluation processors?")
+            return
+
+        con = RichConsole()
+        table = Table(
+            title="Evaluation Metrics",
+            show_header=True,
+            header_style="bold cyan",
+            min_width=40,
+        )
+        table.add_column("Metric", style="bold")
+        table.add_column("Value", justify="right")
+
+        for key, val in metrics.items():
+            if isinstance(val, dict):
+                for sub_k, sub_v in val.items():
+                    label = f"{key} / {sub_k}"
+                    formatted = f"{sub_v:.4g}" if isinstance(sub_v, float) else str(sub_v)
+                    table.add_row(label, formatted)
+            elif isinstance(val, float):
+                table.add_row(key, f"{val:.4g}")
+            else:
+                table.add_row(key, str(val))
+
+        con.print(table)
+
+    def print_summary(self) -> None:
+        """
+        Print a one-line summary of the pipeline result.
+
+        Shows success/failure, execution time, and any key metrics (SNR, RMS
+        ratio, RMS residual) that were calculated.
+
+        Example::
+
+            result = pipeline.run()
+            result.print_summary()
+        """
+        from rich.console import Console as RichConsole
+
+        con = RichConsole()
+        if self.success:
+            parts = [f"[green]Done[/green] in {self.execution_time:.2f}s"]
+            for name in ("snr", "rms_ratio", "rms_residual", "median_artifact"):
+                val = self.metrics.get(name)
+                if val is not None:
+                    parts.append(f"{name}={val:.3g}")
+            con.print("  ".join(parts))
+        else:
+            con.print(
+                f"[red]Failed[/red] after {self.execution_time:.2f}s"
+                f" — {self.error}"
+            )
+
     def plot(self, **kwargs):
         """
         Plot the corrected data using ``RawPlotter`` defaults.
@@ -132,6 +220,129 @@ class PipelineResult:
     def __repr__(self) -> str:
         status = "SUCCESS" if self.success else "FAILED"
         return f"PipelineResult({status}, time={self.execution_time:.2f}s)"
+
+
+class BatchResult:
+    """
+    Result of :meth:`Pipeline.map` — a list of :class:`PipelineResult` objects
+    with built-in helpers for quick inspection.
+
+    It behaves like a regular list (iteration, indexing, ``len``), so existing
+    code that iterates over the return value of ``Pipeline.map()`` continues to
+    work without changes.
+
+    Example::
+
+        results = pipeline.map(files, loader_factory=lambda p: EDFLoader(p))
+        results.print_summary()
+        df = results.summary_df
+    """
+
+    def __init__(
+        self,
+        results: List['PipelineResult'],
+        labels: Optional[List[str]] = None,
+    ):
+        self._results = results
+        self._labels = labels or [f"input_{i}" for i in range(len(results))]
+
+    # ------------------------------------------------------------------
+    # List-like interface
+    # ------------------------------------------------------------------
+
+    def __iter__(self):
+        return iter(self._results)
+
+    def __getitem__(self, index):
+        return self._results[index]
+
+    def __len__(self):
+        return len(self._results)
+
+    def __repr__(self):
+        n_ok = sum(1 for r in self._results if r.success)
+        return f"BatchResult({n_ok}/{len(self._results)} succeeded)"
+
+    # ------------------------------------------------------------------
+    # Convenience helpers
+    # ------------------------------------------------------------------
+
+    def print_summary(self) -> None:
+        """
+        Print a formatted table with one row per input file.
+
+        Columns include the file label, success/failure status, execution time,
+        and any scalar metrics that were computed.
+
+        Example::
+
+            results = pipeline.map(files, loader_factory=...)
+            results.print_summary()
+        """
+        from rich.table import Table
+        from rich.console import Console as RichConsole
+
+        con = RichConsole()
+        table = Table(
+            title="Batch Results",
+            show_header=True,
+            header_style="bold cyan",
+        )
+        table.add_column("File", style="bold", no_wrap=True)
+        table.add_column("Status", justify="center")
+        table.add_column("Time", justify="right")
+
+        # Collect the union of metric names across all successful runs
+        metric_names: List[str] = []
+        for r in self._results:
+            for k, v in r.metrics.items():
+                if k not in metric_names and isinstance(v, (int, float)):
+                    metric_names.append(k)
+
+        for m in metric_names:
+            table.add_column(m, justify="right")
+
+        for label, result in zip(self._labels, self._results):
+            status = "[green]OK[/green]" if result.success else "[red]FAIL[/red]"
+            time_str = f"{result.execution_time:.2f}s"
+            row: List[str] = [label, status, time_str]
+            for m in metric_names:
+                if result.success:
+                    val = result.metrics.get(m)
+                    row.append(
+                        f"{val:.3f}" if isinstance(val, float)
+                        else (str(val) if val is not None else "—")
+                    )
+                else:
+                    row.append("—")
+            table.add_row(*row)
+
+        con.print(table)
+
+    @property
+    def summary_df(self):
+        """
+        Return a ``pandas.DataFrame`` with one row per input.
+
+        Columns: ``file``, ``success``, ``execution_time``, plus one column per
+        scalar metric.  Returns ``None`` when *pandas* is not installed.
+        """
+        try:
+            import pandas as pd
+        except ImportError:
+            return None
+
+        rows = []
+        for label, result in zip(self._labels, self._results):
+            row: Dict[str, Any] = {
+                "file": label,
+                "success": result.success,
+                "execution_time": result.execution_time,
+            }
+            if result.success and result.metrics_df is not None:
+                row.update(result.metrics_df.to_dict())
+            rows.append(row)
+        return pd.DataFrame(rows)
 
 
 class Pipeline:
@@ -454,7 +665,7 @@ class Pipeline:
         parallel: bool = False,
         n_jobs: int = -1,
         on_error: str = "continue",
-    ) -> List[PipelineResult]:
+    ) -> 'BatchResult':
         """
         Run the pipeline on multiple inputs and return a result per input.
 
@@ -477,7 +688,10 @@ class Pipeline:
                       ``"raise"`` — re-raise the first error encountered.
 
         Returns:
-            List of ``PipelineResult`` objects, one per input, in the same order.
+            :class:`BatchResult` containing one :class:`PipelineResult` per
+            input, in the same order.  It behaves like a plain list but also
+            offers :meth:`~BatchResult.print_summary` and
+            :attr:`~BatchResult.summary_df`.
 
         Example::
 
@@ -486,18 +700,17 @@ class Pipeline:
                 UpSample(factor=10),
                 AASCorrection(window_size=30),
                 DownSample(factor=10),
+                SNRCalculator(),
             ])
 
             results = pipeline.map(
                 ["sub-01.edf", "sub-02.edf", "sub-03.edf"],
                 loader_factory=lambda p: EDFLoader(path=p, preload=True),
             )
-
-            for path, result in zip(files, results):
-                if result.success:
-                    print(f"{path}: SNR={result.metrics.get('snr', 'N/A')}")
+            results.print_summary()
         """
         results: List[PipelineResult] = []
+        labels: List[str] = []
 
         for item in inputs:
             if isinstance(item, ProcessingContext):
@@ -520,6 +733,7 @@ class Pipeline:
                             failed_processor=getattr(loader, 'name', 'loader'),
                         )
                         results.append(result)
+                        labels.append(label)
                         if on_error == "raise":
                             raise
                         continue
@@ -541,6 +755,7 @@ class Pipeline:
                                 failed_processor=getattr(patched, 'name', 'loader'),
                             )
                             results.append(result)
+                            labels.append(label)
                             if on_error == "raise":
                                 raise
                             continue
@@ -569,11 +784,12 @@ class Pipeline:
                 )
 
             results.append(result)
+            labels.append(label)
 
             if not result.success and on_error == "raise":
                 raise result.error
 
-        return results
+        return BatchResult(results, labels=labels)
 
     def __len__(self) -> int:
         """Get number of processors."""

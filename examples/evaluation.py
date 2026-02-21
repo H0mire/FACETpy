@@ -3,9 +3,12 @@ Evaluation — metrics access and pipeline comparison.
 
 Covers:
   - All built-in metric processors (SNR, RMS, FFT, median artifact)
-  - result.metrics  / result.metrics_df for direct access
-  - MetricsReport.compare() for side-by-side comparison of two pipelines
+  - result.print_metrics()  for a formatted table of all metrics
+  - result.metric('snr')    for accessing a single metric value
+  - MetricsReport.compare() for a side-by-side comparison of two pipelines
 """
+
+from pathlib import Path
 
 from facet import (
     Pipeline,
@@ -25,16 +28,14 @@ from facet import (
     FFTAllenCalculator,
     FFTNiazyCalculator,
     MetricsReport,
-    RawPlotter,
 )
-from pathlib import Path
 
 OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE    = "./examples/datasets/NiazyFMRI.edf"
 TRIGGER_REGEX = r"\b1\b"
-UPSAMPLE = 10
+UPSAMPLE      = 10
 
 
 # ---------------------------------------------------------------------------
@@ -65,33 +66,26 @@ EVAL_STEPS = [
 
 
 # ---------------------------------------------------------------------------
-# 1. Single pipeline — access metrics on the result object
+# 1. Single pipeline — print all metrics and visualise the result
 # ---------------------------------------------------------------------------
 def example_metrics_access():
     pipeline = Pipeline(base_steps() + EVAL_STEPS, name="AAS")
     result = pipeline.run()
 
-    if not result.success:
-        print(f"Failed: {result.error}")
-        return
+    # One call to see a formatted table of every metric
+    result.print_metrics()
 
-    # result.metrics is a plain dict
-    print("\n--- result.metrics ---")
-    for key, val in result.metrics.items():
-        if isinstance(val, dict):
-            print(f"  {key}:")
-            for k, v in val.items():
-                print(f"    {k}: {v:.4g}")
-        else:
-            print(f"  {key}: {val:.4g}")
+    # Access a single value when you need it for further analysis
+    snr = result.metric("snr")
+    print(f"\nSNR = {snr:.2f} dB")
 
-    # result.metrics_df is a flat pandas Series (scalar values only)
+    # result.metrics_df gives a flat pandas Series — handy for notebooks/CSV export
     df = result.metrics_df
     if df is not None:
-        print("\n--- result.metrics_df ---")
+        print("\nAs a pandas Series:")
         print(df.to_string())
 
-    # Visualise corrected signal
+    # Visualise corrected vs original signal
     result.plot(
         mode="matplotlib",
         channel="Fp1",
@@ -119,7 +113,7 @@ def example_compare():
         name="AAS + PCA",
     ).run()
 
-    # compare() accepts PipelineResult objects directly
+    # Side-by-side bar chart saved to disk
     MetricsReport.compare(
         [result_aas, result_pca],
         labels=["AAS only", "AAS + PCA"],
@@ -129,8 +123,8 @@ def example_compare():
         show=False,
     )
 
-    print(f"\nAAS only  — SNR: {result_aas.metrics.get('snr', 'N/A'):.3f}")
-    print(f"AAS + PCA — SNR: {result_pca.metrics.get('snr', 'N/A'):.3f}")
+    print(f"\nAAS only  — SNR: {result_aas.metric('snr'):.3f} dB")
+    print(f"AAS + PCA — SNR: {result_pca.metric('snr'):.3f} dB")
 
 
 if __name__ == "__main__":

@@ -227,6 +227,28 @@ class ProcessingContext:
         """Get channel names."""
         return self._raw.ch_names
 
+    def get_metric(self, name: str, default=None):
+        """
+        Return a single evaluation metric stored in the context.
+
+        Shortcut for the common pattern::
+
+            ctx.metadata.custom.get('metrics', {}).get(name, default)
+
+        Typically used inside a :class:`~facet.core.ConditionalProcessor`
+        condition function after an evaluation step has run.
+
+        Args:
+            name: Metric name (e.g. ``'snr'``, ``'rms_ratio'``).
+            default: Value returned when the metric is absent.
+
+        Example::
+
+            def needs_extra_correction(ctx):
+                return ctx.get_metric('snr', float('inf')) < 10
+        """
+        return self._metadata.custom.get('metrics', {}).get(name, default)
+
     # =========================================================================
     # Noise Tracking
     # =========================================================================

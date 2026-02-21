@@ -1101,6 +1101,7 @@ class EEGGenerator(Processor):
     """
     name = "eeg_generator"
     description = "Generates synthetic EEG data with realistic neural oscillations, artifacts, and optional epileptic spikes."
+    requires_raw = False
     requires_triggers = False
     parallel_safe = True
     parallelize_by_channels = False
@@ -1161,22 +1162,29 @@ class EEGGenerator(Processor):
         if self.channel_schema.get_total_channels() == 0:
             raise ProcessorValidationError("At least one channel must be specified")
 
-    def process(self, context: ProcessingContext) -> ProcessingContext:
+    def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
         """
-        Generate synthetic EEG data and store in context.
-        
+        Generate synthetic EEG data and return it in a new context.
+
+        Can be used as the **first** step in a pipeline without any prior
+        context — pass ``None`` or omit ``initial_context`` in
+        :meth:`~facet.core.Pipeline.run`.
+
         Args:
-            context: Processing context (raw will be replaced with synthetic data)
-            
+            context: Existing processing context whose metadata will be
+                carried forward, or ``None`` when starting a pipeline from
+                scratch.
+
         Returns:
-            Updated processing context with synthetic EEG data
+            New :class:`~facet.core.ProcessingContext` containing the
+            generated synthetic EEG recording.
         """
         spike_info = " with epileptic spikes" if self.spike_params.enabled else ""
         logger.info(
             f"Generating synthetic EEG: {self.duration}s @ {self.sampling_rate}Hz, "
             f"{self.channel_schema.get_total_channels()} channels{spike_info}"
         )
-        
+
         raw, spike_events = generate_synthetic_eeg(
             duration=self.duration,
             sfreq=self.sampling_rate,
@@ -1187,12 +1195,15 @@ class EEGGenerator(Processor):
             spike_params=self.spike_params,
             random_seed=self.random_seed
         )
-        
-        # Store the generated raw object in context
-        context.raw = raw
-        
+
+        # Build a new context, carrying over any existing metadata
+        if context is not None:
+            new_ctx = context.with_raw(raw)
+        else:
+            new_ctx = ProcessingContext(raw)
+
         # Store generation parameters in metadata.custom
-        context.metadata.custom['eeg_generator'] = {
+        new_ctx.metadata.custom['eeg_generator'] = {
             'duration': self.duration,
             'sampling_rate': self.sampling_rate,
             'n_channels': self.channel_schema.get_total_channels(),
@@ -1208,9 +1219,9 @@ class EEGGenerator(Processor):
             'spike_events': spike_events,
             'n_spikes': len(spike_events)
         }
-        
+
         logger.info(f"Generated synthetic EEG: {raw.info['nchan']} channels, {raw.n_times} samples")
         if self.spike_params.enabled:
             logger.info(f"Generated {len(spike_events)} epileptic spike events")
-        
-        return context.with_raw(raw).with_metadata(context.metadata)
+
+        return new_ctx

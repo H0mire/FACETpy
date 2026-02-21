@@ -22,7 +22,7 @@ from .trigger_detection import (
 )
 from .alignment import TriggerAligner, SliceAligner, SubsampleAligner
 from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
-from .transforms import Crop, RawTransform
+from .transforms import Crop, RawTransform, PickChannels, DropChannels, PrintMetric
 
 __all__ = [
     # Filtering
@@ -54,4 +54,7 @@ __all__ = [
     # Transforms
     'Crop',
     'RawTransform',
+    'PickChannels',
+    'DropChannels',
+    'PrintMetric',
 ]

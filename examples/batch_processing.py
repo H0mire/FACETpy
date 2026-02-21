@@ -3,6 +3,8 @@ Batch processing — run the same pipeline on multiple files.
 
 Pipeline.map() handles per-file loading and collects one PipelineResult per
 input. Failed files are skipped by default (on_error="continue").
+
+Call results.print_summary() for a formatted table — no manual formatting needed.
 """
 
 from facet import (
@@ -49,11 +51,12 @@ results = pipeline.map(
 )
 
 # ---------------------------------------------------------------------------
-# Summarise results
+# One call prints a formatted table with status and metrics per file
 # ---------------------------------------------------------------------------
-print(f"\n{'File':<40} {'Status':<8} {'SNR':>8}")
-print("-" * 60)
-for path, result in zip(INPUT_FILES, results):
-    status = "OK" if result.success else "FAIL"
-    snr = f"{result.metrics.get('snr', float('nan')):.3f}" if result.success else "—"
-    print(f"{path:<40} {status:<8} {snr:>8}")
+results.print_summary()
+
+# results.summary_df gives the same data as a pandas DataFrame for further analysis
+df = results.summary_df
+if df is not None:
+    print("\nAs a DataFrame:")
+    print(df.to_string(index=False))

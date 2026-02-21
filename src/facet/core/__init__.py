@@ -18,7 +18,7 @@ from .processor import (
     NoOpProcessor,
     LambdaProcessor
 )
-from .pipeline import Pipeline, PipelineBuilder, PipelineResult, PipelineError
+from .pipeline import Pipeline, PipelineBuilder, PipelineResult, PipelineError, BatchResult
 from .registry import (
     ProcessorRegistry,
     register_processor,
@@ -48,6 +48,7 @@ __all__ = [
     'PipelineBuilder',
     'PipelineResult',
     'PipelineError',
+    'BatchResult',
 
     # Registry
     'ProcessorRegistry',

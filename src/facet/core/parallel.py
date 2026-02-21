@@ -19,12 +19,15 @@ from .context import ProcessingContext
 from facet.logging_config import suppress_stdout
 from facet.console.progress import processor_progress
 
-# Ensure macOS/Linux use fork to avoid resource_tracker semaphore noise.
+# Use "spawn" so child processes start clean without inheriting threads
+# (e.g. the Textual TUI thread).  "fork" is unsafe in multithreaded
+# processes and can deadlock when the forked child inherits held locks.
+# Workers already serialise everything via to_dict/from_dict, so spawn
+# is a drop-in replacement.
 if sys.platform != "win32":
     try:
-        mp.set_start_method("fork", force=True)
+        mp.set_start_method("spawn", force=True)
     except RuntimeError:
-        # Another part of the app already set the method; keep it as-is.
         pass
 
 

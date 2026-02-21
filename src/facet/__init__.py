@@ -23,6 +23,7 @@ from .core import (
     ProcessingMetadata,
     Pipeline,
     PipelineResult,
+    BatchResult,
 
     # Composite processors
     SequenceProcessor,
@@ -83,6 +84,9 @@ from .preprocessing import (
     # Transforms
     Crop,
     RawTransform,
+    PickChannels,
+    DropChannels,
+    PrintMetric,
 )
 
 # Correction processors
@@ -139,6 +143,7 @@ __all__ = [
     'ProcessingMetadata',
     'Pipeline',
     'PipelineResult',
+    'BatchResult',
     'SequenceProcessor',
     'ConditionalProcessor',
     'SwitchProcessor',
@@ -176,6 +181,9 @@ __all__ = [
     'PasteAcquisitionWindow',
     'Crop',
     'RawTransform',
+    'PickChannels',
+    'DropChannels',
+    'PrintMetric',
 
     # Correction
     'AASCorrection',
@@ -212,3 +220,33 @@ if _has_pca:
 from .pipelines import create_standard_pipeline  # noqa: E402
 
 __all__.append('create_standard_pipeline')
+
+
+def load_edf(path: str, **kwargs) -> 'ProcessingContext':
+    """
+    Load an EDF file and return a :class:`ProcessingContext`.
+
+    A convenience shortcut so you can start working with a recording without
+    constructing an :class:`~facet.io.EDFLoader` processor explicitly.  Any
+    keyword argument accepted by :class:`~facet.io.EDFLoader` (e.g.
+    ``preload``, ``artifact_to_trigger_offset``) can be passed here.
+
+    Args:
+        path: Path to the EDF file.
+        **kwargs: Additional keyword arguments forwarded to
+            :class:`~facet.io.EDFLoader`.
+
+    Returns:
+        :class:`ProcessingContext` containing the loaded recording.
+
+    Example::
+
+        import facet
+
+        ctx = facet.load_edf("./data/subject01.edf", preload=True)
+        ctx = ctx | facet.HighPassFilter(1.0) | facet.TriggerDetector(r"\\b1\\b")
+    """
+    return EDFLoader(path=path, **kwargs).execute(None)
+
+
+__all__.append('load_edf')

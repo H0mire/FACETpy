@@ -15,7 +15,7 @@ from facet import (
     AASCorrection,
 )
 
-INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
 OUTPUT_FILE = "./output/corrected_quickstart.edf"
 
 pipeline = Pipeline([
@@ -28,8 +28,4 @@ pipeline = Pipeline([
 ], name="Quickstart")
 
 result = pipeline.run()
-
-if result.success:
-    print(f"Done in {result.execution_time:.2f}s → {OUTPUT_FILE}")
-else:
-    print(f"Failed: {result.error}")
+result.print_summary()

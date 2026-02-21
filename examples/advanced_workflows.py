@@ -33,10 +33,10 @@ from facet import (
 OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
-OUTPUT_FILE = str(OUTPUT_DIR / "corrected_advanced.edf")
+INPUT_FILE    = "./examples/datasets/NiazyFMRI.edf"
+OUTPUT_FILE   = str(OUTPUT_DIR / "corrected_advanced.edf")
 TRIGGER_REGEX = r"\b1\b"
-UPSAMPLE = 10
+UPSAMPLE      = 10
 
 
 # ---------------------------------------------------------------------------
@@ -44,8 +44,8 @@ UPSAMPLE = 10
 # ---------------------------------------------------------------------------
 def example_conditional():
     def snr_too_low(ctx):
-        snr = ctx.metadata.custom.get("metrics", {}).get("snr", float("inf"))
-        return snr < 10
+        # ctx.get_metric() is a clean shortcut for accessing evaluation results
+        return ctx.get_metric("snr", default=float("inf")) < 10
 
     pipeline = Pipeline([
         EDFLoader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
@@ -66,7 +66,7 @@ def example_conditional():
     ], name="Conditional PCA")
 
     result = pipeline.run()
-    print(f"Conditional pipeline — SNR: {result.metrics.get('snr', 'N/A'):.3f}")
+    result.print_summary()
     return result
 
 
@@ -90,8 +90,7 @@ def example_parallel():
 
     # parallel=True enables channel-wise joblib parallelism for compatible steps
     result = pipeline.run(parallel=True, n_jobs=-1)
-    print(f"Parallel pipeline — {result.execution_time:.2f}s, "
-          f"RMS ratio: {result.metrics.get('rms_ratio', 'N/A'):.3f}")
+    result.print_summary()
     return result
 
 
@@ -119,7 +118,7 @@ def example_factory():
     )
 
     result = pipeline.run()
-    print(f"Factory pipeline — SNR: {result.metrics.get('snr', 'N/A'):.3f}")
+    result.print_summary()
     return result
 
 

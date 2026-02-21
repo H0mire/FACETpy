@@ -1,13 +1,16 @@
 """
-Inline steps — lambdas, def functions, and the pipe operator.
+Inline steps — custom functions and the pipe operator.
 
-Shows the two ergonomic shortcuts added in v2.1:
+Shows two ergonomic shortcuts:
 
-  1. Plain callables (lambda or def) as pipeline steps — no need to subclass
-     Processor or wrap in LambdaProcessor explicitly.
+  1. Plain ``def`` functions as pipeline steps — useful when you need a quick
+     custom step without writing a full Processor subclass.
 
-  2. The | operator on ProcessingContext — apply processors one by one outside
-     a Pipeline, useful for interactive / notebook prototyping.
+  2. The ``|`` operator on ProcessingContext — apply processors one by one,
+     ideal for interactive / notebook prototyping.
+
+Also demonstrates the convenience processors DropChannels, PickChannels, and
+PrintMetric that eliminate common boilerplate lambdas.
 """
 
 from facet import (
@@ -22,28 +25,26 @@ from facet import (
     DownSample,
     AASCorrection,
     SNRCalculator,
+    DropChannels,
+    PickChannels,
+    PrintMetric,
+    load_edf,
 )
 
-INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
 OUTPUT_FILE = "./output/corrected_inline.edf"
 
 
 # ---------------------------------------------------------------------------
-# A. Inline steps in a Pipeline
+# A. Inline def steps in a Pipeline
 # ---------------------------------------------------------------------------
 #
-# Any callable that accepts a ProcessingContext and returns one is valid.
-# Use a lambda for one-liners, a def for anything longer.
-
-def drop_non_eeg(ctx: ProcessingContext) -> ProcessingContext:
-    """Keep only EEG and stimulus channels."""
-    raw = ctx.get_raw().copy().pick(picks=["eeg", "stim"], verbose=False)
-    return ctx.with_raw(raw)
-
+# Any function that takes a ProcessingContext and returns one is a valid step.
+# Use a def for anything that needs more than one line.
 
 def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
-    """Print current sampling frequency — useful for debugging."""
-    print(f"  [debug] sfreq = {ctx.get_sfreq()} Hz, "
+    """Print current sampling frequency — handy for sanity-checking."""
+    print(f"  sfreq = {ctx.get_sfreq()} Hz, "
           f"n_triggers = {len(ctx.get_triggers() or [])}")
     return ctx
 
@@ -51,18 +52,12 @@ def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
 pipeline = Pipeline([
     EDFLoader(path=INPUT_FILE, preload=True),
 
-    # lambda: one-liner channel selection
-    lambda ctx: ctx.with_raw(
-        ctx.get_raw().copy().drop_channels(
-            [ch for ch in ["EKG", "EMG", "EOG", "ECG"]
-             if ch in ctx.get_raw().ch_names],
-            on_missing="ignore",
-        )
-    ),
+    # Drop non-EEG channels by name — no lambda needed
+    DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
 
     TriggerDetector(regex=r"\b1\b"),
 
-    # def: multi-line custom step
+    # Custom def step: log sampling frequency for verification
     log_sfreq,
 
     HighPassFilter(freq=1.0),
@@ -73,32 +68,25 @@ pipeline = Pipeline([
 
     SNRCalculator(),
 
-    # lambda: inline debug tap between steps
-    lambda ctx: (
-        print(f"  [debug] SNR = {ctx.metadata.custom.get('metrics', {}).get('snr', 'N/A'):.3f}")
-        or ctx
-    ),
+    # Print a metric inline — no (print(...) or ctx) tricks required
+    PrintMetric("snr"),
 
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
 ], name="Inline Steps")
 
 result = pipeline.run()
-print(f"\nPipeline finished — success={result.success}, SNR={result.metrics.get('snr', 'N/A'):.3f}")
+result.print_summary()
 
 
 # ---------------------------------------------------------------------------
-# B. Pipe operator — processors outside a Pipeline
+# B. Pipe operator — chain processors outside a Pipeline
 # ---------------------------------------------------------------------------
 #
-# Ideal for notebooks or exploratory scripts where you want to apply a handful
-# of steps to an already-loaded Raw object.
+# load_edf() gives you a ProcessingContext without importing MNE directly.
+# Then chain processors with | — ideal for notebooks or exploratory scripts.
 
-import mne  # noqa: E402
+ctx = load_edf(INPUT_FILE, preload=True)
 
-raw = mne.io.read_raw_edf(INPUT_FILE, preload=True, verbose=False)
-ctx = ProcessingContext(raw)
-
-# Chain processors with |
 ctx = (
     ctx
     | HighPassFilter(1.0)
@@ -109,7 +97,7 @@ ctx = (
     | SNRCalculator()
 )
 
-print(f"\nPipe-operator result: SNR = {ctx.metadata.custom.get('metrics', {}).get('snr', 'N/A'):.3f}")
+print(f"\nPipe-operator result: SNR = {ctx.get_metric('snr', 'N/A'):.3f}")
 
-# Plain callables also work with |
+# Custom def steps also work with |
 ctx = ctx | log_sfreq

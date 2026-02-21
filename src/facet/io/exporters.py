@@ -7,6 +7,7 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+from pathlib import Path
 from typing import Optional, Dict
 import mne
 from mne_bids import BIDSPath, write_raw_bids
@@ -49,6 +50,7 @@ class EDFExporter(Processor):
         """Export to EDF."""
         logger.info(f"Exporting to EDF: {self.path}")
 
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         raw = context.get_raw()
         raw.export(self.path, fmt='edf', overwrite=self.overwrite)
 
@@ -107,6 +109,7 @@ class BIDSExporter(Processor):
             f"Exporting to BIDS: subject={self.subject}, task={self.task}"
         )
 
+        Path(self.root).mkdir(parents=True, exist_ok=True)
         # Create BIDS path
         bids_path = BIDSPath(
             subject=self.subject,
