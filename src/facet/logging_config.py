@@ -3,7 +3,7 @@ Centralized logging configuration for FACETpy.
 
 This module configures Loguru to:
     * log to stderr so users still see live output, and
-    * log to a timestamped file per process execution so full debug traces are retained.
+    * optionally log to a timestamped file when ``FACET_LOG_FILE=1`` is set.
 """
 
 from __future__ import annotations
@@ -63,6 +63,11 @@ def _should_auto_configure() -> bool:
     return os.environ.get("FACET_DISABLE_AUTO_LOGGING", "").lower() not in {"1", "true", "yes", "on"}
 
 
+def _file_logging_enabled() -> bool:
+    """Return True only when the user explicitly opts in to per-run log files."""
+    return os.environ.get("FACET_LOG_FILE", "").lower() in {"1", "true", "yes", "on"}
+
+
 @contextlib.contextmanager
 def suppress_stdout() -> Generator[None, None, None]:
     """Context manager to suppress stdout/stderr output (useful for verbose MNE operations)."""
@@ -110,11 +115,6 @@ def configure_logging(force: bool = False) -> Optional[Path]:
     if not _should_auto_configure():
         return None
 
-    log_dir = _resolve_log_directory()
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    log_file = log_dir / f"facet_{timestamp}.log"
-
-    file_level = os.environ.get("FACET_LOG_FILE_LEVEL", "DEBUG").upper()
     console_level = os.environ.get("FACET_LOG_CONSOLE_LEVEL", "INFO").upper()
     console_mode = _resolve_console_mode()
     console_renderer = configure_console(console_mode)
@@ -134,15 +134,21 @@ def configure_logging(force: bool = False) -> Optional[Path]:
     else:
         logger.add(sys.stderr, level=console_level, enqueue=True, backtrace=True, diagnose=False)
 
-    # File sink captures detailed output per run.
-    logger.add(
-        log_file,
-        level=file_level,
-        enqueue=True,
-        backtrace=True,
-        diagnose=False,
-        encoding="utf-8",
-    )
+    # File sink is opt-in: set FACET_LOG_FILE=1 to enable per-run log files.
+    log_file = None
+    if _file_logging_enabled():
+        log_dir = _resolve_log_directory()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        log_file = log_dir / f"facet_{timestamp}.log"
+        file_level = os.environ.get("FACET_LOG_FILE_LEVEL", "DEBUG").upper()
+        logger.add(
+            log_file,
+            level=file_level,
+            enqueue=True,
+            backtrace=True,
+            diagnose=False,
+            encoding="utf-8",
+        )
 
     if console_mode is ConsoleMode.MODERN and not console_renderer.enabled:
         logger.warning(
@@ -172,7 +178,7 @@ def configure_logging(force: bool = False) -> Optional[Path]:
     logger.debug(
         "FACETpy logging initialized | console_mode={} | log_file={}",
         active_console_mode.value,
-        log_file,
+        log_file or "disabled (set FACET_LOG_FILE=1 to enable)",
     )
 
     _LOGGING_CONFIGURED = True

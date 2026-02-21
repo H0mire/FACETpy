@@ -150,7 +150,10 @@ export/
 *.pth.tar.gz
 *.pth.tar.bz2
 
-# project specific
+# Project specific
 logs/
 output/
 docs/build/
+facet matlab edition/
+ai-docs/
+quick-notes/

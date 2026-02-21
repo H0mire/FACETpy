@@ -122,16 +122,12 @@ src/facet/
 ├── correction/        # Correction algorithms (AAS, ANC, PCA)
 ├── evaluation/        # Evaluation metrics (SNR, RMS, median artifact)
 ├── helpers/           # Utility functions and C extensions
-├── resources/         # Translations and resources
-├── eeg_obj.py        # Legacy EEG object wrapper
-└── facet.py          # Legacy API (maintained for backwards compatibility)
+├── misc/              # Synthetic EEG generation utilities
+├── console/           # Console output and progress display
+└── resources/         # Translations and resources
 ```
 
-### Legacy API (`facet.py`)
-
-The old API based on the `facet` class is still available for backwards compatibility but is not the recommended approach for new code. It uses a framework-based architecture with `AnalysisFramework`, `CorrectionFramework`, and `EvaluationFramework`.
-
-### Pipeline Pattern (Recommended)
+### Pipeline Pattern
 
 The v2.0 architecture uses a pipeline pattern where:
 1. Each processing step is a `Processor` subclass
@@ -276,16 +272,22 @@ pipeline = Pipeline([
 
 ## Dependencies
 
-Key dependencies (from `pyproject.toml`):
+Core dependencies (from `pyproject.toml`):
 - Python ^3.11
-- MNE 1.6.0 (EEG/MEG processing)
+- MNE 1.10.2 (EEG/MEG processing)
 - NumPy 2.1.3 (numerical operations)
 - SciPy ^1.15.3 (signal processing)
 - pandas ^2.2.3 (data handling)
 - matplotlib ^3.10.3 (plotting)
 - scikit-learn ^1.4.2 (PCA)
 - neurokit2 ^0.2.7 (BCG detection)
-- TensorFlow ^2.19.0 (deep learning features)
+- rich ^14.2.0 (console output)
+
+Optional extras (`poetry install -E <extra>`):
+- `deeplearning`: TensorFlow ^2.19.0
+- `gui`: PyQt6 ^6.6.1
+- `notebooks`: notebook ^7.1.2
+- `all`: all optional dependencies
 
 Dev dependencies:
 - pytest ^8.1.1 (testing)

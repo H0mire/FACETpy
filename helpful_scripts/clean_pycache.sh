@@ -1,4 +1,4 @@
-b#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 echo "Cleaning Python bytecode artifacts..."
