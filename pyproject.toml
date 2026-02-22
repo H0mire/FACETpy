@@ -38,6 +38,7 @@ all = ["tensorflow", "pyqt6", "notebook", "sphinx", "sphinx-rtd-theme"]
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
 pytest-cov = "^6.0.0"
+ruff = "^0.15.2"
 
 [build-system]
 requires = ["poetry-core"]

@@ -500,8 +500,12 @@ class ANCCorrection(Processor):
         if artifact_length is None:
             return 0, raw.n_times
 
-        s_acq_start = max(0, triggers[0] - artifact_length)
-        s_acq_end = min(raw.n_times, triggers[-1] + artifact_length)
+        trigger_min = int(np.min(triggers))
+        trigger_max = int(np.max(triggers))
+        s_acq_start = max(0, trigger_min - artifact_length)
+        s_acq_end = min(raw.n_times, trigger_max + artifact_length)
+        if s_acq_end <= s_acq_start:
+            return 0, raw.n_times
         return s_acq_start, s_acq_end
 
     def _check_fastranc(self) -> bool:

@@ -4,14 +4,8 @@ Full fMRI artifact correction pipeline.
 This is the reference example showing the complete, publication-quality
 correction workflow. It covers every recommended step:
 
-  Load → DropChannels → Crop → TriggerExplorer → ArtifactOffsetFinder
-  → Filter → ReferenceIntervalSelector → Upsample → Align → AAS → PCA
-  → Downsample → Filter → ANC → Export → Evaluate → Plot
-
-ReferenceIntervalSelector lets you pick a clean reference interval for
-metrics; TriggerExplorer discovers and selects trigger sources; ArtifactOffsetFinder
-aligns the artifact window with the data. Use auto_select with TriggerExplorer
-for non-interactive runs.
+  Load → Crop → Filter → Upsample → Align → AAS → PCA → Downsample
+  → ANC → Export → Evaluate → Plot
 
 For shorter introductions, see:
   quickstart.py         — minimal pipeline (load, AAS, export)
@@ -24,10 +18,11 @@ For shorter introductions, see:
 
 from pathlib import Path
 
+from mne import verbose
+
 from facet import (
     ANCCorrection,
     ArtifactOffsetFinder,
-    Crop,
     Pipeline,
     Loader,
     EDFExporter,
@@ -48,115 +43,113 @@ from facet import (
     FFTNiazyCalculator,
     MetricsReport,
     RawPlotter,
+    load,
 )
 from facet.evaluation import ReferenceIntervalSelector
 from facet.preprocessing import TriggerExplorer
 
+import os
+
+# Ensure that per-run log files are created by setting the FACET_LOG_FILE environment variable.
+os.environ["FACET_LOG_FILE"] = "1"
+
 # ---------------------------------------------------------------------------
 # Paths and shared settings — adjust these for your study
 # ---------------------------------------------------------------------------
-INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
 OUTPUT_DIR  = Path("./output")
 OUTPUT_FILE = str(OUTPUT_DIR / "corrected_full.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRIGGER_REGEX    = r"\b1\b"   # regex for auto_select (None = interactive TriggerExplorer)
-UPSAMPLE         = 10          # upsample factor for sub-sample trigger alignment
-RECORDING_START  = 0           # seconds — crop start
-RECORDING_END    = 162         # seconds — crop end (None keeps until the end)
+TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
+UPSAMPLE         = 1          # upsample factor for sub-sample trigger alignment
+RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
+RECORDING_END    = None        # seconds — crop end (None keeps until the end)
 
 # Optional: list channel names to drop before processing (non-EEG channels)
 NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
 
+
 # ---------------------------------------------------------------------------
 # Enable costly ANC correction
 # ---------------------------------------------------------------------------
+
 _has_anc = False
+
 
 # ---------------------------------------------------------------------------
 # Build the pipeline
 # ---------------------------------------------------------------------------
 steps = [
     # 1. Load
-    Loader(path=INPUT_FILE, preload=True),
+    Loader(
+        path=INPUT_FILE,
+        preload=True,
+    ),
+
 
     # 2. Remove non-EEG channels present in the EDF file
     DropChannels(channels=NON_EEG_CHANNELS),
 
-    # 3. Limit analysis to acquisition window
-    Crop(tmin=RECORDING_START, tmax=RECORDING_END),
+    # 3. Limit the analysis to the acquisition window
+    # Crop(tmin=RECORDING_START, tmax=RECORDING_END),
 
-    # 4. Detect fMRI slice-onset triggers (use auto_select=TRIGGER_REGEX for scripted runs)
+    # 4. Detect fMRI slice-onset triggers
     TriggerExplorer(),
 
-    # 5. Interactively align artifact window to trigger
     ArtifactOffsetFinder(),
 
-    RawPlotter(
-        mode="mne",
-        channel="Fp1",
-        start=25.0,
-        duration=20.0,
-        overlay_original=True,
-        save_path=str(OUTPUT_DIR / "before_after.png"),
-        show=True,
-        auto_close=True,
-        title="Fp1 — Before Correction",
-    ),
-
-    # 6. High-pass filter to remove slow drifts before correction
+    # 5. High-pass filter to remove slow drifts before correction
     HighPassFilter(freq=1.0),
 
-    # 7. Select clean reference interval for downstream metrics
-    # ReferenceIntervalSelector(),
-
-    # 8. Upsample for sub-sample precision in trigger alignment
+    ReferenceIntervalSelector(),
+    # 6. Upsample for sub-sample precision in trigger alignment
     UpSample(factor=UPSAMPLE),
 
-    # 9. Align all triggers to a shared reference using cross-correlation
+    # 7. Align all triggers to a shared reference using cross-correlation
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
 
-    # 10. Averaged Artifact Subtraction — the primary correction step
+    # 8. Averaged Artifact Subtraction — the primary correction step
     AASCorrection(
         window_size=30,
         correlation_threshold=0.975,
         realign_after_averaging=True,
     ),
 
-    # 11. PCA — remove systematic residual artifact components
+    # 9. PCA — remove systematic residual artifact components
     PCACorrection(n_components=0.95, hp_freq=1.0),
 
-    # 12. Downsample back to the original recording rate
+    # 10. Downsample back to the original recording rate
     DownSample(factor=UPSAMPLE),
 
-    # 13. Low-pass filter to remove high-frequency noise
+    # 11. Low-pass filter to remove high-frequency noise
     LowPassFilter(freq=70.0),
 ]
 
-# 14. Adaptive Noise Cancellation (requires the compiled C extension)
+# 12. Adaptive Noise Cancellation (requires the compiled C extension)
 if _has_anc:
     steps.append(ANCCorrection(use_c_extension=True))
 
 steps += [
-    # 15. Save corrected recording
+    # 13. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
-    # 16. Compute evaluation metrics
-    SNRCalculator(),
-    LegacySNRCalculator(),
-    RMSCalculator(),
-    RMSResidualCalculator(),
-    MedianArtifactCalculator(),
-    FFTAllenCalculator(),
-    FFTNiazyCalculator(),
+    # 14. Compute evaluation metrics
+    SNRCalculator(verbose=True),
+    LegacySNRCalculator(verbose=True),
+    RMSCalculator(verbose=True),
+    RMSResidualCalculator(verbose=True),
+    MedianArtifactCalculator(verbose=True),
+    FFTAllenCalculator(verbose=True),
+    FFTNiazyCalculator(verbose=True),
     MetricsReport(),
 
-    # 17. Plot a before/after comparison for a single channel
+    # 15. Plot a before/after comparison for a single channel
     RawPlotter(
-        mode="mne",
+        mode="matplotlib",
         channel="Fp1",
-        start=25.0,
-        duration=20.0,
+        start=1300.0,
+        duration=500.0,
         overlay_original=True,
         save_path=str(OUTPUT_DIR / "before_after.png"),
         show=True,
@@ -167,12 +160,11 @@ steps += [
 
 pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline")
 
+
 # ---------------------------------------------------------------------------
 # Run and inspect results
 # ---------------------------------------------------------------------------
 result = pipeline.run(channel_sequential=True)
-
-# result.get_raw().plot(n_channels=20)
 
 # One-liner summary: Done / Failed, execution time, key metric values
 result.print_summary()

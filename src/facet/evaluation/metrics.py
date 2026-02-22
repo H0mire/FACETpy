@@ -23,6 +23,42 @@ from ..console import get_console, report_metric, suspend_raw_mode
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 
 
+def _dist_summary(values: np.ndarray) -> str:
+    """Return compact distribution summary for a 1D array."""
+    arr = np.asarray(values, dtype=float).ravel()
+    if arr.size == 0:
+        return "n=0"
+    return (
+        f"n={arr.size}, min={np.min(arr):.3g}, p25={np.percentile(arr, 25):.3g}, "
+        f"median={np.median(arr):.3g}, p75={np.percentile(arr, 75):.3g}, max={np.max(arr):.3g}"
+    )
+
+
+def _signal_summary(data: np.ndarray) -> str:
+    """Return compact summary for a 2D channel x time signal matrix."""
+    arr = np.asarray(data, dtype=float)
+    if arr.size == 0:
+        return "empty"
+    return (
+        f"shape={arr.shape}, mean={np.mean(arr):.3g}, std={np.std(arr):.3g}, "
+        f"rms={np.sqrt(np.mean(arr**2)):.3g}, p05={np.percentile(arr, 5):.3g}, p95={np.percentile(arr, 95):.3g}"
+    )
+
+
+def _top_channels(values: np.ndarray, channel_names: list[str], n: int = 3) -> tuple[str, str]:
+    """Return formatted worst/best channel lists for a metric array."""
+    arr = np.asarray(values, dtype=float).ravel()
+    if arr.size == 0:
+        return "[]", "[]"
+    n = max(1, min(n, arr.size, len(channel_names)))
+    order = np.argsort(arr)
+    best_idx = order[:n]
+    worst_idx = order[-n:][::-1]
+    best = ", ".join(f"{channel_names[i]}={arr[i]:.3g}" for i in best_idx)
+    worst = ", ".join(f"{channel_names[i]}={arr[i]:.3g}" for i in worst_idx)
+    return worst, best
+
+
 class ReferenceDataMixin:
     """Mixin for extracting reference data (outside acquisition)."""
 
@@ -512,8 +548,9 @@ class SNRCalculator(Processor, ReferenceDataMixin):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, time_buffer: float = 0.1) -> None:
+    def __init__(self, time_buffer: float = 0.1, verbose: bool = False) -> None:
         self.time_buffer = time_buffer
+        self.verbose = verbose
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -526,6 +563,8 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         raw = context.get_raw()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
+        eeg_picks = self.get_eeg_channels(raw)
+        channel_names = [raw.ch_names[i] for i in eeg_picks]
 
         # --- LOG ---
         logger.info("Calculating Signal-to-Noise Ratio (SNR)")
@@ -538,6 +577,16 @@ class SNRCalculator(Processor, ReferenceDataMixin):
             logger.warning("Insufficient data for SNR calculation")
             return context
 
+        if self.verbose:
+            logger.info(
+                "SNR diagnostics: triggers={}, artifact_length={}, time_buffer={:.3f}s",
+                0 if triggers is None else len(triggers),
+                artifact_length,
+                self.time_buffer,
+            )
+            logger.info("SNR diagnostics: reference {}", _signal_summary(ref_data))
+            logger.info("SNR diagnostics: corrected {}", _signal_summary(corrected_data))
+
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(ref_data, axis=1)
 
@@ -546,6 +595,15 @@ class SNRCalculator(Processor, ReferenceDataMixin):
 
         snr_per_channel = np.abs(var_reference / var_residual)
         snr_mean = np.mean(snr_per_channel)
+
+        if self.verbose:
+            logger.info("SNR diagnostics: var_reference {}", _dist_summary(var_reference))
+            logger.info("SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
+            logger.info("SNR diagnostics: var_residual {}", _dist_summary(var_residual))
+            logger.info("SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
+            worst, best = _top_channels(snr_per_channel, channel_names)
+            logger.info("SNR diagnostics: lowest channels [{}]", best)
+            logger.info("SNR diagnostics: highest channels [{}]", worst)
 
         report_metric("snr", float(snr_mean), label="SNR", display=f"{snr_mean:.2f}")
 
@@ -587,8 +645,9 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, time_buffer: float = 0.1) -> None:
+    def __init__(self, time_buffer: float = 0.1, verbose: bool = False) -> None:
         self.time_buffer = time_buffer
+        self.verbose = verbose
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -596,6 +655,8 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
         raw = context.get_raw()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
+        eeg_picks = self.get_eeg_channels(raw)
+        channel_names = [raw.ch_names[i] for i in eeg_picks]
 
         # --- LOG ---
         logger.info("Calculating RMS Residual Ratio (corrected vs reference)")
@@ -608,12 +669,30 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
             logger.warning("Insufficient data for RMS Residual calculation")
             return context
 
+        if self.verbose:
+            logger.info(
+                "RMS Residual diagnostics: triggers={}, artifact_length={}, time_buffer={:.3f}s",
+                0 if triggers is None else len(triggers),
+                artifact_length,
+                self.time_buffer,
+            )
+            logger.info("RMS Residual diagnostics: reference {}", _signal_summary(ref_data))
+            logger.info("RMS Residual diagnostics: corrected {}", _signal_summary(corrected_data))
+
         rms_corrected = np.std(corrected_data, axis=1)
         # Clamp to avoid division by zero.
         rms_reference = np.maximum(np.std(ref_data, axis=1), 1e-10)
 
         ratio_per_channel = rms_corrected / rms_reference
         ratio_mean = np.mean(ratio_per_channel)
+
+        if self.verbose:
+            logger.info("RMS Residual diagnostics: rms_reference {}", _dist_summary(rms_reference))
+            logger.info("RMS Residual diagnostics: rms_corrected {}", _dist_summary(rms_corrected))
+            logger.info("RMS Residual diagnostics: ratio_per_channel {}", _dist_summary(ratio_per_channel))
+            worst, best = _top_channels(np.abs(ratio_per_channel - 1.0), channel_names)
+            logger.info("RMS Residual diagnostics: closest-to-1 channels [{}]", best)
+            logger.info("RMS Residual diagnostics: furthest-from-1 channels [{}]", worst)
 
         report_metric("rms_residual", float(ratio_mean), label="RMS Residual", display=f"{ratio_mean:.2f}")
 
@@ -644,7 +723,8 @@ class LegacySNRCalculator(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -665,6 +745,7 @@ class LegacySNRCalculator(Processor):
 
         # --- COMPUTE ---
         picks = mne.pick_types(raw_corrected.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+        channel_names = [raw_corrected.ch_names[i] for i in picks]
 
         if len(picks) == 0:
             logger.warning("No EEG channels found for legacy SNR calculation")
@@ -690,6 +771,17 @@ class LegacySNRCalculator(Processor):
 
         reference_data = np.concatenate(ref_segments, axis=1) if ref_segments else raw_original.get_data(picks=picks)
 
+        if self.verbose:
+            logger.info(
+                "Legacy SNR diagnostics: triggers={}, artifact_length={}, acq=[{:.3f}, {:.3f}]s",
+                len(triggers),
+                artifact_length,
+                acq_tmin,
+                acq_tmax,
+            )
+            logger.info("Legacy SNR diagnostics: corrected {}", _signal_summary(corrected_data))
+            logger.info("Legacy SNR diagnostics: reference {}", _signal_summary(reference_data))
+
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(reference_data, axis=1)
 
@@ -697,6 +789,15 @@ class LegacySNRCalculator(Processor):
 
         snr_per_channel = np.abs(var_reference / var_residual)
         snr_mean = float(np.mean(snr_per_channel))
+
+        if self.verbose:
+            logger.info("Legacy SNR diagnostics: var_reference {}", _dist_summary(var_reference))
+            logger.info("Legacy SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
+            logger.info("Legacy SNR diagnostics: var_residual {}", _dist_summary(var_residual))
+            logger.info("Legacy SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
+            worst, best = _top_channels(snr_per_channel, channel_names)
+            logger.info("Legacy SNR diagnostics: lowest channels [{}]", best)
+            logger.info("Legacy SNR diagnostics: highest channels [{}]", worst)
 
         report_metric(
             "legacy_snr",
@@ -742,6 +843,10 @@ class RMSCalculator(Processor):
     modifies_raw = False
     parallel_safe = False
 
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
+        super().__init__()
+
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_raw_original() is None:
@@ -760,6 +865,7 @@ class RMSCalculator(Processor):
 
         # --- COMPUTE ---
         eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+        channel_names = [raw.ch_names[i] for i in eeg_channels]
 
         if len(eeg_channels) == 0:
             logger.warning("No EEG channels found")
@@ -785,6 +891,23 @@ class RMSCalculator(Processor):
 
         rms_ratio_per_channel = rms_uncorrected / rms_corrected
         rms_ratio = np.median(rms_ratio_per_channel)
+
+        if self.verbose:
+            logger.info(
+                "RMS diagnostics: triggers={}, artifact_length={}, acq=[{:.3f}, {:.3f}]s",
+                len(triggers),
+                artifact_length,
+                acq_tmin,
+                acq_tmax,
+            )
+            logger.info("RMS diagnostics: uncorrected {}", _signal_summary(data_uncorrected))
+            logger.info("RMS diagnostics: corrected {}", _signal_summary(data_corrected))
+            logger.info("RMS diagnostics: rms_uncorrected {}", _dist_summary(rms_uncorrected))
+            logger.info("RMS diagnostics: rms_corrected {}", _dist_summary(rms_corrected))
+            logger.info("RMS diagnostics: ratio_per_channel {}", _dist_summary(rms_ratio_per_channel))
+            worst, best = _top_channels(rms_ratio_per_channel, channel_names)
+            logger.info("RMS diagnostics: lowest-improvement channels [{}]", best)
+            logger.info("RMS diagnostics: highest-improvement channels [{}]", worst)
 
         report_metric("rms_ratio", float(rms_ratio), label="RMS Ratio", display=f"{rms_ratio:.2f}")
 
@@ -826,6 +949,10 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
     modifies_raw = False
     parallel_safe = False
 
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
+        super().__init__()
+
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
@@ -851,6 +978,20 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
         median_artifact, median_ref, ratio = self._compute_median_metrics(
             raw, triggers, sfreq, artifact_len, eeg_channels, context
         )
+
+        if self.verbose:
+            logger.info(
+                "Median Artifact diagnostics: triggers={}, artifact_length={}, offset={:.4f}s",
+                0 if triggers is None else len(triggers),
+                artifact_len,
+                context.metadata.artifact_to_trigger_offset,
+            )
+            logger.info(
+                "Median Artifact diagnostics: median_artifact={:.3g}, median_ref={}, ratio={}",
+                median_artifact,
+                "nan" if np.isnan(median_ref) else f"{median_ref:.3g}",
+                "nan" if np.isnan(ratio) else f"{ratio:.3g}",
+            )
 
         report_metric(
             "median_artifact",
@@ -959,7 +1100,8 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
     BANDS = [(0.8, 4, "Delta"), (4, 8, "Theta"), (8, 12, "Alpha"), (12, 24, "Beta")]
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -984,6 +1126,16 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
         nperseg = min(n_fft, ref_data.shape[1], corr_data.shape[1])
 
+        if self.verbose:
+            logger.info(
+                "FFT Allen diagnostics: sfreq={:.3f}, n_fft={}, nperseg={}",
+                sfreq,
+                n_fft,
+                nperseg,
+            )
+            logger.info("FFT Allen diagnostics: reference {}", _signal_summary(ref_data))
+            logger.info("FFT Allen diagnostics: corrected {}", _signal_summary(corr_data))
+
         freqs_ref, psd_ref = signal.welch(ref_data, fs=sfreq, nperseg=nperseg, axis=1)
         freqs_corr, psd_corr = signal.welch(corr_data, fs=sfreq, nperseg=nperseg, axis=1)
 
@@ -991,7 +1143,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
             logger.warning("Frequency mismatch in FFT Allen")
             return context
 
-        results = self._compute_band_differences(freqs_ref, psd_ref, psd_corr)
+        results = self._compute_band_differences(freqs_ref, psd_ref, psd_corr, verbose=self.verbose)
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
@@ -1005,6 +1157,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         freqs: np.ndarray,
         psd_ref: np.ndarray,
         psd_corr: np.ndarray,
+        verbose: bool = False,
     ) -> dict[str, float]:
         """Compute median absolute percent power difference per frequency band.
 
@@ -1035,6 +1188,16 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
             results[band_name] = float(median_diff)
 
+            if verbose:
+                logger.info(
+                    "FFT Allen diagnostics: {} ({}-{}Hz) power_ref [{}], power_corr [{}], diff_pct [{}]",
+                    band_name,
+                    fmin,
+                    fmax,
+                    _dist_summary(power_ref),
+                    _dist_summary(power_corr),
+                    _dist_summary(diff_pct),
+                )
             logger.debug("FFT Allen {} ({}-{}Hz): {:.2f}%", band_name, fmin, fmax, median_diff)
 
         return results
@@ -1058,7 +1221,8 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self) -> None:
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -1087,10 +1251,24 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         data_orig = data_orig[:min_ch]
 
         nperseg = min(int(4 * sfreq), data_corr.shape[1])
+
+        if self.verbose:
+            logger.info(
+                "FFT Niazy diagnostics: sfreq={:.3f}, slice_freq={:.3f}Hz, vol_freq={}, nperseg={}",
+                sfreq,
+                slice_freq,
+                "none" if vol_freq is None else f"{vol_freq:.3f}Hz",
+                nperseg,
+            )
+            logger.info("FFT Niazy diagnostics: corrected {}", _signal_summary(data_corr))
+            logger.info("FFT Niazy diagnostics: original {}", _signal_summary(data_orig))
+
         freqs, psd_corr = signal.welch(data_corr, fs=sfreq, nperseg=nperseg, axis=1)
         _, psd_orig = signal.welch(data_orig, fs=sfreq, nperseg=nperseg, axis=1)
 
-        results = self._compute_harmonic_ratios(freqs, psd_corr, psd_orig, slice_freq, vol_freq)
+        results = self._compute_harmonic_ratios(
+            freqs, psd_corr, psd_orig, slice_freq, vol_freq, verbose=self.verbose
+        )
 
         slice_h1 = results["slice"].get("h1", float("nan"))
         if not np.isnan(slice_h1):
@@ -1140,6 +1318,7 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         vol_freq: float | None,
         harmonics: int = 5,
         tolerance: float = 0.5,
+        verbose: bool = False,
     ) -> dict[str, Any]:
         """Compute power ratios (orig/corr in dB) at harmonic frequencies.
 
@@ -1181,12 +1360,26 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
             ratio_db = _ratio_db_at(slice_freq * h)
             if ratio_db is not None:
                 results["slice"][f"h{h}"] = ratio_db
+                if verbose:
+                    logger.info(
+                        "FFT Niazy diagnostics: slice h{} @ {:.3f}Hz ratio={:.2f} dB",
+                        h,
+                        slice_freq * h,
+                        ratio_db,
+                    )
 
         if vol_freq is not None:
             for h in range(1, harmonics + 1):
                 ratio_db = _ratio_db_at(vol_freq * h)
                 if ratio_db is not None:
                     results["volume"][f"h{h}"] = ratio_db
+                    if verbose:
+                        logger.info(
+                            "FFT Niazy diagnostics: volume h{} @ {:.3f}Hz ratio={:.2f} dB",
+                            h,
+                            vol_freq * h,
+                            ratio_db,
+                        )
 
         return results
 

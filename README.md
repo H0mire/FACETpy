@@ -47,21 +47,31 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 
 ## Installation
 
-Requires **Python ≥ 3.11** and [Poetry](https://python-poetry.org) ≥ 1.4.
+Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.4.
+Conda is optional, not required.
 
+### Option A (recommended): system Python + Poetry
 ```bash
-# 1 — install Poetry (skip if already installed)
-conda install -c conda-forge "poetry>=1.4"
+# 1 — verify Python
+python3 --version
 
-# 2 — install FACETpy and all dependencies
-poetry install
+# 2 — install Poetry (pick one)
+pipx install poetry
+# or: python3 -m pip install --user poetry
 
-# 3 — activate the virtual environment
-poetry shell
+# 3 — install FACETpy and dependencies
+poetry install --no-interaction
+```
+
+### Option B (optional): Conda workflow
+```bash
+conda create -n facetpy python=3.12 -y
+conda activate facetpy
+conda install -c conda-forge poetry -y
+poetry install --no-interaction
 ```
 
 Optional extras:
-
 ```bash
 poetry install -E deeplearning   # TensorFlow-based models
 poetry install -E notebooks      # Jupyter notebook support
@@ -69,6 +79,8 @@ poetry install -E gui            # PyQt6 GUI components
 poetry install -E docs           # Sphinx documentation toolchain
 poetry install -E all            # everything above
 ```
+
+Run commands with `poetry run ...` (for example, `poetry run python examples/quickstart.py`).
 
 
 ### Build the C extension (optional)

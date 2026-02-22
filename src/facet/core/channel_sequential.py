@@ -101,6 +101,7 @@ class ChannelSequentialExecutor:
         )
 
         _run_once_executed: set[str] = set()
+        metadata_states: list[object] = []
         merged_data: np.ndarray | None = None
         n_times_out = 0
         new_sfreq = raw.info["sfreq"]
@@ -114,11 +115,17 @@ class ChannelSequentialExecutor:
                 console.channel_started(k, data_ch_names[k])
 
                 ch_ctx = self._create_channel_context(context, ch_abs_idx)
+                if k == 0:
+                    metadata_states = [ch_ctx.metadata.copy()]
                 for pi, proc in enumerate(processors):
+                    if k > 0 and pi < len(metadata_states):
+                        ch_ctx = ch_ctx.with_metadata(metadata_states[pi].copy())
                     skipped = proc.run_once and proc.name in _run_once_executed
                     console.channel_processor_started(k, pi)
                     proc_start = time.time()
                     ch_ctx = self._run_proc(proc, ch_ctx, _run_once_executed)
+                    if k == 0:
+                        metadata_states.append(ch_ctx.metadata.copy())
                     console.channel_processor_completed(
                         k,
                         pi,
@@ -131,7 +138,7 @@ class ChannelSequentialExecutor:
                 if k == 0:
                     n_times_out = ch_data.shape[1]
                     new_sfreq = ch_ctx.get_raw().info["sfreq"]
-                    saved_metadata = ch_ctx.metadata.copy()
+                    saved_metadata = metadata_states[-1].copy()
                     merged_data = np.zeros((n_ch, n_times_out), dtype=ch_data.dtype)
 
                     handle_noise = ch_ctx.has_estimated_noise()
@@ -235,4 +242,16 @@ class ChannelSequentialExecutor:
         info = mne.pick_info(raw.info, [ch_idx])
         with suppress_stdout():
             subset_raw = mne.io.RawArray(data, info)
-        return context.with_raw(subset_raw)
+        subset_ctx = context.with_raw(subset_raw)
+
+        # with_raw() copies the full noise matrix; keep only the active channel.
+        subset_ctx._estimated_noise = None
+        if context.has_estimated_noise():
+            noise = context.get_estimated_noise()
+            if noise is not None and noise.ndim == 2:
+                if noise.shape[0] == 1:
+                    subset_ctx.set_estimated_noise(noise.copy())
+                elif ch_idx < noise.shape[0]:
+                    subset_ctx.set_estimated_noise(noise[ch_idx : ch_idx + 1].copy())
+
+        return subset_ctx

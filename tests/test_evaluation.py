@@ -294,6 +294,26 @@ class TestFFTNiazyCalculator:
 
 
 @pytest.mark.unit
+def test_evaluation_processors_accept_verbose_mode(sample_context):
+    """All main evaluation processors should run with verbose diagnostics enabled."""
+    processors = [
+        (SNRCalculator(verbose=True), "snr"),
+        (RMSCalculator(verbose=True), "rms_ratio"),
+        (RMSResidualCalculator(verbose=True), "rms_residual"),
+        (MedianArtifactCalculator(verbose=True), "median_artifact"),
+        (LegacySNRCalculator(verbose=True), "legacy_snr"),
+        (FFTAllenCalculator(verbose=True), "fft_allen"),
+        (FFTNiazyCalculator(verbose=True), "fft_niazy"),
+    ]
+
+    context = sample_context
+    for proc, metric_key in processors:
+        context = proc.execute(context)
+        metrics = context.metadata.custom.get("metrics", {})
+        assert metric_key in metrics
+
+
+@pytest.mark.unit
 class TestMetricsReport:
     """Tests for MetricsReport processor."""
 

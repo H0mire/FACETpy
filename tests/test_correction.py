@@ -141,6 +141,19 @@ class TestANCCorrection:
         # Should complete successfully
         assert result.get_raw() is not None
 
+    def test_anc_acquisition_window_uses_trigger_min_max(self, sample_context_with_noise):
+        """Acquisition window should be robust to unsorted trigger arrays."""
+        metadata = sample_context_with_noise.metadata.copy()
+        metadata.triggers = np.array([300, 120, 280, 200], dtype=int)
+        metadata.artifact_length = 40
+        context = sample_context_with_noise.with_metadata(metadata)
+
+        anc = ANCCorrection(filter_order=5, use_c_extension=False)
+        start, end = anc._get_acquisition_window(context)
+
+        assert start == 80
+        assert end == 340
+
     @pytest.mark.requires_c_extension
     def test_anc_c_extension(self, sample_context_with_noise):
         """Test ANC with C extension."""
@@ -205,6 +218,19 @@ class TestPCACorrection:
         # Data should be unchanged
         np.testing.assert_array_equal(result.get_raw()._data, original_data)
 
+    def test_pca_acquisition_window_uses_trigger_min_max(self, sample_context):
+        """Acquisition window should be robust to unsorted trigger arrays."""
+        metadata = sample_context.metadata.copy()
+        metadata.triggers = np.array([300, 120, 280, 200], dtype=int)
+        metadata.artifact_length = 40
+        context = sample_context.with_metadata(metadata)
+
+        pca = PCACorrection(n_components=0.95)
+        start, end = pca._get_acquisition_window(context)
+
+        assert start == 80
+        assert end == 340
+
 
 @pytest.mark.integration
 class TestCorrectionPipeline:
@@ -220,6 +246,30 @@ class TestCorrectionPipeline:
 
         assert result.success is True
         assert result.context.get_raw() is not None
+
+    def test_anc_channel_sequential_matches_serial(self, sample_context_with_noise):
+        """ANC should produce the same result in serial and channel-sequential modes."""
+        from facet.core import Pipeline
+
+        pipeline = Pipeline([ANCCorrection(filter_order=5, use_c_extension=False)])
+
+        serial = pipeline.run(initial_context=sample_context_with_noise, channel_sequential=False, show_progress=False)
+        channel_seq = pipeline.run(initial_context=sample_context_with_noise, channel_sequential=True, show_progress=False)
+
+        assert serial.success is True
+        assert channel_seq.success is True
+        np.testing.assert_allclose(
+            channel_seq.context.get_data(copy=False),
+            serial.context.get_data(copy=False),
+            rtol=1e-10,
+            atol=1e-12,
+        )
+        np.testing.assert_allclose(
+            channel_seq.context.get_estimated_noise(),
+            serial.context.get_estimated_noise(),
+            rtol=1e-10,
+            atol=1e-12,
+        )
 
     def test_full_correction_pipeline(self, sample_edf_file):
         """Test full correction pipeline."""

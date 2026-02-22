@@ -8,7 +8,8 @@ Date: 2025-01-12
 """
 
 from collections.abc import Callable
-from importlib.metadata import PackageNotFoundError, version as pkg_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as pkg_version
 from numbers import Integral, Real
 from pathlib import Path
 from typing import Any
@@ -59,9 +60,9 @@ def _ensure_mff_runtime_dependencies() -> None:
         return
 
     try:
-        setattr(defusedxml, "__version__", pkg_version("defusedxml"))
+        defusedxml.__version__ = pkg_version("defusedxml")
     except PackageNotFoundError:
-        setattr(defusedxml, "__version__", "unknown")
+        defusedxml.__version__ = "unknown"
 
 
 def _detect_format(path: Path) -> tuple[Callable[..., BaseRaw], str]:
