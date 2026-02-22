@@ -375,6 +375,27 @@ Removes residual artifacts:
 Evaluation Processors
 ~~~~~~~~~~~~~~~~~~~~~
 
+**ReferenceIntervalSelector** - Select clean reference data for metrics
+
+.. code-block:: python
+
+   from facet.evaluation import ReferenceIntervalSelector
+
+   ref_selector = ReferenceIntervalSelector(channel="Fp1")
+   context = ref_selector.execute(context)
+
+**SignalIntervalSelector** - Select the evaluated signal interval for metrics
+
+.. code-block:: python
+
+   from facet.evaluation import SignalIntervalSelector
+
+   sig_selector = SignalIntervalSelector(channel="Fp1")
+   context = sig_selector.execute(context)
+
+   # Access selected interval
+   eval_interval = context.metadata.custom['evaluation_interval']
+
 **SNRCalculator** - Calculate Signal-to-Noise Ratio
 
 .. code-block:: python

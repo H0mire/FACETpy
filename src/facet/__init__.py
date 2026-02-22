@@ -106,6 +106,7 @@ from .evaluation import (
     RawPlotter,
     RMSCalculator,
     RMSResidualCalculator,
+    SignalIntervalSelector,
     SNRCalculator,
 )
 
@@ -182,6 +183,7 @@ __all__ = [
     "FFTAllenCalculator",
     "FFTNiazyCalculator",
     "MetricsReport",
+    "SignalIntervalSelector",
     "RawPlotter",
     # Interactive helpers
     "ArtifactOffsetFinder",

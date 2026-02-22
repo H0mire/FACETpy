@@ -9,9 +9,11 @@ correction workflow. It covers every recommended step:
   → Downsample → Filter → ANC → Export → Evaluate → Plot
 
 ReferenceIntervalSelector lets you pick a clean reference interval for
-metrics; TriggerExplorer discovers and selects trigger sources; ArtifactOffsetFinder
-aligns the artifact window with the data. Use auto_select with TriggerExplorer
-for non-interactive runs.
+metrics. SignalIntervalSelector lets you pick the evaluated signal interval
+(acquisition) when boundaries are unclear after correction. TriggerExplorer
+discovers and selects trigger sources; ArtifactOffsetFinder aligns the artifact
+window with the data. Use auto_select with TriggerExplorer for non-interactive
+runs.
 
 For shorter introductions, see:
   quickstart.py         — minimal pipeline (load, AAS, export)
@@ -49,7 +51,7 @@ from facet import (
     MetricsReport,
     RawPlotter,
 )
-from facet.evaluation import ReferenceIntervalSelector
+from facet.evaluation import ReferenceIntervalSelector, SignalIntervalSelector
 from facet.preprocessing import TriggerExplorer
 
 # ---------------------------------------------------------------------------
@@ -92,6 +94,9 @@ steps = [
 
     # 5. Interactively align artifact window to trigger
     ArtifactOffsetFinder(),
+
+    # Optional: pick evaluated reference interval manually if acquisition contains unhandled artifacts
+    # ReferenceIntervalSelector(),
 
     RawPlotter(
         mode="mne",
@@ -141,6 +146,8 @@ if _has_anc:
 steps += [
     # 15. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
+    # Optional: pick evaluated signal interval manually if acquisition contains unhandled artifacts
+    # SignalIntervalSelector(),
     # 16. Compute evaluation metrics
     SNRCalculator(),
     LegacySNRCalculator(),
@@ -170,7 +177,7 @@ pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline")
 # ---------------------------------------------------------------------------
 # Run and inspect results
 # ---------------------------------------------------------------------------
-result = pipeline.run(channel_sequential=True)
+result = pipeline.run(channel_sequential=False)
 
 # result.get_raw().plot(n_channels=20)
 

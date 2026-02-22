@@ -352,13 +352,33 @@ class TestCrop:
         result = sample_context | Crop(tmin=1.0)
         assert result.get_raw().n_times < original_n_times
 
-    def test_crop_no_args_is_passthrough(self, sample_context):
-        """Crop with no arguments keeps the recording unchanged."""
+    def test_crop_no_args_is_passthrough(self, sample_context, monkeypatch):
+        """Crop with no arguments keeps recording unchanged when selection is cancelled."""
         from facet.preprocessing import Crop
 
+        monkeypatch.setattr(Crop, "_show_interactive_crop_selector", lambda self, raw: None)
         original_n_times = sample_context.get_raw().n_times
         result = sample_context | Crop()
         assert result.get_raw().n_times == original_n_times
+
+    def test_crop_no_args_uses_interactive_selection(self, sample_context, monkeypatch):
+        """Crop with no arguments uses interval returned by interactive selector."""
+        from facet.preprocessing import Crop
+
+        monkeypatch.setattr(Crop, "_show_interactive_crop_selector", lambda self, raw: (1.0, 2.0))
+
+        result = sample_context | Crop()
+        sfreq = sample_context.get_raw().info["sfreq"]
+
+        assert result.get_raw().n_times < sample_context.get_raw().n_times
+        assert np.isclose(result.get_raw().times[-1], 1.0, atol=1.0 / sfreq)
+
+    def test_crop_rejects_invalid_bounds(self, sample_context):
+        """Crop raises validation error when tmax <= tmin."""
+        from facet.preprocessing import Crop
+
+        with pytest.raises(ProcessorValidationError):
+            sample_context | Crop(tmin=2.0, tmax=1.0)
 
     def test_crop_preserves_metadata(self, sample_context):
         """Crop preserves triggers and other metadata."""

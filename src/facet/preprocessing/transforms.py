@@ -5,11 +5,18 @@ Contains small, focused processors for common in-pipeline data manipulations
 that don't fit neatly into filtering, resampling, or trigger handling.
 """
 
+import contextlib
 from collections.abc import Callable
+from typing import Any
 
+import matplotlib.pyplot as plt
+import mne
 from loguru import logger
+from matplotlib.widgets import Button, SpanSelector
 
-from ..core import ProcessingContext, Processor, register_processor
+from ..console import get_console, suspend_raw_mode
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
+from ..helpers.plotting import show_matplotlib_figure
 
 
 @register_processor
@@ -26,11 +33,15 @@ class Crop(Processor):
     tmax : float, optional
         End time in seconds.  ``None`` keeps the original end.
 
+        If both ``tmin`` and ``tmax`` are ``None``, an interactive
+        Matplotlib selector is opened to choose the crop window.
+
     Examples
     --------
     ::
 
         Crop(tmin=0, tmax=162)
+        Crop()  # open interactive selector
     """
 
     name = "crop"
@@ -40,7 +51,7 @@ class Crop(Processor):
     requires_triggers = False
     requires_raw = True
     modifies_raw = True
-    parallel_safe = True
+    parallel_safe = False
 
     def __init__(
         self,
@@ -51,23 +62,178 @@ class Crop(Processor):
         self.tmax = tmax
         super().__init__()
 
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+
+        if self.tmin is not None and self.tmax is not None and self.tmax <= self.tmin:
+            raise ProcessorValidationError(f"tmax must be greater than tmin, got tmin={self.tmin}, tmax={self.tmax}")
+
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
         raw = context.get_raw().copy()
-
-        # --- LOG ---
-        logger.info("Cropping raw: tmin={}, tmax={}", self.tmin, self.tmax)
+        resolved_tmin = self.tmin
+        resolved_tmax = self.tmax
 
         # --- COMPUTE ---
+        if self.tmin is None and self.tmax is None:
+            logger.info("No crop boundaries provided; opening interactive crop selector.")
+            selected_interval = self._show_interactive_crop_selector(raw)
+            if selected_interval is not None:
+                resolved_tmin, resolved_tmax = selected_interval
+            else:
+                logger.info("Interactive crop selection cancelled; keeping full recording.")
+
         kwargs = {}
-        if self.tmin is not None:
-            kwargs["tmin"] = self.tmin
-        if self.tmax is not None:
-            kwargs["tmax"] = self.tmax
-        raw.crop(**kwargs)
+        if resolved_tmin is not None:
+            kwargs["tmin"] = resolved_tmin
+        if resolved_tmax is not None:
+            kwargs["tmax"] = resolved_tmax
+
+        if resolved_tmin is not None and resolved_tmax is not None and resolved_tmax <= resolved_tmin:
+            raise ProcessorValidationError(f"invalid crop interval: tmin={resolved_tmin}, tmax={resolved_tmax}")
+
+        if kwargs:
+            logger.info("Cropping raw: tmin={}, tmax={}", resolved_tmin, resolved_tmax)
+            raw.crop(**kwargs)
+        else:
+            logger.info("Cropping skipped; no boundaries selected.")
 
         # --- RETURN ---
         return context.with_raw(raw)
+
+    def _show_interactive_crop_selector(self, raw: mne.io.BaseRaw) -> tuple[float, float] | None:
+        """Show interactive span selector and return selected crop bounds."""
+        backend = plt.get_backend().lower()
+        if "agg" in backend:
+            logger.warning("Matplotlib backend '{}' is non-interactive; skipping crop selector.", backend)
+            return None
+
+        if raw.n_times < 2:
+            return None
+
+        sfreq = float(raw.info["sfreq"])
+        if sfreq <= 0:
+            return None
+
+        eeg_picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+        ch_idx = int(eeg_picks[0]) if len(eeg_picks) > 0 else 0
+        ch_name = raw.ch_names[ch_idx]
+        channel_data = raw.get_data(picks=[ch_idx])[0]
+        time_axis = raw.times
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        plt.subplots_adjust(bottom=0.24)
+
+        ax.plot(time_axis, channel_data, linewidth=0.8, alpha=0.9)
+        ax.set_title(f"Select crop interval - {ch_name}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Amplitude")
+        ax.grid(alpha=0.3)
+
+        interval_state: dict[str, Any] = {
+            "tmin": float(time_axis[0]),
+            "tmax": float(time_axis[-1]),
+            "confirmed": False,
+            "shade": None,
+        }
+
+        text_label = ax.text(
+            0.02,
+            0.96,
+            "",
+            transform=ax.transAxes,
+            va="top",
+            fontsize=10,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+        )
+
+        min_duration = 1.0 / sfreq
+
+        def _refresh_overlay() -> None:
+            if interval_state["shade"] is not None:
+                interval_state["shade"].remove()
+            interval_state["shade"] = ax.axvspan(
+                interval_state["tmin"],
+                interval_state["tmax"],
+                facecolor="tab:blue",
+                alpha=0.22,
+                edgecolor="tab:blue",
+                linewidth=1.0,
+            )
+            text_label.set_text(
+                "Selected: {:.3f}s to {:.3f}s ({:.3f}s)".format(
+                    interval_state["tmin"],
+                    interval_state["tmax"],
+                    interval_state["tmax"] - interval_state["tmin"],
+                )
+            )
+            fig.canvas.draw_idle()
+
+        def _on_select(xmin: float, xmax: float) -> None:
+            if xmin is None or xmax is None:
+                return
+            left = max(0.0, min(float(xmin), float(xmax)))
+            right = min(float(time_axis[-1]), max(float(xmin), float(xmax)))
+
+            if right - left < min_duration:
+                right = min(float(time_axis[-1]), left + min_duration)
+                left = max(0.0, right - min_duration)
+
+            left = round(left * sfreq) / sfreq
+            right = round(right * sfreq) / sfreq
+            if right <= left:
+                right = min(float(time_axis[-1]), left + min_duration)
+                left = max(0.0, right - min_duration)
+
+            interval_state["tmin"] = left
+            interval_state["tmax"] = right
+            _refresh_overlay()
+
+        span_selector = SpanSelector(
+            ax,
+            _on_select,
+            "horizontal",
+            useblit=True,
+            interactive=True,
+            drag_from_anywhere=True,
+            props=dict(facecolor="tab:blue", edgecolor="tab:blue", alpha=0.25),
+        )
+        span_selector.set_active(True)
+
+        confirm_ax = fig.add_axes([0.70, 0.06, 0.12, 0.07])
+        confirm_btn = Button(confirm_ax, "Confirm")
+        cancel_ax = fig.add_axes([0.84, 0.06, 0.12, 0.07])
+        cancel_btn = Button(cancel_ax, "Cancel")
+
+        def _close_fig() -> None:
+            with contextlib.suppress(Exception):
+                fig.canvas.manager.destroy()
+            plt.close(fig)
+
+        def _on_confirm(_) -> None:
+            interval_state["confirmed"] = True
+            _close_fig()
+
+        def _on_cancel(_) -> None:
+            _close_fig()
+
+        confirm_btn.on_clicked(_on_confirm)
+        cancel_btn.on_clicked(_on_cancel)
+        _refresh_overlay()
+
+        console = get_console()
+        console.set_active_prompt("Drag to select crop interval, then click Confirm")
+        try:
+            with suspend_raw_mode():
+                show_matplotlib_figure(fig)
+        finally:
+            plt.close(fig)
+            console.clear_active_prompt()
+
+        if not interval_state["confirmed"]:
+            return None
+
+        return float(interval_state["tmin"]), float(interval_state["tmax"])
 
 
 @register_processor

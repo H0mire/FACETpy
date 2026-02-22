@@ -2,6 +2,7 @@
 Tests for evaluation processors.
 """
 
+import numpy as np
 import pytest
 
 from facet.core import ProcessingContext, ProcessorValidationError
@@ -14,6 +15,7 @@ from facet.evaluation import (
     ReferenceIntervalSelector,
     RMSCalculator,
     RMSResidualCalculator,
+    SignalIntervalSelector,
     SNRCalculator,
 )
 
@@ -45,6 +47,87 @@ class TestReferenceIntervalSelector:
 
         result = selector.execute(sample_context)
         assert "reference_interval" not in result.metadata.custom
+
+    def test_reference_interval_selector_uses_explicit_bounds(self, sample_context, monkeypatch):
+        """Explicit tmin/tmax should skip GUI and store configured interval."""
+        selector = ReferenceIntervalSelector(channel=0, tmin=0.25, tmax=1.25)
+
+        def _must_not_be_called(**kwargs):
+            raise AssertionError("_show_selector should not be called when explicit bounds are provided")
+
+        monkeypatch.setattr(selector, "_show_selector", _must_not_be_called)
+
+        result = selector.execute(sample_context)
+        interval = result.metadata.custom.get("reference_interval", {})
+
+        assert interval.get("tmin") == pytest.approx(0.25)
+        assert interval.get("tmax") == pytest.approx(1.25)
+
+    def test_reference_interval_selector_rejects_invalid_bounds(self, sample_context):
+        """Invalid explicit interval should raise validation error."""
+        selector = ReferenceIntervalSelector(tmin=2.0, tmax=1.0)
+
+        with pytest.raises(ProcessorValidationError):
+            selector.execute(sample_context)
+
+
+@pytest.mark.unit
+class TestSignalIntervalSelector:
+    """Tests for SignalIntervalSelector processor."""
+
+    def test_signal_interval_selector_stores_interval(self, sample_context, monkeypatch):
+        """Selected interval should be written to metadata.custom."""
+        selector = SignalIntervalSelector(channel=0, min_duration=0.2)
+        monkeypatch.setattr(
+            selector,
+            "_show_selector",
+            lambda **kwargs: (1.0, 2.0),
+        )
+
+        result = selector.execute(sample_context)
+        interval = result.metadata.custom.get("evaluation_interval", {})
+
+        assert interval.get("tmin") == pytest.approx(1.0)
+        assert interval.get("tmax") == pytest.approx(2.0)
+        assert interval.get("source") == "signal_interval_selector"
+
+    def test_signal_interval_selector_cancel_keeps_context(self, sample_context, monkeypatch):
+        """Cancelling selection should keep metadata unchanged."""
+        selector = SignalIntervalSelector()
+        monkeypatch.setattr(selector, "_show_selector", lambda **kwargs: None)
+
+        result = selector.execute(sample_context)
+        assert "evaluation_interval" not in result.metadata.custom
+
+    def test_signal_interval_selector_uses_explicit_bounds(self, sample_context, monkeypatch):
+        """Explicit tmin/tmax should skip GUI and store configured interval."""
+        selector = SignalIntervalSelector(channel=0, tmin=1.0, tmax=2.5)
+
+        def _must_not_be_called(**kwargs):
+            raise AssertionError("_show_selector should not be called when explicit bounds are provided")
+
+        monkeypatch.setattr(selector, "_show_selector", _must_not_be_called)
+
+        result = selector.execute(sample_context)
+        interval = result.metadata.custom.get("evaluation_interval", {})
+
+        assert interval.get("tmin") == pytest.approx(1.0)
+        assert interval.get("tmax") == pytest.approx(2.5)
+
+    def test_signal_interval_selector_rejects_invalid_bounds(self, sample_context):
+        """Invalid explicit interval should raise validation error."""
+        selector = SignalIntervalSelector(tmin=3.0, tmax=2.0)
+
+        with pytest.raises(ProcessorValidationError):
+            selector.execute(sample_context)
+
+    def test_signal_interval_selector_requires_triggers(self, sample_raw):
+        """Signal interval selection requires triggers."""
+        selector = SignalIntervalSelector()
+        context = ProcessingContext(raw=sample_raw)
+
+        with pytest.raises(ProcessorValidationError):
+            selector.execute(context)
 
 
 @pytest.mark.unit
@@ -101,6 +184,27 @@ class TestSNRCalculator:
 
         metrics = result.metadata.custom.get("metrics", {})
         assert "snr" in metrics
+
+    def test_snr_uses_selected_evaluation_interval(self, sample_context):
+        """User-selected evaluation interval should override automatic extraction."""
+        metadata = sample_context.metadata.copy()
+        metadata.custom["evaluation_interval"] = {"tmin": 1.0, "tmax": 2.0}
+        context = sample_context.with_metadata(metadata)
+
+        snr_calc = SNRCalculator()
+        raw = context.get_raw()
+        acquisition_data = snr_calc.get_acquisition_data(
+            raw=raw,
+            triggers=context.get_triggers(),
+            artifact_length=context.get_artifact_length(),
+            context=context,
+        )
+
+        eeg_picks = snr_calc.get_eeg_channels(raw)
+        expected = raw.get_data(picks=eeg_picks, tmin=1.0, tmax=2.0)
+
+        assert acquisition_data.shape == expected.shape
+        np.testing.assert_allclose(acquisition_data, expected)
 
 
 @pytest.mark.unit

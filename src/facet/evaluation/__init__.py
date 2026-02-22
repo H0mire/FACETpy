@@ -16,12 +16,14 @@ from .metrics import (
     ReferenceIntervalSelector,
     RMSCalculator,
     RMSResidualCalculator,
+    SignalIntervalSelector,
     SNRCalculator,
 )
 from .visualization import RawPlotter
 
 __all__ = [
     "ReferenceIntervalSelector",
+    "SignalIntervalSelector",
     "SNRCalculator",
     "LegacySNRCalculator",
     "RMSCalculator",

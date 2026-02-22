@@ -92,7 +92,7 @@ steps = [
     # 2. Remove non-EEG channels present in the EDF file
     DropChannels(channels=NON_EEG_CHANNELS),
 
-    # 3. Limit the analysis to the acquisition window
+    # 3. Remove unrelevant data
     # Crop(tmin=RECORDING_START, tmax=RECORDING_END),
 
     # 4. Detect fMRI slice-onset triggers
@@ -100,10 +100,10 @@ steps = [
 
     ArtifactOffsetFinder(),
 
+    ReferenceIntervalSelector(),
     # 5. High-pass filter to remove slow drifts before correction
     HighPassFilter(freq=1.0),
 
-    ReferenceIntervalSelector(),
     # 6. Upsample for sub-sample precision in trigger alignment
     UpSample(factor=UPSAMPLE),
 
@@ -145,19 +145,16 @@ steps += [
     MetricsReport(),
 
     # 15. Plot a before/after comparison for a single channel
-    RawPlotter(
-        mode="matplotlib",
-        channel="Fp1",
-        start=1300.0,
-        duration=500.0,
-        overlay_original=True,
-        save_path=str(OUTPUT_DIR / "before_after.png"),
-        show=True,
-        auto_close=True,
-        title="Fp1 — Before vs After Correction",
-    ),
+    lambda ctx: ctx | RawPlotter(
+           mode="matplotlib",
+           channel="Fp1",
+           duration=ctx.get_raw().times[-1],  # full recording length
+           overlay_original=False,
+           save_path=str(OUTPUT_DIR / "before_after.png"),
+           show=True,
+           title="Fp1 — Before vs After Correction",
+       ),
 ]
-
 pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline")
 
 

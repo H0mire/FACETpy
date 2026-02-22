@@ -128,6 +128,47 @@ any callable accepting and returning a context.
        | AASCorrection(window_size=30)
    )
 
+Inline Lambdas for Context-Dependent Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pipeline steps can be plain callables (lambdas or ``def`` functions) that take a
+``ProcessingContext`` and return one. The Pipeline wraps them in a
+``LambdaProcessor``, so they behave like any other processor.
+
+This is useful when a processor needs parameters that depend on the *current*
+context at runtime (e.g. data loaded earlier in the pipeline). For example,
+``RawPlotter`` expects a fixed ``duration`` in seconds when constructed, but you
+may want to plot the full dataset whose length is unknown until the pipeline
+runs. Use a lambda that creates and runs the processor with a context-derived
+parameter:
+
+.. code-block:: python
+
+   from facet import Pipeline, RawPlotter, Loader
+   from pathlib import Path
+
+   output_dir = Path("./output")
+
+   pipeline = Pipeline([
+       Loader(path="data.edf", preload=True),
+       # ... other steps ...
+       # Plot full dataset: duration comes from context at runtime
+       lambda ctx: ctx | RawPlotter(
+           mode="matplotlib",
+           channel="Fp1",
+           duration=ctx.get_raw().times[-1],  # full recording length
+           overlay_original=False,
+           save_path=str(output_dir / "before_after.png"),
+           show=True,
+           title="Fp1 — Before vs After Correction",
+       ),
+   ])
+
+The lambda is invoked only when the pipeline reaches that step, so
+``ctx.get_raw()`` is available and ``times[-1]`` gives the total duration in
+seconds. Alternatively, use ``duration=0`` with ``RawPlotter`` to mean "plot
+entire dataset" without a lambda.
+
 Parallel Execution
 ~~~~~~~~~~~~~~~~~~
 

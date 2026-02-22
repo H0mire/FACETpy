@@ -181,8 +181,25 @@ class ReferenceDataMixin:
         raw: mne.io.BaseRaw,
     ) -> tuple[float, float] | None:
         """Return validated user-selected reference interval in seconds."""
+        return self._get_selected_custom_interval(context, raw, "reference_interval")
+
+    def _get_selected_evaluation_interval(
+        self,
+        context: ProcessingContext,
+        raw: mne.io.BaseRaw,
+    ) -> tuple[float, float] | None:
+        """Return validated user-selected evaluation interval in seconds."""
+        return self._get_selected_custom_interval(context, raw, "evaluation_interval")
+
+    def _get_selected_custom_interval(
+        self,
+        context: ProcessingContext,
+        raw: mne.io.BaseRaw,
+        key: str,
+    ) -> tuple[float, float] | None:
+        """Return validated custom interval in seconds from metadata.custom[key]."""
         custom = context.metadata.custom
-        interval = custom.get("reference_interval")
+        interval = custom.get(key)
         if not isinstance(interval, dict):
             return None
 
@@ -195,7 +212,7 @@ class ReferenceDataMixin:
             tmin = float(tmin)
             tmax = float(tmax)
         except (TypeError, ValueError):
-            logger.warning("Invalid reference_interval metadata (non-numeric tmin/tmax)")
+            logger.warning("Invalid {} metadata (non-numeric tmin/tmax)", key)
             return None
 
         raw_tmax = float(raw.times[-1]) if raw.n_times > 0 else 0.0
@@ -204,7 +221,8 @@ class ReferenceDataMixin:
 
         if tmax <= tmin:
             logger.warning(
-                "Invalid reference_interval metadata (tmax <= tmin): [{:.3f}, {:.3f}]",
+                "Invalid {} metadata (tmax <= tmin): [{:.3f}, {:.3f}]",
+                key,
                 tmin,
                 tmax,
             )
@@ -212,7 +230,70 @@ class ReferenceDataMixin:
 
         return tmin, tmax
 
-    def get_acquisition_data(self, raw: mne.io.BaseRaw, triggers: np.ndarray, artifact_length: int) -> np.ndarray:
+    def _infer_acquisition_interval(
+        self,
+        raw: mne.io.BaseRaw,
+        triggers: np.ndarray | None,
+        artifact_length: int | None,
+    ) -> tuple[float, float] | None:
+        """Infer acquisition interval in seconds from triggers and artifact length."""
+        if triggers is None or len(triggers) == 0 or artifact_length is None:
+            return None
+
+        sfreq = raw.info["sfreq"]
+        if sfreq <= 0:
+            return None
+
+        acq_start = max(0, int(triggers[0]) - int(artifact_length * 0.5))
+        acq_end = min(raw.n_times, int(triggers[-1]) + int(artifact_length * 1.5))
+
+        if acq_end <= acq_start:
+            return None
+
+        tmin = acq_start / sfreq
+        tmax = min(acq_end / sfreq, float(raw.times[-1]))
+        if tmax <= tmin:
+            return None
+        return tmin, tmax
+
+    def _resolve_configured_interval(
+        self,
+        raw: mne.io.BaseRaw,
+        tmin: float | None,
+        tmax: float | None,
+        label: str,
+    ) -> tuple[float, float] | None:
+        """Resolve configured interval bounds against recording limits."""
+        if tmin is None and tmax is None:
+            return None
+
+        raw_tmax = float(raw.times[-1]) if raw.n_times > 0 else 0.0
+
+        try:
+            left = 0.0 if tmin is None else float(tmin)
+            right = raw_tmax if tmax is None else float(tmax)
+        except (TypeError, ValueError) as exc:
+            raise ProcessorValidationError(
+                f"{label} interval bounds must be numeric, got tmin={tmin}, tmax={tmax}"
+            ) from exc
+
+        left = max(0.0, min(left, raw_tmax))
+        right = max(0.0, min(right, raw_tmax))
+
+        if right <= left:
+            raise ProcessorValidationError(
+                f"invalid {label} interval after clipping: tmin={left:.6f}, tmax={right:.6f}"
+            )
+
+        return left, right
+
+    def get_acquisition_data(
+        self,
+        raw: mne.io.BaseRaw,
+        triggers: np.ndarray,
+        artifact_length: int,
+        context: ProcessingContext | None = None,
+    ) -> np.ndarray:
         """Extract data within the acquisition window.
 
         Parameters
@@ -223,23 +304,52 @@ class ReferenceDataMixin:
             Trigger indices.
         artifact_length : int
             Length of one artifact in samples.
+        context : ProcessingContext, optional
+            Current processing context. If it contains a user-selected
+            evaluation interval (set by ``SignalIntervalSelector``), that
+            interval is used before falling back to automatic extraction.
 
         Returns
         -------
         np.ndarray
             Array of shape (n_channels, n_times) from the acquisition window.
         """
-        sfreq = raw.info["sfreq"]
         eeg_picks = self.get_eeg_channels(raw)
 
         if len(eeg_picks) == 0:
             return np.array([])
 
-        acq_start = max(0, triggers[0] - int(artifact_length * 0.5))
-        acq_end = min(raw.n_times, triggers[-1] + int(artifact_length * 1.5))
+        # Prefer explicit user-selected interval when available.
+        if context is not None:
+            selected_interval = self._get_selected_evaluation_interval(context, raw)
+            if selected_interval is not None:
+                sel_tmin, sel_tmax = selected_interval
+                try:
+                    selected_data = raw.get_data(picks=eeg_picks, tmin=sel_tmin, tmax=sel_tmax)
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to load selected evaluation interval "
+                        "[{:.3f}, {:.3f}] s: {}. Falling back to automatic selection.",
+                        sel_tmin,
+                        sel_tmax,
+                        exc,
+                    )
+                else:
+                    if selected_data.size > 0 and selected_data.shape[1] > 0:
+                        return selected_data
+                    logger.warning(
+                        "Selected evaluation interval [{:.3f}, {:.3f}] s returned no data. "
+                        "Falling back to automatic selection.",
+                        sel_tmin,
+                        sel_tmax,
+                    )
 
-        tmin = acq_start / sfreq
-        tmax = min(acq_end / sfreq, raw.times[-1])
+        inferred_interval = self._infer_acquisition_interval(raw, triggers, artifact_length)
+        if inferred_interval is None:
+            logger.warning("Cannot infer acquisition interval without triggers and artifact length.")
+            return np.array([]).reshape(len(eeg_picks), 0)
+
+        tmin, tmax = inferred_interval
 
         return raw.get_data(picks=eeg_picks, tmin=tmin, tmax=tmax)
 
@@ -261,6 +371,12 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         used.
     min_duration : float, optional
         Minimum selectable interval length in seconds (default: 0.5).
+    tmin : float, optional
+        Reference interval start in seconds. If provided together with
+        ``tmax`` (or alone), the selector GUI is skipped.
+    tmax : float, optional
+        Reference interval end in seconds. If provided together with
+        ``tmin`` (or alone), the selector GUI is skipped.
     """
 
     name = "reference_interval_selector"
@@ -276,9 +392,13 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         self,
         channel: str | int | None = None,
         min_duration: float = 0.5,
+        tmin: float | None = None,
+        tmax: float | None = None,
     ) -> None:
         self.channel = channel
         self.min_duration = min_duration
+        self.tmin = tmin
+        self.tmax = tmax
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -291,28 +411,39 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
             raise ProcessorValidationError("Raw must contain at least 2 samples.")
 
         self._resolve_channel(raw)
+        self._resolve_configured_interval(raw, self.tmin, self.tmax, label="reference")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
         raw = context.get_raw()
-        sfreq = raw.info["sfreq"]
         ch_idx = self._resolve_channel(raw)
         ch_name = raw.ch_names[ch_idx]
-        channel_data = raw.get_data(picks=[ch_idx])[0]
-        time_axis = raw.times
-
-        # --- LOG ---
-        logger.info("Opening reference interval selector for channel {}", ch_name)
+        configured_interval = self._resolve_configured_interval(raw, self.tmin, self.tmax, label="reference")
 
         # --- COMPUTE ---
-        selected_interval = self._show_selector(
-            time_axis=time_axis,
-            channel_data=channel_data,
-            channel_name=ch_name,
-            default_interval=self._get_default_interval(context, raw),
-            min_duration=self.min_duration,
-            sfreq=sfreq,
-        )
+        if configured_interval is not None:
+            selected_interval = configured_interval
+            logger.info(
+                "Using configured reference interval: [{:.3f}, {:.3f}] s",
+                selected_interval[0],
+                selected_interval[1],
+            )
+        else:
+            sfreq = raw.info["sfreq"]
+            channel_data = raw.get_data(picks=[ch_idx])[0]
+            time_axis = raw.times
+
+            # --- LOG ---
+            logger.info("Opening reference interval selector for channel {}", ch_name)
+
+            selected_interval = self._show_selector(
+                time_axis=time_axis,
+                channel_data=channel_data,
+                channel_name=ch_name,
+                default_interval=self._get_default_interval(context, raw),
+                min_duration=self.min_duration,
+                sfreq=sfreq,
+            )
 
         if selected_interval is None:
             logger.info("Reference interval selection cancelled; keeping previous settings.")
@@ -514,6 +645,328 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
 
 
 @register_processor
+class SignalIntervalSelector(Processor, ReferenceDataMixin):
+    """Interactively select the evaluated signal interval from a signal plot.
+
+    Opens a Matplotlib GUI window for one EEG channel and lets the user drag a
+    time span that should be used as evaluated signal (typically acquisition).
+    The selected region is highlighted in blue and, after confirmation, stored
+    in ``context.metadata.custom['evaluation_interval']``. Downstream metrics
+    processors can use this interval as explicit acquisition/evaluation data.
+
+    The trigger-derived acquisition window is additionally shown as a weak
+    orange background hint to help orient manual selection when boundaries are
+    not obvious after correction.
+
+    Parameters
+    ----------
+    channel : str | int | None, optional
+        Channel to display. If ``None`` (default), the first EEG channel is
+        used.
+    min_duration : float, optional
+        Minimum selectable interval length in seconds (default: 0.5).
+    tmin : float, optional
+        Evaluated interval start in seconds. If provided together with
+        ``tmax`` (or alone), the selector GUI is skipped.
+    tmax : float, optional
+        Evaluated interval end in seconds. If provided together with
+        ``tmin`` (or alone), the selector GUI is skipped.
+    """
+
+    name = "signal_interval_selector"
+    description = "Interactively select evaluated signal interval for metrics"
+    version = "1.0.0"
+
+    requires_triggers = True
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(
+        self,
+        channel: str | int | None = None,
+        min_duration: float = 0.5,
+        tmin: float | None = None,
+        tmax: float | None = None,
+    ) -> None:
+        self.channel = channel
+        self.min_duration = min_duration
+        self.tmin = tmin
+        self.tmax = tmax
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if self.min_duration <= 0:
+            raise ProcessorValidationError(f"min_duration must be > 0, got {self.min_duration}")
+
+        raw = context.get_raw()
+        if raw.n_times < 2:
+            raise ProcessorValidationError("Raw must contain at least 2 samples.")
+
+        self._resolve_channel(raw)
+        self._resolve_configured_interval(raw, self.tmin, self.tmax, label="evaluation")
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        raw = context.get_raw()
+        ch_idx = self._resolve_channel(raw)
+        ch_name = raw.ch_names[ch_idx]
+        configured_interval = self._resolve_configured_interval(raw, self.tmin, self.tmax, label="evaluation")
+
+        # --- COMPUTE ---
+        if configured_interval is not None:
+            selected_interval = configured_interval
+            logger.info(
+                "Using configured evaluated interval: [{:.3f}, {:.3f}] s",
+                selected_interval[0],
+                selected_interval[1],
+            )
+        else:
+            sfreq = raw.info["sfreq"]
+            channel_data = raw.get_data(picks=[ch_idx])[0]
+            time_axis = raw.times
+            acquisition_hint = self._infer_acquisition_interval(
+                raw=raw,
+                triggers=context.get_triggers(),
+                artifact_length=context.get_artifact_length(),
+            )
+
+            # --- LOG ---
+            logger.info("Opening evaluated-signal interval selector for channel {}", ch_name)
+
+            selected_interval = self._show_selector(
+                time_axis=time_axis,
+                channel_data=channel_data,
+                channel_name=ch_name,
+                default_interval=self._get_default_interval(context, raw),
+                acquisition_hint=acquisition_hint,
+                min_duration=self.min_duration,
+                sfreq=sfreq,
+            )
+
+        if selected_interval is None:
+            logger.info("Signal interval selection cancelled; keeping previous settings.")
+            return context
+
+        # --- BUILD RESULT ---
+        tmin, tmax = selected_interval
+        new_metadata = context.metadata.copy()
+        new_metadata.custom["evaluation_interval"] = {
+            "tmin": float(tmin),
+            "tmax": float(tmax),
+            "channel": ch_name,
+            "source": self.name,
+        }
+
+        logger.info(
+            "Selected evaluated signal interval: [{:.3f}, {:.3f}] s ({:.3f} s)",
+            tmin,
+            tmax,
+            tmax - tmin,
+        )
+
+        # --- RETURN ---
+        return context.with_metadata(new_metadata)
+
+    def _resolve_channel(self, raw: mne.io.BaseRaw) -> int:
+        """Resolve configured channel to an EEG channel index."""
+        eeg_picks = self.get_eeg_channels(raw)
+        if len(eeg_picks) == 0:
+            raise ProcessorValidationError("No EEG channels found in raw data.")
+
+        if self.channel is None:
+            return int(eeg_picks[0])
+
+        if isinstance(self.channel, int):
+            if self.channel < 0 or self.channel >= len(raw.ch_names):
+                raise ProcessorValidationError(f"channel index out of range: {self.channel}")
+            return int(self.channel)
+
+        if self.channel not in raw.ch_names:
+            raise ProcessorValidationError(f"channel '{self.channel}' not found")
+        return int(raw.ch_names.index(self.channel))
+
+    def _get_default_interval(
+        self,
+        context: ProcessingContext,
+        raw: mne.io.BaseRaw,
+    ) -> tuple[float, float]:
+        """Derive a sensible default interval for the selector."""
+        existing = self._get_selected_evaluation_interval(context, raw)
+        if existing is not None:
+            return existing
+
+        inferred = self._infer_acquisition_interval(
+            raw=raw,
+            triggers=context.get_triggers(),
+            artifact_length=context.get_artifact_length(),
+        )
+
+        duration = float(raw.times[-1]) if raw.n_times > 0 else 0.0
+        if inferred is not None:
+            tmin, tmax = inferred
+            if tmax - tmin >= self.min_duration:
+                return tmin, tmax
+
+            # Expand tiny intervals to satisfy minimum duration while staying in bounds.
+            center = 0.5 * (tmin + tmax)
+            left = max(0.0, center - 0.5 * self.min_duration)
+            right = min(duration, left + self.min_duration)
+            left = max(0.0, right - self.min_duration)
+            if right > left:
+                return left, right
+
+        default_len = min(max(self.min_duration, 1.0), duration)
+        return 0.0, default_len
+
+    def _show_selector(
+        self,
+        time_axis: np.ndarray,
+        channel_data: np.ndarray,
+        channel_name: str,
+        default_interval: tuple[float, float],
+        acquisition_hint: tuple[float, float] | None,
+        min_duration: float,
+        sfreq: float,
+    ) -> tuple[float, float] | None:
+        """Show the interactive GUI and return selected interval."""
+        backend = plt.get_backend().lower()
+        if "agg" in backend:
+            logger.warning("Matplotlib backend '{}' is non-interactive; skipping selector.", backend)
+            return None
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        plt.subplots_adjust(bottom=0.24)
+
+        ax.plot(time_axis, channel_data, linewidth=0.8, alpha=0.9)
+        ax.set_title(f"Select evaluated signal interval - {channel_name}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Amplitude")
+        ax.grid(alpha=0.3)
+
+        if acquisition_hint is not None:
+            hint_tmin, hint_tmax = acquisition_hint
+            ax.axvspan(
+                hint_tmin,
+                hint_tmax,
+                facecolor="tab:orange",
+                alpha=0.09,
+                edgecolor="tab:orange",
+                linewidth=0.8,
+            )
+
+        initial_tmin, initial_tmax = default_interval
+        interval_state: dict[str, Any] = {
+            "tmin": float(initial_tmin),
+            "tmax": float(initial_tmax),
+            "confirmed": False,
+            "shade": None,
+        }
+
+        text_label = ax.text(
+            0.02,
+            0.96,
+            "",
+            transform=ax.transAxes,
+            va="top",
+            fontsize=10,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+        )
+
+        def _refresh_overlay() -> None:
+            if interval_state["shade"] is not None:
+                interval_state["shade"].remove()
+            interval_state["shade"] = ax.axvspan(
+                interval_state["tmin"],
+                interval_state["tmax"],
+                facecolor="tab:blue",
+                alpha=0.22,
+                edgecolor="tab:blue",
+                linewidth=1.0,
+            )
+
+            selected_text = "Selected: {:.3f}s to {:.3f}s ({:.3f}s)".format(
+                interval_state["tmin"],
+                interval_state["tmax"],
+                interval_state["tmax"] - interval_state["tmin"],
+            )
+            if acquisition_hint is not None:
+                hint_tmin, hint_tmax = acquisition_hint
+                selected_text = f"Hint (orange): {hint_tmin:.3f}s to {hint_tmax:.3f}s\n{selected_text}"
+
+            text_label.set_text(selected_text)
+            fig.canvas.draw_idle()
+
+        def _on_select(xmin: float, xmax: float) -> None:
+            if xmin is None or xmax is None:
+                return
+            left = max(0.0, min(float(xmin), float(xmax)))
+            right = min(float(time_axis[-1]), max(float(xmin), float(xmax)))
+
+            if right - left < min_duration:
+                right = min(float(time_axis[-1]), left + min_duration)
+                left = max(0.0, right - min_duration)
+
+            # Snap to nearest sample boundaries.
+            left = round(left * sfreq) / sfreq
+            right = round(right * sfreq) / sfreq
+            if right <= left:
+                right = min(float(time_axis[-1]), left + (1.0 / sfreq))
+
+            interval_state["tmin"] = left
+            interval_state["tmax"] = right
+            _refresh_overlay()
+
+        span_props = dict(facecolor="tab:blue", edgecolor="tab:blue", alpha=0.25)
+        span_selector = SpanSelector(
+            ax,
+            _on_select,
+            "horizontal",
+            useblit=True,
+            interactive=True,
+            drag_from_anywhere=True,
+            props=span_props,
+        )
+        span_selector.set_active(True)
+
+        confirm_ax = fig.add_axes([0.70, 0.06, 0.12, 0.07])
+        confirm_btn = Button(confirm_ax, "Confirm")
+        cancel_ax = fig.add_axes([0.84, 0.06, 0.12, 0.07])
+        cancel_btn = Button(cancel_ax, "Cancel")
+
+        def _close_fig() -> None:
+            with contextlib.suppress(Exception):
+                fig.canvas.manager.destroy()
+            plt.close(fig)
+
+        def _on_confirm(_) -> None:
+            interval_state["confirmed"] = True
+            _close_fig()
+
+        def _on_cancel(_) -> None:
+            _close_fig()
+
+        confirm_btn.on_clicked(_on_confirm)
+        cancel_btn.on_clicked(_on_cancel)
+        _refresh_overlay()
+
+        console = get_console()
+        console.set_active_prompt("Drag to select evaluated interval (orange hint marks inferred acquisition)")
+        try:
+            with suspend_raw_mode():
+                show_matplotlib_figure(fig)
+        finally:
+            plt.close(fig)
+            console.clear_active_prompt()
+
+        if not interval_state["confirmed"]:
+            return None
+
+        return float(interval_state["tmin"]), float(interval_state["tmax"])
+
+
+@register_processor
 class SNRCalculator(Processor, ReferenceDataMixin):
     """Calculate Signal-to-Noise Ratio (SNR).
 
@@ -568,7 +1021,7 @@ class SNRCalculator(Processor, ReferenceDataMixin):
 
         # --- COMPUTE ---
         ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer, context=context)
-        corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
+        corrected_data = self.get_acquisition_data(raw, triggers, artifact_length, context=context)
 
         if ref_data.size == 0 or corrected_data.size == 0:
             logger.warning("Insufficient data for SNR calculation")
@@ -660,7 +1113,7 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
 
         # --- COMPUTE ---
         ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer, context=context)
-        corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
+        corrected_data = self.get_acquisition_data(raw, triggers, artifact_length, context=context)
 
         if ref_data.size == 0 or corrected_data.size == 0:
             logger.warning("Insufficient data for RMS Residual calculation")
@@ -1115,7 +1568,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         n_fft = int(3.0 * sfreq)  # 3-second segments as in MATLAB
 
         ref_data = self.get_reference_data(raw, triggers, artifact_len, context=context)
-        corr_data = self.get_acquisition_data(raw, triggers, artifact_len)
+        corr_data = self.get_acquisition_data(raw, triggers, artifact_len, context=context)
 
         if ref_data.size == 0 or corr_data.size == 0:
             logger.warning("Insufficient data for FFT Allen")
@@ -1240,8 +1693,8 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
 
         slice_freq, vol_freq = self._estimate_frequencies(triggers, sfreq, context)
 
-        data_corr = self.get_acquisition_data(raw, triggers, artifact_len)
-        data_orig = self.get_acquisition_data(raw_orig, triggers, artifact_len)
+        data_corr = self.get_acquisition_data(raw, triggers, artifact_len, context=context)
+        data_orig = self.get_acquisition_data(raw_orig, triggers, artifact_len, context=context)
 
         min_ch = min(data_corr.shape[0], data_orig.shape[0])
         data_corr = data_corr[:min_ch]
