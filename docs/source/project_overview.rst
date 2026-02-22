@@ -66,7 +66,7 @@ Key Features and Capabilities
    - Integration with MNE-Python ecosystem for additional EEG analysis capabilities
 
 Use Cases and Applications
--------------------------
+--------------------------
 
 **Simultaneous EEG-fMRI Research**
    Enable researchers to collect high-quality EEG data during fMRI scanning, opening possibilities for multimodal brain imaging studies that combine the temporal precision of EEG with the spatial resolution of fMRI.

@@ -8,6 +8,13 @@
 
 import os
 import sys
+
+# Keep MNE config/cache inside the docs workspace during builds.
+_mne_home = os.path.abspath('../.mne')
+os.makedirs(_mne_home, exist_ok=True)
+os.environ.setdefault("MNE_HOME", _mne_home)
+os.environ.setdefault("MNE_DONTWRITE_HOME", "true")
+
 sys.path.insert(0, os.path.abspath('../../src/'))
 
 project = 'FACETpy'

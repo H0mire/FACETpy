@@ -14,11 +14,6 @@ The architecture consists of four main components:
 3. **Pipeline** - Workflow orchestrator
 4. **Registry** - Plugin discovery system
 
-.. image:: ../_static/architecture_diagram.png
-   :align: center
-   :width: 600px
-   :alt: Architecture diagram (if available)
-
 Processors
 ----------
 

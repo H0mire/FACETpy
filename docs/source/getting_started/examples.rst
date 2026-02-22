@@ -291,7 +291,12 @@ More Examples
 See the ``examples/`` directory in the repository for more complete examples:
 
 * ``complete_pipeline_example.py`` - Full correction workflow
+* ``complete_pipeline_example_mff.py`` - End-to-end workflow using MFF input
 * ``advanced_workflows.py`` - Conditional steps, parallel execution, factory shortcut
 * ``channelwise_execution.py`` - Channel-wise execution: flag inspection, backend comparison, custom processor
 * ``batch_processing.py`` - Batch correction across multiple files with ``Pipeline.map()``
 * ``evaluation.py`` - SNR, RMS, and other quality metrics
+* ``inline_steps.py`` - Inline callable steps and ``ProcessingContext`` pipe operator
+* ``memory_efficient_pipeline.py`` - Streaming-style workflow for large recordings
+* ``quickstart.py`` - Minimal runnable correction example
+* ``eeg_generation_visualization_example.py`` - Synthetic EEG generation and plotting

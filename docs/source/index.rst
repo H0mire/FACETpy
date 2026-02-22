@@ -26,7 +26,7 @@ Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org
 
 .. code-block:: bash
 
-   git clone https://github.com/your-org/facetpy.git
+   git clone https://github.com/H0mire/facetpy.git
    cd facetpy
    poetry install
 
@@ -42,7 +42,7 @@ Run a complete correction pipeline:
        trigger_regex=r"\b1\b"
    )
 
-   result = pipeline.run()
+   result = pipeline.run(evaluate=True)
    print(f"SNR: {result.context.metadata.custom['metrics']['snr']:.2f}")
 
 Documentation Overview
@@ -77,13 +77,6 @@ Documentation Overview
    api/preprocessing
    api/correction
    api/evaluation
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Migration & Legacy
-
-   migration/v2_migration_guide
-   migration/legacy_api
 
 .. toctree::
    :maxdepth: 1

@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 
-* Python 3.11 or higher
+* Python 3.11 or 3.12
 * MNE-Python 1.10.2
 * NumPy 2.1.3
 * SciPy >= 1.15.3
@@ -18,15 +18,15 @@ FACETpy is managed with Poetry. Clone the repository and install:
 
 .. code-block:: bash
 
-   git clone https://github.com/your-org/facetpy.git
+   git clone https://github.com/H0mire/facetpy.git
    cd facetpy
    poetry install
 
-Activate the virtual environment:
+Run commands inside the Poetry environment:
 
 .. code-block:: bash
 
-   poetry shell
+   poetry run pytest
 
 Optional extras:
 
@@ -35,13 +35,15 @@ Optional extras:
    poetry install -E deeplearning   # TensorFlow-based extras
    poetry install -E notebooks      # Jupyter notebook support
    poetry install -E gui            # PyQt6 GUI components
+   poetry install -E docs           # Sphinx + MyST documentation toolchain
    poetry install -E all            # all optional dependencies
 
 Development Installation
 ------------------------
 
-The standard ``poetry install`` includes all development dependencies
-(pytest, Sphinx, ruff, etc.).
+The standard ``poetry install`` includes development dependencies such as
+``pytest`` and ``ruff``. Documentation tooling (``sphinx``, ``myst-parser``)
+is installed via ``-E docs``.
 
 Optional Components
 -------------------

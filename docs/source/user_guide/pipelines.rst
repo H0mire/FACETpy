@@ -109,6 +109,25 @@ The ``PipelineResult`` object contains:
 Advanced Pipeline Features
 --------------------------
 
+Pipe Operator
+~~~~~~~~~~~~~
+
+For ad-hoc workflows outside a ``Pipeline``, ``ProcessingContext`` supports the
+pipe operator (``__or__``). The right-hand side can be a processor instance or
+any callable accepting and returning a context.
+
+.. code-block:: python
+
+   from facet import load, HighPassFilter, TriggerDetector, AASCorrection
+
+   ctx = load("data.edf", preload=True)
+   ctx = (
+       ctx
+       | HighPassFilter(1.0)
+       | TriggerDetector(r"\b1\b")
+       | AASCorrection(window_size=30)
+   )
+
 Parallel Execution
 ~~~~~~~~~~~~~~~~~~
 

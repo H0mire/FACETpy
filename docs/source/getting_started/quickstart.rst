@@ -16,7 +16,8 @@ The simplest way to correct fMRI artifacts:
    pipeline = create_standard_pipeline(
        input_path="my_data.edf",
        output_path="corrected.edf",
-       trigger_regex=r"\b1\b"  # Pattern to match triggers
+       trigger_regex=r"\b1\b",  # Pattern to match triggers
+       evaluate=True
    )
 
    # Run correction
@@ -44,8 +45,12 @@ The standard pipeline performs these steps:
 4. **Align** triggers using cross-correlation
 5. **Correct** artifacts with AAS (Averaged Artifact Subtraction)
 6. **Downsample** back to original sampling rate
-7. **Filter** with highpass filter (0.5 Hz)
-8. **Export** corrected data
+7. **Optional** PCA correction (enabled by default if available)
+8. **Downsample** back to original sampling rate
+9. **Restore** previously cut acquisition windows
+10. **Filter** with lowpass filter (70 Hz)
+11. **Optional** ANC correction (enabled by default if available)
+12. **Export** corrected data
 
 Custom Pipeline
 ---------------
@@ -122,6 +127,25 @@ For maximum control, process step by step:
    # 5. Access results
    corrected_raw = context.get_raw()
    corrected_raw.save("corrected.fif")
+
+Pipe Operator (``|``)
+---------------------
+
+You can apply processors directly to a ``ProcessingContext`` using the pipe
+operator (``__or__``):
+
+.. code-block:: python
+
+   from facet import load, HighPassFilter, TriggerDetector, UpSample, AASCorrection
+
+   ctx = load("data.edf", preload=True)
+   ctx = (
+       ctx
+       | HighPassFilter(1.0)
+       | TriggerDetector(r"\b1\b")
+       | UpSample(10)
+       | AASCorrection(window_size=30)
+   )
 
 Parallel Processing
 -------------------

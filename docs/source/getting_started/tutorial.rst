@@ -11,7 +11,8 @@ Dataset
 
 For this tutorial, we'll use an example EEG dataset recorded during fMRI acquisition.
 
-You can use your own data or download example data from: [link to example data]
+You can use your own data or start with the bundled example file
+``examples/datasets/NiazyFMRI.edf``.
 
 Step 1: Load Your Data
 -----------------------
