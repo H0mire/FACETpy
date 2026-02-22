@@ -1263,9 +1263,7 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         freqs, psd_corr = signal.welch(data_corr, fs=sfreq, nperseg=nperseg, axis=1)
         _, psd_orig = signal.welch(data_orig, fs=sfreq, nperseg=nperseg, axis=1)
 
-        results = self._compute_harmonic_ratios(
-            freqs, psd_corr, psd_orig, slice_freq, vol_freq, verbose=self.verbose
-        )
+        results = self._compute_harmonic_ratios(freqs, psd_corr, psd_orig, slice_freq, vol_freq, verbose=self.verbose)
 
         slice_h1 = results["slice"].get("h1", float("nan"))
         if not np.isnan(slice_h1):

@@ -90,7 +90,7 @@
     {
       "label": "Lint: Fix (Ruff)",
       "type": "shell",
-      "command": "poetry run ruff check --fix src/ tests/",
+      "command": "poetry run ruff check --fix src/ tests/ && poetry run ruff format src/ tests/",
       "group": "build",
       "problemMatcher": [],
       "presentation": {

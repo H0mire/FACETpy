@@ -254,7 +254,9 @@ class TestCorrectionPipeline:
         pipeline = Pipeline([ANCCorrection(filter_order=5, use_c_extension=False)])
 
         serial = pipeline.run(initial_context=sample_context_with_noise, channel_sequential=False, show_progress=False)
-        channel_seq = pipeline.run(initial_context=sample_context_with_noise, channel_sequential=True, show_progress=False)
+        channel_seq = pipeline.run(
+            initial_context=sample_context_with_noise, channel_sequential=True, show_progress=False
+        )
 
         assert serial.success is True
         assert channel_seq.success is True
