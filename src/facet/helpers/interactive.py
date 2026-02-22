@@ -27,6 +27,7 @@ from ..core import (
     ProcessorValidationError,
     register_processor,
 )
+from .plotting import show_matplotlib_figure
 
 
 @register_processor
@@ -553,12 +554,9 @@ class ArtifactOffsetFinder(Processor):
         console.set_active_prompt("Adjust offset in plot window, then click Confirm")
         try:
             with suspend_raw_mode():
-                plt.show(block=False)
-                while plt.fignum_exists(fig.number):
-                    fig.canvas.flush_events()
-                    time.sleep(0.05)
+                show_matplotlib_figure(fig)
         finally:
-            plt.close("all")
+            plt.close(fig)
             console.clear_active_prompt()
 
         if not state["confirmed"]:

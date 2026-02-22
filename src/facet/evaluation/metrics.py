@@ -8,7 +8,6 @@ Date: 2025-01-12
 """
 
 import contextlib
-import time
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -21,6 +20,7 @@ from scipy import signal
 
 from ..console import get_console, report_metric, suspend_raw_mode
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
+from ..helpers.plotting import show_matplotlib_figure
 
 
 def _dist_summary(values: np.ndarray) -> str:
@@ -502,12 +502,9 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         console.set_active_prompt("Drag to select clean reference interval, then click Confirm")
         try:
             with suspend_raw_mode():
-                plt.show(block=False)
-                while plt.fignum_exists(fig.number):
-                    fig.canvas.flush_events()
-                    time.sleep(0.05)
+                show_matplotlib_figure(fig)
         finally:
-            plt.close("all")
+            plt.close(fig)
             console.clear_active_prompt()
 
         if not interval_state["confirmed"]:

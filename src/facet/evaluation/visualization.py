@@ -20,6 +20,7 @@ from scipy import signal
 
 from ..console import suspend_raw_mode
 from ..core import ProcessingContext, Processor, register_processor
+from ..helpers.plotting import show_matplotlib_figure
 
 
 @register_processor
@@ -199,10 +200,8 @@ class RawPlotter(Processor):
 
         if self.show:
             with suspend_raw_mode():
-                plt.show(block=False)
-                while plt.fignum_exists(fig.number):
-                    fig.canvas.flush_events()
-                    time.sleep(0.05)
+                show_matplotlib_figure(fig)
+            plt.close(fig)
         elif self.auto_close or self.save_path:
             plt.close(fig)
 
