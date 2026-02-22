@@ -11,12 +11,14 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 import mne
+import numpy as np
 from loguru import logger
-from matplotlib.widgets import Button, SpanSelector
+from matplotlib.widgets import Button, RadioButtons, Slider, SpanSelector
 
 from ..console import get_console, suspend_raw_mode
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..helpers.plotting import show_matplotlib_figure
+from ..misc import EEGGenerator
 
 
 @register_processor
@@ -234,6 +236,551 @@ class Crop(Processor):
             return None
 
         return float(interval_state["tmin"]), float(interval_state["tmax"])
+
+
+@register_processor
+class MagicErasor(Processor):
+    """Interactively erase selected signal segments with configurable modes.
+
+    Opens an interactive matplotlib editor for one preview channel and lets the
+    user select time segments repeatedly. Each selected segment can be replaced
+    using one of four modes:
+
+    - ``zero``: set samples to zero.
+    - ``mean``: set samples to the channel mean.
+    - ``interpolate``: linearly interpolate between segment boundaries.
+    - ``generated_eeg``: replace with synthetic EEG generated through
+      :class:`~facet.misc.EEGGenerator`.
+
+    The editor stays open until the user clicks **Done**, enabling multiple
+    edits in a single session.
+
+    Parameters
+    ----------
+    picks : str | list[str], optional
+        Channels to edit (default: ``"eeg"``).
+    channel : str | int | None, optional
+        Channel used for preview in the interactive window. When ``None``,
+        the first edited EEG channel is used.
+    default_mode : str, optional
+        Initially selected editing mode (default: ``"zero"``).
+    random_seed : int | None, optional
+        Optional seed used when ``generated_eeg`` mode is applied.
+    """
+
+    name = "magic_erasor"
+    description = "Interactively erase selected segments with multiple replacement modes"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = False
+    channel_wise = False
+
+    _VALID_MODES = ("zero", "mean", "interpolate", "generated_eeg")
+
+    def __init__(
+        self,
+        picks: str | list[str] = "eeg",
+        channel: str | int | None = None,
+        default_mode: str = "zero",
+        random_seed: int | None = None,
+    ) -> None:
+        self.picks = picks
+        self.channel = channel
+        self.default_mode = default_mode
+        self.random_seed = random_seed
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+
+        raw = context.get_raw()
+        if raw.n_times < 2:
+            raise ProcessorValidationError("Raw must contain at least 2 samples for interactive editing.")
+
+        if raw.info["sfreq"] <= 0:
+            raise ProcessorValidationError("Sampling frequency must be positive.")
+
+        if self.default_mode not in self._VALID_MODES:
+            raise ProcessorValidationError(
+                f"default_mode must be one of {self._VALID_MODES}, got '{self.default_mode}'"
+            )
+
+        target_picks = self._resolve_target_picks(raw)
+        self._resolve_preview_channel(raw, target_picks)
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        raw = context.get_raw().copy()
+        sfreq = float(raw.info["sfreq"])
+        target_picks = self._resolve_target_picks(raw)
+        preview_channel = self._resolve_preview_channel(raw, target_picks)
+        edited_data = raw.get_data().copy()
+
+        # --- LOG ---
+        logger.info(
+            "Opening magic_erasor editor on {} channels (preview='{}')",
+            len(target_picks),
+            raw.ch_names[preview_channel],
+        )
+
+        # --- COMPUTE ---
+        edits = self._show_interactive_editor(
+            data=edited_data,
+            sfreq=sfreq,
+            target_picks=target_picks,
+            preview_channel=preview_channel,
+            channel_names=raw.ch_names,
+        )
+        if edits is None:
+            logger.info("magic_erasor cancelled; returning context unchanged.")
+            return context
+        if not edits:
+            logger.info("magic_erasor finished without edits; returning context unchanged.")
+            return context
+
+        raw._data[:] = edited_data
+        result = context.with_raw(raw)
+
+        # --- NOISE ---
+        if context.has_estimated_noise():
+            noise = context.get_estimated_noise().copy()
+            self._apply_edits_to_noise(noise, target_picks, edits)
+            result.set_estimated_noise(noise)
+        else:
+            logger.debug("No noise estimate present - skipping noise propagation in magic_erasor")
+
+        # --- METADATA ---
+        metadata = result.metadata.copy()
+        metadata.custom["magic_erasor"] = {
+            "channel": raw.ch_names[preview_channel],
+            "picks": [raw.ch_names[idx] for idx in target_picks],
+            "n_edits": len(edits),
+            "edits": edits,
+        }
+        logger.info("magic_erasor applied {} edit(s).", len(edits))
+
+        # --- RETURN ---
+        return result.with_metadata(metadata)
+
+    def _resolve_target_picks(self, raw: mne.io.BaseRaw) -> list[int]:
+        """Resolve configured picks to channel indices."""
+        try:
+            picked_raw = raw.copy().pick(picks=self.picks, verbose=False)
+        except Exception as exc:
+            raise ProcessorValidationError(f"Invalid picks '{self.picks}': {exc}") from exc
+
+        picks = [raw.ch_names.index(name) for name in picked_raw.ch_names]
+        if len(picks) == 0:
+            raise ProcessorValidationError(f"No channels selected by picks='{self.picks}'.")
+        return picks
+
+    def _resolve_preview_channel(self, raw: mne.io.BaseRaw, target_picks: list[int]) -> int:
+        """Resolve configured preview channel."""
+        if self.channel is None:
+            eeg_picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+            for idx in eeg_picks:
+                if int(idx) in target_picks:
+                    return int(idx)
+            return int(target_picks[0])
+
+        if isinstance(self.channel, int):
+            if self.channel < 0 or self.channel >= len(raw.ch_names):
+                raise ProcessorValidationError(f"channel index out of range: {self.channel}")
+            return int(self.channel)
+
+        if self.channel not in raw.ch_names:
+            raise ProcessorValidationError(f"channel '{self.channel}' not found")
+        return int(raw.ch_names.index(self.channel))
+
+    def _show_interactive_editor(
+        self,
+        data: np.ndarray,
+        sfreq: float,
+        target_picks: list[int],
+        preview_channel: int,
+        channel_names: list[str],
+    ) -> list[dict[str, Any]] | None:
+        """Show the interactive editing window and return applied edits."""
+        backend = plt.get_backend().lower()
+        if "agg" in backend:
+            logger.warning("Matplotlib backend '{}' is non-interactive; skipping magic_erasor.", backend)
+            return None
+
+        n_times = data.shape[1]
+        time_axis = np.arange(n_times) / sfreq
+
+        fig, ax = plt.subplots(figsize=(14, 8))
+        plt.subplots_adjust(left=0.07, right=0.98, top=0.90, bottom=0.30)
+
+        (line,) = ax.plot(time_axis, data[preview_channel], linewidth=0.8, alpha=0.9)
+        ax.set_title(f"Magic Erasor - {channel_names[preview_channel]}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Amplitude")
+        ax.grid(alpha=0.3)
+
+        status_label = ax.text(
+            0.02,
+            0.98,
+            "",
+            transform=ax.transAxes,
+            va="top",
+            fontsize=10,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
+        )
+
+        state: dict[str, Any] = {
+            "selection": None,
+            "mode": self.default_mode,
+            "confirmed": False,
+            "shade": None,
+        }
+        edits: list[dict[str, Any]] = []
+        max_time = float(time_axis[-1])
+        min_window = max(10.0 / sfreq, 0.05)
+        default_window = min(max(max_time * 0.25, 1.0), max_time) if max_time > 0 else min_window
+        default_center = max_time * 0.5
+        default_y_zoom = 0.5
+
+        def _close_fig() -> None:
+            with contextlib.suppress(Exception):
+                fig.canvas.manager.destroy()
+            plt.close(fig)
+
+        def _update_view_limits() -> None:
+            center = float(view_center_slider.val)
+            window = float(view_window_slider.val)
+            y_zoom = float(y_zoom_slider.val)
+
+            half_window = 0.5 * window
+            left = max(0.0, center - half_window)
+            right = min(max_time, center + half_window)
+            if right - left < min_window:
+                left = max(0.0, right - min_window)
+                right = min(max_time, left + min_window)
+            ax.set_xlim(left, right if right > left else left + min_window)
+
+            left_idx = max(0, int(np.floor(left * sfreq)))
+            right_idx = min(n_times, max(left_idx + 1, int(np.ceil(right * sfreq))))
+            view_data = data[preview_channel, left_idx:right_idx]
+            if view_data.size == 0:
+                view_data = data[preview_channel]
+
+            y_center = float(np.median(view_data))
+            centered = view_data - y_center
+            robust_span = float(np.percentile(np.abs(centered), 99))
+            if not np.isfinite(robust_span) or robust_span <= 0.0:
+                robust_span = float(np.max(np.abs(centered))) if centered.size > 0 else 1.0
+            robust_span = max(robust_span, 1e-12)
+            half_range = robust_span / max(y_zoom, 1e-3)
+            ax.set_ylim(y_center - half_range, y_center + half_range)
+
+        def _refresh_overlay() -> None:
+            if state["shade"] is not None:
+                state["shade"].remove()
+                state["shade"] = None
+
+            selection = state["selection"]
+            if selection is not None:
+                start_sample, end_sample = selection
+                state["shade"] = ax.axvspan(
+                    start_sample / sfreq,
+                    end_sample / sfreq,
+                    facecolor="tab:orange",
+                    alpha=0.22,
+                    edgecolor="tab:orange",
+                    linewidth=1.0,
+                )
+                selected_text = (
+                    f"Selection: {start_sample / sfreq:.3f}s to {end_sample / sfreq:.3f}s "
+                    f"({(end_sample - start_sample) / sfreq:.3f}s)"
+                )
+            else:
+                selected_text = "Selection: none"
+
+            status_label.set_text(
+                f"Mode: {state['mode']}\n{selected_text}\nApplied edits: {len(edits)}\n"
+                "Drag to select. Adjust view sliders for precision. Click Done when satisfied."
+            )
+            _update_view_limits()
+            fig.canvas.draw_idle()
+
+        def _on_select(xmin: float, xmax: float) -> None:
+            if xmin is None or xmax is None:
+                return
+
+            left = max(0.0, min(float(xmin), float(xmax)))
+            right = min(float(time_axis[-1]), max(float(xmin), float(xmax)))
+
+            start_sample = int(np.floor(left * sfreq))
+            end_sample = int(np.ceil(right * sfreq))
+            start_sample = max(0, min(start_sample, n_times - 1))
+            end_sample = max(start_sample + 1, min(end_sample, n_times))
+
+            state["selection"] = (start_sample, end_sample)
+            _refresh_overlay()
+
+        span_selector = SpanSelector(
+            ax,
+            _on_select,
+            "horizontal",
+            useblit=True,
+            interactive=True,
+            drag_from_anywhere=True,
+            props=dict(facecolor="tab:orange", edgecolor="tab:orange", alpha=0.25),
+        )
+        span_selector.set_active(True)
+
+        mode_ax = fig.add_axes([0.08, 0.05, 0.22, 0.18])
+        mode_selector = RadioButtons(mode_ax, self._VALID_MODES, active=self._VALID_MODES.index(self.default_mode))
+        mode_ax.set_title("Mode")
+
+        def _on_mode_changed(label: str) -> None:
+            state["mode"] = label
+            _refresh_overlay()
+
+        mode_selector.on_clicked(_on_mode_changed)
+
+        # Keep generous left/right padding so slider labels and value readouts
+        # do not overlap with mode/buttons panels.
+        slider_left = 0.44
+        slider_width = 0.30
+
+        center_ax = fig.add_axes([slider_left, 0.18, slider_width, 0.03])
+        view_center_slider = Slider(
+            center_ax,
+            "View Center (s)",
+            0.0,
+            max_time if max_time > 0 else min_window,
+            valinit=default_center,
+            valstep=1.0 / sfreq,
+        )
+        window_ax = fig.add_axes([slider_left, 0.13, slider_width, 0.03])
+        view_window_slider = Slider(
+            window_ax,
+            "Window (s)",
+            min_window,
+            max(max_time, min_window),
+            valinit=max(default_window, min_window),
+            valstep=1.0 / sfreq,
+        )
+        y_zoom_ax = fig.add_axes([slider_left, 0.08, slider_width, 0.03])
+        y_zoom_slider = Slider(
+            y_zoom_ax,
+            "Y Zoom",
+            0.25,
+            3.0,
+            valinit=default_y_zoom,
+        )
+
+        def _on_view_change(_val: float) -> None:
+            _update_view_limits()
+            fig.canvas.draw_idle()
+
+        view_center_slider.on_changed(_on_view_change)
+        view_window_slider.on_changed(_on_view_change)
+        y_zoom_slider.on_changed(_on_view_change)
+
+        apply_ax = fig.add_axes([0.80, 0.17, 0.17, 0.06])
+        apply_btn = Button(apply_ax, "Apply Edit")
+        done_ax = fig.add_axes([0.80, 0.10, 0.17, 0.06])
+        done_btn = Button(done_ax, "Done")
+        cancel_ax = fig.add_axes([0.80, 0.03, 0.17, 0.06])
+        cancel_btn = Button(cancel_ax, "Cancel")
+
+        def _on_apply(_) -> None:
+            selection = state["selection"]
+            if selection is None:
+                logger.warning("No segment selected; nothing to apply.")
+                return
+
+            start_sample, end_sample = selection
+            mode = str(state["mode"])
+            self._apply_edit(
+                data=data,
+                target_picks=target_picks,
+                start_sample=start_sample,
+                end_sample=end_sample,
+                mode=mode,
+                sfreq=sfreq,
+                edit_index=len(edits),
+            )
+            edits.append(
+                {
+                    "mode": mode,
+                    "start_sample": int(start_sample),
+                    "end_sample": int(end_sample),
+                    "start_time": float(start_sample / sfreq),
+                    "end_time": float(end_sample / sfreq),
+                }
+            )
+
+            line.set_ydata(data[preview_channel])
+            ax.relim()
+            ax.autoscale_view()
+            _refresh_overlay()
+
+        def _on_done(_) -> None:
+            state["confirmed"] = True
+            _close_fig()
+
+        def _on_cancel(_) -> None:
+            _close_fig()
+
+        apply_btn.on_clicked(_on_apply)
+        done_btn.on_clicked(_on_done)
+        cancel_btn.on_clicked(_on_cancel)
+        _refresh_overlay()
+
+        console = get_console()
+        console.set_active_prompt(
+            "Magic Erasor: drag-select, set mode, tune View/Y sliders for precision, apply edits, click Done"
+        )
+        try:
+            with suspend_raw_mode():
+                show_matplotlib_figure(fig)
+        finally:
+            plt.close(fig)
+            console.clear_active_prompt()
+
+        if not state["confirmed"]:
+            return None
+        return edits
+
+    def _apply_edit(
+        self,
+        data: np.ndarray,
+        target_picks: list[int],
+        start_sample: int,
+        end_sample: int,
+        mode: str,
+        sfreq: float,
+        edit_index: int,
+    ) -> None:
+        """Apply one editing operation in-place."""
+        picks_array = np.asarray(target_picks, dtype=int)
+        if mode == "zero":
+            data[picks_array, start_sample:end_sample] = 0.0
+            return
+
+        if mode == "mean":
+            channel_means = np.mean(data[picks_array], axis=1, keepdims=True)
+            data[picks_array, start_sample:end_sample] = channel_means
+            return
+
+        if mode == "interpolate":
+            self._apply_interpolation(data, picks_array, start_sample, end_sample)
+            return
+
+        if mode == "generated_eeg":
+            generated = self._generate_segment(
+                n_channels=len(picks_array),
+                n_samples=end_sample - start_sample,
+                sfreq=sfreq,
+                edit_index=edit_index,
+            )
+            data[picks_array, start_sample:end_sample] = generated
+            return
+
+        raise ProcessorValidationError(f"Unsupported mode '{mode}'.")
+
+    def _apply_interpolation(
+        self,
+        data: np.ndarray,
+        picks_array: np.ndarray,
+        start_sample: int,
+        end_sample: int,
+    ) -> None:
+        """Linearly interpolate selected interval for each target channel."""
+        n_times = data.shape[1]
+        for ch_idx in picks_array:
+            channel = data[ch_idx]
+            has_left = start_sample > 0
+            has_right = end_sample < n_times
+
+            if has_left and has_right:
+                left_val = float(channel[start_sample - 1])
+                right_val = float(channel[end_sample])
+                channel[start_sample:end_sample] = np.linspace(
+                    left_val,
+                    right_val,
+                    num=(end_sample - start_sample) + 2,
+                )[1:-1]
+            elif has_left:
+                channel[start_sample:end_sample] = float(channel[start_sample - 1])
+            elif has_right:
+                channel[start_sample:end_sample] = float(channel[end_sample])
+            else:
+                channel[start_sample:end_sample] = 0.0
+
+    def _generate_segment(
+        self,
+        n_channels: int,
+        n_samples: int,
+        sfreq: float,
+        edit_index: int,
+    ) -> np.ndarray:
+        """Generate synthetic EEG segment using EEGGenerator."""
+        seed = None if self.random_seed is None else self.random_seed + edit_index
+        generator = EEGGenerator(
+            sampling_rate=sfreq,
+            duration=n_samples / sfreq,
+            channel_schema={
+                "eeg_channels": n_channels,
+                "eog_channels": 0,
+                "ecg_channels": 0,
+                "emg_channels": 0,
+                "misc_channels": 0,
+            },
+            random_seed=seed,
+        )
+        generated_context = generator.process(None)
+        generated = generated_context.get_raw().get_data(picks="eeg")
+        return self._fit_segment_shape(generated, n_channels=n_channels, n_samples=n_samples)
+
+    def _fit_segment_shape(self, segment: np.ndarray, n_channels: int, n_samples: int) -> np.ndarray:
+        """Adapt generated segment to requested shape."""
+        if segment.size == 0:
+            return np.zeros((n_channels, n_samples))
+
+        shaped = segment
+        if shaped.shape[0] < n_channels:
+            repeats = int(np.ceil(n_channels / shaped.shape[0]))
+            shaped = np.tile(shaped, (repeats, 1))
+        shaped = shaped[:n_channels]
+
+        if shaped.shape[1] < n_samples:
+            repeats = int(np.ceil(n_samples / shaped.shape[1]))
+            shaped = np.tile(shaped, (1, repeats))
+        shaped = shaped[:, :n_samples]
+        return shaped
+
+    def _apply_edits_to_noise(
+        self,
+        noise: np.ndarray,
+        target_picks: list[int],
+        edits: list[dict[str, Any]],
+    ) -> None:
+        """Apply compatible edits to estimated noise."""
+        picks_array = np.asarray(target_picks, dtype=int)
+        for edit in edits:
+            start_sample = int(edit["start_sample"])
+            end_sample = int(edit["end_sample"])
+            mode = str(edit["mode"])
+            if mode == "generated_eeg":
+                noise[picks_array, start_sample:end_sample] = 0.0
+                continue
+            self._apply_edit(
+                data=noise,
+                target_picks=target_picks,
+                start_sample=start_sample,
+                end_sample=end_sample,
+                mode=mode,
+                sfreq=1.0,
+                edit_index=0,
+            )
 
 
 @register_processor

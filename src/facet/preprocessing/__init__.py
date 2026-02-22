@@ -11,7 +11,7 @@ from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
 from .alignment import SliceAligner, SubsampleAligner, TriggerAligner
 from .filtering import BandPassFilter, Filter, HighPassFilter, LowPassFilter, NotchFilter
 from .resampling import DownSample, Resample, UpSample
-from .transforms import Crop, DropChannels, PickChannels, PrintMetric, RawTransform
+from .transforms import Crop, DropChannels, MagicErasor, PickChannels, PrintMetric, RawTransform
 from .trigger_detection import MissingTriggerDetector, QRSTriggerDetector, TriggerDetector
 from .trigger_explorer import InteractiveTriggerExplorer, TriggerExplorer
 
@@ -41,6 +41,7 @@ __all__ = [
     "PasteAcquisitionWindow",
     # Transforms
     "Crop",
+    "MagicErasor",
     "RawTransform",
     "PickChannels",
     "DropChannels",

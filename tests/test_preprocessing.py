@@ -13,6 +13,7 @@ from facet.preprocessing import (
     DownSample,
     HighPassFilter,
     LowPassFilter,
+    MagicErasor,
     SliceAligner,
     SubsampleAligner,
     TriggerAligner,
@@ -431,6 +432,145 @@ class TestRawTransform:
         proc = RawTransform("my_custom_step", lambda raw: raw.copy())
         # The name attribute is set on the instance
         assert proc.name == "my_custom_step"
+
+
+@pytest.mark.unit
+class TestMagicErasor:
+    """Tests for the MagicErasor processor."""
+
+    def test_magic_erasor_zero_mode(self, sample_context, monkeypatch):
+        """Zero mode should overwrite the selected interval with zeros."""
+        start_sample, end_sample = 10, 30
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(
+                data=data,
+                target_picks=target_picks,
+                start_sample=start_sample,
+                end_sample=end_sample,
+                mode="zero",
+                sfreq=sfreq,
+                edit_index=0,
+            )
+            return [
+                {
+                    "mode": "zero",
+                    "start_sample": start_sample,
+                    "end_sample": end_sample,
+                    "start_time": start_sample / sfreq,
+                    "end_time": end_sample / sfreq,
+                }
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        original = sample_context.get_raw().get_data().copy()
+        result = sample_context | MagicErasor()
+        edited = result.get_raw().get_data()
+
+        assert np.allclose(edited[:, start_sample:end_sample], 0.0)
+        assert not np.allclose(original[:, start_sample:end_sample], 0.0)
+
+    def test_magic_erasor_multiple_edits_recorded(self, sample_context, monkeypatch):
+        """Multiple in-session edits should be reflected in metadata."""
+        first = (20, 40)
+        second = (60, 90)
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(data, target_picks, first[0], first[1], "mean", sfreq, 0)
+            self._apply_edit(data, target_picks, second[0], second[1], "interpolate", sfreq, 1)
+            return [
+                {
+                    "mode": "mean",
+                    "start_sample": first[0],
+                    "end_sample": first[1],
+                    "start_time": first[0] / sfreq,
+                    "end_time": first[1] / sfreq,
+                },
+                {
+                    "mode": "interpolate",
+                    "start_sample": second[0],
+                    "end_sample": second[1],
+                    "start_time": second[0] / sfreq,
+                    "end_time": second[1] / sfreq,
+                },
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        result = sample_context | MagicErasor(default_mode="mean")
+        edit_meta = result.metadata.custom.get("magic_erasor")
+
+        assert edit_meta is not None
+        assert edit_meta["n_edits"] == 2
+        assert edit_meta["edits"][0]["mode"] == "mean"
+        assert edit_meta["edits"][1]["mode"] == "interpolate"
+
+    def test_magic_erasor_generated_eeg_mode(self, sample_context, monkeypatch):
+        """Generated EEG mode should replace data with synthetic content."""
+        start_sample, end_sample = 40, 80
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(data, target_picks, start_sample, end_sample, "generated_eeg", sfreq, 0)
+            return [
+                {
+                    "mode": "generated_eeg",
+                    "start_sample": start_sample,
+                    "end_sample": end_sample,
+                    "start_time": start_sample / sfreq,
+                    "end_time": end_sample / sfreq,
+                }
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        original = sample_context.get_raw().get_data().copy()
+        result = sample_context | MagicErasor(random_seed=42)
+        edited = result.get_raw().get_data()
+
+        assert not np.allclose(
+            edited[:, start_sample:end_sample],
+            original[:, start_sample:end_sample],
+        )
+
+    def test_magic_erasor_cancel_keeps_context(self, sample_context, monkeypatch):
+        """Cancelled editor should keep the context unchanged."""
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            return None
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        result = sample_context | MagicErasor()
+        np.testing.assert_allclose(result.get_raw().get_data(), sample_context.get_raw().get_data())
+
+    def test_magic_erasor_invalid_default_mode(self, sample_context):
+        """Invalid default mode should fail validation."""
+        with pytest.raises(ProcessorValidationError):
+            sample_context | MagicErasor(default_mode="does_not_exist")
+
+    def test_magic_erasor_propagates_noise(self, sample_context_with_noise, monkeypatch):
+        """Noise estimate should be edited consistently for compatible modes."""
+        start_sample, end_sample = 5, 25
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(data, target_picks, start_sample, end_sample, "zero", sfreq, 0)
+            return [
+                {
+                    "mode": "zero",
+                    "start_sample": start_sample,
+                    "end_sample": end_sample,
+                    "start_time": start_sample / sfreq,
+                    "end_time": end_sample / sfreq,
+                }
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        result = sample_context_with_noise | MagicErasor()
+        noise = result.get_estimated_noise()
+        assert noise is not None
+        assert np.allclose(noise[:, start_sample:end_sample], 0.0)
 
 
 @pytest.mark.integration

@@ -30,6 +30,7 @@ from facet import (
     ANCCorrection,
     ArtifactOffsetFinder,
     Crop,
+    MagicErasor,
     Pipeline,
     Loader,
     EDFExporter,
@@ -144,6 +145,7 @@ if _has_anc:
     steps.append(ANCCorrection(use_c_extension=True))
 
 steps += [
+    MagicErasor(),
     # 15. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
     # Optional: pick evaluated signal interval manually if acquisition contains unhandled artifacts
