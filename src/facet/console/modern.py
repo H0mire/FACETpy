@@ -876,11 +876,8 @@ class ModernConsole(BaseConsole):
                     with self._lock:
                         self._toggle_view()
                 elif ch in ("q", "Q"):
-                    if self._pipeline_done:
-                        self._quit_event.set()
-                        break
-                    else:
-                        os.kill(os.getpid(), signal.SIGINT)
+                    should_close = self._handle_quit_key()
+                    if should_close:
                         break
                 elif ch == "\x1b":
                     # We use os.read() directly — all bytes of an escape
@@ -926,6 +923,21 @@ class ModernConsole(BaseConsole):
                         pass
         finally:
             self._restore_terminal()
+
+    def _handle_quit_key(self) -> bool:
+        """Handle `q` key presses.
+
+        Returns ``True`` when the keyboard loop should terminate because the
+        pipeline already finished and the user requested closing the UI.
+        Returns ``False`` while the pipeline is still running: we forward a
+        SIGINT request but keep listening so users can still press `q` later
+        if the interrupt is caught or delayed by the running workload.
+        """
+        self._quit_event.set()
+        if self._pipeline_done:
+            return True
+        os.kill(os.getpid(), signal.SIGINT)
+        return False
 
     # ------------------------------------------------------------------
     # Rendering helpers
