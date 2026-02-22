@@ -58,7 +58,7 @@ class AASCorrection(Processor):
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
-    parallelize_by_channels = True
+    channel_wise = True
 
     def __init__(
         self,
@@ -122,7 +122,7 @@ class AASCorrection(Processor):
         upsampling_factor = context.metadata.upsampling_factor
         artifact_offset = context.metadata.artifact_to_trigger_offset
         eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
+            raw.info, meg=False, eeg=True, stim=False, eog=True, exclude="bads"
         )
 
         # --- LOG ---
@@ -132,16 +132,8 @@ class AASCorrection(Processor):
         )
 
         # --- COMPUTE ---
-        epochs = self._build_epochs(
-            raw, triggers, artifact_length, eeg_channels, artifact_offset, sfreq
-        )
-        if len(epochs) != len(triggers):
-            logger.warning(
-                "Number of epochs ({}) != triggers ({}). Data may be incomplete.",
-                len(epochs), len(triggers),
-            )
         averaging_matrices = self._compute_averaging_matrices(
-            epochs, eeg_channels, raw.ch_names
+            raw, eeg_channels, raw.ch_names, triggers, artifact_length, artifact_offset, sfreq
         )
         artifacts_per_channel = self._calc_averaged_artifacts(
             raw, averaging_matrices, triggers, artifact_length, artifact_offset, sfreq
@@ -177,66 +169,38 @@ class AASCorrection(Processor):
     # Private Helpers
     # -------------------------------------------------------------------------
 
-    def _build_epochs(
+    def _compute_averaging_matrices(
         self,
         raw: mne.io.Raw,
+        eeg_channels: np.ndarray,
+        ch_names: List[str],
         triggers: np.ndarray,
         artifact_length: int,
-        eeg_channels: np.ndarray,
         artifact_offset: float,
         sfreq: float,
-    ) -> mne.Epochs:
-        """Build MNE Epochs around each trigger position.
+    ) -> Dict[int, np.ndarray]:
+        """Compute per-channel averaging matrices by slicing raw data directly.
+
+        Epochs are extracted one channel at a time from ``raw._data`` so that
+        peak memory stays at O(n_epochs × artifact_length) rather than
+        O(n_channels × n_epochs × artifact_length).
 
         Parameters
         ----------
         raw : mne.io.Raw
-            EEG data to epoch.
+            EEG data (already a copy; modified in-place by the caller).
+        eeg_channels : np.ndarray
+            Channel indices to process.
+        ch_names : List[str]
+            Full channel name list from raw (indexed by ch_idx).
         triggers : np.ndarray
             Trigger sample positions.
         artifact_length : int
             Length of each artifact in samples.
-        eeg_channels : np.ndarray
-            Channel indices to include.
         artifact_offset : float
             Time offset of artifact relative to trigger, in seconds.
         sfreq : float
             Sampling frequency in Hz.
-
-        Returns
-        -------
-        mne.Epochs
-            Epoched EEG data aligned to triggers.
-        """
-        tmin = artifact_offset
-        tmax = tmin + (artifact_length / sfreq)
-        events = np.column_stack([
-            triggers,
-            np.zeros(len(triggers), dtype=int),
-            np.ones(len(triggers), dtype=int),
-        ])
-        return mne.Epochs(
-            raw, events=events, tmin=tmin, tmax=tmax,
-            baseline=None, reject=None, preload=True,
-            picks=eeg_channels, verbose=False,
-        )
-
-    def _compute_averaging_matrices(
-        self,
-        epochs: mne.Epochs,
-        eeg_channels: np.ndarray,
-        ch_names: List[str],
-    ) -> Dict[int, np.ndarray]:
-        """Compute per-channel averaging matrices from epoched data.
-
-        Parameters
-        ----------
-        epochs : mne.Epochs
-            Epoched EEG data (n_epochs, n_channels, n_times).
-        eeg_channels : np.ndarray
-            Channel indices corresponding to epoch axis 1.
-        ch_names : List[str]
-            Full channel name list from raw (indexed by ch_idx).
 
         Returns
         -------
@@ -245,6 +209,8 @@ class AASCorrection(Processor):
         """
         logger.debug("Computing averaging matrices for {} channels", len(eeg_channels))
         averaging_matrices: Dict[int, np.ndarray] = {}
+        trigger_offset_samples = int(artifact_offset * sfreq)
+        epoch_starts = triggers + trigger_offset_samples
 
         with processor_progress(
             total=len(eeg_channels) or None,
@@ -252,7 +218,7 @@ class AASCorrection(Processor):
         ) as progress:
             for idx, ch_idx in enumerate(eeg_channels):
                 ch_name = ch_names[ch_idx]
-                channel_epochs = np.squeeze(epochs.get_data(copy=False)[:, idx, :])
+                channel_epochs = split_vector(raw._data[ch_idx], epoch_starts, artifact_length)
                 avg_matrix = self._calc_averaging_matrix(
                     channel_epochs,
                     window_size=self.window_size,

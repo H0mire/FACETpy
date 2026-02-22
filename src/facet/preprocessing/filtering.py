@@ -52,7 +52,7 @@ class Filter(Processor):
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
-    parallelize_by_channels = True
+    channel_wise = True
 
     def __init__(
         self,
@@ -342,7 +342,7 @@ class NotchFilter(Processor):
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
-    parallelize_by_channels = True
+    channel_wise = True
 
     def __init__(
         self,

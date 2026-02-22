@@ -156,6 +156,186 @@ The ``ParallelExecutor`` handles channel splitting automatically:
    executor = ParallelExecutor(n_jobs=4)
    result_context = executor.execute(processor, input_context)
 
+Channel-wise Execution
+-----------------------
+
+Channel-wise execution is the primary parallelisation strategy in FACETpy.
+Each EEG channel (or a group of channels) is processed independently in its
+own worker, and the results are merged back into a single
+:class:`~facet.core.context.ProcessingContext` before the next pipeline step.
+
+Opting In
+~~~~~~~~~
+
+A processor opts in by setting two class-level flags:
+
+.. code-block:: python
+
+   class MyProcessor(Processor):
+       parallel_safe = True   # no cross-channel dependencies; safe for worker processes
+       channel_wise  = True   # can operate on a single-channel subset context
+
+``parallel_safe`` and ``channel_wise`` are **independent** concepts.
+``channel_wise`` is the flag used by both the parallel executor (``parallel=True``)
+and the channel-sequential executor (``channel_sequential=True``).
+
+Built-in processors that are channel-wise safe:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Processor
+     - Why it is safe
+   * - ``AASCorrection``
+     - Artifact template is computed per channel independently
+   * - ``PCACorrection``
+     - PCA is applied per channel without cross-channel reads
+   * - ``HighPassFilter`` / ``LowPassFilter`` / ``BandPassFilter`` / ``NotchFilter``
+     - FIR/IIR filters operate on each channel's time series in isolation
+   * - ``UpSample`` / ``DownSample``
+     - Resampling is applied independently to each channel
+   * - ``TriggerAligner``
+     - Reads one reference channel; has ``run_once=True`` so metadata is only computed once
+
+Processors that are **not** channel-wise:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Processor
+     - Why it is not channel-wise
+   * - ``TriggerDetector``
+     - Reads annotations shared across all channels
+   * - ``Loader`` / ``EDFExporter``
+     - File I/O is inherently serial
+   * - ``SNRCalculator`` / ``RMSCalculator``
+     - Aggregates across channels; splitting would produce partial metrics
+
+Execution Flow
+~~~~~~~~~~~~~~
+
+.. code-block:: text
+
+   Original data  [Ch1 | Ch2 | Ch3 | Ch4 | … | ChN]
+                               │
+                    Split into n_jobs chunks
+                               │
+             ┌─────────────────┼─────────────────┐
+             │                 │                 │
+       [Ch1, Ch2]        [Ch3, Ch4]         [ChN-1, ChN]
+       worker 0           worker 1           worker k
+             │                 │                 │
+       processor(…)      processor(…)      processor(…)
+             │                 │                 │
+       [Ch1', Ch2']      [Ch3', Ch4']      [ChN-1', ChN']
+             └─────────────────┼─────────────────┘
+                               │
+                  Merge back into original order
+                               │
+            Corrected data [Ch1' | Ch2' | … | ChN']
+
+Enabling it via the Pipeline
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Pass ``parallel=True`` to :meth:`~facet.core.pipeline.Pipeline.run`.
+Processors that do *not* set ``channel_wise = True`` are silently executed
+serially — no special handling required.
+
+.. code-block:: python
+
+   from facet import (
+       Pipeline, Loader, EDFExporter,
+       TriggerDetector, HighPassFilter, LowPassFilter,
+       UpSample, DownSample, AASCorrection,
+   )
+
+   pipeline = Pipeline([
+       Loader(path="data.edf", preload=True),
+       TriggerDetector(regex=r"\b1\b"),   # serial
+       HighPassFilter(freq=1.0),           # channel-wise
+       UpSample(factor=10),                # serial (MNE resamples all channels together)
+       AASCorrection(window_size=30),      # channel-wise
+       DownSample(factor=10),              # serial
+       LowPassFilter(freq=70),             # channel-wise
+       EDFExporter(path="corrected.edf", overwrite=True),
+   ])
+
+   result = pipeline.run(parallel=True, n_jobs=-1)   # -1 → all CPU cores
+
+Choosing a Backend
+~~~~~~~~~~~~~~~~~~
+
+You can also use :class:`~facet.core.parallel.ParallelExecutor` directly to
+pick a specific backend:
+
+.. code-block:: python
+
+   from facet.core import ParallelExecutor
+
+   executor = ParallelExecutor(
+       n_jobs   = 4,
+       backend  = "multiprocessing",   # "multiprocessing" | "threading" | "serial"
+       verbose  = True,
+   )
+   result_context = executor.execute(processor, context)
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 80
+
+   * - Backend
+     - When to use
+   * - ``multiprocessing``
+     - Default.  Each worker is a separate process — true CPU parallelism.
+       Best for compute-heavy corrections (AAS, ANC, PCA).
+   * - ``threading``
+     - Shared memory, lower startup cost.  Limited by the GIL for pure-Python
+       code, but can help for NumPy/C-extension-heavy processors.
+   * - ``serial``
+     - Disables splitting.  Useful for debugging or profiling to establish a
+       baseline without parallelisation overhead.
+
+Writing a Custom Channel-wise Processor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Any processor whose computation for channel *A* is independent of channel *B*
+can opt in.  A minimal example:
+
+.. code-block:: python
+
+   import numpy as np
+   from facet.core import Processor, ProcessingContext
+
+   class ChannelZScoreNormalizer(Processor):
+       """Per-channel z-score normalisation — parallel-safe."""
+
+       name        = "channel_zscore_normalizer"
+       description = "Normalise each channel to zero mean and unit variance"
+
+       requires_raw  = True
+       modifies_raw  = True
+       parallel_safe = True
+       channel_wise  = True
+
+       def process(self, context: ProcessingContext) -> ProcessingContext:
+           raw  = context.get_raw().copy()
+           data = raw._data                           # [n_channels, n_samples]
+
+           mean = data.mean(axis=1, keepdims=True)
+           std  = data.std(axis=1, keepdims=True)
+           std  = np.where(std == 0, 1.0, std)        # guard against flat channels
+
+           raw._data = (data - mean) / std
+           return context.with_raw(raw)
+
+This processor will be split channel-wise by ``ParallelExecutor`` exactly like
+``AASCorrection``.  No other changes are required.
+
+See ``examples/channelwise_execution.py`` for a complete runnable example
+including benchmark helpers and backend comparisons.
+
 Pipeline-Level Parallelization
 -------------------------------
 

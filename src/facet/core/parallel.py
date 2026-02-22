@@ -129,7 +129,7 @@ class ParallelExecutor:
             )
             return processor.execute(context)
 
-        if hasattr(processor, 'parallelize_by_channels') and processor.parallelize_by_channels:
+        if getattr(processor, 'channel_wise', False):
             return self._execute_channel_wise(processor, context)
 
         if hasattr(processor, 'parallelize_by_epochs') and processor.parallelize_by_epochs:

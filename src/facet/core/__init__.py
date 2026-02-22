@@ -26,6 +26,7 @@ from .registry import (
     list_processors
 )
 from .parallel import ParallelExecutor
+from .channel_sequential import ChannelSequentialExecutor
 
 __all__ = [
     # Context
@@ -56,6 +57,7 @@ __all__ = [
     'get_processor',
     'list_processors',
 
-    # Parallel
+    # Executors
     'ParallelExecutor',
+    'ChannelSequentialExecutor',
 ]

@@ -65,6 +65,36 @@ class BaseConsole(ABC):
     ) -> None:
         """Update the progress metadata for an in-flight processor."""
 
+    # Channel-sequential batch lifecycle
+    def start_channel_batch(
+        self,
+        processor_names: List[str],
+        channel_names: List[str],
+        batch_step_offset: int = 0,
+    ) -> None:
+        """Enter channel-sequential display mode."""
+
+    def channel_started(self, ch_index: int, ch_name: str) -> None:
+        """Mark a data channel as actively processing."""
+
+    def channel_processor_started(self, ch_index: int, proc_index: int) -> None:
+        """Mark which processor is running within the current channel."""
+
+    def channel_processor_completed(
+        self,
+        ch_index: int,
+        proc_index: int,
+        duration: float,
+        skipped: bool = False,
+    ) -> None:
+        """Mark a processor within a channel as complete (or skipped)."""
+
+    def channel_completed(self, ch_index: int, duration: float) -> None:
+        """Mark a channel as fully processed."""
+
+    def end_channel_batch(self) -> None:
+        """Exit channel-sequential display mode."""
+
     def log_sink(self, message: Any) -> None:
         """Optional log sink wired into loguru."""
 
@@ -146,6 +176,24 @@ class NullConsole(BaseConsole):
         return None
 
     def get_rich_console(self) -> Any:  # noqa: D401
+        return None
+
+    def start_channel_batch(self, processor_names: List[str], channel_names: List[str], batch_step_offset: int = 0) -> None:  # noqa: D401
+        return None
+
+    def channel_started(self, ch_index: int, ch_name: str) -> None:  # noqa: D401
+        return None
+
+    def channel_processor_started(self, ch_index: int, proc_index: int) -> None:  # noqa: D401
+        return None
+
+    def channel_processor_completed(self, ch_index: int, proc_index: int, duration: float, skipped: bool = False) -> None:  # noqa: D401
+        return None
+
+    def channel_completed(self, ch_index: int, duration: float) -> None:  # noqa: D401
+        return None
+
+    def end_channel_batch(self) -> None:  # noqa: D401
         return None
 
     def set_active_prompt(self, message: str) -> None:  # noqa: D401

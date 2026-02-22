@@ -74,9 +74,9 @@ view of what the processor is doing.
 
 .. note::
 
-   Processors marked with ``parallelize_by_channels`` (e.g. ``Filter`` or
-   ``AASCorrection``) automatically emit channel-wise progress when the pipeline
-   runs them in parallel mode. For other workloads consider tracking epochs,
+   Processors with ``channel_wise = True`` (e.g. ``Filter`` or
+   ``AASCorrection``) automatically emit channel-wise progress when the
+   pipeline runs them in parallel or channel_sequential mode. For other workloads consider tracking epochs,
    files, or optimization iterations; anything you surface through
    ``processor_progress`` appears in the live console without affecting legacy
    logging.

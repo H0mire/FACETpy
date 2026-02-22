@@ -12,6 +12,7 @@ from loguru import logger
 from .processor import Processor
 from .context import ProcessingContext
 from .parallel import ParallelExecutor
+from .channel_sequential import ChannelSequentialExecutor
 from ..console import get_console
 from ..console.progress import set_current_step_index
 
@@ -306,6 +307,18 @@ class PipelineResult:
         plotter = RawPlotter(**kwargs)
         plotter.execute(self.context)
 
+    def release_raw(self) -> None:
+        """
+        Release the Raw data held by the context to free memory.
+
+        After calling this, ``get_raw()`` and ``plot()`` will no longer work,
+        but :attr:`metrics` and :attr:`execution_time` remain accessible.
+        Useful when running batch jobs where you only need summary statistics.
+        """
+        if self.context is not None:
+            self.context._raw = None
+            self.context._raw_original = None
+
     def __repr__(self) -> str:
         status = "SUCCESS" if self.success else "FAILED"
         return f"PipelineResult({status}, time={self.execution_time:.2f}s)"
@@ -519,11 +532,73 @@ class Pipeline:
     def _validate_pipeline(self) -> None:
         """No-op — validation now happens in _normalise_processors."""
 
+    # ---------------------------------------------------------------------- #
+    # Execution helpers                                                       #
+    # ---------------------------------------------------------------------- #
+
+    def _group_processors(
+        self,
+        parallel: bool,
+        channel_sequential: bool,
+    ) -> List[Tuple[List[Processor], str]]:
+        """
+        Partition processors into execution groups.
+
+        Returns a list of ``(processors, mode)`` tuples where *mode* is one of
+        ``'channel_sequential'``, ``'parallel'``, or ``'serial'``.
+
+        In channel_sequential mode consecutive processors with
+        ``channel_wise = True`` (or ``run_once = True``) are merged into a
+        single ``'channel_sequential'`` group.  This grouping is entirely
+        independent of ``parallel_safe``.
+        """
+        groups: List[Tuple[List[Processor], str]] = []
+        i = 0
+        while i < len(self.processors):
+            proc = self.processors[i]
+            ch_eligible = getattr(proc, 'channel_wise', False) or getattr(proc, 'run_once', False)
+            if channel_sequential and ch_eligible:
+                batch: List[Processor] = []
+                while i < len(self.processors):
+                    p = self.processors[i]
+                    if getattr(p, 'channel_wise', False) or getattr(p, 'run_once', False):
+                        batch.append(p)
+                        i += 1
+                    else:
+                        break
+                groups.append((batch, 'channel_sequential'))
+            elif parallel and proc.parallel_safe:
+                groups.append(([proc], 'parallel'))
+                i += 1
+            else:
+                groups.append(([proc], 'serial'))
+                i += 1
+        return groups
+
+    def _dispatch_step(
+        self,
+        processors: List[Processor],
+        mode: str,
+        context: ProcessingContext,
+        n_jobs: int,
+    ) -> ProcessingContext:
+        """Execute one group of processors according to *mode*."""
+        if mode == 'channel_sequential':
+            return ChannelSequentialExecutor().execute(processors, context)
+        if mode == 'parallel':
+            return ParallelExecutor(n_jobs=n_jobs).execute(processors[0], context)
+        return processors[0].execute(context)
+
+    # ---------------------------------------------------------------------- #
+    # Public API                                                              #
+    # ---------------------------------------------------------------------- #
+
     def run(
         self,
         initial_context: Optional[ProcessingContext] = None,
         parallel: bool = False,
         n_jobs: int = -1,
+        channel_sequential: bool = False,
         show_progress: bool = True
     ) -> PipelineResult:
         """
@@ -533,6 +608,25 @@ class Pipeline:
             initial_context: Initial context (if None, first processor creates it)
             parallel: Enable parallel execution for compatible processors
             n_jobs: Number of parallel jobs (-1 for all CPUs)
+            channel_sequential: Run consecutive channel-wise processors
+                (``channel_wise = True``) as a single per-channel pass.
+                For each channel the full local sequence executes before
+                the next channel starts::
+
+                    for each channel:
+                        channel → HP-filter → UpSample → AAS → DownSample → store
+
+                The output array is pre-allocated at the final sfreq so the
+                full high-sfreq intermediate data never exists for all
+                channels at once.
+
+                Processors with ``run_once = True`` (e.g. TriggerAligner)
+                are included in the per-channel pass but only execute for
+                the first channel; all subsequent channels skip them.
+
+                This flag is independent of ``parallel_safe`` and has no
+                relation to multiprocessing.  Takes precedence over
+                *parallel* for eligible processors.
             show_progress: Show progress bar
 
         Returns:
@@ -542,96 +636,84 @@ class Pipeline:
 
         start_time = time.time()
         console = get_console()
+        n_procs = len(self.processors)
 
-        console.set_pipeline_metadata(
-            {
-                "execution_mode": "parallel" if parallel else "serial",
-                "n_jobs": str(n_jobs),
-            }
+        execution_mode = (
+            "channel_sequential" if channel_sequential
+            else "parallel" if parallel
+            else "serial"
         )
-        step_names = [processor.name for processor in self.processors]
-        console.start_pipeline(self.name, len(self.processors), step_names=step_names)
+        console.set_pipeline_metadata({
+            "execution_mode": execution_mode,
+            "n_jobs": "1" if channel_sequential else str(n_jobs),
+        })
+        console.start_pipeline(
+            self.name, n_procs,
+            step_names=[p.name for p in self.processors],
+        )
+        logger.info(f"Starting pipeline: {self.name} ({n_procs} processors)")
 
-        logger.info(f"Starting pipeline: {self.name}")
-        logger.info(f"Number of processors: {len(self.processors)}")
+        context = initial_context
+        current_processor: Optional[Tuple[int, Processor]] = None
 
         try:
-            context = initial_context
-            current_processor: Optional[Tuple[int, Processor]] = None
+            step_offset = 0
+            for processors, mode in self._group_processors(parallel, channel_sequential):
+                current_processor = (step_offset, processors[0])
 
-            for i, processor in enumerate(self.processors):
-                current_processor = (i, processor)
-                logger.info(
-                    f"[{i+1}/{len(self.processors)}] Executing: {processor.name}"
-                )
+                label = " → ".join(p.name for p in processors)
+                logger.info(f"[{step_offset + 1}/{n_procs}] {label}")
+                for k, p in enumerate(processors):
+                    console.step_started(step_offset + k, p.name)
 
-                console.step_started(i, processor.name)
-                set_current_step_index(i)
-
+                set_current_step_index(step_offset)
                 step_start = time.time()
-                executed_in_parallel = parallel and processor.parallel_safe
-
                 try:
-                    if executed_in_parallel:
-                        executor = ParallelExecutor(n_jobs=n_jobs)
-                        context = executor.execute(processor, context)
-                    else:
-                        context = processor.execute(context)
+                    context = self._dispatch_step(processors, mode, context, n_jobs)
                 finally:
                     set_current_step_index(None)
 
                 duration = time.time() - step_start
-                console.step_completed(
-                    i,
-                    processor.name,
-                    duration,
-                    metrics={
-                        "execution_mode": "parallel" if executed_in_parallel else "serial",
-                        "last_duration": f"{duration:.2f}s",
-                    },
-                )
+                for k, p in enumerate(processors):
+                    console.step_completed(
+                        step_offset + k, p.name,
+                        duration / len(processors),
+                        metrics={
+                            "execution_mode": mode,
+                            "last_duration": f"{duration:.2f}s",
+                        },
+                    )
+                step_offset += len(processors)
 
             execution_time = time.time() - start_time
-            logger.info(
-                f"Pipeline completed successfully in {execution_time:.2f}s"
-            )
+            logger.info(f"Pipeline completed in {execution_time:.2f}s")
             console.pipeline_complete(True, execution_time)
-
-            return PipelineResult(
-                context=context,
-                success=True,
-                execution_time=execution_time
-            )
+            return PipelineResult(context=context, success=True, execution_time=execution_time)
 
         except Exception as e:
             execution_time = time.time() - start_time
             if current_processor:
-                failed_index, failed_proc = current_processor
+                failed_idx, failed_proc = current_processor
                 logger.error(
-                    f"Pipeline failed after {execution_time:.2f}s during processor "
-                    f"{failed_proc.name} (step {failed_index + 1}/{len(self.processors)}): {e}"
+                    f"Pipeline failed after {execution_time:.2f}s during "
+                    f"{failed_proc.name} (step {failed_idx + 1}/{n_procs}): {e}"
                 )
             else:
-                logger.error(
-                    f"Pipeline failed after {execution_time:.2f}s before executing any "
-                    f"processor: {e}"
-                )
+                logger.error(f"Pipeline failed after {execution_time:.2f}s: {e}")
             logger.opt(exception=e).debug("Exception details")
 
             console.pipeline_failed(
-                execution_time,
-                e,
+                execution_time, e,
                 current_processor[0] if current_processor else None,
                 current_processor[1].name if current_processor else None,
             )
-
             return PipelineResult(
-                context=context if context else None,
+                context=context,
                 success=False,
                 error=e,
                 execution_time=execution_time,
                 failed_processor=current_processor[1].name if current_processor else None,
-                failed_processor_index=current_processor[0] if current_processor else None
+                failed_processor_index=current_processor[0] if current_processor else None,
             )
 
     def add(self, processor: Union[Processor, Callable]) -> 'Pipeline':
@@ -754,6 +836,7 @@ class Pipeline:
         parallel: bool = False,
         n_jobs: int = -1,
         on_error: str = "continue",
+        keep_raw: bool = True,
     ) -> 'BatchResult':
         """
         Run the pipeline on multiple inputs and return a result per input.
@@ -775,6 +858,10 @@ class Pipeline:
             n_jobs: Passed through to ``pipeline.run()``.
             on_error: ``"continue"`` (default) — log failures and keep going;
                       ``"raise"`` — re-raise the first error encountered.
+            keep_raw: If ``False``, the Raw data is released from each result
+                after the pipeline run completes, keeping only metrics and
+                history in memory.  Set to ``False`` when processing many files
+                and you only need summary statistics.  Defaults to ``True``.
 
         Returns:
             :class:`BatchResult` containing one :class:`PipelineResult` per
@@ -795,6 +882,7 @@ class Pipeline:
             results = pipeline.map(
                 ["sub-01.edf", "sub-02.edf", "sub-03.edf"],
                 loader_factory=lambda p: Loader(path=p, preload=True),
+                keep_raw=False,
             )
             results.print_summary()
         """
@@ -803,6 +891,7 @@ class Pipeline:
 
         for item in inputs:
             if isinstance(item, ProcessingContext):
+                run_pipeline = self
                 initial_ctx = item
                 label = repr(item)
             else:
@@ -810,6 +899,7 @@ class Pipeline:
                 initial_ctx = None
 
                 if loader_factory is not None:
+                    # External loader: all pipeline processors run in full.
                     loader = loader_factory(item)
                     try:
                         initial_ctx = loader.execute(None)
@@ -826,28 +916,20 @@ class Pipeline:
                         if on_error == "raise":
                             raise
                         continue
+                    run_pipeline = self
                 else:
-                    # Attempt to patch the path attribute of the first processor
+                    # No loader_factory: the first processor must be a loader with
+                    # a 'path' attribute.  Patch its path and build a fresh
+                    # pipeline so none of the other processors are skipped.
+                    import copy
                     first = self.processors[0] if self.processors else None
                     if first is not None and hasattr(first, 'path'):
-                        import copy
                         patched = copy.copy(first)
                         patched.path = item
-                        try:
-                            initial_ctx = patched.execute(None)
-                        except Exception as exc:
-                            logger.error(f"Loader failed for '{label}': {exc}")
-                            result = PipelineResult(
-                                context=None,
-                                success=False,
-                                error=exc,
-                                failed_processor=getattr(patched, 'name', 'loader'),
-                            )
-                            results.append(result)
-                            labels.append(label)
-                            if on_error == "raise":
-                                raise
-                            continue
+                        run_pipeline = Pipeline(
+                            [patched] + list(self.processors[1:]),
+                            name=self.name,
+                        )
                     else:
                         raise ValueError(
                             f"Cannot load '{label}': supply a loader_factory or "
@@ -856,21 +938,14 @@ class Pipeline:
 
             logger.info(f"Pipeline.map: processing '{label}'")
 
-            # Skip the first processor if we already ran it as a loader above
-            skip_first = not isinstance(item, ProcessingContext) and initial_ctx is not None
-            if skip_first and len(self.processors) > 1:
-                tail_pipeline = Pipeline(self.processors[1:], name=self.name)
-                result = tail_pipeline.run(
-                    initial_context=initial_ctx,
-                    parallel=parallel,
-                    n_jobs=n_jobs,
-                )
-            else:
-                result = self.run(
-                    initial_context=initial_ctx,
-                    parallel=parallel,
-                    n_jobs=n_jobs,
-                )
+            result = run_pipeline.run(
+                initial_context=initial_ctx,
+                parallel=parallel,
+                n_jobs=n_jobs,
+            )
+
+            if not keep_raw and result.success:
+                result.release_raw()
 
             results.append(result)
             labels.append(label)

@@ -18,6 +18,7 @@ from facet import (
     AASCorrection,
     SNRCalculator,
     MetricsReport,
+    ArtifactOffsetFinder,
 )
 
 INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
@@ -31,6 +32,7 @@ INPUT_FILES = [INPUT_FILE, INPUT_FILE, INPUT_FILE]
 # ---------------------------------------------------------------------------
 pipeline = Pipeline([
     TriggerDetector(regex=r"\b1\b"),
+    ArtifactOffsetFinder(),
     HighPassFilter(freq=1.0),
     UpSample(factor=10),
     AASCorrection(window_size=30),
@@ -44,8 +46,7 @@ results = pipeline.map(
     INPUT_FILES,
     loader_factory=lambda p: Loader(
         path=p,
-        preload=True,
-        artifact_to_trigger_offset=-0.005,
+        preload=True
     ),
     on_error="continue",   # log failures, keep going
 )

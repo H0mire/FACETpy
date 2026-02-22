@@ -291,6 +291,7 @@ More Examples
 See the ``examples/`` directory in the repository for more complete examples:
 
 * ``complete_pipeline_example.py`` - Full correction workflow
-* ``new_api_demo.py`` - API demonstration
-* ``custom_processor_example.py`` - Creating custom processors
-* ``parallel_processing_example.py`` - Parallel execution patterns
+* ``advanced_workflows.py`` - Conditional steps, parallel execution, factory shortcut
+* ``channelwise_execution.py`` - Channel-wise execution: flag inspection, backend comparison, custom processor
+* ``batch_processing.py`` - Batch correction across multiple files with ``Pipeline.map()``
+* ``evaluation.py`` - SNR, RMS, and other quality metrics

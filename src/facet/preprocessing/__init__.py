@@ -20,6 +20,7 @@ from .trigger_detection import (
     QRSTriggerDetector,
     MissingTriggerDetector
 )
+from .trigger_explorer import TriggerExplorer, InteractiveTriggerExplorer
 from .alignment import TriggerAligner, SliceAligner, SubsampleAligner
 from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
 from .transforms import Crop, RawTransform, PickChannels, DropChannels, PrintMetric
@@ -41,6 +42,8 @@ __all__ = [
     'TriggerDetector',
     'QRSTriggerDetector',
     'MissingTriggerDetector',
+    'TriggerExplorer',
+    'InteractiveTriggerExplorer',
 
     # Alignment
     'TriggerAligner',

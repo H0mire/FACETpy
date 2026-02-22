@@ -1242,27 +1242,53 @@ Rules:
 - Keep deprecated code for at least one minor version before removing.
 - Document the deprecation in the class docstring.
 
-### 12.5 `parallel_safe` in Practice
+### 12.5 `parallel_safe`, `channel_wise`, and `run_once` in Practice
 
-Setting `parallel_safe = True` tells the pipeline that this processor can be executed via `ParallelExecutor`, which splits data by channel and processes each chunk independently.
+Three class-level flags control how a processor participates in the two
+execution modes.  They are **independent concepts**:
 
-A processor is parallel-safe **only when all of these hold:**
+| Flag | Default | Meaning |
+|---|---|---|
+| `parallel_safe` | `True` | Processor can run in separate worker processes without data races |
+| `channel_wise` | `False` | Processor can operate on a single-channel subset context (enables both `parallel=True` and `channel_sequential=True`) |
+| `run_once` | `False` | In `channel_sequential` mode: execute only for the first channel; skip silently for the rest |
 
-1. **No cross-channel dependencies** — the computation for channel A doesn't read channel B's data.
+A processor is **parallel-safe** only when all of these hold:
+
+1. **No cross-channel dependencies** — channel A's computation doesn't read channel B's data.
 2. **No shared mutable state** — no writes to `self` during `process()`.
-3. **No global side effects** — no file writes, no shared caches, no global variables.
-4. **Deterministic output** — the same input always produces the same output (no random state without seeding).
+3. **No global side effects** — no file writes, shared caches, or global variables.
+4. **Deterministic output** — same input always produces same output.
 
 Common cases:
 
-| Processor type | Typically parallel-safe? | Why |
-|---|---|---|
-| Per-channel filter | Yes | Each channel filtered independently |
-| Per-channel correction (AAS, ANC) | Yes | Artifact template computed per channel |
-| Trigger detection | **No** | Reads annotations/stim channels globally |
-| Resampling | **No** | MNE resamples all channels together |
-| I/O (load, export) | **No** | File operations are inherently serial |
-| Evaluation metrics | **No** | Typically aggregates across channels |
+| Processor type | `parallel_safe` | `channel_wise` | `run_once` | Why |
+|---|---|---|---|---|
+| Per-channel filter | Yes | Yes | No | Each channel filtered independently |
+| Per-channel correction (AAS, PCA) | Yes | Yes | No | Artifact template computed per channel |
+| Trigger alignment | Yes | Yes | **Yes** | Only needs one reference channel; metadata result reused |
+| Trigger detection | No | No | No | Reads annotations/stim channels globally |
+| Resampling | Yes | Yes | No | Operates independently per channel |
+| I/O (load, export) | No | No | No | File operations are inherently serial |
+| Evaluation metrics | No | No | No | Typically aggregates across channels |
+
+Minimal example of a custom channel-wise processor:
+
+```python
+class MyChannelProcessor(Processor):
+    name         = "my_channel_processor"
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True   # no cross-channel dependencies
+    channel_wise  = True   # can run on a single-channel context
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        # each invocation receives exactly one channel
+        return context.with_raw(raw)
+```
+
+See `examples/channelwise_execution.py` for a complete runnable demonstration including flag inspection, backend comparison, and a benchmark helper.
 
 ---
 

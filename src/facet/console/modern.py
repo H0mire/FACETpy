@@ -72,6 +72,31 @@ class StepState:
     progress_message: str = ""
 
 
+@dataclass
+class ChannelBatchState:
+    """Live state for a channel-sequential execution batch."""
+
+    active: bool = False
+    processor_names: List[str] = field(default_factory=list)
+    channel_names: List[str] = field(default_factory=list)
+    batch_step_offset: int = 0
+
+    current_ch_index: int = -1
+    current_ch_name: str = ""
+    current_proc_index: int = -1
+    current_proc_start: Optional[float] = None
+
+    total_channels: int = 0
+    completed_channels: int = 0
+
+    proc_statuses: List[str] = field(default_factory=list)
+    proc_durations: List[Optional[float]] = field(default_factory=list)
+
+    batch_start_time: Optional[float] = None
+    channel_start_time: Optional[float] = None
+    channel_durations: List[float] = field(default_factory=list)
+
+
 class _LogTee(io.TextIOBase):
     """Redirects stdout/stderr writes to the Live Logs panel."""
 
@@ -156,6 +181,9 @@ class ModernConsole(BaseConsole):
         self.log_messages: Deque[Dict[str, str]] = deque()
         # Complete unbounded history shared by the classic view
         self._full_log_history: List[Dict[str, str]] = []
+
+        # Channel-sequential batch state (active only while a batch runs)
+        self._channel_batch = ChannelBatchState()
 
         # View mode: "modern" (dashboard) or "classic" (full-screen log)
         # Starts in classic so the user sees a clean log before the pipeline runs;
@@ -389,6 +417,83 @@ class ModernConsole(BaseConsole):
                 state.progress_total = max(total, 0.0)
             if message is not None:
                 state.progress_message = message
+            self._refresh_locked()
+
+    # ------------------------------------------------------------------
+    # Channel-sequential batch lifecycle
+    # ------------------------------------------------------------------
+    def start_channel_batch(
+        self,
+        processor_names: List[str],
+        channel_names: List[str],
+        batch_step_offset: int = 0,
+    ) -> None:
+        with self._lock:
+            self._channel_batch = ChannelBatchState(
+                active=True,
+                processor_names=list(processor_names),
+                channel_names=list(channel_names),
+                batch_step_offset=batch_step_offset,
+                total_channels=len(channel_names),
+                batch_start_time=time.time(),
+            )
+            self._refresh_locked()
+
+    def channel_started(self, ch_index: int, ch_name: str) -> None:
+        with self._lock:
+            cb = self._channel_batch
+            if not cb.active:
+                return
+            cb.current_ch_index = ch_index
+            cb.current_ch_name = ch_name
+            cb.current_proc_index = -1
+            cb.current_proc_start = None
+            cb.proc_statuses = ["pending"] * len(cb.processor_names)
+            cb.proc_durations = [None] * len(cb.processor_names)
+            cb.channel_start_time = time.time()
+            self._refresh_locked()
+
+    def channel_processor_started(self, ch_index: int, proc_index: int) -> None:
+        with self._lock:
+            cb = self._channel_batch
+            if not cb.active:
+                return
+            cb.current_proc_index = proc_index
+            if 0 <= proc_index < len(cb.proc_statuses):
+                cb.proc_statuses[proc_index] = "running"
+            cb.current_proc_start = time.time()
+            self._refresh_locked()
+
+    def channel_processor_completed(
+        self,
+        ch_index: int,
+        proc_index: int,
+        duration: float,
+        skipped: bool = False,
+    ) -> None:
+        with self._lock:
+            cb = self._channel_batch
+            if not cb.active:
+                return
+            if 0 <= proc_index < len(cb.proc_statuses):
+                cb.proc_statuses[proc_index] = "skipped" if skipped else "done"
+            if 0 <= proc_index < len(cb.proc_durations):
+                cb.proc_durations[proc_index] = duration
+            cb.current_proc_start = None
+            self._refresh_locked()
+
+    def channel_completed(self, ch_index: int, duration: float) -> None:
+        with self._lock:
+            cb = self._channel_batch
+            if not cb.active:
+                return
+            cb.completed_channels += 1
+            cb.channel_durations.append(duration)
+            self._refresh_locked()
+
+    def end_channel_batch(self) -> None:
+        with self._lock:
+            self._channel_batch = ChannelBatchState()
             self._refresh_locked()
 
     def log_sink(self, message: Any) -> None:  # noqa: ANN401 (loguru message object)
@@ -963,6 +1068,9 @@ class ModernConsole(BaseConsole):
         text.append(self.pipeline_name or "FACETpy Pipeline", style="bold white")
         text.append("  ")
         text.append(self.pipeline_status, style=f"bold {status_color}")
+        if self._channel_batch.active:
+            cb = self._channel_batch
+            text.append(f"  •  Channel {cb.completed_channels + 1}/{cb.total_channels}", style="bold cyan")
         elapsed = self._elapsed_seconds()
         if elapsed > 0:
             text.append(f"  •  {elapsed:.1f}s elapsed", style="dim")
@@ -973,6 +1081,9 @@ class ModernConsole(BaseConsole):
         return Panel(text, border_style="bright_black", padding=(0, 1))
 
     def _render_steps_panel(self) -> Panel:
+        if self._channel_batch.active:
+            return self._render_channel_batch_panel()
+
         table = Table.grid(expand=True, padding=(0, 1))
         table.add_column("Processor", style="bold", ratio=3)
         table.add_column("Status", style="white", width=14, justify="left")
@@ -995,7 +1106,50 @@ class ModernConsole(BaseConsole):
 
         return Panel(table, title="Processors", border_style="bright_black", box=box.ROUNDED)
 
+    def _render_channel_batch_panel(self) -> Panel:
+        """Render the steps panel during a channel-sequential batch."""
+        cb = self._channel_batch
+        table = Table.grid(expand=True, padding=(0, 1))
+        table.add_column("Processor", style="bold", ratio=3)
+        table.add_column("Status", style="white", width=18, justify="left")
+        table.add_column("Duration", style="white", width=10, justify="left")
+
+        for i, proc_name in enumerate(cb.processor_names):
+            status = cb.proc_statuses[i] if i < len(cb.proc_statuses) else "pending"
+            dur = cb.proc_durations[i] if i < len(cb.proc_durations) else None
+
+            if status == "running":
+                icon, sty = "▶", "cyan"
+                if cb.current_proc_start:
+                    elapsed = time.time() - cb.current_proc_start
+                    dur_str = f"{elapsed:.1f}s…"
+                else:
+                    dur_str = "…"
+            elif status == "done":
+                icon, sty = "✔", "green"
+                dur_str = f"{dur:.2f}s" if dur is not None else ""
+            elif status == "skipped":
+                icon, sty = "⊘", "yellow"
+                dur_str = "run_once"
+            else:
+                icon, sty = "●", "grey62"
+                dur_str = "–"
+
+            table.add_row(
+                proc_name,
+                f"[{sty}]{icon} {status.capitalize()}[/]",
+                dur_str,
+            )
+
+        ch_num = cb.completed_channels + 1
+        ch_display = cb.current_ch_name or "–"
+        title = f"Channel {ch_num}/{cb.total_channels}: {ch_display}"
+        return Panel(table, title=title, border_style="cyan", box=box.ROUNDED)
+
     def _render_metrics_panel(self) -> Panel:
+        if self._channel_batch.active:
+            return self._render_channel_metrics_panel()
+
         table = Table.grid(expand=True, padding=(0, 1))
         table.add_column("Metric", style="bold", width=16, justify="left")
         table.add_column("Value", style="white", justify="left")
@@ -1018,6 +1172,44 @@ class ModernConsole(BaseConsole):
                 table.add_row(key.replace("_", " ").title(), value)
 
         return Panel(table, title="Metrics", border_style="bright_black", box=box.ROUNDED)
+
+    def _render_channel_metrics_panel(self) -> Panel:
+        """Render the metrics panel during a channel-sequential batch."""
+        cb = self._channel_batch
+        table = Table.grid(expand=True, padding=(0, 1))
+        table.add_column("Metric", style="bold", width=16, justify="left")
+        table.add_column("Value", style="white", justify="left")
+
+        ratio = cb.completed_channels / max(cb.total_channels, 1)
+        bar = self._inline_bar(ratio, width=14)
+        table.add_row("Channels", f"{cb.completed_channels}/{cb.total_channels}")
+        table.add_row("Progress", f"{bar} {int(ratio * 100):>3d}%")
+        table.add_row("Current", cb.current_ch_name or "–")
+
+        if cb.channel_durations:
+            last_idx = cb.completed_channels - 1
+            last_name = (
+                cb.channel_names[last_idx]
+                if 0 <= last_idx < len(cb.channel_names)
+                else "–"
+            )
+            table.add_row("Last Ch", f"{last_name} ({cb.channel_durations[-1]:.2f}s)")
+
+            avg = sum(cb.channel_durations) / len(cb.channel_durations)
+            remaining = max(cb.total_channels - cb.completed_channels, 0)
+            eta = avg * remaining
+            table.add_row("Avg / Ch", f"{avg:.2f}s")
+            table.add_row("Est. Remain", f"~{eta:.1f}s")
+        else:
+            table.add_row("Last Ch", "–")
+
+        if cb.batch_start_time:
+            batch_elapsed = time.time() - cb.batch_start_time
+            table.add_row("Batch Elapsed", f"{batch_elapsed:.1f}s")
+
+        table.add_row("Total Elapsed", f"{self._elapsed_seconds():.1f}s")
+
+        return Panel(table, title="Channel Progress", border_style="bright_black", box=box.ROUNDED)
 
     def _render_logs_panel(self) -> Panel:
         self._trim_logs()
@@ -1118,11 +1310,18 @@ class ModernConsole(BaseConsole):
         return max(processors_height, metrics_height)
 
     def _processors_panel_height_needed(self) -> int:
-        rows = len(self.step_states) if self.step_states else 1
-        panel_chrome = 4  # borders + header rows
+        if self._channel_batch.active:
+            rows = max(len(self._channel_batch.processor_names), 1)
+        else:
+            rows = len(self.step_states) if self.step_states else 1
+        panel_chrome = 4
         return rows + panel_chrome
 
     def _metrics_panel_height_needed(self) -> int:
+        if self._channel_batch.active:
+            base_rows = 8
+            panel_chrome = 4
+            return base_rows + panel_chrome
         base_rows = 5  # progress + completed + current + last + elapsed
         diagnostics, reported = self._split_extra_metrics()
         header_rows = 2 if reported else 0  # spacer + header label

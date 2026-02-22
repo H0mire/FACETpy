@@ -67,7 +67,12 @@ class Processor(ABC):
     requires_triggers: bool = False
     requires_raw: bool = True
     modifies_raw: bool = True
-    parallel_safe: bool = True  # Can be parallelized
+    parallel_safe: bool = True  # Can be run in separate parallel workers
+
+    # Channel-sequential flags
+    channel_wise: bool = False  # Can be run on a single-channel subset context
+    run_once: bool = False      # In channel_sequential mode: execute only for the
+                                # first channel; subsequent channels are skipped
 
     def __init__(self):
         """Initialize processor."""

@@ -72,6 +72,10 @@ class TriggerDetector(Processor):
             return context
 
         triggers = np.array([event[0] for event in filtered_events])
+        # MNE returns absolute sample indices (onset * sfreq + first_samp).
+        # Normalize to 0-indexed positions relative to the current raw start
+        # so that triggers can be used directly as indices into raw._data.
+        triggers = triggers - raw.first_samp
         logger.info("Found {} triggers", len(triggers))
 
         artifact_meta = self._compute_artifact_metadata(triggers)

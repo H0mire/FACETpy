@@ -42,21 +42,24 @@ from facet import (
     FFTNiazyCalculator,
     MetricsReport,
     RawPlotter,
+    WaitForConfirmation,
+    load,
 )
+from facet.preprocessing import TriggerExplorer
 
 # ---------------------------------------------------------------------------
 # Paths and shared settings — adjust these for your study
 # ---------------------------------------------------------------------------
-INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
 OUTPUT_DIR  = Path("./output")
 OUTPUT_FILE = str(OUTPUT_DIR / "corrected_full.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRIGGER_REGEX    = r"\b1\b"   # regex matching the fMRI slice trigger value
+TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
 UPSAMPLE         = 10          # upsample factor for sub-sample trigger alignment
-RECORDING_START  = 0           # seconds — crop start (0 = keep from the beginning)
-RECORDING_END    = 162         # seconds — crop end (set None to keep until the end)
+RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
+RECORDING_END    = None        # seconds — crop end (None keeps until the end)
 
 # Optional: list channel names to drop before processing (non-EEG channels)
 NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
@@ -71,7 +74,6 @@ try:
 except ImportError:
     _has_anc = False
 
-
 # ---------------------------------------------------------------------------
 # Build the pipeline
 # ---------------------------------------------------------------------------
@@ -80,17 +82,16 @@ steps = [
     Loader(
         path=INPUT_FILE,
         preload=True,
-        artifact_to_trigger_offset=-0.005,
     ),
 
     # 2. Remove non-EEG channels present in the EDF file
     DropChannels(channels=NON_EEG_CHANNELS),
 
     # 3. Limit the analysis to the acquisition window
-    Crop(tmin=RECORDING_START, tmax=RECORDING_END),
+    # Crop(tmin=RECORDING_START, tmax=RECORDING_END),
 
     # 4. Detect fMRI slice-onset triggers
-    TriggerDetector(regex=TRIGGER_REGEX),
+    TriggerExplorer(),
 
     ArtifactOffsetFinder(),
 
@@ -158,7 +159,7 @@ pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline")
 # ---------------------------------------------------------------------------
 # Run and inspect results
 # ---------------------------------------------------------------------------
-result = pipeline.run()
+result = pipeline.run(channel_sequential=True)
 
 # One-liner summary: Done / Failed, execution time, key metric values
 result.print_summary()

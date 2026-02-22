@@ -57,7 +57,7 @@ class ANCCorrection(Processor):
     requires_raw = True
     modifies_raw = True
     parallel_safe = False
-    parallelize_by_channels = True
+    channel_wise = True
 
     def __init__(
         self,

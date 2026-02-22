@@ -270,8 +270,8 @@ Processors marked as ``parallel_safe`` can parallelize internally:
 
    @register_processor
    class MyProcessor(Processor):
-       parallel_safe = True  # Can be parallelized
-       parallelize_by_channels = True  # Split by channels
+       parallel_safe = True   # Can run in separate worker processes
+       channel_wise  = True   # Can operate on a single-channel subset
 
        def process(self, context):
            # This will run in parallel when pipeline.run(parallel=True)

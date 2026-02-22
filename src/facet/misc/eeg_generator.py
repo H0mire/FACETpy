@@ -1083,7 +1083,7 @@ class EEGGenerator(Processor):
     requires_raw = False
     requires_triggers = False
     parallel_safe = True
-    parallelize_by_channels = False
+    channel_wise = False
 
     def __init__(
         self, 

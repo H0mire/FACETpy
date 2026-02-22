@@ -137,7 +137,9 @@ class TriggerAligner(Processor):
     requires_triggers = True
     requires_raw = True
     modifies_raw = False
-    parallel_safe = False
+    parallel_safe = True
+    channel_wise = True
+    run_once = True
 
     def __init__(
         self,
@@ -388,7 +390,9 @@ class SliceAligner(TriggerAligner):
     requires_triggers = True
     requires_raw = True
     modifies_raw = False
-    parallel_safe = False
+    parallel_safe = True
+    channel_wise = True
+    run_once = True
 
     def __init__(
         self,
@@ -440,7 +444,9 @@ class SubsampleAligner(Processor):
     requires_triggers = True
     requires_raw = True
     modifies_raw = False
-    parallel_safe = False
+    parallel_safe = True
+    channel_wise = True
+    run_once = True
 
     def __init__(
         self,

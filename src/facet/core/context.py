@@ -440,20 +440,7 @@ class ProcessingContext:
         with suppress_stdout():
             raw = mne.io.RawArray(data['raw_data'], data['raw_info'])
 
-        metadata = ProcessingMetadata(
-            triggers=data['metadata']['triggers'],
-            trigger_regex=data['metadata']['trigger_regex'],
-            artifact_to_trigger_offset=data['metadata']['artifact_to_trigger_offset'],
-            acq_start_sample=data['metadata'].get('acq_start_sample'),
-            acq_end_sample=data['metadata'].get('acq_end_sample'),
-            pre_trigger_samples=data['metadata'].get('pre_trigger_samples'),
-            post_trigger_samples=data['metadata'].get('post_trigger_samples'),
-            upsampling_factor=data['metadata']['upsampling_factor'],
-            artifact_length=data['metadata']['artifact_length'],
-            slices_per_volume=data['metadata'].get('slices_per_volume'),
-            volume_gaps=data['metadata']['volume_gaps'],
-            custom=data['metadata']['custom']
-        )
+        metadata = ProcessingMetadata.from_dict(data['metadata'])
 
         ctx = cls(raw=raw, metadata=metadata)
         ctx._estimated_noise = data['estimated_noise']

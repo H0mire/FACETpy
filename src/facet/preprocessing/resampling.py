@@ -47,7 +47,7 @@ class Resample(Processor):
     requires_raw = True
     modifies_raw = True
     parallel_safe = True
-    parallelize_by_channels = True
+    channel_wise = True
 
     def __init__(
         self,
@@ -94,6 +94,8 @@ class Resample(Processor):
         """
         raw = context.get_raw().copy()
         old_sfreq = raw.info['sfreq']
+        # Capture info at original sfreq before resampling — needed for noise propagation.
+        pre_resample_info = raw.info.copy()
 
         raw.resample(
             sfreq=target_sfreq,
@@ -117,7 +119,11 @@ class Resample(Processor):
         if context.has_estimated_noise():
             noise = context.get_estimated_noise().copy()
             with suppress_stdout():
-                noise_raw = mne.io.RawArray(noise, raw.info)
+                # Use the pre-resample info so noise_raw starts at old_sfreq.
+                # Using raw.info here (which already has target_sfreq) would make
+                # the subsequent resample() call a no-op, leaving noise at the
+                # wrong sample count.
+                noise_raw = mne.io.RawArray(noise, pre_resample_info)
             noise_raw.resample(
                 sfreq=target_sfreq,
                 npad=self.npad,
