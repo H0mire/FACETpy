@@ -7,57 +7,48 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+from .channel_sequential import ChannelSequentialExecutor
 from .context import ProcessingContext, ProcessingMetadata, ProcessingStep
+from .parallel import ParallelExecutor
+from .pipeline import BatchResult, Pipeline, PipelineBuilder, PipelineError, PipelineResult
 from .processor import (
+    ConditionalProcessor,
+    LambdaProcessor,
+    NoOpProcessor,
     Processor,
     ProcessorError,
     ProcessorValidationError,
     SequenceProcessor,
-    ConditionalProcessor,
     SwitchProcessor,
-    NoOpProcessor,
-    LambdaProcessor
 )
-from .pipeline import Pipeline, PipelineBuilder, PipelineResult, PipelineError, BatchResult
-from .registry import (
-    ProcessorRegistry,
-    register_processor,
-    get_processor,
-    list_processors
-)
-from .parallel import ParallelExecutor
-from .channel_sequential import ChannelSequentialExecutor
+from .registry import ProcessorRegistry, get_processor, list_processors, register_processor
 
 __all__ = [
     # Context
-    'ProcessingContext',
-    'ProcessingMetadata',
-    'ProcessingStep',
-
+    "ProcessingContext",
+    "ProcessingMetadata",
+    "ProcessingStep",
     # Processor
-    'Processor',
-    'ProcessorError',
-    'ProcessorValidationError',
-    'SequenceProcessor',
-    'ConditionalProcessor',
-    'SwitchProcessor',
-    'NoOpProcessor',
-    'LambdaProcessor',
-
+    "Processor",
+    "ProcessorError",
+    "ProcessorValidationError",
+    "SequenceProcessor",
+    "ConditionalProcessor",
+    "SwitchProcessor",
+    "NoOpProcessor",
+    "LambdaProcessor",
     # Pipeline
-    'Pipeline',
-    'PipelineBuilder',
-    'PipelineResult',
-    'PipelineError',
-    'BatchResult',
-
+    "Pipeline",
+    "PipelineBuilder",
+    "PipelineResult",
+    "PipelineError",
+    "BatchResult",
     # Registry
-    'ProcessorRegistry',
-    'register_processor',
-    'get_processor',
-    'list_processors',
-
+    "ProcessorRegistry",
+    "register_processor",
+    "get_processor",
+    "list_processors",
     # Executors
-    'ParallelExecutor',
-    'ChannelSequentialExecutor',
+    "ParallelExecutor",
+    "ChannelSequentialExecutor",
 ]

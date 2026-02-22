@@ -2,23 +2,23 @@
 Tests for preprocessing processors.
 """
 
-import pytest
-import numpy as np
 import mne
+import numpy as np
+import pytest
 
+from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
 from facet.preprocessing import (
-    TriggerDetector,
-    UpSample,
-    DownSample,
-    TriggerAligner,
-    SliceAligner,
-    SubsampleAligner,
+    BandPassFilter,
     CutAcquisitionWindow,
+    DownSample,
     HighPassFilter,
     LowPassFilter,
-    BandPassFilter
+    SliceAligner,
+    SubsampleAligner,
+    TriggerAligner,
+    TriggerDetector,
+    UpSample,
 )
-from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
 
 
 @pytest.mark.unit
@@ -74,12 +74,12 @@ class TestResampling:
 
     def test_upsample(self, sample_context):
         """Test upsampling."""
-        original_sfreq = sample_context.get_raw().info['sfreq']
+        original_sfreq = sample_context.get_raw().info["sfreq"]
 
         upsampler = UpSample(factor=2)
         result = upsampler.execute(sample_context)
 
-        new_sfreq = result.get_raw().info['sfreq']
+        new_sfreq = result.get_raw().info["sfreq"]
 
         # Check frequency doubled
         assert new_sfreq == original_sfreq * 2
@@ -90,13 +90,13 @@ class TestResampling:
         upsampler = UpSample(factor=4)
         context_upsampled = upsampler.execute(sample_context)
 
-        original_sfreq = context_upsampled.get_raw().info['sfreq']
+        original_sfreq = context_upsampled.get_raw().info["sfreq"]
 
         # Then downsample
         downsampler = DownSample(factor=2)
         result = downsampler.execute(context_upsampled)
 
-        new_sfreq = result.get_raw().info['sfreq']
+        new_sfreq = result.get_raw().info["sfreq"]
 
         # Check frequency halved
         assert new_sfreq == original_sfreq / 2
@@ -104,14 +104,14 @@ class TestResampling:
     def test_resampling_updates_triggers(self, sample_context):
         """Test that resampling updates trigger positions."""
         original_triggers = sample_context.get_triggers().copy()
-        original_sfreq = sample_context.get_raw().info['sfreq']
+        original_sfreq = sample_context.get_raw().info["sfreq"]
 
         # Upsample by 2
         upsampler = UpSample(factor=2)
         result = upsampler.execute(sample_context)
 
         new_triggers = result.get_triggers()
-        new_sfreq = result.get_raw().info['sfreq']
+        new_sfreq = result.get_raw().info["sfreq"]
 
         # Triggers should be scaled
         scaling_factor = new_sfreq / original_sfreq
@@ -121,7 +121,7 @@ class TestResampling:
 
     def test_upsample_downsample_roundtrip(self, sample_context):
         """Test upsampling then downsampling returns to original."""
-        original_sfreq = sample_context.get_raw().info['sfreq']
+        original_sfreq = sample_context.get_raw().info["sfreq"]
         original_shape = sample_context.get_raw()._data.shape
 
         # Upsample then downsample
@@ -132,7 +132,7 @@ class TestResampling:
         context_down = downsampler.execute(context_up)
 
         # Check we're back to original frequency
-        final_sfreq = context_down.get_raw().info['sfreq']
+        final_sfreq = context_down.get_raw().info["sfreq"]
         assert final_sfreq == original_sfreq
 
         # Shape should be similar (may differ slightly due to resampling)
@@ -184,10 +184,10 @@ class TestAcquisitionAlignment:
         template = np.sin(np.linspace(0, np.pi, artifact_length)) * 1e-6
 
         # Reference artifact aligned with trigger
-        data[0, triggers[0]:triggers[0] + artifact_length] += template
+        data[0, triggers[0] : triggers[0] + artifact_length] += template
         # Second artifact shifted in time
         shifted_start = triggers[1] + shift_samples
-        data[0, shifted_start:shifted_start + artifact_length] += template
+        data[0, shifted_start : shifted_start + artifact_length] += template
 
         info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
         raw = mne.io.RawArray(data, info, verbose=False)
@@ -235,9 +235,9 @@ class TestAcquisitionAlignment:
         expected = context.get_triggers()[1] + 2
         assert abs(aligned[1] - expected) <= 3
 
-        alignment_meta = result.metadata.custom.get('subsample_alignment')
+        alignment_meta = result.metadata.custom.get("subsample_alignment")
         assert alignment_meta is not None
-        recorded_shift = alignment_meta['shifts'][1]
+        recorded_shift = alignment_meta["shifts"][1]
         assert abs(recorded_shift - 2) <= 3
 
     def test_alignment_requires_artifact_length(self, sample_context):
@@ -313,10 +313,7 @@ class TestFiltering:
         """Test chaining multiple filters."""
         from facet.core import Pipeline
 
-        pipeline = Pipeline([
-            HighPassFilter(freq=0.5),
-            LowPassFilter(freq=50.0)
-        ])
+        pipeline = Pipeline([HighPassFilter(freq=0.5), LowPassFilter(freq=50.0)])
 
         result = pipeline.run(initial_context=sample_context)
 
@@ -392,8 +389,9 @@ class TestRawTransform:
 
     def test_transform_modifies_raw(self, sample_context):
         """RawTransform can return a modified Raw object."""
-        from facet.preprocessing import RawTransform
         import numpy as np
+
+        from facet.preprocessing import RawTransform
 
         original_max = np.abs(sample_context.get_raw()._data).max()
 
@@ -421,17 +419,19 @@ class TestPreprocessingIntegration:
 
     def test_full_preprocessing_workflow(self, sample_edf_file):
         """Test complete preprocessing workflow."""
-        from facet.io import Loader
         from facet.core import Pipeline
+        from facet.io import Loader
 
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file), preload=True),
-            TriggerDetector(regex=r"\b1\b"),
-            UpSample(factor=2),
-            TriggerAligner(ref_trigger_index=0),
-            HighPassFilter(freq=0.5),
-            DownSample(factor=2)
-        ])
+        pipeline = Pipeline(
+            [
+                Loader(path=str(sample_edf_file), preload=True),
+                TriggerDetector(regex=r"\b1\b"),
+                UpSample(factor=2),
+                TriggerAligner(ref_trigger_index=0),
+                HighPassFilter(freq=0.5),
+                DownSample(factor=2),
+            ]
+        )
 
         result = pipeline.run()
 

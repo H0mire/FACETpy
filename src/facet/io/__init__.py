@@ -7,16 +7,15 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from .loaders import Loader, BIDSLoader, SUPPORTED_EXTENSIONS
-from .exporters import EDFExporter, BIDSExporter
+from .exporters import BIDSExporter, EDFExporter
+from .loaders import SUPPORTED_EXTENSIONS, BIDSLoader, Loader
 
 __all__ = [
     # Loaders
-    'Loader',
-    'BIDSLoader',
-    'SUPPORTED_EXTENSIONS',
-
+    "Loader",
+    "BIDSLoader",
+    "SUPPORTED_EXTENSIONS",
     # Exporters
-    'EDFExporter',
-    'BIDSExporter',
+    "EDFExporter",
+    "BIDSExporter",
 ]

@@ -1,7 +1,7 @@
 """Console rendering helpers for FACETpy."""
 
 import contextlib
-from typing import Generator
+from collections.abc import Generator
 
 from .base import BaseConsole, ConsoleMode, NullConsole
 from .manager import configure_console, get_console

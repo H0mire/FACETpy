@@ -6,7 +6,7 @@ interactively select the trigger source before proceeding with the pipeline.
 """
 
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import mne
 import numpy as np
@@ -14,8 +14,8 @@ from loguru import logger
 
 from ..console import get_console, suspend_raw_mode
 from ..core import (
-    Processor,
     ProcessingContext,
+    Processor,
     ProcessorError,
     ProcessorValidationError,
     register_processor,
@@ -73,7 +73,7 @@ class TriggerExplorer(Processor):
     def __init__(
         self,
         mode: str = "gui",
-        auto_select: Optional[str] = None,
+        auto_select: str | None = None,
         save_to_annotations: bool = False,
     ) -> None:
         self.mode = mode
@@ -84,9 +84,7 @@ class TriggerExplorer(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if self.mode not in ("gui", "terminal", "auto"):
-            raise ProcessorValidationError(
-                f"mode must be 'gui', 'terminal', or 'auto', got '{self.mode}'"
-            )
+            raise ProcessorValidationError(f"mode must be 'gui', 'terminal', or 'auto', got '{self.mode}'")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -110,9 +108,7 @@ class TriggerExplorer(Processor):
         if n_raw_annotations > 0:
             onset_min = raw.annotations.onset.min()
             onset_max = raw.annotations.onset.max()
-            logger.debug(
-                "raw.annotations onset range: {:.2f}s – {:.2f}s", onset_min, onset_max
-            )
+            logger.debug("raw.annotations onset range: {:.2f}s – {:.2f}s", onset_min, onset_max)
 
         # --- COMPUTE ---
         annotation_events = self._collect_annotation_events(raw)
@@ -133,8 +129,7 @@ class TriggerExplorer(Processor):
                     "(check that tmin/tmax covers the trigger region)."
                 )
             raise ProcessorError(
-                "No trigger sources found: data contains neither "
-                f"annotations nor STIM channels.{hint}"
+                f"No trigger sources found: data contains neither annotations nor STIM channels.{hint}"
             )
 
         event_table = self._build_event_table(annotation_events, stim_events)
@@ -143,9 +138,7 @@ class TriggerExplorer(Processor):
         triggers = self._detect_triggers(raw, selected)
 
         if len(triggers) == 0:
-            raise ProcessorError(
-                f"Selection '{selected['description']}' matched 0 triggers."
-            )
+            raise ProcessorError(f"Selection '{selected['description']}' matched 0 triggers.")
 
         logger.info(
             "Selected trigger '{}' → {} events detected",
@@ -183,9 +176,7 @@ class TriggerExplorer(Processor):
     # Event collection helpers
     # ------------------------------------------------------------------
 
-    def _collect_annotation_events(
-        self, raw: mne.io.Raw
-    ) -> List[Dict[str, Any]]:
+    def _collect_annotation_events(self, raw: mne.io.Raw) -> list[dict[str, Any]]:
         """Gather unique annotation descriptions with counts and timing info.
 
         Uses ``mne.events_from_annotations`` rather than direct
@@ -219,7 +210,7 @@ class TriggerExplorer(Processor):
         id_to_desc = {v: k for k, v in event_id.items()}
         sfreq = raw.info["sfreq"]
 
-        desc_map: Dict[str, List[float]] = {}
+        desc_map: dict[str, list[float]] = {}
         for event in events:
             desc = id_to_desc.get(int(event[2]), str(event[2]))
             onset = event[0] / sfreq
@@ -227,20 +218,20 @@ class TriggerExplorer(Processor):
 
         results = []
         for desc, onsets in sorted(desc_map.items()):
-            results.append({
-                "description": desc,
-                "count": len(onsets),
-                "first_onset": min(onsets),
-                "last_onset": max(onsets),
-            })
+            results.append(
+                {
+                    "description": desc,
+                    "count": len(onsets),
+                    "first_onset": min(onsets),
+                    "last_onset": max(onsets),
+                }
+            )
 
         results = self._maybe_group_sequential_annotations(results)
         return results
 
     @staticmethod
-    def _maybe_group_sequential_annotations(
-        events: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    def _maybe_group_sequential_annotations(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Merge annotations that are 'prefix + number' sequences into one entry.
 
         Many EDF files encode fMRI scan triggers as sequential annotations
@@ -265,8 +256,8 @@ class TriggerExplorer(Processor):
         """
         _NUMERIC_SUFFIX_RE = re.compile(r"^(.+?)\s+\d+$")
 
-        prefix_groups: Dict[str, List[Dict[str, Any]]] = {}
-        no_prefix: List[Dict[str, Any]] = []
+        prefix_groups: dict[str, list[dict[str, Any]]] = {}
+        no_prefix: list[dict[str, Any]] = []
 
         for ev in events:
             m = _NUMERIC_SUFFIX_RE.match(ev["description"])
@@ -275,22 +266,24 @@ class TriggerExplorer(Processor):
             else:
                 no_prefix.append(ev)
 
-        merged: List[Dict[str, Any]] = list(no_prefix)
+        merged: list[dict[str, Any]] = list(no_prefix)
         for prefix, group in sorted(prefix_groups.items()):
             if len(group) < 2:
                 merged.extend(group)
             else:
-                merged.append({
-                    "description": prefix,
-                    "count": sum(e["count"] for e in group),
-                    "first_onset": min(e["first_onset"] for e in group),
-                    "last_onset": max(e["last_onset"] for e in group),
-                    "grouped_prefix": True,
-                })
+                merged.append(
+                    {
+                        "description": prefix,
+                        "count": sum(e["count"] for e in group),
+                        "first_onset": min(e["first_onset"] for e in group),
+                        "last_onset": max(e["last_onset"] for e in group),
+                        "grouped_prefix": True,
+                    }
+                )
 
         return merged
 
-    def _collect_stim_events(self, raw: mne.io.Raw) -> List[Dict[str, Any]]:
+    def _collect_stim_events(self, raw: mne.io.Raw) -> list[dict[str, Any]]:
         """Gather unique STIM channel event values with counts and timing info.
 
         Parameters
@@ -311,24 +304,24 @@ class TriggerExplorer(Processor):
         results = []
         for ch_idx in stim_picks:
             ch_name = raw.ch_names[ch_idx]
-            events = mne.find_events(
-                raw, stim_channel=ch_name, initial_event=True, verbose=False
-            )
+            events = mne.find_events(raw, stim_channel=ch_name, initial_event=True, verbose=False)
             if len(events) == 0:
                 continue
 
-            value_map: Dict[int, List[int]] = {}
+            value_map: dict[int, list[int]] = {}
             for event in events:
                 value_map.setdefault(int(event[2]), []).append(int(event[0]))
 
             for value, samples in sorted(value_map.items()):
-                results.append({
-                    "description": str(value),
-                    "count": len(samples),
-                    "first_sample": min(samples),
-                    "last_sample": max(samples),
-                    "channel_name": ch_name,
-                })
+                results.append(
+                    {
+                        "description": str(value),
+                        "count": len(samples),
+                        "first_sample": min(samples),
+                        "last_sample": max(samples),
+                        "channel_name": ch_name,
+                    }
+                )
         return results
 
     # ------------------------------------------------------------------
@@ -337,9 +330,9 @@ class TriggerExplorer(Processor):
 
     def _build_event_table(
         self,
-        annotation_events: List[Dict[str, Any]],
-        stim_events: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        annotation_events: list[dict[str, Any]],
+        stim_events: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """Merge annotation and stim events into a numbered table.
 
         Parameters
@@ -355,7 +348,7 @@ class TriggerExplorer(Processor):
             Unified table with ``index``, ``source``, ``description``,
             ``count``, and ``detail`` keys.
         """
-        table: List[Dict[str, Any]] = []
+        table: list[dict[str, Any]] = []
         idx = 1
 
         for ev in annotation_events:
@@ -364,27 +357,29 @@ class TriggerExplorer(Processor):
                 detail = f"{time_range}  (sequential: '{ev['description']} 1' … '{ev['description']} N')"
             else:
                 detail = time_range
-            table.append({
-                "index": idx,
-                "source": "annotation",
-                "description": ev["description"],
-                "count": ev["count"],
-                "detail": detail,
-                "grouped_prefix": ev.get("grouped_prefix", False),
-            })
+            table.append(
+                {
+                    "index": idx,
+                    "source": "annotation",
+                    "description": ev["description"],
+                    "count": ev["count"],
+                    "detail": detail,
+                    "grouped_prefix": ev.get("grouped_prefix", False),
+                }
+            )
             idx += 1
 
         for ev in stim_events:
             sfreq_label = ev.get("channel_name", "STIM")
-            table.append({
-                "index": idx,
-                "source": f"stim ({sfreq_label})",
-                "description": ev["description"],
-                "count": ev["count"],
-                "detail": (
-                    f"sample {ev['first_sample']} – {ev['last_sample']}"
-                ),
-            })
+            table.append(
+                {
+                    "index": idx,
+                    "source": f"stim ({sfreq_label})",
+                    "description": ev["description"],
+                    "count": ev["count"],
+                    "detail": (f"sample {ev['first_sample']} – {ev['last_sample']}"),
+                }
+            )
             idx += 1
 
         return table
@@ -393,9 +388,7 @@ class TriggerExplorer(Processor):
     # Selection dispatch
     # ------------------------------------------------------------------
 
-    def _select_event(
-        self, event_table: List[Dict[str, Any]], raw: mne.io.Raw
-    ) -> Dict[str, Any]:
+    def _select_event(self, event_table: list[dict[str, Any]], raw: mne.io.Raw) -> dict[str, Any]:
         """Select a trigger event via the configured interaction mode.
 
         Parameters
@@ -416,9 +409,7 @@ class TriggerExplorer(Processor):
         if self.mode in ("gui", "auto"):
             if self._gui_backend_available():
                 return self._gui_select_event(event_table, raw)
-            logger.warning(
-                "No matplotlib GUI backend available — falling back to terminal mode"
-            )
+            logger.warning("No matplotlib GUI backend available — falling back to terminal mode")
 
         self._display_event_table(event_table)
         return self._terminal_select_event(event_table)
@@ -428,6 +419,7 @@ class TriggerExplorer(Processor):
         """Return True if matplotlib can open an interactive window."""
         try:
             import matplotlib
+
             backend = matplotlib.get_backend().lower()
             non_interactive = {"agg", "pdf", "svg", "ps", "cairo", "template"}
             return backend not in non_interactive
@@ -438,9 +430,7 @@ class TriggerExplorer(Processor):
     # GUI selection mode
     # ------------------------------------------------------------------
 
-    def _gui_select_event(
-        self, event_table: List[Dict[str, Any]], raw: mne.io.Raw
-    ) -> Dict[str, Any]:
+    def _gui_select_event(self, event_table: list[dict[str, Any]], raw: mne.io.Raw) -> dict[str, Any]:
         """Open a matplotlib window with a waveform preview for interactive selection.
 
         Parameters
@@ -456,7 +446,7 @@ class TriggerExplorer(Processor):
             The confirmed row from the event table.
         """
         import matplotlib.pyplot as plt
-        from matplotlib.widgets import RadioButtons, Button
+        from matplotlib.widgets import Button, RadioButtons
 
         sfreq = raw.info["sfreq"]
         ch_idx, ch_name = self._pick_preview_channel(raw)
@@ -480,7 +470,7 @@ class TriggerExplorer(Processor):
         for lbl in radio.labels:
             lbl.set_fontsize(9)
 
-        state: Dict[str, Any] = {
+        state: dict[str, Any] = {
             "selected": event_table[0],
             "confirmed": False,
             "vlines": None,
@@ -490,8 +480,11 @@ class TriggerExplorer(Processor):
             idx = labels.index(label)
             state["selected"] = event_table[idx]
             self._update_gui_plot(
-                ax_plot, state, trigger_times_map[event_table[idx]["index"]],
-                ch_name, data,
+                ax_plot,
+                state,
+                trigger_times_map[event_table[idx]["index"]],
+                ch_name,
+                data,
             )
             self._update_gui_info(ax_info, event_table[idx])
             fig.canvas.draw_idle()
@@ -513,9 +506,7 @@ class TriggerExplorer(Processor):
         plt.show(block=True)
 
         if not state["confirmed"]:
-            raise ProcessorError(
-                "Trigger selection cancelled (window closed without confirming)."
-            )
+            raise ProcessorError("Trigger selection cancelled (window closed without confirming).")
 
         return state["selected"]
 
@@ -539,9 +530,7 @@ class TriggerExplorer(Processor):
         return 0, raw.ch_names[0]
 
     @staticmethod
-    def _downsample_for_display(
-        raw: mne.io.Raw, ch_idx: int
-    ) -> tuple:
+    def _downsample_for_display(raw: mne.io.Raw, ch_idx: int) -> tuple:
         """Return a downsampled ``(data, times)`` pair for plotting.
 
         Parameters
@@ -614,7 +603,7 @@ class TriggerExplorer(Processor):
     @staticmethod
     def _update_gui_plot(
         ax: Any,
-        state: Dict[str, Any],
+        state: dict[str, Any],
         trigger_times: np.ndarray,
         ch_name: str,
         data: np.ndarray,
@@ -658,7 +647,7 @@ class TriggerExplorer(Processor):
         )
 
     @staticmethod
-    def _update_gui_info(ax: Any, row: Dict[str, Any]) -> None:
+    def _update_gui_info(ax: Any, row: dict[str, Any]) -> None:
         """Update the info text box below the radio buttons.
 
         Parameters
@@ -681,7 +670,9 @@ class TriggerExplorer(Processor):
             f"Range:  {row['detail']}",
         ]
         ax.text(
-            0.05, 0.90, "\n".join(lines),
+            0.05,
+            0.90,
+            "\n".join(lines),
             transform=ax.transAxes,
             fontsize=9,
             verticalalignment="top",
@@ -692,7 +683,7 @@ class TriggerExplorer(Processor):
     # Terminal / Rich table display
     # ------------------------------------------------------------------
 
-    def _display_event_table(self, event_table: List[Dict[str, Any]]) -> None:
+    def _display_event_table(self, event_table: list[dict[str, Any]]) -> None:
         """Render the event table to the console using Rich.
 
         Parameters
@@ -701,8 +692,8 @@ class TriggerExplorer(Processor):
             Unified event table produced by ``_build_event_table``.
         """
         try:
-            from rich.table import Table
             from rich.console import Console as RichConsole
+            from rich.table import Table
         except ImportError:
             self._display_event_table_plain(event_table)
             return
@@ -737,9 +728,7 @@ class TriggerExplorer(Processor):
         rich_console.print()
 
     @staticmethod
-    def _display_event_table_plain(
-        event_table: List[Dict[str, Any]]
-    ) -> None:
+    def _display_event_table_plain(event_table: list[dict[str, Any]]) -> None:
         """Fallback plain-text display when Rich is unavailable.
 
         Parameters
@@ -752,8 +741,7 @@ class TriggerExplorer(Processor):
         lines = ["\nAvailable Trigger Sources", sep, header, sep]
         for row in event_table:
             lines.append(
-                f"{row['index']:>4}  {row['source']:<16} "
-                f"{row['description']:<20} {row['count']:>7}  {row['detail']}"
+                f"{row['index']:>4}  {row['source']:<16} {row['description']:<20} {row['count']:>7}  {row['detail']}"
             )
         lines.append(sep)
         print("\n".join(lines))
@@ -762,9 +750,7 @@ class TriggerExplorer(Processor):
     # Terminal selection
     # ------------------------------------------------------------------
 
-    def _auto_select_event(
-        self, event_table: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def _auto_select_event(self, event_table: list[dict[str, Any]]) -> dict[str, Any]:
         """Select the first event whose description matches ``auto_select``.
 
         Parameters
@@ -789,13 +775,10 @@ class TriggerExplorer(Processor):
 
         descriptions = [r["description"] for r in event_table]
         raise ProcessorError(
-            f"auto_select pattern '{self.auto_select}' did not match any "
-            f"event. Available: {descriptions}"
+            f"auto_select pattern '{self.auto_select}' did not match any event. Available: {descriptions}"
         )
 
-    def _terminal_select_event(
-        self, event_table: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    def _terminal_select_event(self, event_table: list[dict[str, Any]]) -> dict[str, Any]:
         """Prompt the user to pick a trigger event by number or description.
 
         Parameters
@@ -812,13 +795,9 @@ class TriggerExplorer(Processor):
         max_idx = len(event_table)
 
         with suspend_raw_mode():
-            console_obj.set_active_prompt(
-                f"Select trigger source [1-{max_idx}]: "
-            )
+            console_obj.set_active_prompt(f"Select trigger source [1-{max_idx}]: ")
             try:
-                answer = input(
-                    f"Select trigger source [1-{max_idx}] or type a description: "
-                ).strip()
+                answer = input(f"Select trigger source [1-{max_idx}] or type a description: ").strip()
             finally:
                 console_obj.clear_active_prompt()
 
@@ -829,9 +808,7 @@ class TriggerExplorer(Processor):
             choice = int(answer)
             if 1 <= choice <= max_idx:
                 return event_table[choice - 1]
-            raise ProcessorError(
-                f"Invalid selection '{choice}'. Must be between 1 and {max_idx}."
-            )
+            raise ProcessorError(f"Invalid selection '{choice}'. Must be between 1 and {max_idx}.")
 
         for row in event_table:
             if row["description"] == answer:
@@ -844,20 +821,17 @@ class TriggerExplorer(Processor):
         if len(matches) > 1:
             descs = [m["description"] for m in matches]
             raise ProcessorError(
-                f"Pattern '{answer}' matched multiple events: {descs}. "
-                "Please be more specific or use the row number."
+                f"Pattern '{answer}' matched multiple events: {descs}. Please be more specific or use the row number."
             )
 
-        raise ProcessorError(
-            f"'{answer}' does not match any available event description."
-        )
+        raise ProcessorError(f"'{answer}' does not match any available event description.")
 
     # ------------------------------------------------------------------
     # Trigger detection
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _regex_for_selection(selected: Dict[str, Any]) -> str:
+    def _regex_for_selection(selected: dict[str, Any]) -> str:
         """Build a regex pattern anchored to the selected event description.
 
         For grouped sequential annotations (e.g. ``"TR 1"``, ``"TR 2"``, …)
@@ -880,9 +854,7 @@ class TriggerExplorer(Processor):
             return rf"^{re.escape(desc)}\s+\d+$"
         return rf"\b{re.escape(desc)}\b"
 
-    def _detect_triggers(
-        self, raw: mne.io.Raw, selected: Dict[str, Any]
-    ) -> np.ndarray:
+    def _detect_triggers(self, raw: mne.io.Raw, selected: dict[str, Any]) -> np.ndarray:
         """Detect trigger sample positions for the selected event.
 
         Parameters
@@ -914,9 +886,7 @@ class TriggerExplorer(Processor):
         return triggers - raw.first_samp
 
     @staticmethod
-    def _triggers_from_annotations_prefix(
-        raw: mne.io.Raw, prefix: str
-    ) -> np.ndarray:
+    def _triggers_from_annotations_prefix(raw: mne.io.Raw, prefix: str) -> np.ndarray:
         """Extract trigger positions for all annotations matching ``prefix N``.
 
         Used when the user selects a grouped sequential annotation (e.g. all
@@ -941,9 +911,7 @@ class TriggerExplorer(Processor):
         return np.array(sorted(events[:, 0]), dtype=np.int64)
 
     @staticmethod
-    def _triggers_from_stim(
-        raw: mne.io.Raw, pattern: re.Pattern, source: str
-    ) -> np.ndarray:
+    def _triggers_from_stim(raw: mne.io.Raw, pattern: re.Pattern, source: str) -> np.ndarray:
         """Extract trigger positions from a STIM channel.
 
         Parameters
@@ -962,20 +930,14 @@ class TriggerExplorer(Processor):
         """
         ch_match = re.search(r"\((.+)\)", source)
         stim_picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=True)
-        ch_name = (
-            ch_match.group(1) if ch_match else raw.ch_names[stim_picks[0]]
-        )
+        ch_name = ch_match.group(1) if ch_match else raw.ch_names[stim_picks[0]]
 
-        events = mne.find_events(
-            raw, stim_channel=ch_name, initial_event=True, verbose=False
-        )
+        events = mne.find_events(raw, stim_channel=ch_name, initial_event=True, verbose=False)
         filtered = [ev for ev in events if pattern.search(str(ev[2]))]
         return np.array([ev[0] for ev in filtered], dtype=np.int64)
 
     @staticmethod
-    def _triggers_from_annotations(
-        raw: mne.io.Raw, description: str
-    ) -> np.ndarray:
+    def _triggers_from_annotations(raw: mne.io.Raw, description: str) -> np.ndarray:
         """Extract trigger positions from annotations matching ``description``.
 
         Parameters
@@ -991,9 +953,7 @@ class TriggerExplorer(Processor):
             Trigger sample positions.
         """
         regex = rf"\b{re.escape(description)}\b"
-        events, _ = mne.events_from_annotations(
-            raw, regexp=regex, verbose=False
-        )
+        events, _ = mne.events_from_annotations(raw, regexp=regex, verbose=False)
         if len(events) == 0:
             return np.array([], dtype=np.int64)
         return np.array([ev[0] for ev in events], dtype=np.int64)
@@ -1030,9 +990,7 @@ class TriggerExplorer(Processor):
             "volume_gaps": False,
         }
 
-    def _compute_slice_volume_metadata(
-        self, triggers: np.ndarray, trigger_diffs: np.ndarray
-    ) -> dict:
+    def _compute_slice_volume_metadata(self, triggers: np.ndarray, trigger_diffs: np.ndarray) -> dict:
         """Compute metadata when volume-level gaps are present.
 
         Parameters

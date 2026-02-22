@@ -2,14 +2,13 @@
 PCA-based artifact correction processor.
 """
 
-from typing import Optional, Union
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import filtfilt, butter
+from scipy.signal import butter, filtfilt
 
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 from ..console import processor_progress
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..helpers.utils import split_vector
 
 
@@ -55,10 +54,10 @@ class PCACorrection(Processor):
 
     def __init__(
         self,
-        n_components: Union[int, float] = 0.95,
-        hp_freq: Optional[float] = None,
-        hp_filter_weights: Optional[np.ndarray] = None,
-        exclude_channels: Optional[list] = None,
+        n_components: int | float = 0.95,
+        hp_freq: float | None = None,
+        hp_filter_weights: np.ndarray | None = None,
+        exclude_channels: list | None = None,
     ) -> None:
         self.n_components = n_components
         self.hp_freq = hp_freq
@@ -69,23 +68,17 @@ class PCACorrection(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
         raw = context.get_raw().copy()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
         # --- LOG ---
-        logger.info(
-            "Applying PCA artifact correction to {} channels", len(eeg_channels)
-        )
+        logger.info("Applying PCA artifact correction to {} channels", len(eeg_channels))
 
         if len(eeg_channels) == 0:
             logger.warning("No EEG channels found, skipping PCA")
@@ -115,8 +108,12 @@ class PCACorrection(Processor):
 
                 try:
                     residuals = self._calc_pca_residuals(
-                        raw._data[ch_idx], triggers, artifact_length,
-                        s_acq_start, s_acq_end, hp_weights,
+                        raw._data[ch_idx],
+                        triggers,
+                        artifact_length,
+                        s_acq_start,
+                        s_acq_end,
+                        hp_weights,
                     )
                     raw._data[ch_idx][s_acq_start:s_acq_end] -= residuals
                     estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += residuals
@@ -137,7 +134,7 @@ class PCACorrection(Processor):
     # Private Helpers
     # -------------------------------------------------------------------------
 
-    def _resolve_hp_weights(self, sfreq: float) -> Optional[np.ndarray]:
+    def _resolve_hp_weights(self, sfreq: float) -> np.ndarray | None:
         """Return the appropriate high-pass filter weights.
 
         Parameters
@@ -164,7 +161,7 @@ class PCACorrection(Processor):
         artifact_length: int,
         s_acq_start: int,
         s_acq_end: int,
-        hp_weights: Optional[np.ndarray],
+        hp_weights: np.ndarray | None,
     ) -> np.ndarray:
         """Calculate PCA-based artifact residuals for a single channel.
 
@@ -190,18 +187,13 @@ class PCACorrection(Processor):
         """
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
-        if hp_weights is not None:
-            ch_data_filtered = filtfilt(hp_weights, 1, ch_data_acq)
-        else:
-            ch_data_filtered = ch_data_acq
+        ch_data_filtered = filtfilt(hp_weights, 1, ch_data_acq) if hp_weights is not None else ch_data_acq
 
         adjusted_triggers = triggers - s_acq_start
         # Small offset prevents epoch boundaries from sitting exactly on the trigger
         offset = int(artifact_length * 0.1)
 
-        epochs = split_vector(
-            ch_data_filtered, adjusted_triggers + offset, artifact_length
-        )
+        epochs = split_vector(ch_data_filtered, adjusted_triggers + offset, artifact_length)
         residuals_per_epoch = self._calc_pca(epochs)
 
         fitted_res = np.zeros(len(ch_data_acq))
@@ -263,9 +255,7 @@ class PCACorrection(Processor):
         U_reduced = U[:, :n_components]
         S_reduced = S[:n_components]
         Vt_reduced = Vt[:n_components, :]
-        X_reconstructed_valid = (
-            (U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid
-        ) + mean_valid
+        X_reconstructed_valid = ((U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid) + mean_valid
 
         residuals_valid = X_valid - X_reconstructed_valid
         residuals_full = np.zeros_like(epochs_t)
@@ -273,9 +263,7 @@ class PCACorrection(Processor):
 
         return residuals_full.T
 
-    def _select_n_components(
-        self, singular_values: np.ndarray, max_components: int, n_samples: int
-    ) -> int:
+    def _select_n_components(self, singular_values: np.ndarray, max_components: int, n_samples: int) -> int:
         """Determine the number of PCA components to retain.
 
         Parameters
@@ -298,7 +286,7 @@ class PCACorrection(Processor):
         if not 0 < self.n_components < 1:
             raise ValueError("n_components as float must be between 0 and 1.")
 
-        explained_var = (singular_values ** 2) / (n_samples - 1)
+        explained_var = (singular_values**2) / (n_samples - 1)
         explained_ratio = np.cumsum(explained_var) / np.sum(explained_var)
         n = np.searchsorted(explained_ratio, self.n_components) + 1
         return max(1, min(int(n), max_components))

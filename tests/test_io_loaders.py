@@ -1,8 +1,8 @@
 """Tests for EEG data loaders."""
 
+import mne
 import numpy as np
 import pytest
-import mne
 
 from facet.core import ProcessorValidationError
 from facet.io.loaders import Loader, _apply_sample_window

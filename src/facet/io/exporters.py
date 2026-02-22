@@ -8,14 +8,13 @@ Date: 2025-01-12
 """
 
 from pathlib import Path
-from typing import Optional, Dict
 
-import numpy as np
 import mne
-from mne_bids import BIDSPath, write_raw_bids
+import numpy as np
 from loguru import logger
+from mne_bids import BIDSPath, write_raw_bids
 
-from ..core import Processor, ProcessingContext, register_processor
+from ..core import ProcessingContext, Processor, register_processor
 
 
 @register_processor
@@ -122,8 +121,8 @@ class BIDSExporter(Processor):
         root: str,
         subject: str,
         task: str,
-        session: Optional[str] = None,
-        event_id: Optional[Dict] = None,
+        session: str | None = None,
+        event_id: dict | None = None,
         overwrite: bool = True,
     ) -> None:
         self.root = root

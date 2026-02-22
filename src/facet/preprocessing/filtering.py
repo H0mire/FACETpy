@@ -7,12 +7,10 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import Optional, List, Union
 import mne
 from loguru import logger
-import numpy as np
 
-from ..core import Processor, ProcessingContext, register_processor
+from ..core import ProcessingContext, Processor, register_processor
 from ..logging_config import suppress_stdout
 
 
@@ -56,14 +54,14 @@ class Filter(Processor):
 
     def __init__(
         self,
-        l_freq: Optional[float] = None,
-        h_freq: Optional[float] = None,
-        picks: Optional[Union[str, List[str]]] = None,
-        filter_length: str = 'auto',
-        method: str = 'fir',
-        phase: str = 'zero',
-        fir_window: str = 'hamming',
-        verbose: bool = False
+        l_freq: float | None = None,
+        h_freq: float | None = None,
+        picks: str | list[str] | None = None,
+        filter_length: str = "auto",
+        method: str = "fir",
+        phase: str = "zero",
+        fir_window: str = "hamming",
+        verbose: bool = False,
     ):
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -81,11 +79,11 @@ class Filter(Processor):
 
         # --- LOG ---
         if self.l_freq and self.h_freq:
-            filter_type = "bandpass ({}-{}Hz)".format(self.l_freq, self.h_freq)
+            filter_type = f"bandpass ({self.l_freq}-{self.h_freq}Hz)"
         elif self.l_freq:
-            filter_type = "highpass ({}Hz)".format(self.l_freq)
+            filter_type = f"highpass ({self.l_freq}Hz)"
         elif self.h_freq:
-            filter_type = "lowpass ({}Hz)".format(self.h_freq)
+            filter_type = f"lowpass ({self.h_freq}Hz)"
         else:
             filter_type = "no filter"
         logger.info("Applying {}", filter_type)
@@ -99,7 +97,7 @@ class Filter(Processor):
             method=self.method,
             phase=self.phase,
             fir_window=self.fir_window,
-            verbose=self.verbose
+            verbose=self.verbose,
         )
 
         # --- NOISE ---
@@ -116,7 +114,7 @@ class Filter(Processor):
                 method=self.method,
                 phase=self.phase,
                 fir_window=self.fir_window,
-                verbose=False
+                verbose=False,
             )
             new_ctx.set_estimated_noise(noise_raw.get_data())
         else:
@@ -161,11 +159,11 @@ class HighPassFilter(Filter):
     def __init__(
         self,
         freq: float,
-        picks: Optional[Union[str, List[str]]] = None,
-        filter_length: str = 'auto',
-        method: str = 'fir',
-        phase: str = 'zero',
-        fir_window: str = 'hamming'
+        picks: str | list[str] | None = None,
+        filter_length: str = "auto",
+        method: str = "fir",
+        phase: str = "zero",
+        fir_window: str = "hamming",
     ):
         super().__init__(
             l_freq=freq,
@@ -174,18 +172,18 @@ class HighPassFilter(Filter):
             filter_length=filter_length,
             method=method,
             phase=phase,
-            fir_window=fir_window
+            fir_window=fir_window,
         )
 
     def _get_parameters(self):
         """Expose user-facing freq parameter for history/serialization."""
         return {
-            'freq': self.l_freq,
-            'picks': self.picks,
-            'filter_length': self.filter_length,
-            'method': self.method,
-            'phase': self.phase,
-            'fir_window': self.fir_window
+            "freq": self.l_freq,
+            "picks": self.picks,
+            "filter_length": self.filter_length,
+            "method": self.method,
+            "phase": self.phase,
+            "fir_window": self.fir_window,
         }
 
 
@@ -224,11 +222,11 @@ class LowPassFilter(Filter):
     def __init__(
         self,
         freq: float,
-        picks: Optional[Union[str, List[str]]] = None,
-        filter_length: str = 'auto',
-        method: str = 'fir',
-        phase: str = 'zero',
-        fir_window: str = 'hamming'
+        picks: str | list[str] | None = None,
+        filter_length: str = "auto",
+        method: str = "fir",
+        phase: str = "zero",
+        fir_window: str = "hamming",
     ):
         super().__init__(
             l_freq=None,
@@ -237,18 +235,18 @@ class LowPassFilter(Filter):
             filter_length=filter_length,
             method=method,
             phase=phase,
-            fir_window=fir_window
+            fir_window=fir_window,
         )
 
     def _get_parameters(self):
         """Expose user-facing freq parameter for history/serialization."""
         return {
-            'freq': self.h_freq,
-            'picks': self.picks,
-            'filter_length': self.filter_length,
-            'method': self.method,
-            'phase': self.phase,
-            'fir_window': self.fir_window
+            "freq": self.h_freq,
+            "picks": self.picks,
+            "filter_length": self.filter_length,
+            "method": self.method,
+            "phase": self.phase,
+            "fir_window": self.fir_window,
         }
 
 
@@ -290,11 +288,11 @@ class BandPassFilter(Filter):
         self,
         l_freq: float,
         h_freq: float,
-        picks: Optional[Union[str, List[str]]] = None,
-        filter_length: str = 'auto',
-        method: str = 'fir',
-        phase: str = 'zero',
-        fir_window: str = 'hamming'
+        picks: str | list[str] | None = None,
+        filter_length: str = "auto",
+        method: str = "fir",
+        phase: str = "zero",
+        fir_window: str = "hamming",
     ):
         super().__init__(
             l_freq=l_freq,
@@ -303,7 +301,7 @@ class BandPassFilter(Filter):
             filter_length=filter_length,
             method=method,
             phase=phase,
-            fir_window=fir_window
+            fir_window=fir_window,
         )
 
 
@@ -346,13 +344,13 @@ class NotchFilter(Processor):
 
     def __init__(
         self,
-        freqs: Union[float, List[float]],
-        picks: Optional[Union[str, List[str]]] = None,
-        filter_length: str = 'auto',
-        notch_widths: Optional[Union[float, List[float]]] = None,
-        method: str = 'fir',
-        phase: str = 'zero',
-        fir_window: str = 'hamming'
+        freqs: float | list[float],
+        picks: str | list[str] | None = None,
+        filter_length: str = "auto",
+        notch_widths: float | list[float] | None = None,
+        method: str = "fir",
+        phase: str = "zero",
+        fir_window: str = "hamming",
     ):
         self.freqs = freqs if isinstance(freqs, list) else [freqs]
         self.picks = picks
@@ -379,7 +377,7 @@ class NotchFilter(Processor):
             method=self.method,
             phase=self.phase,
             fir_window=self.fir_window,
-            verbose=False
+            verbose=False,
         )
 
         # --- NOISE ---
@@ -396,7 +394,7 @@ class NotchFilter(Processor):
                 method=self.method,
                 phase=self.phase,
                 fir_window=self.fir_window,
-                verbose=False
+                verbose=False,
             )
             new_ctx.set_estimated_noise(noise_raw.get_data())
         else:

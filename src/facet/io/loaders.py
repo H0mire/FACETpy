@@ -7,26 +7,27 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+from collections.abc import Callable
 from numbers import Integral, Real
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, List, Tuple
+from typing import Any
 
 import mne
+from loguru import logger
 from mne.io import BaseRaw
 from mne_bids import BIDSPath, read_raw_bids
-from loguru import logger
+
+from facet.logging_config import suppress_stdout
 
 from ..core import (
-    Processor,
     ProcessingContext,
     ProcessingMetadata,
+    Processor,
     ProcessorValidationError,
     register_processor,
 )
-from facet.logging_config import suppress_stdout
 
-
-_EXTENSION_READERS: Dict[str, Tuple[Callable[..., BaseRaw], str]] = {
+_EXTENSION_READERS: dict[str, tuple[Callable[..., BaseRaw], str]] = {
     ".edf": (mne.io.read_raw_edf, "EDF"),
     ".bdf": (mne.io.read_raw_bdf, "BDF"),
     ".gdf": (mne.io.read_raw_gdf, "GDF"),
@@ -36,10 +37,10 @@ _EXTENSION_READERS: Dict[str, Tuple[Callable[..., BaseRaw], str]] = {
     ".mff": (mne.io.read_raw_egi, "MFF"),
 }
 
-SUPPORTED_EXTENSIONS: List[str] = sorted(_EXTENSION_READERS.keys())
+SUPPORTED_EXTENSIONS: list[str] = sorted(_EXTENSION_READERS.keys())
 
 
-def _detect_format(path: Path) -> Tuple[Callable[..., BaseRaw], str]:
+def _detect_format(path: Path) -> tuple[Callable[..., BaseRaw], str]:
     """Detect the EEG file format from the file extension.
 
     Parameters
@@ -72,7 +73,7 @@ def _detect_format(path: Path) -> Tuple[Callable[..., BaseRaw], str]:
     )
 
 
-def _coerce_sample_index(value: Optional[float], default: int, name: str) -> int:
+def _coerce_sample_index(value: float | None, default: int, name: str) -> int:
     """Convert a potentially optional numeric input into a valid sample index."""
     if value is None:
         return default
@@ -89,9 +90,9 @@ def _coerce_sample_index(value: Optional[float], default: int, name: str) -> int
 
 def _apply_sample_window(
     raw: BaseRaw,
-    start_sample: Optional[int],
-    stop_sample: Optional[int],
-) -> Tuple[BaseRaw, int, int]:
+    start_sample: int | None,
+    stop_sample: int | None,
+) -> tuple[BaseRaw, int, int]:
     """Restrict a Raw object to the requested sample window."""
     n_times = raw.n_times
     if n_times == 0:
@@ -103,17 +104,11 @@ def _apply_sample_window(
     if start < 0:
         raise ValueError("start_sample must be non-negative")
     if start >= n_times:
-        raise ValueError(
-            f"start_sample ({start}) is out of bounds for data with {n_times} samples"
-        )
+        raise ValueError(f"start_sample ({start}) is out of bounds for data with {n_times} samples")
     if stop <= start:
-        raise ValueError(
-            f"stop_sample ({stop}) must be greater than start_sample ({start})"
-        )
+        raise ValueError(f"stop_sample ({stop}) must be greater than start_sample ({start})")
     if stop > n_times:
-        raise ValueError(
-            f"stop_sample ({stop}) exceeds total samples ({n_times})"
-        )
+        raise ValueError(f"stop_sample ({stop}) exceeds total samples ({n_times})")
 
     if start > 0 or stop < n_times:
         sfreq = raw.info["sfreq"]
@@ -124,7 +119,7 @@ def _apply_sample_window(
     return raw, start, stop
 
 
-def _configure_bad_channels(raw: mne.io.Raw, bad_channels: List[str]) -> None:
+def _configure_bad_channels(raw: mne.io.Raw, bad_channels: list[str]) -> None:
     """Mark specified channels as bad in the Raw object.
 
     Parameters
@@ -152,21 +147,19 @@ def _configure_bad_channels(raw: mne.io.Raw, bad_channels: List[str]) -> None:
     raw.info["bads"] = valid_bads
 
     if valid_bads:
-        logger.debug(
-            "Marked {} bad channel(s): {}", len(valid_bads), ", ".join(valid_bads)
-        )
+        logger.debug("Marked {} bad channel(s): {}", len(valid_bads), ", ".join(valid_bads))
     else:
         logger.info("No valid bad channels found to mark; leaving dataset unchanged.")
 
 
 def _build_context_from_raw(
     raw: BaseRaw,
-    bad_channels: List[str],
-    start_sample: Optional[int],
-    stop_sample: Optional[int],
+    bad_channels: list[str],
+    start_sample: int | None,
+    stop_sample: int | None,
     artifact_to_trigger_offset: float,
     upsampling_factor: int,
-    extra_custom: Optional[Dict[str, Any]] = None,
+    extra_custom: dict[str, Any] | None = None,
 ) -> ProcessingContext:
     """Post-read pipeline shared by all loaders.
 
@@ -199,9 +192,7 @@ def _build_context_from_raw(
 
     full_n_times = raw.n_times
     try:
-        raw, start_idx, stop_idx = _apply_sample_window(
-            raw, start_sample, stop_sample
-        )
+        raw, start_idx, stop_idx = _apply_sample_window(raw, start_sample, stop_sample)
     except ValueError as exc:
         raise ProcessorValidationError(f"Invalid sample window: {exc}") from exc
 
@@ -276,12 +267,12 @@ class Loader(Processor):
     def __init__(
         self,
         path: str,
-        bad_channels: Optional[List[str]] = None,
+        bad_channels: list[str] | None = None,
         preload: bool = True,
         artifact_to_trigger_offset: float = 0.0,
         upsampling_factor: int = 1,
-        start_sample: Optional[int] = None,
-        stop_sample: Optional[int] = None,
+        start_sample: int | None = None,
+        stop_sample: int | None = None,
     ) -> None:
         self.path = path
         self.bad_channels = bad_channels or []
@@ -292,20 +283,19 @@ class Loader(Processor):
         self.stop_sample = stop_sample
         super().__init__()
 
-    def validate(self, context: Optional[ProcessingContext]) -> None:
+    def validate(self, context: ProcessingContext | None) -> None:
         resolved = Path(self.path)
         if not resolved.exists():
             raise ProcessorValidationError(f"File not found: {self.path}")
-        if resolved.is_dir():
-            if resolved.suffix.lower() != ".mff":
-                raise ProcessorValidationError(
-                    f"Path is a directory: {self.path}. "
-                    "For BIDS datasets, use BIDSLoader. For MFF format, the path must "
-                    "have a .mff extension (e.g. recording.mff)."
-                )
+        if resolved.is_dir() and resolved.suffix.lower() != ".mff":
+            raise ProcessorValidationError(
+                f"Path is a directory: {self.path}. "
+                "For BIDS datasets, use BIDSLoader. For MFF format, the path must "
+                "have a .mff extension (e.g. recording.mff)."
+            )
         _detect_format(resolved)
 
-    def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
+    def process(self, context: ProcessingContext | None) -> ProcessingContext:
         # --- EXTRACT ---
         resolved = Path(self.path)
         reader_fn, format_name = _detect_format(resolved)
@@ -376,13 +366,13 @@ class BIDSLoader(Processor):
         root: str,
         subject: str,
         task: str,
-        session: Optional[str] = None,
-        bad_channels: Optional[List[str]] = None,
+        session: str | None = None,
+        bad_channels: list[str] | None = None,
         preload: bool = True,
         artifact_to_trigger_offset: float = 0.0,
         upsampling_factor: int = 1,
-        start_sample: Optional[int] = None,
-        stop_sample: Optional[int] = None,
+        start_sample: int | None = None,
+        stop_sample: int | None = None,
     ) -> None:
         self.root = root
         self.subject = subject
@@ -396,11 +386,11 @@ class BIDSLoader(Processor):
         self.stop_sample = stop_sample
         super().__init__()
 
-    def validate(self, context: Optional[ProcessingContext]) -> None:
+    def validate(self, context: ProcessingContext | None) -> None:
         if not Path(self.root).exists():
             raise ProcessorValidationError(f"BIDS root directory not found: {self.root}")
 
-    def process(self, context: Optional[ProcessingContext]) -> ProcessingContext:
+    def process(self, context: ProcessingContext | None) -> ProcessingContext:
         # --- LOG ---
         logger.info(
             "Loading BIDS data: subject={}, task={}, session={}",

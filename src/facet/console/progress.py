@@ -4,24 +4,24 @@ from __future__ import annotations
 
 import contextvars
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from loguru import logger
 
 from .manager import get_console
 
-_CURRENT_STEP_INDEX: contextvars.ContextVar[Optional[int]] = contextvars.ContextVar(
+_CURRENT_STEP_INDEX: contextvars.ContextVar[int | None] = contextvars.ContextVar(
     "facet_console_current_step_index", default=None
 )
 
 
-def set_current_step_index(index: Optional[int]) -> None:
+def set_current_step_index(index: int | None) -> None:
     """Store the index of the processor currently executing on this thread."""
 
     _CURRENT_STEP_INDEX.set(index)
 
 
-def get_current_step_index() -> Optional[int]:
+def get_current_step_index() -> int | None:
     """Return the index of the processor currently executing on this thread."""
 
     return _CURRENT_STEP_INDEX.get()
@@ -31,10 +31,10 @@ def get_current_step_index() -> Optional[int]:
 class ProcessorProgress:
     """Convenience wrapper for pushing progress updates to the console."""
 
-    total: Optional[float] = None
-    message: Optional[str] = None
+    total: float | None = None
+    message: str | None = None
     current: float = 0.0
-    index: Optional[int] = field(default=None, init=False, repr=False)
+    index: int | None = field(default=None, init=False, repr=False)
     console: Any = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
@@ -48,7 +48,7 @@ class ProcessorProgress:
                 message=self.message,
             )
 
-    def advance(self, amount: float = 1.0, message: Optional[str] = None) -> None:
+    def advance(self, amount: float = 1.0, message: str | None = None) -> None:
         """Advance by ``amount`` units and optionally update the message."""
 
         self.current += amount
@@ -56,9 +56,9 @@ class ProcessorProgress:
 
     def update(
         self,
-        current: Optional[float] = None,
-        total: Optional[float] = None,
-        message: Optional[str] = None,
+        current: float | None = None,
+        total: float | None = None,
+        message: str | None = None,
     ) -> None:
         """Set the absolute progress values."""
 
@@ -68,7 +68,7 @@ class ProcessorProgress:
             self.total = total
         self._sync(message)
 
-    def complete(self, message: Optional[str] = None) -> None:
+    def complete(self, message: str | None = None) -> None:
         """Mark the progress as complete."""
 
         if self.total is not None:
@@ -76,7 +76,7 @@ class ProcessorProgress:
         self._sync(message)
 
     # Context manager helpers -------------------------------------------------
-    def __enter__(self) -> "ProcessorProgress":  # noqa: D401
+    def __enter__(self) -> ProcessorProgress:  # noqa: D401
         return self
 
     def __exit__(self, exc_type, exc, tb) -> None:  # noqa: D401
@@ -84,7 +84,7 @@ class ProcessorProgress:
             self.complete()
 
     # Internal helpers --------------------------------------------------------
-    def _sync(self, message: Optional[str]) -> None:
+    def _sync(self, message: str | None) -> None:
         if self.index is None:
             return
         self.console.update_step_progress(
@@ -95,7 +95,7 @@ class ProcessorProgress:
         )
 
 
-def processor_progress(total: Optional[float] = None, message: Optional[str] = None) -> ProcessorProgress:
+def processor_progress(total: float | None = None, message: str | None = None) -> ProcessorProgress:
     """Factory helper so processors can do ``with processor_progress(...)``."""
 
     return ProcessorProgress(total=total, message=message)
@@ -105,8 +105,8 @@ def report_metric(
     name: str,
     value: Any,
     *,
-    label: Optional[str] = None,
-    display: Optional[str] = None,
+    label: str | None = None,
+    display: str | None = None,
     level: str = "INFO",
 ) -> None:
     """Expose metrics inside the live console *and* log them via loguru.

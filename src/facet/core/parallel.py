@@ -7,17 +7,21 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import contextlib
 import functools
 import multiprocessing as mp
 import sys
-from typing import Callable, List, Optional
-from loguru import logger
-import numpy as np
+from collections.abc import Callable
+
 import mne
-from .processor import Processor
-from .context import ProcessingContext
-from facet.logging_config import suppress_stdout
+import numpy as np
+from loguru import logger
+
 from facet.console.progress import processor_progress
+from facet.logging_config import suppress_stdout
+
+from .context import ProcessingContext
+from .processor import Processor
 
 # Use "spawn" so child processes start clean without inheriting threads
 # (e.g. the Textual TUI thread).  "fork" is unsafe in multithreaded
@@ -25,10 +29,8 @@ from facet.console.progress import processor_progress
 # Workers already serialise everything via to_dict/from_dict, so spawn
 # is a drop-in replacement.
 if sys.platform != "win32":
-    try:
+    with contextlib.suppress(RuntimeError):
         mp.set_start_method("spawn", force=True)
-    except RuntimeError:
-        pass
 
 
 def _worker_function(processor_config: dict, context_data: dict) -> dict:
@@ -44,8 +46,8 @@ def _worker_function(processor_config: dict, context_data: dict) -> dict:
     Returns:
         Serialized result context
     """
-    processor_class = processor_config['class']
-    processor_params = processor_config['parameters']
+    processor_class = processor_config["class"]
+    processor_params = processor_config["parameters"]
     processor = processor_class(**processor_params)
 
     context = ProcessingContext.from_dict(context_data)
@@ -67,12 +69,7 @@ class ParallelExecutor:
         result_context = executor.execute(processor, context)
     """
 
-    def __init__(
-        self,
-        n_jobs: int = -1,
-        backend: str = "multiprocessing",
-        verbose: bool = True
-    ):
+    def __init__(self, n_jobs: int = -1, backend: str = "multiprocessing", verbose: bool = True):
         """
         Initialize parallel executor.
 
@@ -86,10 +83,7 @@ class ParallelExecutor:
         self.verbose = verbose
 
         if backend not in ["multiprocessing", "threading", "serial"]:
-            raise ValueError(
-                f"Invalid backend: {backend}. "
-                "Choose from: multiprocessing, threading, serial"
-            )
+            raise ValueError(f"Invalid backend: {backend}. Choose from: multiprocessing, threading, serial")
 
     def _determine_n_jobs(self, n_jobs: int) -> int:
         """Determine actual number of jobs."""
@@ -104,11 +98,7 @@ class ParallelExecutor:
         else:
             return n_jobs
 
-    def execute(
-        self,
-        processor: Processor,
-        context: ProcessingContext
-    ) -> ProcessingContext:
+    def execute(self, processor: Processor, context: ProcessingContext) -> ProcessingContext:
         """
         Execute processor in parallel if possible.
 
@@ -123,30 +113,20 @@ class ParallelExecutor:
             Output context
         """
         if not processor.parallel_safe:
-            logger.warning(
-                f"Processor {processor.name} is not parallel-safe, "
-                "executing serially"
-            )
+            logger.warning(f"Processor {processor.name} is not parallel-safe, executing serially")
             return processor.execute(context)
 
-        if getattr(processor, 'channel_wise', False):
+        if getattr(processor, "channel_wise", False):
             return self._execute_channel_wise(processor, context)
 
-        if hasattr(processor, 'parallelize_by_epochs') and processor.parallelize_by_epochs:
+        if hasattr(processor, "parallelize_by_epochs") and processor.parallelize_by_epochs:
             return self._execute_epoch_wise(processor, context)
 
         # Fall back to serial execution
-        logger.debug(
-            f"No parallelization strategy found for {processor.name}, "
-            "executing serially"
-        )
+        logger.debug(f"No parallelization strategy found for {processor.name}, executing serially")
         return processor.execute(context)
 
-    def _execute_channel_wise(
-        self,
-        processor: Processor,
-        context: ProcessingContext
-    ) -> ProcessingContext:
+    def _execute_channel_wise(self, processor: Processor, context: ProcessingContext) -> ProcessingContext:
         """
         Execute processor channel-wise in parallel.
 
@@ -157,9 +137,7 @@ class ParallelExecutor:
         Returns:
             Output context with processed channels
         """
-        logger.info(
-            f"Executing {processor.name} in parallel across {self.n_jobs} jobs"
-        )
+        logger.info(f"Executing {processor.name} in parallel across {self.n_jobs} jobs")
 
         raw = context.get_raw()
         n_channels = len(raw.ch_names)
@@ -168,10 +146,7 @@ class ParallelExecutor:
             logger.warning("No channels available for parallel execution")
             return context
 
-        channel_chunks = self._split_into_chunks(
-            list(range(n_channels)),
-            self.n_jobs
-        )
+        channel_chunks = self._split_into_chunks(list(range(n_channels)), self.n_jobs)
 
         progress_total = n_channels if n_channels > 0 else None
         with processor_progress(
@@ -185,11 +160,7 @@ class ParallelExecutor:
                 next_value = progress.current + processed
                 progress.advance(
                     processed,
-                    message=(
-                        f"{int(next_value)}/{n_channels} channels"
-                        if n_channels
-                        else "channels"
-                    ),
+                    message=(f"{int(next_value)}/{n_channels} channels" if n_channels else "channels"),
                 )
 
             if self.backend == "multiprocessing":
@@ -216,11 +187,7 @@ class ParallelExecutor:
 
         return self._merge_channel_results(context, results)
 
-    def _execute_epoch_wise(
-        self,
-        processor: Processor,
-        context: ProcessingContext
-    ) -> ProcessingContext:
+    def _execute_epoch_wise(self, processor: Processor, context: ProcessingContext) -> ProcessingContext:
         """
         Execute processor epoch-wise in parallel.
 
@@ -231,10 +198,7 @@ class ParallelExecutor:
         Returns:
             Output context with processed epochs
         """
-        logger.info(
-            f"Executing {processor.name} epoch-wise in parallel "
-            f"across {self.n_jobs} jobs"
-        )
+        logger.info(f"Executing {processor.name} epoch-wise in parallel across {self.n_jobs} jobs")
 
         if not context.has_triggers():
             raise ValueError("Context has no triggers for epoch-wise processing")
@@ -242,29 +206,14 @@ class ParallelExecutor:
         triggers = context.get_triggers()
         n_epochs = len(triggers)
 
-        epoch_chunks = self._split_into_chunks(
-            list(range(n_epochs)),
-            self.n_jobs
-        )
+        epoch_chunks = self._split_into_chunks(list(range(n_epochs)), self.n_jobs)
 
         if self.backend == "multiprocessing":
-            results = self._execute_multiprocessing_epochs(
-                processor,
-                context,
-                epoch_chunks
-            )
+            results = self._execute_multiprocessing_epochs(processor, context, epoch_chunks)
         elif self.backend == "threading":
-            results = self._execute_threading_epochs(
-                processor,
-                context,
-                epoch_chunks
-            )
+            results = self._execute_threading_epochs(processor, context, epoch_chunks)
         else:  # serial
-            results = self._execute_serial_epochs(
-                processor,
-                context,
-                epoch_chunks
-            )
+            results = self._execute_serial_epochs(processor, context, epoch_chunks)
 
         return self._merge_epoch_results(context, results)
 
@@ -272,14 +221,11 @@ class ParallelExecutor:
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]],
-        progress_callback: Optional[Callable[[int], None]] = None,
-    ) -> List[ProcessingContext]:
+        channel_chunks: list[list[int]],
+        progress_callback: Callable[[int], None] | None = None,
+    ) -> list[ProcessingContext]:
         """Execute using multiprocessing."""
-        processor_config = {
-            'class': processor.__class__,
-            'parameters': processor._parameters
-        }
+        processor_config = {"class": processor.__class__, "parameters": processor._parameters}
 
         chunk_contexts = []
         for chunk in channel_chunks:
@@ -287,7 +233,7 @@ class ParallelExecutor:
             chunk_contexts.append(chunk_context.to_dict())
 
         worker = functools.partial(_worker_function, processor_config)
-        contexts: List[ProcessingContext] = []
+        contexts: list[ProcessingContext] = []
         with mp.Pool(processes=self.n_jobs) as pool:
             for idx, result in enumerate(pool.imap(worker, chunk_contexts)):
                 contexts.append(ProcessingContext.from_dict(result))
@@ -301,13 +247,13 @@ class ParallelExecutor:
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]],
-        progress_callback: Optional[Callable[[int], None]] = None,
-    ) -> List[ProcessingContext]:
+        channel_chunks: list[list[int]],
+        progress_callback: Callable[[int], None] | None = None,
+    ) -> list[ProcessingContext]:
         """Execute using threading (GIL-limited)."""
         from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        results: List[ProcessingContext] = []
+        results: list[ProcessingContext] = []
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             futures = {}
             for chunk in channel_chunks:
@@ -326,9 +272,9 @@ class ParallelExecutor:
         self,
         processor: Processor,
         context: ProcessingContext,
-        channel_chunks: List[List[int]],
-        progress_callback: Optional[Callable[[int], None]] = None,
-    ) -> List[ProcessingContext]:
+        channel_chunks: list[list[int]],
+        progress_callback: Callable[[int], None] | None = None,
+    ) -> list[ProcessingContext]:
         """Execute serially (for debugging/comparison)."""
         results = []
         for chunk in channel_chunks:
@@ -340,9 +286,7 @@ class ParallelExecutor:
         return results
 
     def _create_channel_subset_context(
-        self,
-        context: ProcessingContext,
-        channel_indices: List[int]
+        self, context: ProcessingContext, channel_indices: list[int]
     ) -> ProcessingContext:
         """Create context with subset of channels."""
         raw = context.get_raw()
@@ -360,9 +304,7 @@ class ParallelExecutor:
         return subset_ctx
 
     def _merge_channel_results(
-        self,
-        original_context: ProcessingContext,
-        results: List[ProcessingContext]
+        self, original_context: ProcessingContext, results: list[ProcessingContext]
     ) -> ProcessingContext:
         """Merge channel-wise results back into single context."""
         if not results:
@@ -372,17 +314,12 @@ class ParallelExecutor:
         template_raw = results[0].get_raw()
         template_data = results[0].get_data(copy=False)
 
-        new_sfreq = template_raw.info['sfreq']
+        new_sfreq = template_raw.info["sfreq"]
         n_times = template_data.shape[1]
         dtype = template_data.dtype
 
-        merged_data = np.zeros(
-            (len(original_raw.ch_names), n_times),
-            dtype=dtype
-        )
-        channel_index = {
-            name: idx for idx, name in enumerate(original_raw.ch_names)
-        }
+        merged_data = np.zeros((len(original_raw.ch_names), n_times), dtype=dtype)
+        channel_index = {name: idx for idx, name in enumerate(original_raw.ch_names)}
 
         for result_ctx in results:
             result_raw = result_ctx.get_raw()
@@ -395,15 +332,12 @@ class ParallelExecutor:
         info = original_raw.info.copy()
         if hasattr(info, "_unlock"):
             with info._unlock():
-                info['sfreq'] = new_sfreq
+                info["sfreq"] = new_sfreq
         else:
-            info['sfreq'] = new_sfreq
+            info["sfreq"] = new_sfreq
 
         with suppress_stdout():
-            new_raw = mne.io.RawArray(
-                data=merged_data,
-                info=info
-            )
+            new_raw = mne.io.RawArray(data=merged_data, info=info)
 
         merged_context = original_context.with_raw(new_raw)
         merged_context._metadata = results[0].metadata.copy()
@@ -424,9 +358,7 @@ class ParallelExecutor:
         return merged_context
 
     def _merge_epoch_results(
-        self,
-        original_context: ProcessingContext,
-        results: List[ProcessingContext]
+        self, original_context: ProcessingContext, results: list[ProcessingContext]
     ) -> ProcessingContext:
         """Merge epoch-wise results."""
         # Implementation depends on how epochs are stored
@@ -434,7 +366,7 @@ class ParallelExecutor:
         logger.warning("Epoch-wise merging not fully implemented yet")
         return original_context
 
-    def _split_into_chunks(self, items: List, n_chunks: int) -> List[List]:
+    def _split_into_chunks(self, items: list, n_chunks: int) -> list[list]:
         """Split list into approximately equal chunks."""
         chunk_size = len(items) // n_chunks
         remainder = len(items) % n_chunks
@@ -445,7 +377,7 @@ class ParallelExecutor:
             # Distribute remainder across first chunks
             size = chunk_size + (1 if i < remainder else 0)
             if size > 0:
-                chunks.append(items[start:start + size])
+                chunks.append(items[start : start + size])
                 start += size
 
         return chunks

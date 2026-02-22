@@ -7,18 +7,22 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import List, Optional, Dict, Any, Tuple, Callable, Union
+from collections.abc import Callable
+from typing import Any
+
 from loguru import logger
-from .processor import Processor
-from .context import ProcessingContext
-from .parallel import ParallelExecutor
-from .channel_sequential import ChannelSequentialExecutor
+
 from ..console import get_console
 from ..console.progress import set_current_step_index
+from .channel_sequential import ChannelSequentialExecutor
+from .context import ProcessingContext
+from .parallel import ParallelExecutor
+from .processor import Processor
 
 
 class PipelineError(Exception):
     """Base exception for pipeline-related errors."""
+
     pass
 
 
@@ -31,12 +35,12 @@ class PipelineResult:
 
     def __init__(
         self,
-        context: Optional[ProcessingContext],
+        context: ProcessingContext | None,
         success: bool = True,
-        error: Optional[Exception] = None,
+        error: Exception | None = None,
         execution_time: float = 0.0,
-        failed_processor: Optional[str] = None,
-        failed_processor_index: Optional[int] = None
+        failed_processor: str | None = None,
+        failed_processor_index: int | None = None,
     ):
         """
         Initialize pipeline result.
@@ -71,7 +75,7 @@ class PipelineResult:
         return self.success
 
     @property
-    def metrics(self) -> Dict[str, Any]:
+    def metrics(self) -> dict[str, Any]:
         """
         Shortcut to evaluation metrics stored in context.
 
@@ -85,7 +89,7 @@ class PipelineResult:
         """
         if self.context is None:
             return {}
-        return self.context.metadata.custom.get('metrics', {})
+        return self.context.metadata.custom.get("metrics", {})
 
     @property
     def metrics_df(self):
@@ -105,7 +109,7 @@ class PipelineResult:
         except ImportError:
             return None
 
-        flat: Dict[str, Any] = {}
+        flat: dict[str, Any] = {}
         for k, v in self.metrics.items():
             if isinstance(v, (int, float)):
                 flat[k] = v
@@ -113,7 +117,7 @@ class PipelineResult:
                 for sub_k, sub_v in v.items():
                     if isinstance(sub_v, (int, float)):
                         flat[f"{k}_{sub_k}"] = sub_v
-        return pd.Series(flat, name=self.context.metadata.custom.get('pipeline_name', 'metrics'))
+        return pd.Series(flat, name=self.context.metadata.custom.get("pipeline_name", "metrics"))
 
     def metric(self, name: str, default=None):
         """
@@ -158,7 +162,10 @@ class PipelineResult:
 
         con = get_console().get_rich_console() or RichConsole(highlight=False)
         table = Table(
-            box=None, show_header=True, padding=(0, 2), expand=True,
+            box=None,
+            show_header=True,
+            padding=(0, 2),
+            expand=True,
             show_edge=False,
         )
         table.add_column("Metric", style="bold", ratio=3)
@@ -171,11 +178,7 @@ class PipelineResult:
 
         def _fmt_per_channel(val: list) -> str:
             arr = np.asarray(val, dtype=float)
-            return (
-                f"mean {arr.mean():.3g}  "
-                f"± {arr.std():.3g}  "
-                f"[dim](min {arr.min():.3g} – max {arr.max():.3g})[/]"
-            )
+            return f"mean {arr.mean():.3g}  ± {arr.std():.3g}  [dim](min {arr.min():.3g} – max {arr.max():.3g})[/]"
 
         def _color_snr(v: float) -> str:
             return "green" if v > 10 else ("yellow" if v > 3 else "red")
@@ -184,69 +187,69 @@ class PipelineResult:
             return "green" if abs(v - 1.0) < 0.1 else ("yellow" if abs(v - 1.0) < 0.3 else "red")
 
         # --- Core scalar metrics ---
-        core_keys = ('snr', 'rms_ratio', 'rms_residual', 'median_artifact', 'legacy_snr')
+        core_keys = ("snr", "rms_ratio", "rms_residual", "median_artifact", "legacy_snr")
         if any(k in metrics for k in core_keys):
             _section("Core Metrics")
-            if 'snr' in metrics:
-                snr = metrics['snr']
+            if "snr" in metrics:
+                snr = metrics["snr"]
                 c = _color_snr(snr)
                 table.add_row("SNR (Signal-to-Noise Ratio)", f"[{c}]{snr:.2f}[/]", "")
-            if 'rms_ratio' in metrics:
+            if "rms_ratio" in metrics:
                 table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
-            if 'rms_residual' in metrics:
-                r = metrics['rms_residual']
+            if "rms_residual" in metrics:
+                r = metrics["rms_residual"]
                 c = _color_ratio(r)
                 table.add_row("RMS Residual Ratio", f"[{c}]{r:.2f}[/]", "target: 1.0")
-            if 'median_artifact' in metrics:
+            if "median_artifact" in metrics:
                 table.add_row("Median Artifact Amplitude", f"{metrics['median_artifact']:.2e}", "")
-                if 'median_artifact_ratio' in metrics:
-                    r = metrics['median_artifact_ratio']
+                if "median_artifact_ratio" in metrics:
+                    r = metrics["median_artifact_ratio"]
                     c = "green" if abs(r - 1.0) < 0.2 else ("yellow" if abs(r - 1.0) < 0.6 else "red")
                     table.add_row("Median Artifact Ratio", f"[{c}]{r:.2f}[/]", "target: 1.0")
-            if 'legacy_snr' in metrics:
+            if "legacy_snr" in metrics:
                 table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
 
         # --- Per-channel breakdowns ---
-        per_ch = {k: v for k, v in metrics.items() if k.endswith('_per_channel') and isinstance(v, list)}
+        per_ch = {k: v for k, v in metrics.items() if k.endswith("_per_channel") and isinstance(v, list)}
         if per_ch:
             _section("Per-Channel Summary  (mean ± std,  min – max)")
             for key, val in per_ch.items():
-                label = key.replace('_per_channel', '').replace('_', ' ').title()
+                label = key.replace("_per_channel", "").replace("_", " ").title()
                 table.add_row(label, _fmt_per_channel(val), "")
 
         # --- FFT Allen ---
-        if 'fft_allen' in metrics:
+        if "fft_allen" in metrics:
             _section("FFT Allen — Spectral Diff to Reference")
-            for band, val in metrics['fft_allen'].items():
+            for band, val in metrics["fft_allen"].items():
                 table.add_row(f"{band.capitalize()}", f"{val:.2f}%", "")
 
         # --- FFT Niazy ---
-        if 'fft_niazy' in metrics:
+        if "fft_niazy" in metrics:
             _section("FFT Niazy — Power Ratio (Uncorr / Corr)")
-            if 'slice' in metrics['fft_niazy']:
-                harmonics = "  ".join(
-                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['slice'].items()
-                )
+            if "slice" in metrics["fft_niazy"]:
+                harmonics = "  ".join(f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics["fft_niazy"]["slice"].items())
                 table.add_row("Slice Harmonics", harmonics, "dB")
-            if 'volume' in metrics['fft_niazy']:
-                harmonics = "  ".join(
-                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['volume'].items()
-                )
+            if "volume" in metrics["fft_niazy"]:
+                harmonics = "  ".join(f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics["fft_niazy"]["volume"].items())
                 table.add_row("Volume Harmonics", harmonics, "dB")
 
         # --- Other unknown keys ---
-        known = set(core_keys) | set(per_ch) | {'median_artifact_ratio', 'median_artifact_reference',
-                                                 'fft_allen', 'fft_niazy'}
+        known = (
+            set(core_keys)
+            | set(per_ch)
+            | {"median_artifact_ratio", "median_artifact_reference", "fft_allen", "fft_niazy"}
+        )
         extras = {k: v for k, v in metrics.items() if k not in known}
         if extras:
             _section("Other")
             for key, val in extras.items():
-                label = key.replace('_', ' ').title()
+                label = key.replace("_", " ").title()
                 if isinstance(val, float):
                     formatted = f"{val:.4g}"
                 elif isinstance(val, dict):
-                    formatted = "  ".join(f"{k}: {v:.3g}" if isinstance(v, float) else f"{k}: {v}"
-                                          for k, v in val.items())
+                    formatted = "  ".join(
+                        f"{k}: {v:.3g}" if isinstance(v, float) else f"{k}: {v}" for k, v in val.items()
+                    )
                 elif isinstance(val, list):
                     formatted = _fmt_per_channel(val) if val and isinstance(val[0], (int, float)) else str(val)
                 else:
@@ -287,10 +290,7 @@ class PipelineResult:
                     parts.append(f"{name}={val:.3g}")
             con.print("  ".join(parts))
         else:
-            con.print(
-                f"[red]Failed[/red] after {self.execution_time:.2f}s"
-                f" — {self.error}"
-            )
+            con.print(f"[red]Failed[/red] after {self.execution_time:.2f}s — {self.error}")
 
     def plot(self, **kwargs):
         """
@@ -304,6 +304,7 @@ class PipelineResult:
             result.plot(channel="Fp1", start=5.0, duration=10.0)
         """
         from ..evaluation import RawPlotter
+
         plotter = RawPlotter(**kwargs)
         plotter.execute(self.context)
 
@@ -342,8 +343,8 @@ class BatchResult:
 
     def __init__(
         self,
-        results: List['PipelineResult'],
-        labels: Optional[List[str]] = None,
+        results: list["PipelineResult"],
+        labels: list[str] | None = None,
     ):
         self._results = results
         self._labels = labels or [f"input_{i}" for i in range(len(results))]
@@ -382,8 +383,8 @@ class BatchResult:
             results.print_summary()
         """
         from rich import box
-        from rich.table import Table
         from rich.console import Console as RichConsole
+        from rich.table import Table
 
         con = get_console().get_rich_console() or RichConsole(highlight=False)
         table = Table(
@@ -397,7 +398,7 @@ class BatchResult:
         table.add_column("Status", justify="left")
         table.add_column("Time", justify="left")
 
-        metric_names: List[str] = []
+        metric_names: list[str] = []
         for r in self._results:
             for k, v in r.metrics.items():
                 if k not in metric_names and isinstance(v, (int, float)):
@@ -406,17 +407,14 @@ class BatchResult:
         for m in metric_names:
             table.add_column(m, justify="left")
 
-        for label, result in zip(self._labels, self._results):
+        for label, result in zip(self._labels, self._results, strict=False):
             status = "[green]OK[/green]" if result.success else "[red]FAIL[/red]"
             time_str = f"{result.execution_time:.2f}s"
-            row: List[str] = [label, status, time_str]
+            row: list[str] = [label, status, time_str]
             for m in metric_names:
                 if result.success:
                     val = result.metrics.get(m)
-                    row.append(
-                        f"{val:.3f}" if isinstance(val, float)
-                        else (str(val) if val is not None else "—")
-                    )
+                    row.append(f"{val:.3f}" if isinstance(val, float) else (str(val) if val is not None else "—"))
                 else:
                     row.append("—")
             table.add_row(*row)
@@ -437,8 +435,8 @@ class BatchResult:
             return None
 
         rows = []
-        for label, result in zip(self._labels, self._results):
-            row: Dict[str, Any] = {
+        for label, result in zip(self._labels, self._results, strict=False):
+            row: dict[str, Any] = {
                 "file": label,
                 "success": result.success,
                 "execution_time": result.execution_time,
@@ -476,11 +474,7 @@ class Pipeline:
         name: Optional pipeline name
     """
 
-    def __init__(
-        self,
-        processors: List[Union[Processor, Callable]],
-        name: Optional[str] = None
-    ):
+    def __init__(self, processors: list[Processor | Callable], name: str | None = None):
         """
         Initialize pipeline.
 
@@ -505,9 +499,9 @@ class Pipeline:
 
     @staticmethod
     def _normalise_processors(
-        items: List[Union[Processor, Callable]],
+        items: list[Processor | Callable],
         _index_offset: int = 0,
-    ) -> List[Processor]:
+    ) -> list[Processor]:
         """
         Coerce each item to a :class:`Processor`.
 
@@ -515,17 +509,17 @@ class Pipeline:
         Anything else that is not a :class:`Processor` raises :exc:`TypeError`.
         """
         from .processor import LambdaProcessor
-        result: List[Processor] = []
+
+        result: list[Processor] = []
         for i, p in enumerate(items):
             if isinstance(p, Processor):
                 result.append(p)
             elif callable(p):
-                display_name = getattr(p, '__name__', None) or f"step_{_index_offset + i}"
+                display_name = getattr(p, "__name__", None) or f"step_{_index_offset + i}"
                 result.append(LambdaProcessor(name=display_name, func=p))
             else:
                 raise TypeError(
-                    f"Item at index {_index_offset + i} must be a Processor instance "
-                    f"or a callable, got {type(p)}"
+                    f"Item at index {_index_offset + i} must be a Processor instance or a callable, got {type(p)}"
                 )
         return result
 
@@ -540,7 +534,7 @@ class Pipeline:
         self,
         parallel: bool,
         channel_sequential: bool,
-    ) -> List[Tuple[List[Processor], str]]:
+    ) -> list[tuple[list[Processor], str]]:
         """
         Partition processors into execution groups.
 
@@ -552,40 +546,40 @@ class Pipeline:
         single ``'channel_sequential'`` group.  This grouping is entirely
         independent of ``parallel_safe``.
         """
-        groups: List[Tuple[List[Processor], str]] = []
+        groups: list[tuple[list[Processor], str]] = []
         i = 0
         while i < len(self.processors):
             proc = self.processors[i]
-            ch_eligible = getattr(proc, 'channel_wise', False) or getattr(proc, 'run_once', False)
+            ch_eligible = getattr(proc, "channel_wise", False) or getattr(proc, "run_once", False)
             if channel_sequential and ch_eligible:
-                batch: List[Processor] = []
+                batch: list[Processor] = []
                 while i < len(self.processors):
                     p = self.processors[i]
-                    if getattr(p, 'channel_wise', False) or getattr(p, 'run_once', False):
+                    if getattr(p, "channel_wise", False) or getattr(p, "run_once", False):
                         batch.append(p)
                         i += 1
                     else:
                         break
-                groups.append((batch, 'channel_sequential'))
+                groups.append((batch, "channel_sequential"))
             elif parallel and proc.parallel_safe:
-                groups.append(([proc], 'parallel'))
+                groups.append(([proc], "parallel"))
                 i += 1
             else:
-                groups.append(([proc], 'serial'))
+                groups.append(([proc], "serial"))
                 i += 1
         return groups
 
     def _dispatch_step(
         self,
-        processors: List[Processor],
+        processors: list[Processor],
         mode: str,
         context: ProcessingContext,
         n_jobs: int,
     ) -> ProcessingContext:
         """Execute one group of processors according to *mode*."""
-        if mode == 'channel_sequential':
+        if mode == "channel_sequential":
             return ChannelSequentialExecutor().execute(processors, context)
-        if mode == 'parallel':
+        if mode == "parallel":
             return ParallelExecutor(n_jobs=n_jobs).execute(processors[0], context)
         return processors[0].execute(context)
 
@@ -595,11 +589,11 @@ class Pipeline:
 
     def run(
         self,
-        initial_context: Optional[ProcessingContext] = None,
+        initial_context: ProcessingContext | None = None,
         parallel: bool = False,
         n_jobs: int = -1,
         channel_sequential: bool = False,
-        show_progress: bool = True
+        show_progress: bool = True,
     ) -> PipelineResult:
         """
         Execute the pipeline.
@@ -638,23 +632,22 @@ class Pipeline:
         console = get_console()
         n_procs = len(self.processors)
 
-        execution_mode = (
-            "channel_sequential" if channel_sequential
-            else "parallel" if parallel
-            else "serial"
+        execution_mode = "channel_sequential" if channel_sequential else "parallel" if parallel else "serial"
+        console.set_pipeline_metadata(
+            {
+                "execution_mode": execution_mode,
+                "n_jobs": "1" if channel_sequential else str(n_jobs),
+            }
         )
-        console.set_pipeline_metadata({
-            "execution_mode": execution_mode,
-            "n_jobs": "1" if channel_sequential else str(n_jobs),
-        })
         console.start_pipeline(
-            self.name, n_procs,
+            self.name,
+            n_procs,
             step_names=[p.name for p in self.processors],
         )
         logger.info(f"Starting pipeline: {self.name} ({n_procs} processors)")
 
         context = initial_context
-        current_processor: Optional[Tuple[int, Processor]] = None
+        current_processor: tuple[int, Processor] | None = None
 
         try:
             step_offset = 0
@@ -676,7 +669,8 @@ class Pipeline:
                 duration = time.time() - step_start
                 for k, p in enumerate(processors):
                     console.step_completed(
-                        step_offset + k, p.name,
+                        step_offset + k,
+                        p.name,
                         duration / len(processors),
                         metrics={
                             "execution_mode": mode,
@@ -703,7 +697,8 @@ class Pipeline:
             logger.opt(exception=e).debug("Exception details")
 
             console.pipeline_failed(
-                execution_time, e,
+                execution_time,
+                e,
                 current_processor[0] if current_processor else None,
                 current_processor[1].name if current_processor else None,
             )
@@ -716,7 +711,7 @@ class Pipeline:
                 failed_processor_index=current_processor[0] if current_processor else None,
             )
 
-    def add(self, processor: Union[Processor, Callable]) -> 'Pipeline':
+    def add(self, processor: Processor | Callable) -> "Pipeline":
         """
         Add a processor or callable to the pipeline (fluent API).
 
@@ -730,7 +725,7 @@ class Pipeline:
         self.processors.append(normalised)
         return self
 
-    def extend(self, processors: List[Union[Processor, Callable]]) -> 'Pipeline':
+    def extend(self, processors: list[Processor | Callable]) -> "Pipeline":
         """
         Extend pipeline with multiple processors or callables.
 
@@ -740,12 +735,10 @@ class Pipeline:
         Returns:
             Self for chaining
         """
-        self.processors.extend(
-            self._normalise_processors(processors, _index_offset=len(self.processors))
-        )
+        self.processors.extend(self._normalise_processors(processors, _index_offset=len(self.processors)))
         return self
 
-    def insert(self, index: int, processor: Union[Processor, Callable]) -> 'Pipeline':
+    def insert(self, index: int, processor: Processor | Callable) -> "Pipeline":
         """
         Insert a processor or callable at a specific position.
 
@@ -760,7 +753,7 @@ class Pipeline:
         self.processors.insert(index, normalised)
         return self
 
-    def remove(self, index: int) -> 'Pipeline':
+    def remove(self, index: int) -> "Pipeline":
         """
         Remove processor at index.
 
@@ -773,7 +766,7 @@ class Pipeline:
         self.processors.pop(index)
         return self
 
-    def validate_all(self, context: ProcessingContext) -> List[str]:
+    def validate_all(self, context: ProcessingContext) -> list[str]:
         """
         Validate all processors against a context.
 
@@ -803,14 +796,14 @@ class Pipeline:
         lines = [f"Pipeline: {self.name}", "=" * 50]
 
         for i, processor in enumerate(self.processors):
-            lines.append(f"{i+1}. {processor.name} ({processor.__class__.__name__})")
-            if hasattr(processor, '_parameters'):
+            lines.append(f"{i + 1}. {processor.name} ({processor.__class__.__name__})")
+            if hasattr(processor, "_parameters"):
                 for key, value in processor._parameters.items():
                     lines.append(f"   - {key}: {value}")
 
         return "\n".join(lines)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Serialize pipeline to dictionary.
 
@@ -818,26 +811,26 @@ class Pipeline:
             Dictionary representation
         """
         return {
-            'name': self.name,
-            'processors': [
+            "name": self.name,
+            "processors": [
                 {
-                    'class': proc.__class__.__name__,
-                    'name': proc.name,
-                    'parameters': proc._parameters if hasattr(proc, '_parameters') else {}
+                    "class": proc.__class__.__name__,
+                    "name": proc.name,
+                    "parameters": proc._parameters if hasattr(proc, "_parameters") else {},
                 }
                 for proc in self.processors
-            ]
+            ],
         }
 
     def map(
         self,
-        inputs: List[Union[str, ProcessingContext]],
-        loader_factory: Optional[Callable[[str], 'Processor']] = None,
+        inputs: list[str | ProcessingContext],
+        loader_factory: Callable[[str], "Processor"] | None = None,
         parallel: bool = False,
         n_jobs: int = -1,
         on_error: str = "continue",
         keep_raw: bool = True,
-    ) -> 'BatchResult':
+    ) -> "BatchResult":
         """
         Run the pipeline on multiple inputs and return a result per input.
 
@@ -886,8 +879,8 @@ class Pipeline:
             )
             results.print_summary()
         """
-        results: List[PipelineResult] = []
-        labels: List[str] = []
+        results: list[PipelineResult] = []
+        labels: list[str] = []
 
         for item in inputs:
             if isinstance(item, ProcessingContext):
@@ -909,7 +902,7 @@ class Pipeline:
                             context=None,
                             success=False,
                             error=exc,
-                            failed_processor=getattr(loader, 'name', 'loader'),
+                            failed_processor=getattr(loader, "name", "loader"),
                         )
                         results.append(result)
                         labels.append(label)
@@ -922,8 +915,9 @@ class Pipeline:
                     # a 'path' attribute.  Patch its path and build a fresh
                     # pipeline so none of the other processors are skipped.
                     import copy
+
                     first = self.processors[0] if self.processors else None
-                    if first is not None and hasattr(first, 'path'):
+                    if first is not None and hasattr(first, "path"):
                         patched = copy.copy(first)
                         patched.path = item
                         run_pipeline = Pipeline(
@@ -984,17 +978,17 @@ class PipelineBuilder:
             .build())
     """
 
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: str | None = None):
         """
         Initialize builder.
 
         Args:
             name: Optional pipeline name
         """
-        self._processors: List[Processor] = []
+        self._processors: list[Processor] = []
         self._name = name
 
-    def add(self, processor: Processor) -> 'PipelineBuilder':
+    def add(self, processor: Processor) -> "PipelineBuilder":
         """
         Add custom processor.
 
@@ -1007,11 +1001,7 @@ class PipelineBuilder:
         self._processors.append(processor)
         return self
 
-    def add_if(
-        self,
-        condition: bool,
-        processor: Processor
-    ) -> 'PipelineBuilder':
+    def add_if(self, condition: bool, processor: Processor) -> "PipelineBuilder":
         """
         Add processor conditionally.
 

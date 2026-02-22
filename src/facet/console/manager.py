@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Optional
+import contextlib
 
 from .base import BaseConsole, ConsoleMode, NullConsole
 
@@ -30,7 +30,7 @@ def get_console() -> BaseConsole:
     return _console
 
 
-def _build_modern_console() -> Optional[BaseConsole]:
+def _build_modern_console() -> BaseConsole | None:
     try:
         from .modern import ModernConsole
     except Exception:
@@ -48,9 +48,7 @@ def _replace_console(new_console: BaseConsole) -> None:
     if _console is new_console:
         return
 
-    try:
+    with contextlib.suppress(Exception):
         _console.shutdown()
-    except Exception:
-        pass
 
     _console = new_console

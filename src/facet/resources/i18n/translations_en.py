@@ -10,6 +10,5 @@ translations = {
         "RMS": "RMS Uncorrected to Corrected",
         "RMS2": "RMS Corrected to Unimpaired",
         "MEDIAN": "Median Imaging Artifact",
-    }
+    },
 }
-

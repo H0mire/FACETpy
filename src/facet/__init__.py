@@ -11,112 +11,102 @@ Version: 2.0.0
 __version__ = "2.0.0"
 __author__ = "FACETpy Team"
 
-from .logging_config import configure_logging as _configure_logging
-
-_configure_logging()
-
 # Core architecture
 from .core import (
-    # Base classes
-    Processor,
-    ProcessingContext,
-    ProcessingMetadata,
-    Pipeline,
-    PipelineResult,
     BatchResult,
-
-    # Composite processors
-    SequenceProcessor,
     ConditionalProcessor,
-    SwitchProcessor,
-
-    # Registry
-    register_processor,
-    get_processor,
-    list_processors,
-
     # Parallel execution
     ParallelExecutor,
-
+    Pipeline,
+    PipelineError,
+    PipelineResult,
+    ProcessingContext,
+    ProcessingMetadata,
+    # Base classes
+    Processor,
     # Exceptions
     ProcessorError,
     ProcessorValidationError,
-    PipelineError
-)
-
-# I/O processors
-from .io import (
-    Loader,
-    BIDSLoader,
-    EDFExporter,
-    BIDSExporter,
-)
-
-# Preprocessing processors
-from .preprocessing import (
-    # Filtering
-    Filter,
-    HighPassFilter,
-    LowPassFilter,
-    BandPassFilter,
-    NotchFilter,
-
-    # Resampling
-    Resample,
-    UpSample,
-    DownSample,
-
-    # Trigger detection
-    TriggerDetector,
-    QRSTriggerDetector,
-    MissingTriggerDetector,
-
-    # Alignment
-    TriggerAligner,
-    SliceAligner,
-    SubsampleAligner,
-
-    # Acquisition window
-    CutAcquisitionWindow,
-    PasteAcquisitionWindow,
-
-    # Transforms
-    Crop,
-    RawTransform,
-    PickChannels,
-    DropChannels,
-    PrintMetric,
+    # Composite processors
+    SequenceProcessor,
+    SwitchProcessor,
+    get_processor,
+    list_processors,
+    # Registry
+    register_processor,
 )
 
 # Correction processors
 from .correction import (
     AASCorrection,
-    AveragedArtifactSubtraction  # Alias
+    AveragedArtifactSubtraction,  # Alias
+)
+
+# I/O processors
+from .io import (
+    BIDSExporter,
+    BIDSLoader,
+    EDFExporter,
+    Loader,
+)
+from .logging_config import configure_logging as _configure_logging
+
+# Preprocessing processors
+from .preprocessing import (
+    BandPassFilter,
+    # Transforms
+    Crop,
+    # Acquisition window
+    CutAcquisitionWindow,
+    DownSample,
+    DropChannels,
+    # Filtering
+    Filter,
+    HighPassFilter,
+    LowPassFilter,
+    MissingTriggerDetector,
+    NotchFilter,
+    PasteAcquisitionWindow,
+    PickChannels,
+    PrintMetric,
+    QRSTriggerDetector,
+    RawTransform,
+    # Resampling
+    Resample,
+    SliceAligner,
+    SubsampleAligner,
+    # Alignment
+    TriggerAligner,
+    # Trigger detection
+    TriggerDetector,
+    UpSample,
 )
 
 try:
-    from .correction import ANCCorrection, AdaptiveNoiseCancellation
+    from .correction import AdaptiveNoiseCancellation, ANCCorrection  # noqa: F401
+
     _has_anc = True
 except ImportError:
     _has_anc = False
 
 try:
-    from .correction import PCACorrection
+    from .correction import PCACorrection  # noqa: F401
+
     _has_pca = True
 except ImportError:
     _has_pca = False
 
 # Evaluation processors
 from .evaluation import (
-    SNRCalculator,
-    LegacySNRCalculator,
-    RMSCalculator,
-    RMSResidualCalculator,
-    MedianArtifactCalculator,
     FFTAllenCalculator,
     FFTNiazyCalculator,
+    LegacySNRCalculator,
+    MedianArtifactCalculator,
     MetricsReport,
     RawPlotter,
+    RMSCalculator,
+    RMSResidualCalculator,
+    SNRCalculator,
 )
 
 # Interactive helpers
@@ -124,107 +114,101 @@ from .helpers import ArtifactOffsetFinder, WaitForConfirmation
 
 # Miscellaneous utilities
 from .misc import (
-    EEGGenerator,
-    ChannelSchema,
-    OscillationParams,
-    NoiseParams,
     ArtifactParams,
+    ChannelSchema,
+    EEGGenerator,
+    NoiseParams,
+    OscillationParams,
     generate_synthetic_eeg,
 )
 
 __all__ = [
     # Version
-    '__version__',
-    '__author__',
-
+    "__version__",
+    "__author__",
     # Core
-    'Processor',
-    'ProcessingContext',
-    'ProcessingMetadata',
-    'Pipeline',
-    'PipelineResult',
-    'BatchResult',
-    'SequenceProcessor',
-    'ConditionalProcessor',
-    'SwitchProcessor',
-    'register_processor',
-    'get_processor',
-    'list_processors',
-    'ParallelExecutor',
-    'ProcessorError',
-    'ProcessorValidationError',
-    'PipelineError',
-
+    "Processor",
+    "ProcessingContext",
+    "ProcessingMetadata",
+    "Pipeline",
+    "PipelineResult",
+    "BatchResult",
+    "SequenceProcessor",
+    "ConditionalProcessor",
+    "SwitchProcessor",
+    "register_processor",
+    "get_processor",
+    "list_processors",
+    "ParallelExecutor",
+    "ProcessorError",
+    "ProcessorValidationError",
+    "PipelineError",
     # I/O
-    'Loader',
-    'BIDSLoader',
-    'EDFExporter',
-    'BIDSExporter',
-
+    "Loader",
+    "BIDSLoader",
+    "EDFExporter",
+    "BIDSExporter",
     # Preprocessing
-    'Filter',
-    'HighPassFilter',
-    'LowPassFilter',
-    'BandPassFilter',
-    'NotchFilter',
-    'Resample',
-    'UpSample',
-    'DownSample',
-    'TriggerDetector',
-    'QRSTriggerDetector',
-    'MissingTriggerDetector',
-    'TriggerAligner',
-    'SliceAligner',
-    'SubsampleAligner',
-    'CutAcquisitionWindow',
-    'PasteAcquisitionWindow',
-    'Crop',
-    'RawTransform',
-    'PickChannels',
-    'DropChannels',
-    'PrintMetric',
-
+    "Filter",
+    "HighPassFilter",
+    "LowPassFilter",
+    "BandPassFilter",
+    "NotchFilter",
+    "Resample",
+    "UpSample",
+    "DownSample",
+    "TriggerDetector",
+    "QRSTriggerDetector",
+    "MissingTriggerDetector",
+    "TriggerAligner",
+    "SliceAligner",
+    "SubsampleAligner",
+    "CutAcquisitionWindow",
+    "PasteAcquisitionWindow",
+    "Crop",
+    "RawTransform",
+    "PickChannels",
+    "DropChannels",
+    "PrintMetric",
     # Correction
-    'AASCorrection',
-    'AveragedArtifactSubtraction',
-
+    "AASCorrection",
+    "AveragedArtifactSubtraction",
     # Evaluation
-    'SNRCalculator',
-    'LegacySNRCalculator',
-    'RMSCalculator',
-    'RMSResidualCalculator',
-    'MedianArtifactCalculator',
-    'FFTAllenCalculator',
-    'FFTNiazyCalculator',
-    'MetricsReport',
-    'RawPlotter',
-
+    "SNRCalculator",
+    "LegacySNRCalculator",
+    "RMSCalculator",
+    "RMSResidualCalculator",
+    "MedianArtifactCalculator",
+    "FFTAllenCalculator",
+    "FFTNiazyCalculator",
+    "MetricsReport",
+    "RawPlotter",
     # Interactive helpers
-    'ArtifactOffsetFinder',
-    'WaitForConfirmation',
-
+    "ArtifactOffsetFinder",
+    "WaitForConfirmation",
     # Miscellaneous / Synthetic Data Generation
-    'EEGGenerator',
-    'ChannelSchema',
-    'OscillationParams',
-    'NoiseParams',
-    'ArtifactParams',
-    'generate_synthetic_eeg',
+    "EEGGenerator",
+    "ChannelSchema",
+    "OscillationParams",
+    "NoiseParams",
+    "ArtifactParams",
+    "generate_synthetic_eeg",
+    "create_standard_pipeline",
 ]
 
 if _has_anc:
-    __all__.extend(['ANCCorrection', 'AdaptiveNoiseCancellation'])
+    __all__.extend(["ANCCorrection", "AdaptiveNoiseCancellation"])
 
 if _has_pca:
-    __all__.append('PCACorrection')
+    __all__.append("PCACorrection")
 
 # Pipeline factories
-from .pipelines import create_standard_pipeline  # noqa: E402
+from .pipelines import create_standard_pipeline as create_standard_pipeline
 
-__all__.append('create_standard_pipeline')
+_configure_logging()
 
 
-def load(path: str, **kwargs) -> 'ProcessingContext':
+def load(path: str, **kwargs) -> "ProcessingContext":
     """Load an EEG file and return a :class:`ProcessingContext`.
 
     Automatically detects the file format from the extension (EDF, BDF, GDF,
@@ -253,4 +237,4 @@ def load(path: str, **kwargs) -> 'ProcessingContext':
     return Loader(path=path, **kwargs).execute(None)
 
 
-__all__.append('load')
+__all__.append("load")

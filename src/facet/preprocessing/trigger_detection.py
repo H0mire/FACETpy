@@ -4,7 +4,6 @@ Processors for detecting triggers and events in EEG data recorded during
 simultaneous EEG-fMRI acquisition.
 """
 
-from typing import Optional, List
 import re
 
 import mne
@@ -12,11 +11,11 @@ import numpy as np
 from loguru import logger
 
 from ..core import (
-    Processor,
     ProcessingContext,
+    Processor,
     ProcessorError,
-    register_processor,
     ProcessorValidationError,
+    register_processor,
 )
 from ..helpers.crosscorr import crosscorrelation
 
@@ -106,7 +105,7 @@ class TriggerDetector(Processor):
         # --- RETURN ---
         return context.with_metadata(new_metadata)
 
-    def _find_events(self, raw: mne.io.Raw) -> List:
+    def _find_events(self, raw: mne.io.Raw) -> list:
         """Search stim channels then annotations for matching events.
 
         Parameters
@@ -165,9 +164,7 @@ class TriggerDetector(Processor):
             "volume_gaps": False,
         }
 
-    def _compute_slice_volume_metadata(
-        self, triggers: np.ndarray, trigger_diffs: np.ndarray
-    ) -> dict:
+    def _compute_slice_volume_metadata(self, triggers: np.ndarray, trigger_diffs: np.ndarray) -> dict:
         """Compute metadata when volume-level gaps are present.
 
         Parameters
@@ -250,11 +247,10 @@ class QRSTriggerDetector(Processor):
         # --- COMPUTE ---
         try:
             from ..helpers import bcg_detector
-        except ImportError:
+        except ImportError as err:
             raise ProcessorError(
-                "neurokit2 is required for QRSTriggerDetector. "
-                "Install with: pip install facetpy[all]"
-            )
+                "neurokit2 is required for QRSTriggerDetector. Install with: pip install facetpy[all]"
+            ) from err
 
         peaks = bcg_detector.fmrib_qrsdetect(raw)
         triggers = np.array(peaks, dtype=np.int32)
@@ -270,9 +266,7 @@ class QRSTriggerDetector(Processor):
             rr_intervals = np.diff(triggers)
             median_rr = int(np.median(rr_intervals))
             new_metadata.artifact_length = median_rr // 2
-            new_metadata.artifact_to_trigger_offset = (
-                -new_metadata.artifact_length / (2 * sfreq)
-            )
+            new_metadata.artifact_to_trigger_offset = -new_metadata.artifact_length / (2 * sfreq)
 
         if self.save_to_annotations:
             raw_copy = raw.copy()
@@ -337,9 +331,7 @@ class MissingTriggerDetector(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -368,9 +360,7 @@ class MissingTriggerDetector(Processor):
 
         # --- BUILD RESULT ---
         if self.add_to_context:
-            return self._build_context_with_missing(
-                context, raw, triggers, missing_triggers, sfreq
-            )
+            return self._build_context_with_missing(context, raw, triggers, missing_triggers, sfreq)
 
         new_metadata = context.metadata.copy()
         new_metadata.custom["missing_triggers"] = missing_triggers
@@ -452,25 +442,19 @@ class MissingTriggerDetector(Processor):
             gap = triggers[i + 1] - triggers[i]
             if gap > artifact_length * 1.9:
                 search_pos = triggers[i] + artifact_length
-                candidate = self._align_to_template(
-                    ref_data, template, search_pos, search_window, tmin, tmax
-                )
+                candidate = self._align_to_template(ref_data, template, search_pos, search_window, tmin, tmax)
                 if self._is_artifact(ref_data, template, candidate, tmin, artifact_length):
                     missing_triggers.append(candidate)
 
         search_pos = triggers[0] - artifact_length
         if search_pos > 0:
-            candidate = self._align_to_template(
-                ref_data, template, search_pos, search_window, tmin, tmax
-            )
+            candidate = self._align_to_template(ref_data, template, search_pos, search_window, tmin, tmax)
             if self._is_artifact(ref_data, template, candidate, tmin, artifact_length):
                 missing_triggers.insert(0, candidate)
 
         search_pos = triggers[-1] + artifact_length
         if search_pos + tmax < len(ref_data):
-            candidate = self._align_to_template(
-                ref_data, template, search_pos, search_window, tmin, tmax
-            )
+            candidate = self._align_to_template(ref_data, template, search_pos, search_window, tmin, tmax)
             if self._is_artifact(ref_data, template, candidate, tmin, artifact_length):
                 missing_triggers.append(candidate)
 

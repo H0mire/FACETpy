@@ -13,9 +13,9 @@ import io
 import logging
 import os
 import sys
+from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
-from typing import Generator, Optional
 
 from loguru import logger
 
@@ -35,7 +35,7 @@ def _resolve_console_mode() -> ConsoleMode:
 class _InterceptHandler(logging.Handler):
     """
     Handler that intercepts standard library logging and forwards to loguru.
-    
+
     This allows external libraries (like MNE-Python) that use the standard
     logging module to have their output formatted and routed through loguru.
     """
@@ -54,9 +54,7 @@ class _InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        )
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
 def _should_auto_configure() -> bool:
@@ -86,15 +84,12 @@ def suppress_stdout() -> Generator[None, None, None]:
 def _resolve_log_directory() -> Path:
     """Return the directory where log files should be written."""
     env_dir = os.environ.get("FACET_LOG_DIR")
-    if env_dir:
-        log_dir = Path(env_dir).expanduser()
-    else:
-        log_dir = Path.cwd() / "logs"
+    log_dir = Path(env_dir).expanduser() if env_dir else Path.cwd() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
 
 
-def configure_logging(force: bool = False) -> Optional[Path]:
+def configure_logging(force: bool = False) -> Path | None:
     """
     Configure global logging if it has not been configured yet.
 
@@ -171,10 +166,12 @@ def configure_logging(force: bool = False) -> Optional[Path]:
 
     # Suppress MNE's verbose print output
     import mne
+
     mne.set_log_level("WARNING")
 
     # Suppress NumPy runtime warnings (divide by zero, overflow, invalid values)
     import warnings
+
     warnings.filterwarnings("ignore", category=RuntimeWarning)
 
     active_console_mode = console_mode if console_renderer.enabled else ConsoleMode.CLASSIC

@@ -7,57 +7,42 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from .filtering import (
-    HighPassFilter,
-    LowPassFilter,
-    BandPassFilter,
-    NotchFilter,
-    Filter
-)
-from .resampling import UpSample, DownSample, Resample
-from .trigger_detection import (
-    TriggerDetector,
-    QRSTriggerDetector,
-    MissingTriggerDetector
-)
-from .trigger_explorer import TriggerExplorer, InteractiveTriggerExplorer
-from .alignment import TriggerAligner, SliceAligner, SubsampleAligner
 from .acquisition import CutAcquisitionWindow, PasteAcquisitionWindow
-from .transforms import Crop, RawTransform, PickChannels, DropChannels, PrintMetric
+from .alignment import SliceAligner, SubsampleAligner, TriggerAligner
+from .filtering import BandPassFilter, Filter, HighPassFilter, LowPassFilter, NotchFilter
+from .resampling import DownSample, Resample, UpSample
+from .transforms import Crop, DropChannels, PickChannels, PrintMetric, RawTransform
+from .trigger_detection import MissingTriggerDetector, QRSTriggerDetector, TriggerDetector
+from .trigger_explorer import InteractiveTriggerExplorer, TriggerExplorer
 
 __all__ = [
     # Filtering
-    'HighPassFilter',
-    'LowPassFilter',
-    'BandPassFilter',
-    'NotchFilter',
-    'Filter',
-
+    "HighPassFilter",
+    "LowPassFilter",
+    "BandPassFilter",
+    "NotchFilter",
+    "Filter",
     # Resampling
-    'UpSample',
-    'DownSample',
-    'Resample',
-
+    "UpSample",
+    "DownSample",
+    "Resample",
     # Trigger Detection
-    'TriggerDetector',
-    'QRSTriggerDetector',
-    'MissingTriggerDetector',
-    'TriggerExplorer',
-    'InteractiveTriggerExplorer',
-
+    "TriggerDetector",
+    "QRSTriggerDetector",
+    "MissingTriggerDetector",
+    "TriggerExplorer",
+    "InteractiveTriggerExplorer",
     # Alignment
-    'TriggerAligner',
-    'SliceAligner',
-    'SubsampleAligner',
-
+    "TriggerAligner",
+    "SliceAligner",
+    "SubsampleAligner",
     # Acquisition window
-    'CutAcquisitionWindow',
-    'PasteAcquisitionWindow',
-
+    "CutAcquisitionWindow",
+    "PasteAcquisitionWindow",
     # Transforms
-    'Crop',
-    'RawTransform',
-    'PickChannels',
-    'DropChannels',
-    'PrintMetric',
+    "Crop",
+    "RawTransform",
+    "PickChannels",
+    "DropChannels",
+    "PrintMetric",
 ]

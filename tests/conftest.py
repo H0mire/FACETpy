@@ -4,15 +4,15 @@ Pytest configuration and fixtures for FACETpy tests.
 This module provides common fixtures and utilities for testing.
 """
 
-import numpy as np
-import mne
-import pytest
-from pathlib import Path
-import tempfile
 import shutil
+import tempfile
+from pathlib import Path
+
+import mne
+import numpy as np
+import pytest
 
 from facet.core import ProcessingContext, ProcessingMetadata
-
 
 # Test data parameters
 TEST_SFREQ = 250  # Hz
@@ -39,8 +39,8 @@ def sample_raw():
     data = np.random.randn(TEST_N_CHANNELS, n_samples) * 1e-6
 
     # Create info structure
-    ch_names = [f'EEG{i+1:03d}' for i in range(TEST_N_CHANNELS)]
-    ch_types = ['eeg'] * TEST_N_CHANNELS
+    ch_names = [f"EEG{i + 1:03d}" for i in range(TEST_N_CHANNELS)]
+    ch_types = ["eeg"] * TEST_N_CHANNELS
     info = mne.create_info(ch_names=ch_names, sfreq=TEST_SFREQ, ch_types=ch_types)
 
     # Create Raw object
@@ -69,8 +69,8 @@ def sample_raw_with_artifacts():
             data[:, start:end] += artifact_amplitude
 
     # Create info
-    ch_names = [f'EEG{i+1:03d}' for i in range(TEST_N_CHANNELS)]
-    ch_types = ['eeg'] * TEST_N_CHANNELS
+    ch_names = [f"EEG{i + 1:03d}" for i in range(TEST_N_CHANNELS)]
+    ch_types = ["eeg"] * TEST_N_CHANNELS
     info = mne.create_info(ch_names=ch_names, sfreq=TEST_SFREQ, ch_types=ch_types)
 
     raw = mne.io.RawArray(data, info, verbose=False)
@@ -97,11 +97,7 @@ def sample_context(sample_raw, sample_triggers):
     metadata.upsampling_factor = 10
     metadata.artifact_to_trigger_offset = 0.0
 
-    context = ProcessingContext(
-        raw=sample_raw,
-        raw_original=sample_raw.copy(),
-        metadata=metadata
-    )
+    context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
 
     return context
 
@@ -114,7 +110,7 @@ def sample_edf_file(temp_dir):
     # Add 2 s of pre-acquisition and 2 s of post-acquisition padding so that
     # SNR / RMS calculators can find clean reference data outside the
     # acquisition window.
-    pre_acq_samples = 2 * TEST_SFREQ   # 500 samples @ 250 Hz
+    pre_acq_samples = 2 * TEST_SFREQ  # 500 samples @ 250 Hz
     post_acq_samples = 2 * TEST_SFREQ  # 500 samples @ 250 Hz
     acq_n_samples = TEST_N_TRIGGERS * (TEST_SFREQ // TEST_N_TRIGGERS) * TEST_N_TRIGGERS
     total_samples = pre_acq_samples + acq_n_samples + post_acq_samples
@@ -132,15 +128,13 @@ def sample_edf_file(temp_dir):
             data[:, start:end] += artifact_amplitude
             trigger_positions.append(start)
 
-    ch_names = [f'EEG{i+1:03d}' for i in range(TEST_N_CHANNELS)]
-    info = mne.create_info(ch_names=ch_names, sfreq=TEST_SFREQ, ch_types=['eeg'] * TEST_N_CHANNELS)
+    ch_names = [f"EEG{i + 1:03d}" for i in range(TEST_N_CHANNELS)]
+    info = mne.create_info(ch_names=ch_names, sfreq=TEST_SFREQ, ch_types=["eeg"] * TEST_N_CHANNELS)
     raw = mne.io.RawArray(data, info, verbose=False)
 
     trigger_times = np.array(trigger_positions) / TEST_SFREQ
     annotations = mne.Annotations(
-        onset=trigger_times,
-        duration=np.zeros(len(trigger_times)),
-        description=['1'] * len(trigger_times)
+        onset=trigger_times, duration=np.zeros(len(trigger_times)), description=["1"] * len(trigger_times)
     )
     raw.set_annotations(annotations)
 
@@ -159,9 +153,10 @@ def sample_context_with_noise(sample_context):
 
 # Helper functions
 
+
 def assert_raw_equal(raw1, raw2, rtol=1e-5):
     """Assert that two Raw objects are approximately equal."""
-    assert raw1.info['sfreq'] == raw2.info['sfreq']
+    assert raw1.info["sfreq"] == raw2.info["sfreq"]
     assert raw1.ch_names == raw2.ch_names
     assert raw1._data.shape == raw2._data.shape
     np.testing.assert_allclose(raw1._data, raw2._data, rtol=rtol)
@@ -205,20 +200,11 @@ def create_mock_processor(name="mock", process_fn=None):
 
 # Markers and test organization
 
+
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers", "unit: Unit tests for individual components"
-    )
-    config.addinivalue_line(
-        "markers", "integration: Integration tests for workflows"
-    )
-    config.addinivalue_line(
-        "markers", "slow: Tests that take a long time"
-    )
-    config.addinivalue_line(
-        "markers", "requires_data: Tests that require data files"
-    )
-    config.addinivalue_line(
-        "markers", "requires_c_extension: Tests that need C extension"
-    )
+    config.addinivalue_line("markers", "unit: Unit tests for individual components")
+    config.addinivalue_line("markers", "integration: Integration tests for workflows")
+    config.addinivalue_line("markers", "slow: Tests that take a long time")
+    config.addinivalue_line("markers", "requires_data: Tests that require data files")
+    config.addinivalue_line("markers", "requires_c_extension: Tests that need C extension")

@@ -6,17 +6,17 @@ completely independent of multiprocessing parallelism.
 """
 
 import time
-from typing import List, Optional, Set
 
 import mne
 import numpy as np
 from loguru import logger
 
-from .context import ProcessingContext
-from .processor import Processor
-from facet.logging_config import suppress_stdout
 from facet.console.manager import get_console
 from facet.console.progress import get_current_step_index
+from facet.logging_config import suppress_stdout
+
+from .context import ProcessingContext
+from .processor import Processor
 
 
 class ChannelSequentialExecutor:
@@ -50,7 +50,7 @@ class ChannelSequentialExecutor:
 
     def execute(
         self,
-        processors: List[Processor],
+        processors: list[Processor],
         context: ProcessingContext,
     ) -> ProcessingContext:
         """
@@ -86,7 +86,8 @@ class ChannelSequentialExecutor:
         proc_names = " → ".join(p.name for p in processors)
         logger.info(
             "Channel-sequential [{}] ({} data channels)",
-            proc_names, len(data_idx),
+            proc_names,
+            len(data_idx),
         )
 
         console = get_console()
@@ -99,13 +100,13 @@ class ChannelSequentialExecutor:
             batch_step_offset=step_idx,
         )
 
-        _run_once_executed: Set[str] = set()
-        merged_data: Optional[np.ndarray] = None
+        _run_once_executed: set[str] = set()
+        merged_data: np.ndarray | None = None
         n_times_out = 0
         new_sfreq = raw.info["sfreq"]
         saved_metadata = None
         handle_noise = False
-        noise_data: Optional[np.ndarray] = None
+        noise_data: np.ndarray | None = None
 
         try:
             for k, ch_abs_idx in enumerate(data_idx):
@@ -119,7 +120,10 @@ class ChannelSequentialExecutor:
                     proc_start = time.time()
                     ch_ctx = self._run_proc(proc, ch_ctx, _run_once_executed)
                     console.channel_processor_completed(
-                        k, pi, time.time() - proc_start, skipped=skipped,
+                        k,
+                        pi,
+                        time.time() - proc_start,
+                        skipped=skipped,
                     )
 
                 ch_data = ch_ctx.get_data(copy=False)
@@ -191,7 +195,7 @@ class ChannelSequentialExecutor:
     def _run_proc(
         proc: Processor,
         ctx: ProcessingContext,
-        run_once_executed: Set[str],
+        run_once_executed: set[str],
     ) -> ProcessingContext:
         """Execute *proc* on *ctx*, honouring the ``run_once`` flag."""
         if proc.run_once and proc.name in run_once_executed:
@@ -206,10 +210,8 @@ class ChannelSequentialExecutor:
         """Split channel indices into data channels and pass-through channels."""
         try:
             from mne.io.pick import _DATA_CH_TYPES_SPLIT
-            data_idx = [
-                i for i, t in enumerate(raw.get_channel_types())
-                if t in _DATA_CH_TYPES_SPLIT
-            ]
+
+            data_idx = [i for i, t in enumerate(raw.get_channel_types()) if t in _DATA_CH_TYPES_SPLIT]
         except ImportError:
             data_idx = list(range(len(raw.ch_names)))
 

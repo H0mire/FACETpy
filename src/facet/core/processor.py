@@ -9,18 +9,22 @@ Date: 2025-01-12
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, List
+from typing import Any
+
 from loguru import logger
+
 from .context import ProcessingContext
 
 
 class ProcessorError(Exception):
     """Base exception for all processor-related errors."""
+
     pass
 
 
 class ProcessorValidationError(ProcessorError):
     """Raised when processor validation fails."""
+
     pass
 
 
@@ -71,8 +75,8 @@ class Processor(ABC):
 
     # Channel-sequential flags
     channel_wise: bool = False  # Can be run on a single-channel subset context
-    run_once: bool = False      # In channel_sequential mode: execute only for the
-                                # first channel; subsequent channels are skipped
+    run_once: bool = False  # In channel_sequential mode: execute only for the
+    # first channel; subsequent channels are skipped
 
     def __init__(self):
         """Initialize processor."""
@@ -110,11 +114,7 @@ class Processor(ABC):
         if result is None:
             result = context
 
-        result.add_history_entry(
-            name=self.name,
-            processor_type=self.__class__.__name__,
-            parameters=self._parameters
-        )
+        result.add_history_entry(name=self.name, processor_type=self.__class__.__name__, parameters=self._parameters)
 
         logger.debug(f"Completed processor: {self.name}")
         return result
@@ -132,14 +132,10 @@ class Processor(ABC):
             ProcessorValidationError: If validation fails
         """
         if self.requires_raw and not context.has_raw():
-            raise ProcessorValidationError(
-                f"{self.name} requires raw data, but none is available"
-            )
+            raise ProcessorValidationError(f"{self.name} requires raw data, but none is available")
 
         if self.requires_triggers and not context.has_triggers():
-            raise ProcessorValidationError(
-                f"{self.name} requires triggers, but none are available"
-            )
+            raise ProcessorValidationError(f"{self.name} requires triggers, but none are available")
 
     @abstractmethod
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -157,7 +153,7 @@ class Processor(ABC):
         """
         pass
 
-    def _get_parameters(self) -> Dict[str, Any]:
+    def _get_parameters(self) -> dict[str, Any]:
         """
         Get processor parameters for history tracking.
 
@@ -167,10 +163,7 @@ class Processor(ABC):
             Dictionary of parameters
         """
         # Get all instance variables that don't start with _
-        params = {
-            k: v for k, v in self.__dict__.items()
-            if not k.startswith('_') and not callable(v)
-        }
+        params = {k: v for k, v in self.__dict__.items() if not k.startswith("_") and not callable(v)}
         return params
 
     def __repr__(self) -> str:
@@ -198,7 +191,7 @@ class SequenceProcessor(Processor):
     name = "sequence"
     requires_raw = False  # Depends on child processors
 
-    def __init__(self, processors: List[Processor]):
+    def __init__(self, processors: list[Processor]):
         """
         Initialize sequence processor.
 
@@ -237,12 +230,7 @@ class ConditionalProcessor(Processor):
     name = "conditional"
     requires_raw = False
 
-    def __init__(
-        self,
-        condition: callable,
-        processor: Processor,
-        else_processor: Optional[Processor] = None
-    ):
+    def __init__(self, condition: callable, processor: Processor, else_processor: Processor | None = None):
         """
         Initialize conditional processor.
 
@@ -295,12 +283,7 @@ class SwitchProcessor(Processor):
     name = "switch"
     requires_raw = False
 
-    def __init__(
-        self,
-        selector: callable,
-        cases: Dict[str, Processor],
-        default: Optional[Processor] = None
-    ):
+    def __init__(self, selector: callable, cases: dict[str, Processor], default: Processor | None = None):
         """
         Initialize switch processor.
 
@@ -319,9 +302,7 @@ class SwitchProcessor(Processor):
         case_key = self.selector(context)
         processor = self.cases.get(case_key, self.default)
         if processor is None:
-            raise ProcessorValidationError(
-                f"No processor for case '{case_key}' and no default provided"
-            )
+            raise ProcessorValidationError(f"No processor for case '{case_key}' and no default provided")
         processor.validate(context)
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -330,9 +311,7 @@ class SwitchProcessor(Processor):
         processor = self.cases.get(case_key, self.default)
 
         if processor is None:
-            raise ProcessorValidationError(
-                f"No processor for case '{case_key}' and no default provided"
-            )
+            raise ProcessorValidationError(f"No processor for case '{case_key}' and no default provided")
 
         logger.debug(f"Selected case '{case_key}', executing {processor.name}")
         return processor.execute(context)

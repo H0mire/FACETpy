@@ -2,14 +2,15 @@
 Adaptive Noise Cancellation (ANC) correction processor.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
+
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import filtfilt, firls, butter
+from scipy.signal import butter, filtfilt, firls
 
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 from ..console import processor_progress
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 
 
 @register_processor
@@ -61,16 +62,14 @@ class ANCCorrection(Processor):
 
     def __init__(
         self,
-        filter_order: Optional[int] = None,
-        hp_freq: Optional[float] = None,
-        hp_filter_weights: Optional[np.ndarray] = None,
+        filter_order: int | None = None,
+        hp_freq: float | None = None,
+        hp_filter_weights: np.ndarray | None = None,
         use_c_extension: bool = True,
         mu_factor: float = 0.05,
         max_gain: float = 50.0,
     ) -> None:
-        self.filter_order_override = (
-            max(1, int(filter_order)) if filter_order is not None else None
-        )
+        self.filter_order_override = max(1, int(filter_order)) if filter_order is not None else None
         self.filter_order = self.filter_order_override
         self.hp_freq = hp_freq
         self.hp_filter_weights = hp_filter_weights
@@ -83,18 +82,12 @@ class ANCCorrection(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if not context.has_estimated_noise():
-            raise ProcessorValidationError(
-                "Estimated noise not available. Run AAS or other correction first."
-            )
+            raise ProcessorValidationError("Estimated noise not available. Run AAS or other correction first.")
         if not context.has_triggers():
-            raise ProcessorValidationError(
-                "Triggers not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Triggers not set. Run TriggerDetector first.")
         artifact_length = context.get_artifact_length()
         if artifact_length is None or artifact_length <= 0:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector before ANC."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector before ANC.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -102,9 +95,7 @@ class ANCCorrection(Processor):
         estimated_noise = context.get_estimated_noise()
         sfreq = context.get_sfreq()
         artifact_length = context.get_artifact_length()
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
         # --- LOG ---
         logger.info("Applying ANC to {} channels", len(eeg_channels))
@@ -131,8 +122,13 @@ class ANCCorrection(Processor):
                 ch_name = raw.ch_names[ch_idx]
                 try:
                     corrected, filtered = self._anc_single_channel(
-                        raw._data[ch_idx], estimated_noise[ch_idx],
-                        s_acq_start, s_acq_end, hp_weights, filter_order, ch_name,
+                        raw._data[ch_idx],
+                        estimated_noise[ch_idx],
+                        s_acq_start,
+                        s_acq_end,
+                        hp_weights,
+                        filter_order,
+                        ch_name,
                     )
                     raw._data[ch_idx] = corrected
                     noise_updated[ch_idx, s_acq_start:s_acq_end] += filtered
@@ -188,9 +184,7 @@ class ANCCorrection(Processor):
         derived = self._derive_parameters(context, artifact_length, sfreq)
         return derived["hp_weights"], derived["hp_freq"]
 
-    def _resolve_filter_order(
-        self, artifact_length: int, s_acq_start: int, s_acq_end: int
-    ) -> int:
+    def _resolve_filter_order(self, artifact_length: int, s_acq_start: int, s_acq_end: int) -> int:
         """Determine the adaptive filter order, capped by the acquisition window.
 
         Parameters
@@ -208,16 +202,10 @@ class ANCCorrection(Processor):
             Effective adaptive filter order (≥ 1).
         """
         window_length = max(1, s_acq_end - s_acq_start)
-        base_order = (
-            self.filter_order_override
-            if self.filter_order_override is not None
-            else artifact_length
-        )
+        base_order = self.filter_order_override if self.filter_order_override is not None else artifact_length
         return max(1, min(int(base_order), window_length))
 
-    def _with_anc_metadata(
-        self, ctx: ProcessingContext, hp_cutoff: float, filter_order: int
-    ) -> ProcessingContext:
+    def _with_anc_metadata(self, ctx: ProcessingContext, hp_cutoff: float, filter_order: int) -> ProcessingContext:
         """Return a new context with ANC diagnostics stored in custom metadata.
 
         Parameters
@@ -250,7 +238,7 @@ class ANCCorrection(Processor):
         noise_data: np.ndarray,
         s_acq_start: int,
         s_acq_end: int,
-        hp_weights: Optional[np.ndarray],
+        hp_weights: np.ndarray | None,
         filter_order: int,
         ch_name: str,
     ) -> tuple:
@@ -285,9 +273,7 @@ class ANCCorrection(Processor):
             logger.debug("[{}] ANC reference window is empty, skipping", ch_name)
             return eeg_data, np.zeros(0, dtype=float)
         if segment_len <= filter_order:
-            logger.debug(
-                "[{}] ANC reference shorter than filter order, skipping", ch_name
-            )
+            logger.debug("[{}] ANC reference shorter than filter order, skipping", ch_name)
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         if hp_weights is not None:
@@ -330,15 +316,10 @@ class ANCCorrection(Processor):
 
         eeg_segment = eeg_data[s_acq_start:s_acq_end]
         baseline = np.max(np.abs(eeg_segment)) if eeg_segment.size else 0.0
-        if baseline > 0:
-            gain = max_filtered / baseline
-        else:
-            gain = np.inf if max_filtered > 0 else 0.0
+        gain = max_filtered / baseline if baseline > 0 else np.inf if max_filtered > 0 else 0.0
 
         if gain > self.max_gain:
-            logger.error(
-                "[{}] ANC produced unstable gain ({:.2e}), skipping", ch_name, gain
-            )
+            logger.error("[{}] ANC produced unstable gain ({:.2e}), skipping", ch_name, gain)
             return eeg_data, np.zeros(segment_len, dtype=float)
 
         corrected_data = eeg_data.copy()
@@ -373,6 +354,7 @@ class ANCCorrection(Processor):
         # Optional C extension — kept as lazy import so a missing build does not
         # prevent the module from being imported.
         from ..helpers.fastranc import fastr_anc
+
         _, filtered_noise = fastr_anc(reference, data, filter_order, mu)
         return filtered_noise
 
@@ -409,7 +391,7 @@ class ANCCorrection(Processor):
         y = np.zeros(length)
 
         for n in range(N, length):
-            x = reference[n - N:n][::-1]
+            x = reference[n - N : n][::-1]
             y[n] = np.dot(w, x)
             e = data[n] - y[n]
             w += mu * e * x
@@ -421,7 +403,7 @@ class ANCCorrection(Processor):
         context: ProcessingContext,
         artifact_length: int,
         sfreq: float,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Derive ANC parameters from the trigger rate and sampling frequency.
 
         Parameters
@@ -532,15 +514,14 @@ class ANCCorrection(Processor):
         """
         try:
             from ..helpers.fastranc import fastranc
+
             if fastranc is not None:
                 logger.debug("Using fastranc C extension for ANC")
                 return True
             logger.info("fastranc C extension not available, using Python fallback")
             return False
         except Exception as exc:
-            logger.info(
-                "fastranc C extension not available ({}), using Python fallback", exc
-            )
+            logger.info("fastranc C extension not available ({}), using Python fallback", exc)
             return False
 
 

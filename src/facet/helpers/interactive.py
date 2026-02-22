@@ -8,10 +8,10 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import contextlib
 import os
 import sys
 import time
-from typing import Optional
 
 import mne
 import numpy as np
@@ -21,8 +21,8 @@ from matplotlib.widgets import Button, Slider
 
 from ..console import get_console, suspend_raw_mode
 from ..core import (
-    Processor,
     ProcessingContext,
+    Processor,
     ProcessorError,
     ProcessorValidationError,
     register_processor,
@@ -48,8 +48,8 @@ class WaitForConfirmation(Processor):
         self,
         message: str = "Press Enter to continue...",
         auto_continue: bool = False,
-        timeout: Optional[float] = None,
-        continue_on_timeout: bool = True
+        timeout: float | None = None,
+        continue_on_timeout: bool = True,
     ):
         """
         Initialize the confirmation step.
@@ -85,12 +85,17 @@ class WaitForConfirmation(Processor):
         # they don't appear literally in the footer text.
         try:
             from rich.text import Text as _RichText
-            _strip = lambda s: _RichText.from_markup(s).plain
+
+            def _strip(s):
+                return _RichText.from_markup(s).plain
         except Exception:
             import re as _re
-            _strip = lambda s: _re.sub(r"\[/?[^\]]*\]", "", s)
+
+            def _strip(s):
+                return _re.sub(r"\[/?[^\]]*\]", "", s)
+
         footer_hint = next(
-            (_strip(l.strip()) for l in self.message.split("\n") if l.strip()),
+            (_strip(line.strip()) for line in self.message.split("\n") if line.strip()),
             "Press Enter to continue...",
         )
         console = get_console()
@@ -135,10 +140,7 @@ class WaitForConfirmation(Processor):
 
     def _prompt_with_timeout(self) -> None:
         """Wait for user confirmation with an optional timeout."""
-        logger.info(
-            "Waiting for user confirmation (timeout=%.1fs)...",
-            self.timeout
-        )
+        logger.info("Waiting for user confirmation (timeout=%.1fs)...", self.timeout)
         start_time = time.time()
 
         if os.name == "nt":
@@ -228,18 +230,12 @@ class ArtifactOffsetFinder(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
         n_triggers = len(context.get_triggers())
         if n_triggers < 2:
-            raise ProcessorValidationError(
-                f"Need at least 2 triggers to determine offset, got {n_triggers}."
-            )
+            raise ProcessorValidationError(f"Need at least 2 triggers to determine offset, got {n_triggers}.")
         if self.n_epochs < 1:
-            raise ProcessorValidationError(
-                f"n_epochs must be >= 1, got {self.n_epochs}"
-            )
+            raise ProcessorValidationError(f"n_epochs must be >= 1, got {self.n_epochs}")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -259,34 +255,46 @@ class ArtifactOffsetFinder(Processor):
         ch_idx = self._resolve_channel(raw)
         artifact_duration = artifact_length / sfreq
         epochs_data, time_axis = self._extract_epochs(
-            raw._data[ch_idx], triggers, sfreq, artifact_duration,
+            raw._data[ch_idx],
+            triggers,
+            sfreq,
+            artifact_duration,
         )
 
         if self.initial_offset is not None:
             start_offset = self.initial_offset
         else:
             auto_offset = self._auto_detect_offset(
-                epochs_data, time_axis, sfreq, artifact_duration,
+                epochs_data,
+                time_axis,
+                sfreq,
+                artifact_duration,
             )
             if auto_offset is not None:
                 start_offset = auto_offset
                 logger.info(
                     "Auto-detected artifact onset at {:.4f} s ({:.2f} ms)",
-                    auto_offset, auto_offset * 1000,
+                    auto_offset,
+                    auto_offset * 1000,
                 )
             else:
                 start_offset = current_offset
                 logger.debug("Auto-detection failed; using current offset")
 
         chosen_offset = self._show_interactive_plot(
-            epochs_data, time_axis, raw.ch_names[ch_idx],
-            artifact_duration, sfreq, start_offset,
+            epochs_data,
+            time_axis,
+            raw.ch_names[ch_idx],
+            artifact_duration,
+            sfreq,
+            start_offset,
         )
 
         # --- BUILD RESULT ---
         logger.info(
             "Artifact-to-trigger offset set to {:.6f} s ({:.3f} ms)",
-            chosen_offset, chosen_offset * 1000,
+            chosen_offset,
+            chosen_offset * 1000,
         )
         new_metadata = context.metadata.copy()
         new_metadata.artifact_to_trigger_offset = chosen_offset
@@ -302,7 +310,9 @@ class ArtifactOffsetFinder(Processor):
         """Determine the channel index to display."""
         if self.channel is None:
             eeg_channels = mne.pick_types(
-                raw.info, eeg=True, exclude="bads",
+                raw.info,
+                eeg=True,
+                exclude="bads",
             )
             if len(eeg_channels) == 0:
                 raise ProcessorError("No EEG channels found in raw data.")
@@ -431,12 +441,19 @@ class ArtifactOffsetFinder(Processor):
 
         ax.axvline(0, color="blue", ls="--", lw=1.5, label="Trigger")
         offset_line = ax.axvline(
-            offset, color="red", lw=2, label="Artifact start",
+            offset,
+            color="red",
+            lw=2,
+            label="Artifact start",
         )
 
         offset_text = ax.text(
-            0.02, 0.95, f"Offset: {offset * 1000:.2f} ms",
-            transform=ax.transAxes, fontsize=10, va="top",
+            0.02,
+            0.95,
+            f"Offset: {offset * 1000:.2f} ms",
+            transform=ax.transAxes,
+            fontsize=10,
+            va="top",
             bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
         )
 
@@ -463,7 +480,11 @@ class ArtifactOffsetFinder(Processor):
         top of the axes created by :meth:`_setup_plot_axes`.
         """
         fig, ax, offset_line, offset_text = self._setup_plot_axes(
-            epochs_data, time_axis, ch_name, start_offset, artifact_duration,
+            epochs_data,
+            time_axis,
+            ch_name,
+            start_offset,
+            artifact_duration,
         )
         state: dict = {"offset": start_offset, "confirmed": False, "shade": None}
 
@@ -471,8 +492,11 @@ class ArtifactOffsetFinder(Processor):
             if state["shade"] is not None:
                 state["shade"].remove()
             state["shade"] = ax.axvspan(
-                state["offset"], state["offset"] + artifact_duration,
-                alpha=0.12, color="red", label="_nolegend_",
+                state["offset"],
+                state["offset"] + artifact_duration,
+                alpha=0.12,
+                color="red",
+                label="_nolegend_",
             )
 
         _draw_shade()
@@ -481,9 +505,12 @@ class ArtifactOffsetFinder(Processor):
         slider_ax = fig.add_axes([0.15, 0.12, 0.65, 0.04])
         max_range = artifact_duration * 0.5
         slider = Slider(
-            slider_ax, "Offset (s)",
-            -max_range, max_range,
-            valinit=start_offset, valstep=1.0 / sfreq,
+            slider_ax,
+            "Offset (s)",
+            -max_range,
+            max_range,
+            valinit=start_offset,
+            valstep=1.0 / sfreq,
         )
 
         def _on_slider_changed(val: float) -> None:
@@ -508,10 +535,8 @@ class ArtifactOffsetFinder(Processor):
 
         def _close_fig() -> None:
             """Destroy the native window while the event loop is active."""
-            try:
+            with contextlib.suppress(Exception):
                 fig.canvas.manager.destroy()
-            except Exception:
-                pass
             plt.close(fig)
 
         def _on_confirm(_) -> None:

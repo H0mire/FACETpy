@@ -2,9 +2,8 @@
 Tests for ProcessingContext and ProcessingMetadata.
 """
 
-import pytest
 import numpy as np
-import mne
+import pytest
 
 from facet.core import ProcessingContext, ProcessingMetadata
 
@@ -29,7 +28,7 @@ class TestProcessingMetadata:
         metadata = ProcessingMetadata()
         metadata.triggers = np.array([100, 200, 300])
         metadata.artifact_length = 50
-        metadata.custom['test'] = 'value'
+        metadata.custom["test"] = "value"
 
         # Copy
         metadata_copy = metadata.copy()
@@ -40,7 +39,7 @@ class TestProcessingMetadata:
         # Check values are equal
         assert np.array_equal(metadata_copy.triggers, metadata.triggers)
         assert metadata_copy.artifact_length == metadata.artifact_length
-        assert metadata_copy.custom['test'] == 'value'
+        assert metadata_copy.custom["test"] == "value"
 
         # Modify copy shouldn't affect original
         metadata_copy.artifact_length = 100
@@ -55,25 +54,20 @@ class TestProcessingMetadata:
         data = metadata.to_dict()
 
         assert isinstance(data, dict)
-        assert 'triggers' in data
-        assert 'artifact_length' in data
-        assert data['artifact_length'] == 50
+        assert "triggers" in data
+        assert "artifact_length" in data
+        assert data["artifact_length"] == 50
 
     def test_from_dict(self):
         """Test deserialization from dict."""
-        data = {
-            'triggers': [100, 200, 300],
-            'artifact_length': 50,
-            'upsampling_factor': 5,
-            'custom': {'key': 'value'}
-        }
+        data = {"triggers": [100, 200, 300], "artifact_length": 50, "upsampling_factor": 5, "custom": {"key": "value"}}
 
         metadata = ProcessingMetadata.from_dict(data)
 
         assert np.array_equal(metadata.triggers, np.array([100, 200, 300]))
         assert metadata.artifact_length == 50
         assert metadata.upsampling_factor == 5
-        assert metadata.custom['key'] == 'value'
+        assert metadata.custom["key"] == "value"
 
 
 @pytest.mark.unit
@@ -114,10 +108,7 @@ class TestProcessingContext:
 
         # Check context2 has new raw
         assert context2.get_raw() is raw2
-        assert not np.array_equal(
-            context1.get_raw()._data,
-            context2.get_raw()._data
-        )
+        assert not np.array_equal(context1.get_raw()._data, context2.get_raw()._data)
 
     def test_with_metadata(self, sample_context):
         """Test creating new context with different metadata."""
@@ -173,16 +164,13 @@ class TestProcessingContext:
         assert len(history) == 0
 
         # Add entry
-        sample_context.add_history_entry(
-            processor_name="test_processor",
-            parameters={'param1': 'value1'}
-        )
+        sample_context.add_history_entry(processor_name="test_processor", parameters={"param1": "value1"})
 
         # Check it's recorded
         history = sample_context.get_history()
         assert len(history) == 1
         assert history[0].name == "test_processor"
-        assert history[0].parameters == {'param1': 'value1'}
+        assert history[0].parameters == {"param1": "value1"}
         assert history[0].timestamp > 0
 
     def test_to_dict(self, sample_context):
@@ -190,9 +178,9 @@ class TestProcessingContext:
         data = sample_context.to_dict()
 
         assert isinstance(data, dict)
-        assert 'raw' in data
-        assert 'metadata' in data
-        assert 'history' in data
+        assert "raw" in data
+        assert "metadata" in data
+        assert "history" in data
 
     def test_from_dict(self, sample_context):
         """Test deserialization from dict."""
@@ -203,7 +191,7 @@ class TestProcessingContext:
         context2 = ProcessingContext.from_dict(data)
 
         # Check equality
-        assert context2.get_raw().info['sfreq'] == sample_context.get_raw().info['sfreq']
+        assert context2.get_raw().info["sfreq"] == sample_context.get_raw().info["sfreq"]
         assert len(context2.get_history()) == len(sample_context.get_history())
 
     def test_copy_preserves_original_raw(self, sample_raw):
@@ -228,7 +216,7 @@ class TestProcessingContext:
         # Create new context with modifications
         new_raw = original_raw.copy()
         new_raw._data *= 2
-        context2 = sample_context.with_raw(new_raw)
+        sample_context.with_raw(new_raw)
 
         # Original should be unchanged
         assert sample_context.get_raw() is original_raw
@@ -262,6 +250,7 @@ class TestProcessingContextPipeOperator:
 
     def test_pipe_with_callable(self, sample_context):
         """ctx | callable applies the function and returns new context."""
+
         def noop(ctx):
             return ctx.with_raw(ctx.get_raw().copy())
 
@@ -287,11 +276,7 @@ class TestProcessingContextPipeOperator:
                 context.metadata.custom[self.key] = self.value
                 return context
 
-        result = (
-            sample_context
-            | AddToCustom("step1", 1)
-            | AddToCustom("step2", 2)
-        )
+        result = sample_context | AddToCustom("step1", 1) | AddToCustom("step2", 2)
 
         assert result.metadata.custom["step1"] == 1
         assert result.metadata.custom["step2"] == 2

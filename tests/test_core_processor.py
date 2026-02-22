@@ -2,19 +2,19 @@
 Tests for Processor base class and composite processors.
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from facet.core import (
-    Processor,
-    ProcessingContext,
-    SequenceProcessor,
     ConditionalProcessor,
-    SwitchProcessor,
+    ProcessingContext,
+    Processor,
     ProcessorError,
     ProcessorValidationError,
+    SequenceProcessor,
+    SwitchProcessor,
+    get_processor,
     register_processor,
-    get_processor
 )
 from tests.conftest import create_mock_processor
 
@@ -30,6 +30,7 @@ class TestProcessorBase:
 
     def test_custom_processor_execute(self, sample_context):
         """Test custom processor execution."""
+
         # Create a simple processor
         class DoubleDataProcessor(Processor):
             name = "double_data"
@@ -53,6 +54,7 @@ class TestProcessorBase:
 
     def test_processor_validation(self, sample_context):
         """Test processor validation."""
+
         class RequiresTriggersProcessor(Processor):
             name = "requires_triggers"
             requires_triggers = True
@@ -81,6 +83,7 @@ class TestProcessorBase:
 
     def test_processor_get_parameters(self):
         """Test _get_parameters method."""
+
         class ParamProcessor(Processor):
             name = "param_proc"
 
@@ -95,8 +98,8 @@ class TestProcessorBase:
         processor = ParamProcessor(param1=5, param2=20)
         params = processor._get_parameters()
 
-        assert params['param1'] == 5
-        assert params['param2'] == 20
+        assert params["param1"] == 5
+        assert params["param2"] == 20
 
 
 @pytest.mark.unit
@@ -123,6 +126,7 @@ class TestSequenceProcessor:
 
     def test_sequence_with_modifications(self, sample_context):
         """Test sequence where processors modify data."""
+
         class MultiplyProcessor(Processor):
             def __init__(self, factor):
                 self.name = f"multiply_{factor}"
@@ -163,12 +167,9 @@ class TestConditionalProcessor:
         """Test conditional processor when condition is True."""
         mock_proc = create_mock_processor("conditional")
 
-        conditional = ConditionalProcessor(
-            condition=lambda ctx: True,
-            processor=mock_proc
-        )
+        conditional = ConditionalProcessor(condition=lambda ctx: True, processor=mock_proc)
 
-        result = conditional.execute(sample_context)
+        conditional.execute(sample_context)
 
         # Processor should have been called
         assert mock_proc.call_count == 1
@@ -177,10 +178,7 @@ class TestConditionalProcessor:
         """Test conditional processor when condition is False."""
         mock_proc = create_mock_processor("conditional")
 
-        conditional = ConditionalProcessor(
-            condition=lambda ctx: False,
-            processor=mock_proc
-        )
+        conditional = ConditionalProcessor(condition=lambda ctx: False, processor=mock_proc)
 
         result = conditional.execute(sample_context)
 
@@ -195,12 +193,9 @@ class TestConditionalProcessor:
         mock_proc = create_mock_processor("conditional")
 
         # Condition: only run if more than 5 triggers
-        conditional = ConditionalProcessor(
-            condition=lambda ctx: len(ctx.get_triggers()) > 5,
-            processor=mock_proc
-        )
+        conditional = ConditionalProcessor(condition=lambda ctx: len(ctx.get_triggers()) > 5, processor=mock_proc)
 
-        result = conditional.execute(sample_context)
+        conditional.execute(sample_context)
 
         # Should execute since we have 10 triggers
         assert mock_proc.call_count == 1
@@ -215,12 +210,9 @@ class TestSwitchProcessor:
         proc_a = create_mock_processor("proc_a")
         proc_b = create_mock_processor("proc_b")
 
-        switch = SwitchProcessor(
-            selector=lambda ctx: "a",
-            cases={"a": proc_a, "b": proc_b}
-        )
+        switch = SwitchProcessor(selector=lambda ctx: "a", cases={"a": proc_a, "b": proc_b})
 
-        result = switch.execute(sample_context)
+        switch.execute(sample_context)
 
         # Only proc_a should be called
         assert proc_a.call_count == 1
@@ -235,12 +227,9 @@ class TestSwitchProcessor:
         def selector(ctx):
             return "high" if len(ctx.get_triggers()) > 5 else "low"
 
-        switch = SwitchProcessor(
-            selector=selector,
-            cases={"low": proc_low, "high": proc_high}
-        )
+        switch = SwitchProcessor(selector=selector, cases={"low": proc_low, "high": proc_high})
 
-        result = switch.execute(sample_context)
+        switch.execute(sample_context)
 
         # Should select high (we have 10 triggers)
         assert proc_low.call_count == 0
@@ -251,13 +240,9 @@ class TestSwitchProcessor:
         proc_a = create_mock_processor("proc_a")
         proc_default = create_mock_processor("default")
 
-        switch = SwitchProcessor(
-            selector=lambda ctx: "unknown",
-            cases={"a": proc_a},
-            default=proc_default
-        )
+        switch = SwitchProcessor(selector=lambda ctx: "unknown", cases={"a": proc_a}, default=proc_default)
 
-        result = switch.execute(sample_context)
+        switch.execute(sample_context)
 
         # Should use default
         assert proc_a.call_count == 0
@@ -267,10 +252,7 @@ class TestSwitchProcessor:
         """Test switch without default raises error for unknown key."""
         proc_a = create_mock_processor("proc_a")
 
-        switch = SwitchProcessor(
-            selector=lambda ctx: "unknown",
-            cases={"a": proc_a}
-        )
+        switch = SwitchProcessor(selector=lambda ctx: "unknown", cases={"a": proc_a})
 
         with pytest.raises(ProcessorError):
             switch.execute(sample_context)
@@ -282,6 +264,7 @@ class TestProcessorRegistry:
 
     def test_register_processor(self):
         """Test registering a processor."""
+
         @register_processor
         class TestRegistryProcessor(Processor):
             name = "test_registry_proc"

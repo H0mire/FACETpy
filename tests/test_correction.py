@@ -2,11 +2,11 @@
 Tests for correction processors.
 """
 
-import pytest
 import numpy as np
+import pytest
 
-from facet.correction import AASCorrection, ANCCorrection, PCACorrection
 from facet.core import ProcessingContext, ProcessorValidationError
+from facet.correction import AASCorrection, ANCCorrection, PCACorrection
 
 
 @pytest.mark.unit
@@ -15,10 +15,7 @@ class TestAASCorrection:
 
     def test_aas_initialization(self):
         """Test AAS processor initialization."""
-        aas = AASCorrection(
-            window_size=30,
-            correlation_threshold=0.975
-        )
+        aas = AASCorrection(window_size=30, correlation_threshold=0.975)
 
         assert aas.window_size == 30
         assert aas.correlation_threshold == 0.975
@@ -72,13 +69,11 @@ class TestAASCorrection:
         metadata.triggers = sample_triggers
         metadata.artifact_length = 50
         context = ProcessingContext(
-            raw=sample_raw_with_artifacts,
-            raw_original=sample_raw_with_artifacts.copy(),
-            metadata=metadata
+            raw=sample_raw_with_artifacts, raw_original=sample_raw_with_artifacts.copy(), metadata=metadata
         )
 
         # Calculate RMS before
-        rms_before = np.sqrt(np.mean(sample_raw_with_artifacts._data ** 2))
+        rms_before = np.sqrt(np.mean(sample_raw_with_artifacts._data**2))
 
         # Apply AAS
         aas = AASCorrection(window_size=5)
@@ -99,10 +94,7 @@ class TestAASCorrection:
 
     def test_aas_with_realignment(self, sample_context):
         """Test AAS with trigger realignment."""
-        aas = AASCorrection(
-            window_size=5,
-            realign_after_averaging=True
-        )
+        aas = AASCorrection(window_size=5, realign_after_averaging=True)
         result = aas.execute(sample_context)
 
         # Triggers may have been adjusted
@@ -222,10 +214,7 @@ class TestCorrectionPipeline:
         """Test AAS followed by ANC."""
         from facet.core import Pipeline
 
-        pipeline = Pipeline([
-            AASCorrection(window_size=5),
-            ANCCorrection(filter_order=3, use_c_extension=False)
-        ])
+        pipeline = Pipeline([AASCorrection(window_size=5), ANCCorrection(filter_order=3, use_c_extension=False)])
 
         result = pipeline.run(initial_context=sample_context)
 
@@ -234,17 +223,19 @@ class TestCorrectionPipeline:
 
     def test_full_correction_pipeline(self, sample_edf_file):
         """Test full correction pipeline."""
-        from facet.io import Loader
-        from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.core import Pipeline
+        from facet.io import Loader
+        from facet.preprocessing import DownSample, TriggerDetector, UpSample
 
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file), preload=True),
-            TriggerDetector(regex=r"\b1\b"),
-            UpSample(factor=2),
-            AASCorrection(window_size=5),
-            DownSample(factor=2)
-        ])
+        pipeline = Pipeline(
+            [
+                Loader(path=str(sample_edf_file), preload=True),
+                TriggerDetector(regex=r"\b1\b"),
+                UpSample(factor=2),
+                AASCorrection(window_size=5),
+                DownSample(factor=2),
+            ]
+        )
 
         result = pipeline.run()
 
@@ -254,10 +245,7 @@ class TestCorrectionPipeline:
         """Test AAS followed by PCA."""
         from facet.core import Pipeline
 
-        pipeline = Pipeline([
-            AASCorrection(window_size=5),
-            PCACorrection(n_components=2)
-        ])
+        pipeline = Pipeline([AASCorrection(window_size=5), PCACorrection(n_components=2)])
 
         result = pipeline.run(initial_context=sample_context)
 

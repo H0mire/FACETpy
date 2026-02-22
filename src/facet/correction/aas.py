@@ -3,16 +3,16 @@ Averaged Artifact Subtraction (AAS) correction processor.
 """
 
 import random
-from typing import Dict, List
-from matplotlib import pyplot as plt
+
 import mne
 import numpy as np
 from loguru import logger
+from matplotlib import pyplot as plt
 
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 from ..console import processor_progress
-from ..helpers.utils import split_vector
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..helpers.crosscorr import crosscorrelation
+from ..helpers.utils import split_vector
 
 
 @register_processor
@@ -80,30 +80,19 @@ class AASCorrection(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if self.window_size < 1:
-            raise ProcessorValidationError(
-                f"window_size must be >= 1, got {self.window_size}"
-            )
+            raise ProcessorValidationError(f"window_size must be >= 1, got {self.window_size}")
         if not (0 < self.correlation_threshold <= 1):
-            raise ProcessorValidationError(
-                f"correlation_threshold must be in (0, 1], got {self.correlation_threshold}"
-            )
+            raise ProcessorValidationError(f"correlation_threshold must be in (0, 1], got {self.correlation_threshold}")
         if not (-1.0 <= self.rel_window_position <= 1.0):
-            raise ProcessorValidationError(
-                f"rel_window_position must be in [-1, 1], got {self.rel_window_position}"
-            )
+            raise ProcessorValidationError(f"rel_window_position must be in [-1, 1], got {self.rel_window_position}")
         if self.search_window_factor <= 0:
-            raise ProcessorValidationError(
-                f"search_window_factor must be positive, got {self.search_window_factor}"
-            )
+            raise ProcessorValidationError(f"search_window_factor must be positive, got {self.search_window_factor}")
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
         n_triggers = len(context.get_triggers())
         if n_triggers < self.window_size:
             logger.warning(
-                "Number of triggers ({}) is less than window size ({}). "
-                "Using smaller window.",
+                "Number of triggers ({}) is less than window size ({}). Using smaller window.",
                 n_triggers,
                 self.window_size,
             )
@@ -121,14 +110,14 @@ class AASCorrection(Processor):
         sfreq = context.get_sfreq()
         upsampling_factor = context.metadata.upsampling_factor
         artifact_offset = context.metadata.artifact_to_trigger_offset
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=True, exclude="bads"
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True, exclude="bads")
 
         # --- LOG ---
         logger.info(
             "Applying AAS correction: {} channels, {} triggers, window={}",
-            len(eeg_channels), len(triggers), self.window_size,
+            len(eeg_channels),
+            len(triggers),
+            self.window_size,
         )
 
         # --- COMPUTE ---
@@ -143,13 +132,23 @@ class AASCorrection(Processor):
             self._plot_artifact_debug(raw, averaging_matrices, artifacts_per_channel)
 
         aligned_triggers = self._get_aligned_triggers(
-            raw, averaging_matrices, artifacts_per_channel,
-            triggers, artifact_offset, artifact_length, sfreq, upsampling_factor,
+            raw,
+            averaging_matrices,
+            artifacts_per_channel,
+            triggers,
+            artifact_offset,
+            artifact_length,
+            sfreq,
+            upsampling_factor,
         )
         artifact_offset_samples = int(artifact_offset * sfreq)
         estimated_artifacts = self._remove_artifacts(
-            raw, averaging_matrices, artifacts_per_channel,
-            aligned_triggers, artifact_offset_samples, artifact_length,
+            raw,
+            averaging_matrices,
+            artifacts_per_channel,
+            aligned_triggers,
+            artifact_offset_samples,
+            artifact_length,
         )
 
         # --- NOISE ---
@@ -173,12 +172,12 @@ class AASCorrection(Processor):
         self,
         raw: mne.io.Raw,
         eeg_channels: np.ndarray,
-        ch_names: List[str],
+        ch_names: list[str],
         triggers: np.ndarray,
         artifact_length: int,
         artifact_offset: float,
         sfreq: float,
-    ) -> Dict[int, np.ndarray]:
+    ) -> dict[int, np.ndarray]:
         """Compute per-channel averaging matrices by slicing raw data directly.
 
         Epochs are extracted one channel at a time from ``raw._data`` so that
@@ -208,7 +207,7 @@ class AASCorrection(Processor):
             Mapping from channel index to averaging matrix (n_epochs, n_epochs).
         """
         logger.debug("Computing averaging matrices for {} channels", len(eeg_channels))
-        averaging_matrices: Dict[int, np.ndarray] = {}
+        averaging_matrices: dict[int, np.ndarray] = {}
         trigger_offset_samples = int(artifact_offset * sfreq)
         epoch_starts = triggers + trigger_offset_samples
 
@@ -227,7 +226,8 @@ class AASCorrection(Processor):
                 )
                 averaging_matrices[ch_idx] = avg_matrix
                 progress.advance(
-                    1, message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
+                    1,
+                    message=f"{idx + 1}/{len(eeg_channels)} • {ch_name}",
                 )
 
         return averaging_matrices
@@ -235,8 +235,8 @@ class AASCorrection(Processor):
     def _get_aligned_triggers(
         self,
         raw: mne.io.Raw,
-        averaging_matrices: Dict[int, np.ndarray],
-        artifacts_per_channel: List[np.ndarray],
+        averaging_matrices: dict[int, np.ndarray],
+        artifacts_per_channel: list[np.ndarray],
         triggers: np.ndarray,
         artifact_offset: float,
         artifact_length: int,
@@ -288,8 +288,8 @@ class AASCorrection(Processor):
     def _remove_artifacts(
         self,
         raw: mne.io.Raw,
-        averaging_matrices: Dict[int, np.ndarray],
-        artifacts_per_channel: List[np.ndarray],
+        averaging_matrices: dict[int, np.ndarray],
+        artifacts_per_channel: list[np.ndarray],
         aligned_triggers: np.ndarray,
         artifact_offset_samples: int,
         artifact_length: int,
@@ -335,15 +335,13 @@ class AASCorrection(Processor):
                     stop = min(trigger_pos + smax, n_samples)
                     if start < 0 or start >= n_samples:
                         continue
-                    artifact_segment = artifacts[epoch_idx, :stop - start]
+                    artifact_segment = artifacts[epoch_idx, : stop - start]
                     raw._data[ch_idx, start:stop] -= artifact_segment
                     estimated_artifacts[ch_idx, start:stop] += artifact_segment
 
                 progress.advance(
                     1,
-                    message=(
-                        f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})"
-                    ),
+                    message=(f"{ch_name} cleaned ({ch_list_idx + 1}/{len(averaging_matrices)})"),
                 )
 
         return estimated_artifacts
@@ -351,8 +349,8 @@ class AASCorrection(Processor):
     def _plot_artifact_debug(
         self,
         raw: mne.io.Raw,
-        averaging_matrices: Dict[int, np.ndarray],
-        artifacts_per_channel: List[np.ndarray],
+        averaging_matrices: dict[int, np.ndarray],
+        artifacts_per_channel: list[np.ndarray],
     ) -> None:
         """Plot a randomly selected averaged artifact for visual debugging.
 
@@ -379,7 +377,8 @@ class AASCorrection(Processor):
             artifact_segment = artifacts[random_epoch_idx]
             logger.debug(
                 "Plotting random artifact for channel {}, epoch {}",
-                ch_name, random_epoch_idx,
+                ch_name,
+                random_epoch_idx,
             )
             plt.figure(figsize=(10, 4))
             plt.plot(artifact_segment)
@@ -430,9 +429,7 @@ class AASCorrection(Processor):
             candidates = np.arange(offset_idx, min(offset_idx + window_size, n_epochs))
             candidates = candidates[candidates >= 0]
 
-            chosen = self._find_correlated_epochs(
-                epochs, candidates, reference_indices, correlation_threshold
-            )
+            chosen = self._find_correlated_epochs(epochs, candidates, reference_indices, correlation_threshold)
             if len(chosen) == 0:
                 chosen = reference_indices
 
@@ -490,12 +487,12 @@ class AASCorrection(Processor):
     def _calc_averaged_artifacts(
         self,
         raw: mne.io.Raw,
-        averaging_matrices: Dict[int, np.ndarray],
+        averaging_matrices: dict[int, np.ndarray],
         triggers: np.ndarray,
         artifact_length: int,
         artifact_offset: float,
         sfreq: float,
-    ) -> List[np.ndarray]:
+    ) -> list[np.ndarray]:
         """Calculate averaged artifact templates for each channel.
 
         Parameters

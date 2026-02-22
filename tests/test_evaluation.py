@@ -3,20 +3,19 @@ Tests for evaluation processors.
 """
 
 import pytest
-import numpy as np
 
+from facet.core import ProcessingContext, ProcessorValidationError
 from facet.evaluation import (
-    ReferenceIntervalSelector,
-    SNRCalculator,
-    RMSCalculator,
-    MedianArtifactCalculator,
-    MetricsReport,
-    RMSResidualCalculator,
     FFTAllenCalculator,
     FFTNiazyCalculator,
-    LegacySNRCalculator
+    LegacySNRCalculator,
+    MedianArtifactCalculator,
+    MetricsReport,
+    ReferenceIntervalSelector,
+    RMSCalculator,
+    RMSResidualCalculator,
+    SNRCalculator,
 )
-from facet.core import ProcessingContext, ProcessorValidationError
 
 
 @pytest.mark.unit
@@ -58,10 +57,10 @@ class TestSNRCalculator:
         result = snr_calc.execute(sample_context)
 
         # Check SNR was calculated
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'snr' in metrics
-        assert isinstance(metrics['snr'], float)
-        assert metrics['snr'] > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "snr" in metrics
+        assert isinstance(metrics["snr"], float)
+        assert metrics["snr"] > 0
 
     def test_snr_requires_triggers(self, sample_raw):
         """Test that SNR calculator requires triggers."""
@@ -87,9 +86,9 @@ class TestSNRCalculator:
         snr_calc = SNRCalculator()
         result = snr_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'snr_per_channel' in metrics
-        assert len(metrics['snr_per_channel']) > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "snr_per_channel" in metrics
+        assert len(metrics["snr_per_channel"]) > 0
 
     def test_snr_uses_selected_reference_interval(self, sample_context):
         """User-selected reference interval should override automatic extraction."""
@@ -114,10 +113,10 @@ class TestRMSCalculator:
         result = rms_calc.execute(sample_context)
 
         # Check RMS ratio was calculated
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'rms_ratio' in metrics
-        assert isinstance(metrics['rms_ratio'], float)
-        assert metrics['rms_ratio'] > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "rms_ratio" in metrics
+        assert isinstance(metrics["rms_ratio"], float)
+        assert metrics["rms_ratio"] > 0
 
     def test_rms_requires_triggers(self, sample_raw):
         """Test that RMS calculator requires triggers."""
@@ -142,8 +141,8 @@ class TestRMSCalculator:
         rms_calc = RMSCalculator()
         result = rms_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'rms_ratio_per_channel' in metrics
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "rms_ratio_per_channel" in metrics
 
 
 @pytest.mark.unit
@@ -155,10 +154,10 @@ class TestRMSResidualCalculator:
         rms_calc = RMSResidualCalculator()
         result = rms_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'rms_residual' in metrics
-        assert isinstance(metrics['rms_residual'], float)
-        assert metrics['rms_residual'] > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "rms_residual" in metrics
+        assert isinstance(metrics["rms_residual"], float)
+        assert metrics["rms_residual"] > 0
 
     def test_rms_residual_requires_triggers(self, sample_raw):
         """Test that RMS residual calculator requires triggers."""
@@ -172,9 +171,9 @@ class TestRMSResidualCalculator:
         rms_calc = RMSResidualCalculator()
         result = rms_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'rms_residual_per_channel' in metrics
-        assert len(metrics['rms_residual_per_channel']) > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "rms_residual_per_channel" in metrics
+        assert len(metrics["rms_residual_per_channel"]) > 0
 
 
 @pytest.mark.unit
@@ -186,10 +185,10 @@ class TestLegacySNRCalculator:
         snr_calc = LegacySNRCalculator()
         result = snr_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'legacy_snr' in metrics
-        assert isinstance(metrics['legacy_snr'], float)
-        assert metrics['legacy_snr'] > 0
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "legacy_snr" in metrics
+        assert isinstance(metrics["legacy_snr"], float)
+        assert metrics["legacy_snr"] > 0
 
     def test_legacy_snr_requires_original_raw(self, sample_context):
         """Test that legacy SNR requires original raw data."""
@@ -209,15 +208,15 @@ class TestMedianArtifactCalculator:
         result = median_calc.execute(sample_context)
 
         # Check median artifact was calculated
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'median_artifact' in metrics
-        assert isinstance(metrics['median_artifact'], float)
-        assert metrics['median_artifact'] >= 0
-        
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "median_artifact" in metrics
+        assert isinstance(metrics["median_artifact"], float)
+        assert metrics["median_artifact"] >= 0
+
         # Check for reference ratio (might be missing if sample data is too short for reference extraction)
         # But the sample_context usually provides enough data
-        if 'median_artifact_reference' in metrics:
-            assert 'median_artifact_ratio' in metrics
+        if "median_artifact_reference" in metrics:
+            assert "median_artifact_ratio" in metrics
 
     def test_median_requires_triggers(self, sample_raw):
         """Test that median calculator requires triggers."""
@@ -249,16 +248,16 @@ class TestFFTAllenCalculator:
         fft_calc = FFTAllenCalculator()
         result = fft_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'fft_allen' in metrics
-        assert isinstance(metrics['fft_allen'], dict)
-        
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "fft_allen" in metrics
+        assert isinstance(metrics["fft_allen"], dict)
+
         # Check bands
-        bands = ['Delta', 'Theta', 'Alpha', 'Beta']
+        bands = ["Delta", "Theta", "Alpha", "Beta"]
         for band in bands:
-            if band in metrics['fft_allen']:
-                assert isinstance(metrics['fft_allen'][band], float)
-                assert metrics['fft_allen'][band] >= 0
+            if band in metrics["fft_allen"]:
+                assert isinstance(metrics["fft_allen"][band], float)
+                assert metrics["fft_allen"][band] >= 0
 
     def test_fft_allen_requires_triggers(self, sample_raw):
         context = ProcessingContext(raw=sample_raw)
@@ -276,22 +275,22 @@ class TestFFTNiazyCalculator:
         fft_calc = FFTNiazyCalculator()
         result = fft_calc.execute(sample_context)
 
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'fft_niazy' in metrics
-        assert 'slice' in metrics['fft_niazy']
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "fft_niazy" in metrics
+        assert "slice" in metrics["fft_niazy"]
         # volume might be missing if slices_per_volume is not set
 
     def test_fft_niazy_with_volume(self, sample_context):
         """Test FFT Niazy with volume information."""
         metadata = sample_context.metadata.copy()
-        metadata.slices_per_volume = 10 # fake value
+        metadata.slices_per_volume = 10  # fake value
         context = sample_context.with_metadata(metadata)
-        
+
         fft_calc = FFTNiazyCalculator()
         result = fft_calc.execute(context)
-        
-        metrics = result.metadata.custom.get('metrics', {})
-        assert 'volume' in metrics['fft_niazy']
+
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "volume" in metrics["fft_niazy"]
 
 
 @pytest.mark.unit
@@ -302,13 +301,13 @@ class TestMetricsReport:
         """Test metrics report generation."""
         # Add some metrics
         metadata = sample_context.metadata.copy()
-        metadata.custom['metrics'] = {
-            'snr': 15.5,
-            'rms_ratio': 2.3,
-            'median_artifact': 1.5e-5,
-            'rms_residual': 1.1,
-            'fft_allen': {'Alpha': 5.0},
-            'fft_niazy': {'slice': {'h1': -10.0}}
+        metadata.custom["metrics"] = {
+            "snr": 15.5,
+            "rms_ratio": 2.3,
+            "median_artifact": 1.5e-5,
+            "rms_residual": 1.1,
+            "fft_allen": {"Alpha": 5.0},
+            "fft_niazy": {"slice": {"h1": -10.0}},
         }
         context = sample_context.with_metadata(metadata)
 
@@ -322,20 +321,17 @@ class TestMetricsReport:
     def test_metrics_report_storage(self, sample_context):
         """Test metrics report storage."""
         metadata = sample_context.metadata.copy()
-        metadata.custom['metrics'] = {
-            'snr': 15.5,
-            'fft_allen': {'Alpha': 5.0}
-        }
+        metadata.custom["metrics"] = {"snr": 15.5, "fft_allen": {"Alpha": 5.0}}
         context = sample_context.with_metadata(metadata)
-        
+
         results = {}
         report = MetricsReport(store=results)
         report.execute(context)
-        
+
         assert len(results) == 1
         key = list(results.keys())[0]
-        assert results[key]['snr'] == 15.5
-        assert results[key]['fft_allen_Alpha'] == 5.0
+        assert results[key]["snr"] == 15.5
+        assert results[key]["fft_allen_Alpha"] == 5.0
 
 
 @pytest.mark.integration
@@ -346,56 +342,60 @@ class TestEvaluationPipeline:
         """Test full evaluation workflow."""
         from facet.core import Pipeline
 
-        pipeline = Pipeline([
-            SNRCalculator(),
-            RMSCalculator(),
-            RMSResidualCalculator(),
-            MedianArtifactCalculator(),
-            LegacySNRCalculator(),
-            FFTAllenCalculator(),
-            FFTNiazyCalculator(),
-            MetricsReport()
-        ])
+        pipeline = Pipeline(
+            [
+                SNRCalculator(),
+                RMSCalculator(),
+                RMSResidualCalculator(),
+                MedianArtifactCalculator(),
+                LegacySNRCalculator(),
+                FFTAllenCalculator(),
+                FFTNiazyCalculator(),
+                MetricsReport(),
+            ]
+        )
 
         result = pipeline.run(initial_context=sample_context)
 
         assert result.success is True
 
         # Check all metrics were calculated
-        metrics = result.context.metadata.custom.get('metrics', {})
-        assert 'snr' in metrics
-        assert 'rms_ratio' in metrics
-        assert 'rms_residual' in metrics
-        assert 'median_artifact' in metrics
-        assert 'legacy_snr' in metrics
-        assert 'fft_allen' in metrics
-        assert 'fft_niazy' in metrics
+        metrics = result.context.metadata.custom.get("metrics", {})
+        assert "snr" in metrics
+        assert "rms_ratio" in metrics
+        assert "rms_residual" in metrics
+        assert "median_artifact" in metrics
+        assert "legacy_snr" in metrics
+        assert "fft_allen" in metrics
+        assert "fft_niazy" in metrics
 
     def test_evaluation_after_correction(self, sample_edf_file):
         """Test evaluation after correction."""
-        from facet.io import Loader
-        from facet.preprocessing import TriggerDetector, UpSample, DownSample
-        from facet.correction import AASCorrection
         from facet.core import Pipeline
+        from facet.correction import AASCorrection
+        from facet.io import Loader
+        from facet.preprocessing import DownSample, TriggerDetector, UpSample
 
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file), preload=True),
-            TriggerDetector(regex=r"\b1\b"),
-            UpSample(factor=2),
-            AASCorrection(window_size=5),
-            DownSample(factor=2),
-            SNRCalculator(),
-            RMSCalculator(),
-            RMSResidualCalculator(),
-            MedianArtifactCalculator(),
-            FFTAllenCalculator(),
-            MetricsReport()
-        ])
+        pipeline = Pipeline(
+            [
+                Loader(path=str(sample_edf_file), preload=True),
+                TriggerDetector(regex=r"\b1\b"),
+                UpSample(factor=2),
+                AASCorrection(window_size=5),
+                DownSample(factor=2),
+                SNRCalculator(),
+                RMSCalculator(),
+                RMSResidualCalculator(),
+                MedianArtifactCalculator(),
+                FFTAllenCalculator(),
+                MetricsReport(),
+            ]
+        )
 
         result = pipeline.run()
 
         assert result.success is True
 
         # All metrics should be present
-        metrics = result.context.metadata.custom.get('metrics', {})
-        assert 'snr' in metrics
+        metrics = result.context.metadata.custom.get("metrics", {})
+        assert "snr" in metrics

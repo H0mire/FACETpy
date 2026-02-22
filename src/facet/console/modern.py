@@ -13,14 +13,15 @@ import sys
 import threading
 import time
 from collections import deque
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Any, Deque, Dict, Generator, List, Optional, TextIO
+from typing import Any, TextIO
+
+from .base import BaseConsole
 
 # How long (seconds) to keep the display open after the pipeline finishes
 # before closing automatically.  Override with FACET_CONSOLE_CLOSE_TIMEOUT.
 _WAIT_FOR_CLOSE_TIMEOUT = float(os.environ.get("FACET_CONSOLE_CLOSE_TIMEOUT", "300"))
-
-from .base import BaseConsole
 
 # Strip ANSI escape sequences (e.g. \x1b[31m) from terminal output
 _ANSI_STRIP = re.compile(r"\x1b\[[0-9;]*[a-zA-Z]")
@@ -66,9 +67,9 @@ class StepState:
     name: str = "–"
     status: str = "pending"
     duration: float = 0.0
-    started_at: Optional[float] = None
+    started_at: float | None = None
     progress_value: float = 0.0
-    progress_total: Optional[float] = None
+    progress_total: float | None = None
     progress_message: str = ""
 
 
@@ -77,24 +78,24 @@ class ChannelBatchState:
     """Live state for a channel-sequential execution batch."""
 
     active: bool = False
-    processor_names: List[str] = field(default_factory=list)
-    channel_names: List[str] = field(default_factory=list)
+    processor_names: list[str] = field(default_factory=list)
+    channel_names: list[str] = field(default_factory=list)
     batch_step_offset: int = 0
 
     current_ch_index: int = -1
     current_ch_name: str = ""
     current_proc_index: int = -1
-    current_proc_start: Optional[float] = None
+    current_proc_start: float | None = None
 
     total_channels: int = 0
     completed_channels: int = 0
 
-    proc_statuses: List[str] = field(default_factory=list)
-    proc_durations: List[Optional[float]] = field(default_factory=list)
+    proc_statuses: list[str] = field(default_factory=list)
+    proc_durations: list[float | None] = field(default_factory=list)
 
-    batch_start_time: Optional[float] = None
-    channel_start_time: Optional[float] = None
-    channel_durations: List[float] = field(default_factory=list)
+    batch_start_time: float | None = None
+    channel_start_time: float | None = None
+    channel_durations: list[float] = field(default_factory=list)
 
 
 class _LogTee(io.TextIOBase):
@@ -103,13 +104,13 @@ class _LogTee(io.TextIOBase):
     def __init__(
         self,
         real: TextIO,
-        console: "ModernConsole",
+        console: ModernConsole,
         level: str = "INFO",
     ) -> None:
         self._real = real
         self._console = console
         self._level = level
-        self._buffer: List[str] = []
+        self._buffer: list[str] = []
 
     # Rich Console queries these attributes to decide how to render.
     @property
@@ -122,7 +123,7 @@ class _LogTee(io.TextIOBase):
     def write(self, text: str) -> int:
         if not isinstance(text, str):
             raise TypeError(f"write() argument must be str, not {type(text).__name__}")
-        lines: List[str] = []
+        lines: list[str] = []
         remaining = text
         while remaining:
             line, new_line, remaining = remaining.partition("\n")
@@ -168,19 +169,19 @@ class ModernConsole(BaseConsole):
 
         self.pipeline_name: str = "FACETpy Pipeline"
         self.pipeline_status: str = "Idle"
-        self.pipeline_start: Optional[float] = None
+        self.pipeline_start: float | None = None
         self.total_steps: int = 0
         self.completed_steps: int = 0
         self.current_step_name: str = "–"
         self.last_step_name: str = "–"
-        self.last_step_duration: Optional[float] = None
-        self.step_states: List[StepState] = []
-        self.extra_metrics: Dict[str, str] = {}
+        self.last_step_duration: float | None = None
+        self.step_states: list[StepState] = []
+        self.extra_metrics: dict[str, str] = {}
 
         # Rolling window shown in modern view (trimmed to fit terminal)
-        self.log_messages: Deque[Dict[str, str]] = deque()
+        self.log_messages: deque[dict[str, str]] = deque()
         # Complete unbounded history shared by the classic view
-        self._full_log_history: List[Dict[str, str]] = []
+        self._full_log_history: list[dict[str, str]] = []
 
         # Channel-sequential batch state (active only while a batch runs)
         self._channel_batch = ChannelBatchState()
@@ -199,11 +200,11 @@ class ModernConsole(BaseConsole):
 
         # Non-None while WaitForConfirmation (or similar) is blocking on input.
         # The footer replaces its normal hints with this text.
-        self._active_prompt: Optional[str] = None
+        self._active_prompt: str | None = None
 
         self._lock = threading.Lock()
         self._ticker_stop = threading.Event()
-        self._ticker_thread: Optional[threading.Thread] = None
+        self._ticker_thread: threading.Thread | None = None
         self._live = Live(
             self._render(),
             console=self.console,
@@ -213,14 +214,14 @@ class ModernConsole(BaseConsole):
             redirect_stderr=False,
         )
         self._live.start()
-        self._stdout_tee: Optional[_LogTee] = None
-        self._stderr_tee: Optional[_LogTee] = None
-        self._sink_console: Optional[Any] = None  # set after tee is installed
+        self._stdout_tee: _LogTee | None = None
+        self._stderr_tee: _LogTee | None = None
+        self._sink_console: Any | None = None  # set after tee is installed
         self._install_output_tee()
 
         # Keyboard listener (POSIX only)
         self._input_stop = threading.Event()
-        self._input_thread: Optional[threading.Thread] = None
+        self._input_thread: threading.Thread | None = None
         self._orig_term_settings: Any = None
         self._raw_mode_settings: Any = None  # saved after applying raw mode
         # Used by suspend_raw_mode() to pause the keyboard loop
@@ -230,7 +231,7 @@ class ModernConsole(BaseConsole):
         self._start_keyboard_listener()
 
         # Signal handlers to restore terminal on SIGTERM / SIGHUP
-        self._old_signal_handlers: Dict[int, Any] = {}
+        self._old_signal_handlers: dict[int, Any] = {}
         self._install_signal_handlers()
 
         atexit.register(self.shutdown)
@@ -266,10 +267,8 @@ class ModernConsole(BaseConsole):
         with self._lock:
             self._stop_ticker_locked()
             if self._live is not None:
-                try:
+                with contextlib.suppress(Exception):
                     self._live.stop()
-                except Exception:
-                    pass
                 self._live = None
 
     # ------------------------------------------------------------------
@@ -294,7 +293,7 @@ class ModernConsole(BaseConsole):
             self._active_prompt = None
             self._refresh_locked()
 
-    def set_pipeline_metadata(self, metadata: Dict[str, Any]) -> None:
+    def set_pipeline_metadata(self, metadata: dict[str, Any]) -> None:
         with self._lock:
             for key, value in metadata.items():
                 self.extra_metrics[key] = str(value)
@@ -304,7 +303,7 @@ class ModernConsole(BaseConsole):
         self,
         name: str,
         total_steps: int,
-        step_names: Optional[List[str]] = None,
+        step_names: list[str] | None = None,
     ) -> None:
         with self._lock:
             self._view_mode = "modern"
@@ -349,7 +348,7 @@ class ModernConsole(BaseConsole):
         index: int,
         name: str,
         duration: float,
-        metrics: Optional[Dict[str, Any]] = None,
+        metrics: dict[str, Any] | None = None,
     ) -> None:
         with self._lock:
             if not self._ensure_index(index):
@@ -385,8 +384,8 @@ class ModernConsole(BaseConsole):
         self,
         duration: float,
         error: Exception,
-        step_index: Optional[int],
-        step_name: Optional[str],
+        step_index: int | None,
+        step_name: str | None,
     ) -> None:
         with self._lock:
             self.pipeline_status = "Failed"
@@ -405,8 +404,8 @@ class ModernConsole(BaseConsole):
         self,
         index: int,
         completed: float,
-        total: Optional[float] = None,
-        message: Optional[str] = None,
+        total: float | None = None,
+        message: str | None = None,
     ) -> None:
         with self._lock:
             if not self._ensure_index(index):
@@ -424,8 +423,8 @@ class ModernConsole(BaseConsole):
     # ------------------------------------------------------------------
     def start_channel_batch(
         self,
-        processor_names: List[str],
-        channel_names: List[str],
+        processor_names: list[str],
+        channel_names: list[str],
         batch_step_offset: int = 0,
     ) -> None:
         with self._lock:
@@ -536,7 +535,7 @@ class ModernConsole(BaseConsole):
             self._sink_console = Console(
                 file=self._stdout_tee,  # type: ignore[arg-type]
                 highlight=False,
-                force_terminal=True,   # emit ANSI color codes through the tee
+                force_terminal=True,  # emit ANSI color codes through the tee
                 width=sink_width,
             )
         except Exception:
@@ -559,7 +558,7 @@ class ModernConsole(BaseConsole):
             self._append_log(level, text)
             self._refresh_locked()
 
-    def _append_log(self, level: str, text: str, timestamp: Optional[str] = None) -> None:
+    def _append_log(self, level: str, text: str, timestamp: str | None = None) -> None:
         if timestamp is None:
             timestamp = time.strftime("%H:%M:%S")
         entry = {
@@ -626,9 +625,7 @@ class ModernConsole(BaseConsole):
         if not sys.stdin.isatty():
             return
         self._input_stop.clear()
-        self._input_thread = threading.Thread(
-            target=self._keyboard_loop, daemon=True, name="facet-kbd"
-        )
+        self._input_thread = threading.Thread(target=self._keyboard_loop, daemon=True, name="facet-kbd")
         self._input_thread.start()
 
     def _stop_keyboard_listener(self) -> None:
@@ -663,10 +660,8 @@ class ModernConsole(BaseConsole):
     def _restore_terminal(self) -> None:
         self._disable_mouse_tracking()
         if self._orig_term_settings is not None:
-            try:
+            with contextlib.suppress(Exception):
                 _termios.tcsetattr(sys.stdin.fileno(), _termios.TCSADRAIN, self._orig_term_settings)
-            except Exception:
-                pass
             self._orig_term_settings = None
 
     @contextlib.contextmanager
@@ -689,26 +684,20 @@ class ModernConsole(BaseConsole):
         self._raw_paused.wait(timeout=0.5)
         # Discard any raw keypresses that arrived while we were waiting so they
         # don't leak into the caller's input() call.
-        try:
+        with contextlib.suppress(Exception):
             _termios.tcflush(fd, _termios.TCIFLUSH)
-        except Exception:
-            pass
         # Stop mouse events while the caller owns stdin.
         self._disable_mouse_tracking()
         # Restore original (cooked) terminal settings.
-        try:
+        with contextlib.suppress(Exception):
             _termios.tcsetattr(fd, _termios.TCSADRAIN, self._orig_term_settings)
-        except Exception:
-            pass
         try:
             yield
         finally:
             # Re-apply raw mode settings so the keyboard loop can resume.
             if self._raw_mode_settings is not None:
-                try:
+                with contextlib.suppress(Exception):
                     _termios.tcsetattr(fd, _termios.TCSADRAIN, self._raw_mode_settings)
-                except Exception:
-                    pass
             self._enable_mouse_tracking()
             self._raw_paused.clear()
             self._raw_suspend.clear()
@@ -726,6 +715,7 @@ class ModernConsole(BaseConsole):
             except Exception:
                 signal.signal(sig, signal.SIG_DFL)
             os.kill(os.getpid(), sig)
+
         return handler
 
     def _install_signal_handlers(self) -> None:
@@ -741,10 +731,8 @@ class ModernConsole(BaseConsole):
 
     def _uninstall_signal_handlers(self) -> None:
         for sig, old in self._old_signal_handlers.items():
-            try:
+            with contextlib.suppress(Exception):
                 signal.signal(sig, old)
-            except Exception:
-                pass
         self._old_signal_handlers.clear()
 
     def _keyboard_loop(self) -> None:
@@ -758,18 +746,14 @@ class ModernConsole(BaseConsole):
             # a carriage-return, collapsing everything onto one horizontal line).
             mode = _termios.tcgetattr(fd)
             mode[0] &= ~(  # iflag: disable special input processing
-                _termios.BRKINT
-                | _termios.ICRNL
-                | _termios.INPCK
-                | _termios.ISTRIP
-                | _termios.IXON
+                _termios.BRKINT | _termios.ICRNL | _termios.INPCK | _termios.ISTRIP | _termios.IXON
             )
             # mode[1] (oflag) intentionally left unchanged -- preserves OPOST/ONLCR
             mode[2] = (mode[2] & ~_termios.CSIZE) | _termios.CS8  # cflag: 8-bit chars
             mode[3] &= ~(  # lflag: disable canonical mode, echo, signals
                 _termios.ECHO | _termios.ICANON | _termios.IEXTEN | _termios.ISIG
             )
-            mode[6][_termios.VMIN] = 1   # type: ignore[index]  # read one byte at a time
+            mode[6][_termios.VMIN] = 1  # type: ignore[index]  # read one byte at a time
             mode[6][_termios.VTIME] = 0  # type: ignore[index]  # no timeout
             _termios.tcsetattr(fd, _termios.TCSADRAIN, mode)
             # Save the raw settings so suspend_raw_mode() can restore them.
@@ -777,7 +761,7 @@ class ModernConsole(BaseConsole):
         except Exception:
             return
 
-        def _read_byte() -> Optional[str]:
+        def _read_byte() -> str | None:
             """Read exactly one byte from the raw FD, bypassing Python's TextIO buffer."""
             try:
                 return os.read(fd, 1).decode("utf-8", errors="replace")
@@ -829,8 +813,8 @@ class ModernConsole(BaseConsole):
 
         # Rate-limit mouse scroll so touchpad momentum scrolling doesn't fly
         # past every line.  Arrow-key scrolling is not rate-limited.
-        _MOUSE_COOLDOWN = 0.06   # seconds — ~12 events/s max for mouse scroll
-        _last_mouse_scroll: List[float] = [0.0]
+        _MOUSE_COOLDOWN = 0.06  # seconds — ~12 events/s max for mouse scroll
+        _last_mouse_scroll: list[float] = [0.0]
 
         def _scroll(delta: int, ratelimit: bool = False, page: bool = False) -> None:
             """Adjust classic-view scroll offset by *delta* lines (positive = back).
@@ -856,9 +840,7 @@ class ModernConsole(BaseConsole):
                 # the top of the viewport.  Going further shows nothing new.
                 max_offset = max(0, total - max_lines)
                 effective_delta = (max_lines if delta > 0 else -max_lines) if page else delta
-                self._classic_scroll_offset = max(
-                    0, min(self._classic_scroll_offset + effective_delta, max_offset)
-                )
+                self._classic_scroll_offset = max(0, min(self._classic_scroll_offset + effective_delta, max_offset))
                 self._refresh_locked()
 
         self._enable_mouse_tracking()
@@ -907,17 +889,17 @@ class ModernConsole(BaseConsole):
                     # select().  _read_esc_seq() uses the raw FD throughout.
                     try:
                         seq = _read_esc_seq()
-                        if seq == "[A":              # Up arrow
+                        if seq == "[A":  # Up arrow
                             _scroll(+3)
-                        elif seq == "[B":            # Down arrow
+                        elif seq == "[B":  # Down arrow
                             _scroll(-3)
-                        elif seq == "[1;2A":         # Shift+Up — large step
+                        elif seq == "[1;2A":  # Shift+Up — large step
                             _scroll(+10)
-                        elif seq == "[1;2B":         # Shift+Down — large step
+                        elif seq == "[1;2B":  # Shift+Down — large step
                             _scroll(-10)
-                        elif seq == "[5~":           # Page Up — full page
+                        elif seq == "[5~":  # Page Up — full page
                             _scroll(+1, page=True)
-                        elif seq == "[6~":           # Page Down — full page
+                        elif seq == "[6~":  # Page Down — full page
                             _scroll(-1, page=True)
                         elif seq.startswith("[<"):
                             # SGR mouse event: ESC [ < Pb ; Px ; Py M/m
@@ -930,7 +912,7 @@ class ModernConsole(BaseConsole):
                             if last in ("M", "m"):
                                 try:
                                     pb = int(seq[2:-1].split(";")[0])
-                                    if pb in (68, 80):    # Shift/Ctrl + scroll up
+                                    if pb in (68, 80):  # Shift/Ctrl + scroll up
                                         _scroll(+1, ratelimit=True, page=True)
                                     elif pb in (69, 81):  # Shift/Ctrl + scroll down
                                         _scroll(-1, ratelimit=True, page=True)
@@ -1095,7 +1077,11 @@ class ModernConsole(BaseConsole):
         else:
             for step in self.step_states:
                 icon, style = self._status_badge(step.status)
-                duration = self._format_duration(step.duration) if step.duration else ("…" if step.status == "running" else "–")
+                duration = (
+                    self._format_duration(step.duration)
+                    if step.duration
+                    else ("…" if step.status == "running" else "–")
+                )
                 display_name = step.name or f"Step {step.index + 1}"
                 table.add_row(
                     display_name,
@@ -1157,7 +1143,11 @@ class ModernConsole(BaseConsole):
         table.add_row("Progress", self._progress_bar())
         table.add_row("Completed", f"{self.completed_steps}/{max(self.total_steps, 1)}")
         table.add_row("Current", self.current_step_name)
-        last = f"{self.last_step_name} ({self._format_duration(self.last_step_duration)})" if self.last_step_duration else self.last_step_name
+        last = (
+            f"{self.last_step_name} ({self._format_duration(self.last_step_duration)})"
+            if self.last_step_duration
+            else self.last_step_name
+        )
         table.add_row("Last", last)
         table.add_row("Elapsed", self._format_duration(self._elapsed_seconds()))
 
@@ -1188,11 +1178,7 @@ class ModernConsole(BaseConsole):
 
         if cb.channel_durations:
             last_idx = cb.completed_channels - 1
-            last_name = (
-                cb.channel_names[last_idx]
-                if 0 <= last_idx < len(cb.channel_names)
-                else "–"
-            )
+            last_name = cb.channel_names[last_idx] if 0 <= last_idx < len(cb.channel_names) else "–"
             table.add_row("Last Ch", f"{last_name} ({self._format_duration(cb.channel_durations[-1])})")
 
             avg = sum(cb.channel_durations) / len(cb.channel_durations)

@@ -9,15 +9,13 @@ processors (alignment, averaging, etc.) can operate on consistent segments.
 """
 
 from dataclasses import asdict
-from typing import Optional, Tuple
 
-import numpy as np
 from loguru import logger
 
 from ..core import (
-    Processor,
     ProcessingContext,
     ProcessingMetadata,
+    Processor,
     ProcessorValidationError,
     register_processor,
 )
@@ -27,9 +25,9 @@ def _derive_pre_post_samples(
     metadata: ProcessingMetadata,
     sfreq: float,
     artifact_length: int,
-    pre_override: Optional[int] = None,
-    post_override: Optional[int] = None,
-) -> Tuple[int, int]:
+    pre_override: int | None = None,
+    post_override: int | None = None,
+) -> tuple[int, int]:
     """Derive pre- and post-trigger sample counts from current metadata.
 
     Parameters
@@ -114,8 +112,8 @@ class CutAcquisitionWindow(Processor):
 
     def __init__(
         self,
-        pre_padding_samples: Optional[int] = None,
-        post_padding_samples: Optional[int] = None,
+        pre_padding_samples: int | None = None,
+        post_padding_samples: int | None = None,
     ) -> None:
         self.pre_padding_samples = pre_padding_samples
         self.post_padding_samples = post_padding_samples
@@ -124,9 +122,7 @@ class CutAcquisitionWindow(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector before CutAcquisitionWindow."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector before CutAcquisitionWindow.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---

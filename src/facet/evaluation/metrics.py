@@ -7,18 +7,20 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import contextlib
 import time
-from typing import Optional, Dict, Any, List, Union
+from typing import Any
+
+import matplotlib.pyplot as plt
 import mne
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Button, SpanSelector
 import pandas as pd
 from loguru import logger
+from matplotlib.widgets import Button, SpanSelector
 from scipy import signal
 
-from ..console import report_metric, get_console, suspend_raw_mode
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..console import get_console, report_metric, suspend_raw_mode
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 
 
 class ReferenceDataMixin:
@@ -37,9 +39,7 @@ class ReferenceDataMixin:
         np.ndarray
             Array of EEG channel indices.
         """
-        return mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
-        )
+        return mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
     def get_reference_data(
         self,
@@ -47,7 +47,7 @@ class ReferenceDataMixin:
         triggers: np.ndarray,
         artifact_length: int,
         time_buffer: float = 0.1,
-        context: Optional[ProcessingContext] = None,
+        context: ProcessingContext | None = None,
     ) -> np.ndarray:
         """Extract reference data (outside acquisition window).
 
@@ -71,7 +71,7 @@ class ReferenceDataMixin:
         np.ndarray
             Array of shape (n_channels, n_times) containing concatenated reference data.
         """
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         eeg_picks = self.get_eeg_channels(raw)
 
         if len(eeg_picks) == 0:
@@ -84,9 +84,7 @@ class ReferenceDataMixin:
             if selected_interval is not None:
                 sel_tmin, sel_tmax = selected_interval
                 try:
-                    selected_data = raw.get_data(
-                        picks=eeg_picks, tmin=sel_tmin, tmax=sel_tmax
-                    )
+                    selected_data = raw.get_data(picks=eeg_picks, tmin=sel_tmin, tmax=sel_tmax)
                 except Exception as exc:
                     logger.warning(
                         "Failed to load selected reference interval "
@@ -106,9 +104,7 @@ class ReferenceDataMixin:
                     )
 
         if triggers is None or len(triggers) == 0 or artifact_length is None:
-            logger.warning(
-                "Cannot infer automatic reference interval without triggers and artifact length."
-            )
+            logger.warning("Cannot infer automatic reference interval without triggers and artifact length.")
             return np.array([]).reshape(len(eeg_picks), 0)
 
         # Acquisition is considered to span from first trigger to last trigger + artifact length.
@@ -147,7 +143,7 @@ class ReferenceDataMixin:
         self,
         context: ProcessingContext,
         raw: mne.io.BaseRaw,
-    ) -> Optional[tuple[float, float]]:
+    ) -> tuple[float, float] | None:
         """Return validated user-selected reference interval in seconds."""
         custom = context.metadata.custom
         interval = custom.get("reference_interval")
@@ -180,12 +176,7 @@ class ReferenceDataMixin:
 
         return tmin, tmax
 
-    def get_acquisition_data(
-        self,
-        raw: mne.io.BaseRaw,
-        triggers: np.ndarray,
-        artifact_length: int
-    ) -> np.ndarray:
+    def get_acquisition_data(self, raw: mne.io.BaseRaw, triggers: np.ndarray, artifact_length: int) -> np.ndarray:
         """Extract data within the acquisition window.
 
         Parameters
@@ -202,7 +193,7 @@ class ReferenceDataMixin:
         np.ndarray
             Array of shape (n_channels, n_times) from the acquisition window.
         """
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         eeg_picks = self.get_eeg_channels(raw)
 
         if len(eeg_picks) == 0:
@@ -257,9 +248,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if self.min_duration <= 0:
-            raise ProcessorValidationError(
-                f"min_duration must be > 0, got {self.min_duration}"
-            )
+            raise ProcessorValidationError(f"min_duration must be > 0, got {self.min_duration}")
 
         raw = context.get_raw()
         if raw.n_times < 2:
@@ -324,9 +313,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
 
         if isinstance(self.channel, int):
             if self.channel < 0 or self.channel >= len(raw.ch_names):
-                raise ProcessorValidationError(
-                    f"channel index out of range: {self.channel}"
-                )
+                raise ProcessorValidationError(f"channel index out of range: {self.channel}")
             return int(self.channel)
 
         if self.channel not in raw.ch_names:
@@ -347,12 +334,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         artifact_length = context.get_artifact_length()
         duration = float(raw.times[-1]) if raw.n_times > 0 else 0.0
 
-        if (
-            triggers is not None
-            and len(triggers) > 0
-            and artifact_length is not None
-            and raw.info["sfreq"] > 0
-        ):
+        if triggers is not None and len(triggers) > 0 and artifact_length is not None and raw.info["sfreq"] > 0:
             sfreq = raw.info["sfreq"]
             acq_start = triggers[0] / sfreq
             acq_end = (triggers[-1] + artifact_length) / sfreq
@@ -373,13 +355,11 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         default_interval: tuple[float, float],
         min_duration: float,
         sfreq: float,
-    ) -> Optional[tuple[float, float]]:
+    ) -> tuple[float, float] | None:
         """Show the interactive GUI and return selected interval."""
         backend = plt.get_backend().lower()
         if "agg" in backend:
-            logger.warning(
-                "Matplotlib backend '{}' is non-interactive; skipping selector.", backend
-            )
+            logger.warning("Matplotlib backend '{}' is non-interactive; skipping selector.", backend)
             return None
 
         fig, ax = plt.subplots(figsize=(12, 6))
@@ -392,7 +372,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         ax.grid(alpha=0.3)
 
         initial_tmin, initial_tmax = default_interval
-        interval_state: Dict[str, Any] = {
+        interval_state: dict[str, Any] = {
             "tmin": float(initial_tmin),
             "tmax": float(initial_tmax),
             "confirmed": False,
@@ -467,10 +447,8 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         cancel_btn = Button(cancel_ax, "Cancel")
 
         def _close_fig() -> None:
-            try:
+            with contextlib.suppress(Exception):
                 fig.canvas.manager.destroy()
-            except Exception:
-                pass
             plt.close(fig)
 
         def _on_confirm(_) -> None:
@@ -485,9 +463,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
         _refresh_overlay()
 
         console = get_console()
-        console.set_active_prompt(
-            "Drag to select clean reference interval, then click Confirm"
-        )
+        console.set_active_prompt("Drag to select clean reference interval, then click Confirm")
         try:
             with suspend_raw_mode():
                 plt.show(block=False)
@@ -543,9 +519,7 @@ class SNRCalculator(Processor, ReferenceDataMixin):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_raw_original() is None:
-            raise ProcessorValidationError(
-                "Original raw data not available. Cannot calculate SNR."
-            )
+            raise ProcessorValidationError("Original raw data not available. Cannot calculate SNR.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -557,9 +531,7 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         logger.info("Calculating Signal-to-Noise Ratio (SNR)")
 
         # --- COMPUTE ---
-        ref_data = self.get_reference_data(
-            raw, triggers, artifact_length, self.time_buffer, context=context
-        )
+        ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer, context=context)
         corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
 
         if ref_data.size == 0 or corrected_data.size == 0:
@@ -579,9 +551,9 @@ class SNRCalculator(Processor, ReferenceDataMixin):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        metrics = new_metadata.custom.setdefault('metrics', {})
-        metrics['snr'] = float(snr_mean)
-        metrics['snr_per_channel'] = snr_per_channel.tolist()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["snr"] = float(snr_mean)
+        metrics["snr_per_channel"] = snr_per_channel.tolist()
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -629,9 +601,7 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
         logger.info("Calculating RMS Residual Ratio (corrected vs reference)")
 
         # --- COMPUTE ---
-        ref_data = self.get_reference_data(
-            raw, triggers, artifact_length, self.time_buffer, context=context
-        )
+        ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer, context=context)
         corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
 
         if ref_data.size == 0 or corrected_data.size == 0:
@@ -649,9 +619,9 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        metrics = new_metadata.custom.setdefault('metrics', {})
-        metrics['rms_residual'] = float(ratio_mean)
-        metrics['rms_residual_per_channel'] = ratio_per_channel.tolist()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["rms_residual"] = float(ratio_mean)
+        metrics["rms_residual_per_channel"] = ratio_per_channel.tolist()
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -680,9 +650,7 @@ class LegacySNRCalculator(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_raw_original() is context.get_raw():
-            raise ProcessorValidationError(
-                "Original raw data not available. Cannot calculate legacy SNR."
-            )
+            raise ProcessorValidationError("Original raw data not available. Cannot calculate legacy SNR.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -690,20 +658,13 @@ class LegacySNRCalculator(Processor):
         raw_original = context.get_raw_original()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
-        sfreq = raw_corrected.info['sfreq']
+        sfreq = raw_corrected.info["sfreq"]
 
         # --- LOG ---
         logger.info("Calculating legacy SNR (corrected vs original)")
 
         # --- COMPUTE ---
-        picks = mne.pick_types(
-            raw_corrected.info,
-            meg=False,
-            eeg=True,
-            stim=False,
-            eog=False,
-            exclude='bads'
-        )
+        picks = mne.pick_types(raw_corrected.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
         if len(picks) == 0:
             logger.warning("No EEG channels found for legacy SNR calculation")
@@ -727,10 +688,7 @@ class LegacySNRCalculator(Processor):
         if acq_tmax < raw_original.times[-1]:
             ref_segments.append(raw_original.get_data(picks=picks, tmin=acq_tmax))
 
-        if ref_segments:
-            reference_data = np.concatenate(ref_segments, axis=1)
-        else:
-            reference_data = raw_original.get_data(picks=picks)
+        reference_data = np.concatenate(ref_segments, axis=1) if ref_segments else raw_original.get_data(picks=picks)
 
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(reference_data, axis=1)
@@ -749,9 +707,9 @@ class LegacySNRCalculator(Processor):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        metrics = new_metadata.custom.setdefault('metrics', {})
-        metrics['legacy_snr'] = snr_mean
-        metrics['legacy_snr_per_channel'] = snr_per_channel.tolist()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["legacy_snr"] = snr_mean
+        metrics["legacy_snr_per_channel"] = snr_per_channel.tolist()
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -787,9 +745,7 @@ class RMSCalculator(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_raw_original() is None:
-            raise ProcessorValidationError(
-                "Original raw data not available. Cannot calculate RMS ratio."
-            )
+            raise ProcessorValidationError("Original raw data not available. Cannot calculate RMS ratio.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -797,15 +753,13 @@ class RMSCalculator(Processor):
         raw_orig = context.get_raw_original()
         triggers = context.get_triggers()
         artifact_length = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         # --- LOG ---
         logger.info("Calculating RMS improvement ratio")
 
         # --- COMPUTE ---
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
         if len(eeg_channels) == 0:
             logger.warning("No EEG channels found")
@@ -825,9 +779,9 @@ class RMSCalculator(Processor):
             data_corrected = data_corrected[:min_channels]
             data_uncorrected = data_uncorrected[:min_channels]
 
-        rms_uncorrected = np.sqrt(np.mean(data_uncorrected ** 2, axis=1))
+        rms_uncorrected = np.sqrt(np.mean(data_uncorrected**2, axis=1))
         # Clamp corrected RMS to avoid division by zero.
-        rms_corrected = np.maximum(np.sqrt(np.mean(data_corrected ** 2, axis=1)), 1e-10)
+        rms_corrected = np.maximum(np.sqrt(np.mean(data_corrected**2, axis=1)), 1e-10)
 
         rms_ratio_per_channel = rms_uncorrected / rms_corrected
         rms_ratio = np.median(rms_ratio_per_channel)
@@ -836,9 +790,9 @@ class RMSCalculator(Processor):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        metrics = new_metadata.custom.setdefault('metrics', {})
-        metrics['rms_ratio'] = float(rms_ratio)
-        metrics['rms_ratio_per_channel'] = rms_ratio_per_channel.tolist()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["rms_ratio"] = float(rms_ratio)
+        metrics["rms_ratio_per_channel"] = rms_ratio_per_channel.tolist()
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -875,24 +829,20 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
         raw = context.get_raw()
         triggers = context.get_triggers()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
         artifact_len = context.get_artifact_length()
 
         # --- LOG ---
         logger.info("Calculating median artifact amplitude")
 
         # --- COMPUTE ---
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude='bads'
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
 
         if len(eeg_channels) == 0:
             logger.warning("No EEG channels found")
@@ -919,12 +869,12 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        metrics = new_metadata.custom.setdefault('metrics', {})
-        metrics['median_artifact'] = float(median_artifact)
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["median_artifact"] = float(median_artifact)
         if not np.isnan(median_ref):
-            metrics['median_artifact_reference'] = float(median_ref)
+            metrics["median_artifact_reference"] = float(median_ref)
         if not np.isnan(ratio):
-            metrics['median_artifact_ratio'] = float(ratio)
+            metrics["median_artifact_ratio"] = float(ratio)
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -951,7 +901,7 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
         for t in triggers:
             start = t + offset_samples
             end = start + artifact_len
-            if 0 <= start and end <= raw.n_times:
+            if start >= 0 and end <= raw.n_times:
                 epoch_data = raw.get_data(picks=eeg_channels, start=start, stop=end)
                 p2p_per_epoch.append(np.ptp(epoch_data, axis=1))
         mean_p2p_per_epoch = [np.mean(epoch_p2p) for epoch_p2p in p2p_per_epoch]
@@ -968,7 +918,7 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
             n_ref_epochs = n_samples_ref // epoch_len
 
             if n_ref_epochs > 0:
-                ref_data_truncated = ref_data[:, :n_ref_epochs * epoch_len]
+                ref_data_truncated = ref_data[:, : n_ref_epochs * epoch_len]
                 # Reshape to (n_epochs, channels, samples) for per-epoch peak-to-peak.
                 ref_epochs = ref_data_truncated.reshape(len(eeg_channels), n_ref_epochs, epoch_len)
                 ref_epochs = np.moveaxis(ref_epochs, 1, 0)
@@ -1007,12 +957,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
     modifies_raw = False
     parallel_safe = False
 
-    BANDS = [
-        (0.8, 4, "Delta"),
-        (4, 8, "Theta"),
-        (8, 12, "Alpha"),
-        (12, 24, "Beta")
-    ]
+    BANDS = [(0.8, 4, "Delta"), (4, 8, "Theta"), (8, 12, "Alpha"), (12, 24, "Beta")]
 
     def __init__(self) -> None:
         super().__init__()
@@ -1022,7 +967,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         raw = context.get_raw()
         triggers = context.get_triggers()
         artifact_len = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         # --- LOG ---
         logger.info("Calculating FFT Allen metric")
@@ -1050,7 +995,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        new_metadata.custom.setdefault('metrics', {})['fft_allen'] = results
+        new_metadata.custom.setdefault("metrics", {})["fft_allen"] = results
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1060,7 +1005,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         freqs: np.ndarray,
         psd_ref: np.ndarray,
         psd_corr: np.ndarray,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Compute median absolute percent power difference per frequency band.
 
         Parameters
@@ -1077,7 +1022,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         Dict[str, float]
             Band name → median percent difference.
         """
-        results: Dict[str, float] = {}
+        results: dict[str, float] = {}
 
         for fmin, fmax, band_name in self.BANDS:
             idx = np.logical_and(freqs >= fmin, freqs <= fmax)
@@ -1090,9 +1035,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
             results[band_name] = float(median_diff)
 
-            logger.debug(
-                "FFT Allen {} ({}-{}Hz): {:.2f}%", band_name, fmin, fmax, median_diff
-            )
+            logger.debug("FFT Allen {} ({}-{}Hz): {:.2f}%", band_name, fmin, fmax, median_diff)
 
         return results
 
@@ -1124,7 +1067,7 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         raw_orig = context.get_raw_original()
         triggers = context.get_triggers()
         artifact_len = context.get_artifact_length()
-        sfreq = raw.info['sfreq']
+        sfreq = raw.info["sfreq"]
 
         # --- LOG ---
         logger.info("Calculating FFT Niazy metric")
@@ -1147,17 +1090,15 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         freqs, psd_corr = signal.welch(data_corr, fs=sfreq, nperseg=nperseg, axis=1)
         _, psd_orig = signal.welch(data_orig, fs=sfreq, nperseg=nperseg, axis=1)
 
-        results = self._compute_harmonic_ratios(
-            freqs, psd_corr, psd_orig, slice_freq, vol_freq
-        )
+        results = self._compute_harmonic_ratios(freqs, psd_corr, psd_orig, slice_freq, vol_freq)
 
-        slice_h1 = results['slice'].get('h1', float('nan'))
+        slice_h1 = results["slice"].get("h1", float("nan"))
         if not np.isnan(slice_h1):
             logger.info("FFT Niazy Slice h1: {:.2f} dB", slice_h1)
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
-        new_metadata.custom.setdefault('metrics', {})['fft_niazy'] = results
+        new_metadata.custom.setdefault("metrics", {})["fft_niazy"] = results
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1178,9 +1119,9 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         mean_trigger_diff = np.mean(np.diff(triggers))
         slice_freq = sfreq / mean_trigger_diff
 
-        slices_per_vol = getattr(context.metadata, 'slices_per_volume', None)
+        slices_per_vol = getattr(context.metadata, "slices_per_volume", None)
         if not slices_per_vol:
-            slices_per_vol = context.metadata.custom.get('slices_per_volume')
+            slices_per_vol = context.metadata.custom.get("slices_per_volume")
 
         if slices_per_vol:
             vol_freq = slice_freq / slices_per_vol
@@ -1196,10 +1137,10 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         psd_corr: np.ndarray,
         psd_orig: np.ndarray,
         slice_freq: float,
-        vol_freq: Optional[float],
+        vol_freq: float | None,
         harmonics: int = 5,
         tolerance: float = 0.5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compute power ratios (orig/corr in dB) at harmonic frequencies.
 
         Parameters
@@ -1224,9 +1165,9 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         Dict[str, Any]
             Nested dict with 'slice' and 'volume' harmonic ratios in dB.
         """
-        results: Dict[str, Any] = {'slice': {}, 'volume': {}}
+        results: dict[str, Any] = {"slice": {}, "volume": {}}
 
-        def _ratio_db_at(f: float) -> Optional[float]:
+        def _ratio_db_at(f: float) -> float | None:
             idx = np.logical_and(freqs >= f - tolerance, freqs <= f + tolerance)
             if not np.any(idx):
                 return None
@@ -1239,13 +1180,13 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
         for h in range(1, harmonics + 1):
             ratio_db = _ratio_db_at(slice_freq * h)
             if ratio_db is not None:
-                results['slice'][f"h{h}"] = ratio_db
+                results["slice"][f"h{h}"] = ratio_db
 
         if vol_freq is not None:
             for h in range(1, harmonics + 1):
                 ratio_db = _ratio_db_at(vol_freq * h)
                 if ratio_db is not None:
-                    results['volume'][f"h{h}"] = ratio_db
+                    results["volume"][f"h{h}"] = ratio_db
 
         return results
 
@@ -1294,14 +1235,14 @@ class MetricsReport(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, name: Optional[str] = None, store: Optional[Dict] = None) -> None:
+    def __init__(self, name: str | None = None, store: dict | None = None) -> None:
         self.report_name = name
         self.store = store
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
-        metrics = context.metadata.custom.get('metrics', {})
+        metrics = context.metadata.custom.get("metrics", {})
 
         # --- COMPUTE ---
         if not metrics:
@@ -1318,7 +1259,7 @@ class MetricsReport(Processor):
         # --- RETURN ---
         return context
 
-    def _log_metrics(self, metrics: Dict[str, Any]) -> None:
+    def _log_metrics(self, metrics: dict[str, Any]) -> None:
         """Render all available metrics — rich panel when available, plain log fallback."""
         from ..console import get_console
 
@@ -1330,7 +1271,7 @@ class MetricsReport(Processor):
         except Exception:
             self._plain_log_metrics(metrics)
 
-    def _rich_log_metrics(self, metrics: Dict[str, Any]) -> None:
+    def _rich_log_metrics(self, metrics: dict[str, Any]) -> None:
         """Render metrics as a rich-formatted panel."""
         from rich import box
         from rich.console import Console as RichConsole
@@ -1340,7 +1281,10 @@ class MetricsReport(Processor):
 
         console = RichConsole(highlight=False)
         table = Table(
-            box=None, show_header=True, padding=(0, 2), expand=True,
+            box=None,
+            show_header=True,
+            padding=(0, 2),
+            expand=True,
             show_edge=False,
         )
         table.add_column("Metric", style="bold", ratio=3)
@@ -1352,55 +1296,47 @@ class MetricsReport(Processor):
             table.add_row(Text(title, style="bold yellow underline"), "", "")
 
         # --- Core Metrics ---
-        core_keys = ('snr', 'rms_ratio', 'rms_residual', 'median_artifact', 'legacy_snr')
+        core_keys = ("snr", "rms_ratio", "rms_residual", "median_artifact", "legacy_snr")
         if any(k in metrics for k in core_keys):
             _section("Core Metrics")
 
-            if 'snr' in metrics:
-                snr = metrics['snr']
+            if "snr" in metrics:
+                snr = metrics["snr"]
                 color = "green" if snr > 10 else ("yellow" if snr > 3 else "red")
                 table.add_row("SNR (Signal-to-Noise Ratio)", f"[{color}]{snr:.2f}[/]", "")
 
-            if 'rms_ratio' in metrics:
+            if "rms_ratio" in metrics:
                 table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
 
-            if 'rms_residual' in metrics:
-                r = metrics['rms_residual']
+            if "rms_residual" in metrics:
+                r = metrics["rms_residual"]
                 color = "green" if abs(r - 1.0) < 0.1 else ("yellow" if abs(r - 1.0) < 0.3 else "red")
                 table.add_row("RMS Residual Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0")
 
-            if 'median_artifact' in metrics:
-                table.add_row(
-                    "Median Artifact Amplitude", f"{metrics['median_artifact']:.2e}", ""
-                )
-                if 'median_artifact_ratio' in metrics:
-                    r = metrics['median_artifact_ratio']
+            if "median_artifact" in metrics:
+                table.add_row("Median Artifact Amplitude", f"{metrics['median_artifact']:.2e}", "")
+                if "median_artifact_ratio" in metrics:
+                    r = metrics["median_artifact_ratio"]
                     color = "green" if abs(r - 1.0) < 0.2 else ("yellow" if abs(r - 1.0) < 0.6 else "red")
-                    table.add_row(
-                        "Median Artifact Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0"
-                    )
+                    table.add_row("Median Artifact Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0")
 
-            if 'legacy_snr' in metrics:
+            if "legacy_snr" in metrics:
                 table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
 
         # --- FFT Allen ---
-        if 'fft_allen' in metrics:
+        if "fft_allen" in metrics:
             _section("FFT Allen — Spectral Diff to Reference")
-            for band, val in metrics['fft_allen'].items():
+            for band, val in metrics["fft_allen"].items():
                 table.add_row(f"{band.capitalize()}", f"{val:.2f}%", "")
 
         # --- FFT Niazy ---
-        if 'fft_niazy' in metrics:
+        if "fft_niazy" in metrics:
             _section("FFT Niazy — Power Ratio (Uncorr / Corr)")
-            if 'slice' in metrics['fft_niazy']:
-                harmonics = "  ".join(
-                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['slice'].items()
-                )
+            if "slice" in metrics["fft_niazy"]:
+                harmonics = "  ".join(f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics["fft_niazy"]["slice"].items())
                 table.add_row("Slice Harmonics", harmonics, "dB")
-            if 'volume' in metrics['fft_niazy']:
-                harmonics = "  ".join(
-                    f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics['fft_niazy']['volume'].items()
-                )
+            if "volume" in metrics["fft_niazy"]:
+                harmonics = "  ".join(f"[cyan]{k}[/]: {v:.2f}" for k, v in metrics["fft_niazy"]["volume"].items())
                 table.add_row("Volume Harmonics", harmonics, "dB")
 
         console.print()
@@ -1414,55 +1350,55 @@ class MetricsReport(Processor):
             )
         )
 
-    def _plain_log_metrics(self, metrics: Dict[str, Any]) -> None:
+    def _plain_log_metrics(self, metrics: dict[str, Any]) -> None:
         """Fallback plain loguru output for the interactive console / no-TTY case."""
         logger.info("=" * 60)
         logger.info("EVALUATION METRICS REPORT")
         logger.info("=" * 60)
 
-        if 'snr' in metrics:
-            logger.info("SNR (Signal-to-Noise Ratio):     {:.2f}", metrics['snr'])
+        if "snr" in metrics:
+            logger.info("SNR (Signal-to-Noise Ratio):     {:.2f}", metrics["snr"])
 
-        if 'rms_ratio' in metrics:
-            logger.info("RMS Ratio (improvement):         {:.2f}", metrics['rms_ratio'])
+        if "rms_ratio" in metrics:
+            logger.info("RMS Ratio (improvement):         {:.2f}", metrics["rms_ratio"])
 
-        if 'rms_residual' in metrics:
+        if "rms_residual" in metrics:
             logger.info(
                 "RMS Residual Ratio (ref match):  {:.2f} (target: 1.0)",
-                metrics['rms_residual'],
+                metrics["rms_residual"],
             )
 
-        if 'median_artifact' in metrics:
-            logger.info("Median Artifact Amplitude:       {:.2e}", metrics['median_artifact'])
-            if 'median_artifact_ratio' in metrics:
+        if "median_artifact" in metrics:
+            logger.info("Median Artifact Amplitude:       {:.2e}", metrics["median_artifact"])
+            if "median_artifact_ratio" in metrics:
                 logger.info(
                     "Median Artifact Ratio (to ref):  {:.2f} (target: 1.0)",
-                    metrics['median_artifact_ratio'],
+                    metrics["median_artifact_ratio"],
                 )
 
-        if 'legacy_snr' in metrics:
-            logger.info("Legacy SNR:                      {:.2f}", metrics['legacy_snr'])
+        if "legacy_snr" in metrics:
+            logger.info("Legacy SNR:                      {:.2f}", metrics["legacy_snr"])
 
-        if 'fft_allen' in metrics:
+        if "fft_allen" in metrics:
             logger.info("FFT Allen (Diff to Ref):")
-            for band, val in metrics['fft_allen'].items():
+            for band, val in metrics["fft_allen"].items():
                 logger.info("  - {}: {:.2f}%", band, val)
 
-        if 'fft_niazy' in metrics:
+        if "fft_niazy" in metrics:
             logger.info("FFT Niazy (Power Ratio Uncorr/Corr dB):")
-            if 'slice' in metrics['fft_niazy']:
+            if "slice" in metrics["fft_niazy"]:
                 logger.info("  Slice Harmonics:")
-                for k, v in metrics['fft_niazy']['slice'].items():
+                for k, v in metrics["fft_niazy"]["slice"].items():
                     logger.info("    - {}: {:.2f} dB", k, v)
-            if 'volume' in metrics['fft_niazy']:
+            if "volume" in metrics["fft_niazy"]:
                 logger.info("  Volume Harmonics:")
-                for k, v in metrics['fft_niazy']['volume'].items():
+                for k, v in metrics["fft_niazy"]["volume"].items():
                     logger.info("    - {}: {:.2f} dB", k, v)
 
         logger.info("=" * 60)
 
     @staticmethod
-    def _flatten_metrics(metrics: Dict[str, Any]) -> Dict[str, float]:
+    def _flatten_metrics(metrics: dict[str, Any]) -> dict[str, float]:
         """Flatten nested metric dicts to scalar values for plotting.
 
         Parameters
@@ -1475,26 +1411,25 @@ class MetricsReport(Processor):
         Dict[str, float]
             Flat dict of scalar metric values.
         """
-        scalar_metrics: Dict[str, float] = {}
+        scalar_metrics: dict[str, float] = {}
         for k, v in metrics.items():
             if isinstance(v, (int, float, np.number)):
                 scalar_metrics[k] = float(v)
-            elif k == 'fft_allen' and isinstance(v, dict):
+            elif k == "fft_allen" and isinstance(v, dict):
                 for band, val in v.items():
                     scalar_metrics[f"fft_allen_{band}"] = float(val)
-            elif k == 'fft_niazy' and isinstance(v, dict):
-                if 'slice' in v:
-                    scalar_metrics["fft_niazy_slice_h1"] = float(v['slice'].get('h1', 0))
+            elif k == "fft_niazy" and isinstance(v, dict) and "slice" in v:
+                scalar_metrics["fft_niazy_slice_h1"] = float(v["slice"].get("h1", 0))
         return scalar_metrics
 
     @staticmethod
     def compare(
-        results: Union[List, Dict],
-        labels: Optional[List[str]] = None,
+        results: list | dict,
+        labels: list[str] | None = None,
         title: str = "Metrics Comparison",
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show: bool = True,
-        metrics: Optional[List[str]] = None,
+        metrics: list[str] | None = None,
     ) -> None:
         """Compare metrics from a list of ``PipelineResult`` objects or a plain dict.
 
@@ -1539,20 +1474,20 @@ class MetricsReport(Processor):
         if labels is None:
             labels = [f"Result {i + 1}" for i in range(len(results))]
 
-        results_dict: Dict[str, Dict[str, float]] = {}
-        for label, result in zip(labels, results):
-            raw_metrics = result.metrics if hasattr(result, 'metrics') else {}
+        results_dict: dict[str, dict[str, float]] = {}
+        for label, result in zip(labels, results, strict=False):
+            raw_metrics = result.metrics if hasattr(result, "metrics") else {}
             results_dict[label] = MetricsReport._flatten_metrics(raw_metrics)
 
         MetricsReport.plot(results_dict, title=title, save_path=save_path, show=show, metrics=metrics)
 
     @staticmethod
     def plot(
-        results: Dict[str, Dict[str, float]],
+        results: dict[str, dict[str, float]],
         title: str = "Metrics Comparison",
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
         show: bool = True,
-        metrics: Optional[List[str]] = None,
+        metrics: list[str] | None = None,
     ) -> None:
         """Plot comparison of metrics using Matplotlib.
 
@@ -1573,7 +1508,7 @@ class MetricsReport(Processor):
             logger.warning("No results to plot")
             return
 
-        df = pd.DataFrame.from_dict(results, orient='index')
+        df = pd.DataFrame.from_dict(results, orient="index")
 
         if df.empty:
             logger.warning("Results DataFrame is empty")
@@ -1582,9 +1517,7 @@ class MetricsReport(Processor):
         if metrics:
             existing_metrics = [m for m in metrics if m in df.columns]
             if not existing_metrics:
-                logger.warning(
-                    "None of the requested metrics {} found in results.", metrics
-                )
+                logger.warning("None of the requested metrics {} found in results.", metrics)
                 return
             df = df[existing_metrics]
 
@@ -1601,23 +1534,24 @@ class MetricsReport(Processor):
         fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows), squeeze=False)
         axes = axes.flatten()
 
-        cmap = plt.get_cmap('viridis')
+        cmap = plt.get_cmap("viridis")
         colors = [cmap(i) for i in np.linspace(0.2, 0.8, len(df))]
 
         for i, metric in enumerate(metrics_list):
             ax = axes[i]
             values = df[metric]
-            values.plot(kind='bar', ax=ax, color=colors, rot=45)
+            values.plot(kind="bar", ax=ax, color=colors, rot=45)
 
             ax.set_title(metric)
-            ax.grid(axis='y', linestyle='--', alpha=0.7)
+            ax.grid(axis="y", linestyle="--", alpha=0.7)
 
             for p in ax.patches:
                 height = p.get_height()
                 ax.annotate(
                     f"{height:.2g}",
-                    (p.get_x() + p.get_width() / 2., height),
-                    ha='center', va='bottom',
+                    (p.get_x() + p.get_width() / 2.0, height),
+                    ha="center",
+                    va="bottom",
                     fontsize=8,
                     rotation=0,
                 )

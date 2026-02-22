@@ -4,13 +4,11 @@ Processors for aligning trigger positions to artifact onsets in EEG-fMRI
 recordings using cross-correlation techniques.
 """
 
-from typing import Optional, Tuple
-
 import mne
 import numpy as np
 from loguru import logger
 
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..helpers.crosscorr import crosscorrelation
 from .resampling import UpSample
 
@@ -18,7 +16,7 @@ from .resampling import UpSample
 def _get_pre_post_samples(
     context: ProcessingContext,
     artifact_length: int,
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """Derive pre/post trigger sample lengths using metadata.
 
     Parameters
@@ -144,8 +142,8 @@ class TriggerAligner(Processor):
     def __init__(
         self,
         ref_trigger_index: int = 0,
-        ref_channel: Optional[int] = None,
-        search_window: Optional[int] = None,
+        ref_channel: int | None = None,
+        search_window: int | None = None,
         save_to_annotations: bool = False,
         upsample_for_alignment: bool = True,
     ) -> None:
@@ -159,9 +157,7 @@ class TriggerAligner(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector first."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector first.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -176,16 +172,12 @@ class TriggerAligner(Processor):
 
         # --- COMPUTE ---
         ref_channel = self._pick_ref_channel(raw)
-        search_window = (
-            self.search_window if self.search_window is not None else 3 * upsampling_factor
-        )
+        search_window = self.search_window if self.search_window is not None else 3 * upsampling_factor
 
         working_raw, working_triggers, did_upsample = self._prepare_working_data(
             context, raw, triggers, upsampling_factor, sfreq
         )
-        tmin, tmax = self._compute_epoch_bounds(
-            context, working_raw, artifact_length, upsampling_factor, did_upsample
-        )
+        tmin, tmax = self._compute_epoch_bounds(context, working_raw, artifact_length, upsampling_factor, did_upsample)
         aligned_triggers = self._align_all_triggers(
             working_raw, working_triggers, tmin, tmax, ref_channel, search_window
         )
@@ -197,9 +189,7 @@ class TriggerAligner(Processor):
         new_metadata = context.metadata.copy()
         new_metadata.triggers = aligned_triggers
         if len(aligned_triggers) > 1:
-            new_metadata.artifact_length = self._recalc_artifact_length(
-                aligned_triggers, new_metadata.volume_gaps
-            )
+            new_metadata.artifact_length = self._recalc_artifact_length(aligned_triggers, new_metadata.volume_gaps)
 
         if self.save_to_annotations:
             raw_copy = raw.copy()
@@ -218,9 +208,7 @@ class TriggerAligner(Processor):
     def _pick_ref_channel(self, raw: mne.io.Raw) -> int:
         if self.ref_channel is not None:
             return self.ref_channel
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
         return int(eeg_channels[0]) if len(eeg_channels) > 0 else 0
 
     def _prepare_working_data(
@@ -230,7 +218,7 @@ class TriggerAligner(Processor):
         triggers: np.ndarray,
         upsampling_factor: int,
         sfreq: float,
-    ) -> Tuple[mne.io.Raw, np.ndarray, bool]:
+    ) -> tuple[mne.io.Raw, np.ndarray, bool]:
         """Return working raw and triggers, upsampling temporarily if needed.
 
         Parameters
@@ -264,7 +252,7 @@ class TriggerAligner(Processor):
         artifact_length: int,
         upsampling_factor: int,
         did_upsample: bool,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """Compute tmin/tmax epoch bounds in working-raw sample space.
 
         Parameters
@@ -339,9 +327,7 @@ class TriggerAligner(Processor):
         logger.info("Aligned {} triggers", len(aligned_triggers))
         return aligned_triggers
 
-    def _recalc_artifact_length(
-        self, aligned_triggers: np.ndarray, volume_gaps: bool
-    ) -> int:
+    def _recalc_artifact_length(self, aligned_triggers: np.ndarray, volume_gaps: bool) -> int:
         """Recalculate artifact length from aligned trigger spacings.
 
         Parameters
@@ -397,8 +383,8 @@ class SliceAligner(TriggerAligner):
     def __init__(
         self,
         ref_trigger_index: int = 0,
-        ref_channel: Optional[int] = None,
-        search_window: Optional[int] = None,
+        ref_channel: int | None = None,
+        search_window: int | None = None,
         save_to_annotations: bool = False,
     ) -> None:
         super().__init__(
@@ -451,8 +437,8 @@ class SubsampleAligner(Processor):
     def __init__(
         self,
         ref_trigger_index: int = 0,
-        ref_channel: Optional[int] = None,
-        search_window: Optional[int] = None,
+        ref_channel: int | None = None,
+        search_window: int | None = None,
         apply_to_raw: bool = False,
     ) -> None:
         self.ref_trigger_index = ref_trigger_index
@@ -464,9 +450,7 @@ class SubsampleAligner(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         if context.get_artifact_length() is None:
-            raise ProcessorValidationError(
-                "Artifact length not set. Run TriggerDetector before SubsampleAligner."
-            )
+            raise ProcessorValidationError("Artifact length not set. Run TriggerDetector before SubsampleAligner.")
         if self.ref_trigger_index >= len(context.get_triggers()):
             raise ProcessorValidationError(
                 f"Reference trigger index {self.ref_trigger_index} is out of range "
@@ -519,9 +503,7 @@ class SubsampleAligner(Processor):
 
         if self.apply_to_raw and np.any(shifts):
             logger.debug("Applying subsample shifts to raw data segments")
-            raw_copy = self._apply_shifts_to_raw(
-                raw, triggers, shifts, pre_samples, post_samples, n_samples
-            )
+            raw_copy = self._apply_shifts_to_raw(raw, triggers, shifts, pre_samples, post_samples, n_samples)
             return context.with_raw(raw_copy).with_metadata(new_metadata)
 
         # --- RETURN ---
@@ -559,9 +541,7 @@ class SubsampleAligner(Processor):
         """
         if self.ref_channel is not None:
             return self.ref_channel
-        eeg_channels = mne.pick_types(
-            raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads"
-        )
+        eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
         return int(eeg_channels[0]) if len(eeg_channels) else 0
 
     def _compute_shifts(

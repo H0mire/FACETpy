@@ -5,11 +5,11 @@ Contains small, focused processors for common in-pipeline data manipulations
 that don't fit neatly into filtering, resampling, or trigger handling.
 """
 
-from typing import Callable, List, Optional, Union
+from collections.abc import Callable
 
 from loguru import logger
 
-from ..core import Processor, ProcessingContext, register_processor
+from ..core import ProcessingContext, Processor, register_processor
 
 
 @register_processor
@@ -44,8 +44,8 @@ class Crop(Processor):
 
     def __init__(
         self,
-        tmin: Optional[float] = None,
-        tmax: Optional[float] = None,
+        tmin: float | None = None,
+        tmax: float | None = None,
     ):
         self.tmin = tmin
         self.tmax = tmax
@@ -61,9 +61,9 @@ class Crop(Processor):
         # --- COMPUTE ---
         kwargs = {}
         if self.tmin is not None:
-            kwargs['tmin'] = self.tmin
+            kwargs["tmin"] = self.tmin
         if self.tmax is not None:
-            kwargs['tmax'] = self.tmax
+            kwargs["tmax"] = self.tmax
         raw.crop(**kwargs)
 
         # --- RETURN ---
@@ -108,7 +108,7 @@ class PickChannels(Processor):
 
     def __init__(
         self,
-        picks: Union[str, List[str]],
+        picks: str | list[str],
         on_missing: str = "ignore",
     ):
         self.picks = picks
@@ -156,7 +156,7 @@ class DropChannels(Processor):
     modifies_raw = True
     parallel_safe = True
 
-    def __init__(self, channels: List[str], on_missing: str = "ignore"):
+    def __init__(self, channels: list[str], on_missing: str = "ignore"):
         self.channels = channels
         self.on_missing = on_missing
         super().__init__()
@@ -166,10 +166,7 @@ class DropChannels(Processor):
         raw = context.get_raw().copy()
 
         # --- COMPUTE ---
-        if self.on_missing == "ignore":
-            to_drop = [ch for ch in self.channels if ch in raw.ch_names]
-        else:
-            to_drop = self.channels
+        to_drop = [ch for ch in self.channels if ch in raw.ch_names] if self.on_missing == "ignore" else self.channels
 
         if to_drop:
             logger.info("Dropping channels: {}", to_drop)
@@ -217,7 +214,7 @@ class PrintMetric(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, *metric_names: str, label: Optional[str] = None):
+    def __init__(self, *metric_names: str, label: str | None = None):
         self._metric_names = metric_names
         self._label = label
         super().__init__()
@@ -228,18 +225,18 @@ class PrintMetric(Processor):
         for name in self._metric_names:
             val = context.get_metric(name)
             if isinstance(val, float):
-                parts.append("{}={:.3f}".format(name, val))
+                parts.append(f"{name}={val:.3f}")
             elif val is not None:
-                parts.append("{}={}".format(name, val))
+                parts.append(f"{name}={val}")
             else:
-                parts.append("{}=N/A".format(name))
+                parts.append(f"{name}=N/A")
 
-        prefix = "[{}] ".format(self._label) if self._label else ""
-        message = "{}{}".format(prefix, ', '.join(parts))
+        prefix = f"[{self._label}] " if self._label else ""
+        message = "{}{}".format(prefix, ", ".join(parts))
 
         # --- LOG ---
         logger.info("{}", message)
-        print("  {}".format(message))
+        print(f"  {message}")
 
         # --- RETURN ---
         return context

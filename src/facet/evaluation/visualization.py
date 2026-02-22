@@ -9,16 +9,17 @@ Date: 2025-01-12
 """
 
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Union, Sequence, Dict, Any
+from typing import Any
 
 import numpy as np
+from loguru import logger
 from matplotlib import pyplot as plt
 from scipy import signal
-from loguru import logger
 
 from ..console import suspend_raw_mode
-from ..core import Processor, ProcessingContext, register_processor
+from ..core import ProcessingContext, Processor, register_processor
 
 
 @register_processor
@@ -73,18 +74,18 @@ class RawPlotter(Processor):
     def __init__(
         self,
         mode: str = "matplotlib",
-        channel: Optional[Union[str, int]] = None,
+        channel: str | int | None = None,
         start: float = 0.0,
         duration: float = 10.0,
         overlay_original: bool = True,
         scale: float = 1e6,
-        save_path: Optional[Union[str, Path]] = None,
+        save_path: str | Path | None = None,
         show: bool = False,
         auto_close: bool = True,
-        figure_kwargs: Optional[Dict[str, Any]] = None,
-        mne_kwargs: Optional[Dict[str, Any]] = None,
-        picks: Optional[Sequence[Union[int, str]]] = None,
-        title: Optional[str] = None,
+        figure_kwargs: dict[str, Any] | None = None,
+        mne_kwargs: dict[str, Any] | None = None,
+        picks: Sequence[int | str] | None = None,
+        title: str | None = None,
     ) -> None:
         self.mode = mode.lower()
         self.channel = channel
@@ -124,7 +125,7 @@ class RawPlotter(Processor):
 
     def _plot_with_mne(self, raw) -> None:
         """Use mne.io.Raw.plot to visualise the data."""
-        plot_kwargs: Dict[str, Any] = dict(
+        plot_kwargs: dict[str, Any] = dict(
             start=self.start,
             duration=self.duration,
             show=self.show,
@@ -163,11 +164,7 @@ class RawPlotter(Processor):
         channel_idx, channel_name = self._resolve_channel(raw)
         sfreq = raw.info["sfreq"]
         start_sample = int(self.start * sfreq)
-        stop_sample = (
-            start_sample + int(self.duration * sfreq)
-            if self.duration > 0
-            else raw.n_times
-        )
+        stop_sample = start_sample + int(self.duration * sfreq) if self.duration > 0 else raw.n_times
         stop_sample = min(stop_sample, raw.n_times)
 
         if stop_sample <= start_sample:
@@ -176,9 +173,7 @@ class RawPlotter(Processor):
         times = np.arange(start_sample, stop_sample) / sfreq
         current = raw.get_data(picks=[channel_idx], start=start_sample, stop=stop_sample)[0]
 
-        original = self._extract_original_overlay(
-            context, channel_idx, times, sfreq
-        )
+        original = self._extract_original_overlay(context, channel_idx, times, sfreq)
 
         fig_kwargs = {"figsize": (12, 4)}
         fig_kwargs.update(self.figure_kwargs)
@@ -217,7 +212,7 @@ class RawPlotter(Processor):
         channel_idx: int,
         times: np.ndarray,
         sfreq: float,
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """Retrieve original-recording data for overlay, resampling if needed.
 
         Parameters
@@ -247,9 +242,7 @@ class RawPlotter(Processor):
         sfreq_original = raw_original.info["sfreq"]
         start_original = int(self.start * sfreq_original)
         stop_original = (
-            start_original + int(self.duration * sfreq_original)
-            if self.duration > 0
-            else raw_original.n_times
+            start_original + int(self.duration * sfreq_original) if self.duration > 0 else raw_original.n_times
         )
         stop_original = min(stop_original, raw_original.n_times)
 

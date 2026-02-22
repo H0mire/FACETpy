@@ -3,39 +3,41 @@
 from __future__ import annotations
 
 from .core import Pipeline
-from .io import Loader, EDFExporter
-from .preprocessing import (
-    TriggerDetector,
-    CutAcquisitionWindow,
-    PasteAcquisitionWindow,
-    HighPassFilter,
-    LowPassFilter,
-    UpSample,
-    DownSample,
-    SliceAligner,
-    SubsampleAligner,
-)
 from .correction import AASCorrection
 from .evaluation import (
-    SNRCalculator,
-    LegacySNRCalculator,
-    RMSCalculator,
-    RMSResidualCalculator,
-    MedianArtifactCalculator,
     FFTAllenCalculator,
     FFTNiazyCalculator,
+    LegacySNRCalculator,
+    MedianArtifactCalculator,
     MetricsReport,
     RawPlotter,
+    RMSCalculator,
+    RMSResidualCalculator,
+    SNRCalculator,
+)
+from .io import EDFExporter, Loader
+from .preprocessing import (
+    CutAcquisitionWindow,
+    DownSample,
+    HighPassFilter,
+    LowPassFilter,
+    PasteAcquisitionWindow,
+    SliceAligner,
+    SubsampleAligner,
+    TriggerDetector,
+    UpSample,
 )
 
 try:
     from .correction import ANCCorrection
+
     _has_anc = True
 except ImportError:
     _has_anc = False
 
 try:
     from .correction import PCACorrection
+
     _has_pca = True
 except ImportError:
     _has_pca = False
@@ -79,7 +81,7 @@ def create_standard_pipeline(
         # Minimal — just correction + export
         pipeline = create_standard_pipeline("data.edf", "corrected.edf")
         result = pipeline.run()
-        
+
         # With automatic evaluation
         pipeline = create_standard_pipeline(
             "data.edf",
@@ -112,11 +114,13 @@ def create_standard_pipeline(
     if use_pca and _has_pca:
         processors.append(PCACorrection(n_components=0.95, hp_freq=1.0))
 
-    processors.extend([
-        DownSample(factor=upsample_factor),
-        PasteAcquisitionWindow(),
-        LowPassFilter(freq=70.0),
-    ])
+    processors.extend(
+        [
+            DownSample(factor=upsample_factor),
+            PasteAcquisitionWindow(),
+            LowPassFilter(freq=70.0),
+        ]
+    )
 
     if use_anc and _has_anc:
         processors.append(ANCCorrection())
@@ -126,16 +130,18 @@ def create_standard_pipeline(
     )
 
     if evaluate or plot:
-        processors.extend([
-            SNRCalculator(),
-            LegacySNRCalculator(),
-            RMSCalculator(),
-            RMSResidualCalculator(),
-            MedianArtifactCalculator(),
-            FFTAllenCalculator(),
-            FFTNiazyCalculator(),
-            MetricsReport(),
-        ])
+        processors.extend(
+            [
+                SNRCalculator(),
+                LegacySNRCalculator(),
+                RMSCalculator(),
+                RMSResidualCalculator(),
+                MedianArtifactCalculator(),
+                FFTAllenCalculator(),
+                FFTNiazyCalculator(),
+                MetricsReport(),
+            ]
+        )
 
     if plot:
         processors.append(RawPlotter(**(plot_kwargs or {})))

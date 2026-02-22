@@ -6,14 +6,14 @@ into other categories, including synthetic data generation.
 """
 
 from .eeg_generator import (
-    EEGGenerator,
-    ChannelSchema,
-    OscillationParams,
-    NoiseParams,
     ArtifactParams,
-    generate_synthetic_eeg,
-    generate_pink_noise,
+    ChannelSchema,
+    EEGGenerator,
+    NoiseParams,
+    OscillationParams,
     generate_oscillation,
+    generate_pink_noise,
+    generate_synthetic_eeg,
 )
 
 __all__ = [

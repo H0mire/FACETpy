@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import contextlib
-from abc import ABC
-from enum import Enum
-from typing import Any, Dict, Generator, Optional, List
+from abc import ABC, abstractmethod
+from collections.abc import Generator
+from enum import StrEnum
+from typing import Any
 
 
-class ConsoleMode(str, Enum):
+class ConsoleMode(StrEnum):
     """Supported console rendering strategies."""
 
     MODERN = "modern"
@@ -21,65 +22,76 @@ class BaseConsole(ABC):
     enabled: bool = False
     requires_sink: bool = False
 
-    def set_pipeline_metadata(self, metadata: Dict[str, Any]) -> None:
+    @abstractmethod
+    def set_pipeline_metadata(self, metadata: dict[str, Any]) -> None:
         """Store contextual metadata shown alongside progress details."""
 
+    @abstractmethod
     def start_pipeline(
         self,
         name: str,
         total_steps: int,
-        step_names: Optional[List[str]] = None,
+        step_names: list[str] | None = None,
     ) -> None:
         """Begin tracking a pipeline run."""
 
+    @abstractmethod
     def step_started(self, index: int, name: str) -> None:
         """Mark a processor as running."""
 
+    @abstractmethod
     def step_completed(
         self,
         index: int,
         name: str,
         duration: float,
-        metrics: Optional[Dict[str, Any]] = None,
+        metrics: dict[str, Any] | None = None,
     ) -> None:
         """Mark a processor as finished."""
 
+    @abstractmethod
     def pipeline_complete(self, success: bool, duration: float) -> None:
         """Finalize the pipeline view when execution completes."""
 
+    @abstractmethod
     def pipeline_failed(
         self,
         duration: float,
         error: Exception,
-        step_index: Optional[int],
-        step_name: Optional[str],
+        step_index: int | None,
+        step_name: str | None,
     ) -> None:
         """Show failure state for the pipeline."""
 
+    @abstractmethod
     def update_step_progress(
         self,
         index: int,
         completed: float,
-        total: Optional[float] = None,
-        message: Optional[str] = None,
+        total: float | None = None,
+        message: str | None = None,
     ) -> None:
         """Update the progress metadata for an in-flight processor."""
 
     # Channel-sequential batch lifecycle
+    @abstractmethod
     def start_channel_batch(
         self,
-        processor_names: List[str],
-        channel_names: List[str],
+        processor_names: list[str],
+        channel_names: list[str],
         batch_step_offset: int = 0,
     ) -> None:
         """Enter channel-sequential display mode."""
 
+    @abstractmethod
     def channel_started(self, ch_index: int, ch_name: str) -> None:
         """Mark a data channel as actively processing."""
 
+    @abstractmethod
     def channel_processor_started(self, ch_index: int, proc_index: int) -> None:
         """Mark which processor is running within the current channel."""
 
+    @abstractmethod
     def channel_processor_completed(
         self,
         ch_index: int,
@@ -89,12 +101,15 @@ class BaseConsole(ABC):
     ) -> None:
         """Mark a processor within a channel as complete (or skipped)."""
 
+    @abstractmethod
     def channel_completed(self, ch_index: int, duration: float) -> None:
         """Mark a channel as fully processed."""
 
+    @abstractmethod
     def end_channel_batch(self) -> None:
         """Exit channel-sequential display mode."""
 
+    @abstractmethod
     def log_sink(self, message: Any) -> None:
         """Optional log sink wired into loguru."""
 
@@ -118,6 +133,7 @@ class BaseConsole(ABC):
         """
         yield
 
+    @abstractmethod
     def shutdown(self) -> None:
         """Release console resources (if any)."""
 
@@ -128,14 +144,14 @@ class NullConsole(BaseConsole):
     enabled = False
     requires_sink = False
 
-    def set_pipeline_metadata(self, metadata: Dict[str, Any]) -> None:  # noqa: D401
+    def set_pipeline_metadata(self, metadata: dict[str, Any]) -> None:  # noqa: D401
         return None
 
     def start_pipeline(
         self,
         name: str,
         total_steps: int,
-        step_names: Optional[List[str]] = None,
+        step_names: list[str] | None = None,
     ) -> None:  # noqa: D401
         return None
 
@@ -147,7 +163,7 @@ class NullConsole(BaseConsole):
         index: int,
         name: str,
         duration: float,
-        metrics: Optional[Dict[str, Any]] = None,
+        metrics: dict[str, Any] | None = None,
     ) -> None:  # noqa: D401
         return None
 
@@ -158,8 +174,8 @@ class NullConsole(BaseConsole):
         self,
         duration: float,
         error: Exception,
-        step_index: Optional[int],
-        step_name: Optional[str],
+        step_index: int | None,
+        step_name: str | None,
     ) -> None:  # noqa: D401
         return None
 
@@ -167,8 +183,8 @@ class NullConsole(BaseConsole):
         self,
         index: int,
         completed: float,
-        total: Optional[float] = None,
-        message: Optional[str] = None,
+        total: float | None = None,
+        message: str | None = None,
     ) -> None:  # noqa: D401
         return None
 
@@ -178,7 +194,9 @@ class NullConsole(BaseConsole):
     def get_rich_console(self) -> Any:  # noqa: D401
         return None
 
-    def start_channel_batch(self, processor_names: List[str], channel_names: List[str], batch_step_offset: int = 0) -> None:  # noqa: D401
+    def start_channel_batch(
+        self, processor_names: list[str], channel_names: list[str], batch_step_offset: int = 0
+    ) -> None:  # noqa: D401
         return None
 
     def channel_started(self, ch_index: int, ch_name: str) -> None:  # noqa: D401
@@ -187,7 +205,9 @@ class NullConsole(BaseConsole):
     def channel_processor_started(self, ch_index: int, proc_index: int) -> None:  # noqa: D401
         return None
 
-    def channel_processor_completed(self, ch_index: int, proc_index: int, duration: float, skipped: bool = False) -> None:  # noqa: D401
+    def channel_processor_completed(
+        self, ch_index: int, proc_index: int, duration: float, skipped: bool = False
+    ) -> None:  # noqa: D401
         return None
 
     def channel_completed(self, ch_index: int, duration: float) -> None:  # noqa: D401

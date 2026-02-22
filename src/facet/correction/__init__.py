@@ -11,20 +11,22 @@ from .aas import AASCorrection, AveragedArtifactSubtraction
 
 __all__ = [
     # AAS
-    'AASCorrection',
-    'AveragedArtifactSubtraction',
+    "AASCorrection",
+    "AveragedArtifactSubtraction",
 ]
 
 # Import ANC if available
 try:
-    from .anc import AdaptiveNoiseCancellation, ANCCorrection
-    __all__.extend(['AdaptiveNoiseCancellation', 'ANCCorrection'])
+    from .anc import AdaptiveNoiseCancellation, ANCCorrection  # noqa: F401
+
+    __all__.extend(["AdaptiveNoiseCancellation", "ANCCorrection"])
 except ImportError:
     pass
 
 # Import PCA if available
 try:
-    from .pca import PCACorrection
-    __all__.append('PCACorrection')
+    from .pca import PCACorrection  # noqa: F401
+
+    __all__.append("PCACorrection")
 except ImportError:
     pass

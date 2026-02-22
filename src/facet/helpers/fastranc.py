@@ -1,21 +1,21 @@
-import numpy as np
-from ctypes import CDLL, c_int, c_double, POINTER
-import sys
-from loguru import logger
-
 # set current path to the path the file is in and then change back to the original path
 import os
+import sys
+from ctypes import CDLL, POINTER, c_double, c_int
+
+import numpy as np
+from loguru import logger
 
 path = os.path.dirname(os.path.abspath(__file__))
 
 
 # Erkennen des Betriebssystems
-if sys.platform.startswith('linux'):
-    lib_path = path + '/libfastranc.so'  # Linux
-elif sys.platform.startswith('win'):
-    lib_path = path + '/fastranc.dll'  # Windows
-elif sys.platform.startswith('darwin'):
-    lib_path = path + '/libfastranc.dylib'  # MacOS
+if sys.platform.startswith("linux"):
+    lib_path = path + "/libfastranc.so"  # Linux
+elif sys.platform.startswith("win"):
+    lib_path = path + "/fastranc.dll"  # Windows
+elif sys.platform.startswith("darwin"):
+    lib_path = path + "/libfastranc.dylib"  # MacOS
 else:
     raise OSError("Unsupported operating system")
 
@@ -63,5 +63,3 @@ def fastr_anc(refs_array, d_array, N_value, mu_value):
     )
 
     return out_array, y_array
-
-

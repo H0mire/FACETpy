@@ -31,6 +31,4 @@ def crosscorrelation(x, y, maxlag, mode="corr"):
     if mode == "dot":  # get lagged dot product
         return T.dot(px)
     elif mode == "corr":  # gets Pearson correlation
-        return (T.dot(px) / px.size - (T.mean(axis=1) * px.mean())) / (
-            np.std(T, axis=1) * np.std(px)
-        )
+        return (T.dot(px) / px.size - (T.mean(axis=1) * px.mean())) / (np.std(T, axis=1) * np.std(px))

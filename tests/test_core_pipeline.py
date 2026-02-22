@@ -3,9 +3,8 @@ Tests for Pipeline class.
 """
 
 import pytest
-import time
 
-from facet.core import Pipeline, ProcessingContext, PipelineError
+from facet.core import Pipeline
 from tests.conftest import create_mock_processor
 
 
@@ -135,11 +134,11 @@ class TestPipelineResult:
         result = pipeline.run(initial_context=sample_context)
 
         # Check all attributes exist
-        assert hasattr(result, 'success')
-        assert hasattr(result, 'context')
-        assert hasattr(result, 'error')
-        assert hasattr(result, 'execution_time')
-        assert hasattr(result, 'failed_processor')
+        assert hasattr(result, "success")
+        assert hasattr(result, "context")
+        assert hasattr(result, "error")
+        assert hasattr(result, "execution_time")
+        assert hasattr(result, "failed_processor")
 
     def test_successful_result(self, sample_context):
         """Test attributes of successful result."""
@@ -154,6 +153,7 @@ class TestPipelineResult:
 
     def test_failed_result(self, sample_context):
         """Test attributes of failed result."""
+
         def error_fn(ctx):
             raise ValueError("Test error")
 
@@ -173,23 +173,26 @@ class TestPipelineIntegration:
 
     def test_simple_correction_pipeline(self, sample_edf_file):
         """Test a simple correction pipeline."""
-        from facet.io import Loader, EDFExporter
-        from facet.preprocessing import TriggerDetector, UpSample, DownSample
-        from facet.correction import AASCorrection
         import tempfile
 
+        from facet.correction import AASCorrection
+        from facet.io import EDFExporter, Loader
+        from facet.preprocessing import DownSample, TriggerDetector, UpSample
+
         # Create output path
-        with tempfile.NamedTemporaryFile(suffix='.edf', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as tmp:
             output_path = tmp.name
 
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file), preload=True),
-            TriggerDetector(regex=r"\b1\b"),
-            UpSample(factor=2),  # Small factor for speed
-            AASCorrection(window_size=5),  # Small window for speed
-            DownSample(factor=2),
-            EDFExporter(path=output_path, overwrite=True)
-        ])
+        pipeline = Pipeline(
+            [
+                Loader(path=str(sample_edf_file), preload=True),
+                TriggerDetector(regex=r"\b1\b"),
+                UpSample(factor=2),  # Small factor for speed
+                AASCorrection(window_size=5),  # Small window for speed
+                DownSample(factor=2),
+                EDFExporter(path=output_path, overwrite=True),
+            ]
+        )
 
         result = pipeline.run()
 
@@ -199,6 +202,7 @@ class TestPipelineIntegration:
 
         # Check file was created
         import os
+
         assert os.path.exists(output_path)
 
         # Cleanup
@@ -207,29 +211,31 @@ class TestPipelineIntegration:
     @pytest.mark.slow
     def test_full_correction_pipeline(self, sample_edf_file):
         """Test a full correction pipeline with multiple steps."""
-        from facet.io import Loader
-        from facet.preprocessing import TriggerDetector, UpSample, DownSample
         from facet.correction import AASCorrection
-        from facet.evaluation import SNRCalculator, RMSCalculator
+        from facet.evaluation import RMSCalculator, SNRCalculator
+        from facet.io import Loader
+        from facet.preprocessing import DownSample, TriggerDetector, UpSample
 
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file), preload=True),
-            TriggerDetector(regex=r"\b1\b"),
-            UpSample(factor=2),
-            AASCorrection(window_size=5),
-            DownSample(factor=2),
-            SNRCalculator(),
-            RMSCalculator()
-        ])
+        pipeline = Pipeline(
+            [
+                Loader(path=str(sample_edf_file), preload=True),
+                TriggerDetector(regex=r"\b1\b"),
+                UpSample(factor=2),
+                AASCorrection(window_size=5),
+                DownSample(factor=2),
+                SNRCalculator(),
+                RMSCalculator(),
+            ]
+        )
 
         result = pipeline.run()
 
         assert result.success is True
 
         # Check metrics were calculated
-        metrics = result.context.metadata.custom.get('metrics', {})
-        assert 'snr' in metrics
-        assert 'rms_ratio' in metrics
+        metrics = result.context.metadata.custom.get("metrics", {})
+        assert "snr" in metrics
+        assert "rms_ratio" in metrics
 
 
 @pytest.mark.unit
@@ -240,7 +246,7 @@ class TestPipelineCallableNormalisation:
         """A lambda is silently wrapped and executed."""
         called = []
 
-        pipeline = Pipeline([lambda ctx: (called.append(1) or ctx)])
+        pipeline = Pipeline([lambda ctx: called.append(1) or ctx])
         result = pipeline.run(initial_context=sample_context)
 
         assert result.success is True
@@ -248,6 +254,7 @@ class TestPipelineCallableNormalisation:
 
     def test_named_function_in_constructor(self, sample_context):
         """A def function is wrapped and its __name__ is used as step label."""
+
         def my_step(ctx):
             return ctx
 
@@ -276,7 +283,7 @@ class TestPipelineCallableNormalisation:
         """Pipeline.add() accepts a callable."""
         called = []
         pipeline = Pipeline([])
-        pipeline.add(lambda ctx: (called.append(True) or ctx))
+        pipeline.add(lambda ctx: called.append(True) or ctx)
 
         result = pipeline.run(initial_context=sample_context)
         assert result.success is True
@@ -292,7 +299,7 @@ class TestPipelineCallableNormalisation:
             return ctx
 
         pipeline = Pipeline([proc])
-        pipeline.insert(0, lambda ctx: (order.append("inserted") or ctx))
+        pipeline.insert(0, lambda ctx: order.append("inserted") or ctx)
 
         result = pipeline.run(initial_context=sample_context)
         assert result.success is True
@@ -302,10 +309,12 @@ class TestPipelineCallableNormalisation:
         """Pipeline.extend() accepts a list of callables."""
         called = []
         pipeline = Pipeline([])
-        pipeline.extend([
-            lambda ctx: (called.append(1) or ctx),
-            lambda ctx: (called.append(2) or ctx),
-        ])
+        pipeline.extend(
+            [
+                lambda ctx: called.append(1) or ctx,
+                lambda ctx: called.append(2) or ctx,
+            ]
+        )
 
         result = pipeline.run(initial_context=sample_context)
         assert result.success is True
@@ -318,16 +327,18 @@ class TestPipelineResultMetrics:
 
     def _make_result_with_metrics(self, sample_context):
         """Run a pipeline that populates metrics via SNRCalculator."""
-        from facet.evaluation import SNRCalculator
-        from facet.preprocessing import UpSample, DownSample
         from facet.correction import AASCorrection
+        from facet.evaluation import SNRCalculator
+        from facet.preprocessing import DownSample, UpSample
 
-        pipeline = Pipeline([
-            UpSample(factor=2),
-            AASCorrection(window_size=3),
-            DownSample(factor=2),
-            SNRCalculator(),
-        ])
+        pipeline = Pipeline(
+            [
+                UpSample(factor=2),
+                AASCorrection(window_size=3),
+                DownSample(factor=2),
+                SNRCalculator(),
+            ]
+        )
         return pipeline.run(initial_context=sample_context)
 
     def test_metrics_returns_dict(self, sample_context):
@@ -342,6 +353,7 @@ class TestPipelineResultMetrics:
 
     def test_metrics_empty_on_failure(self, sample_context):
         """result.metrics is empty dict when pipeline fails."""
+
         def explode(ctx):
             raise RuntimeError("boom")
 
@@ -353,6 +365,7 @@ class TestPipelineResultMetrics:
         pytest.importorskip("pandas")
         result = self._make_result_with_metrics(sample_context)
         import pandas as pd
+
         assert isinstance(result.metrics_df, pd.Series)
 
     def test_metrics_df_contains_snr(self, sample_context):
@@ -390,6 +403,7 @@ class TestPipelineMap:
 
     def test_map_on_error_continue(self, sample_context):
         """on_error='continue' skips failed inputs instead of raising."""
+
         def explode(ctx):
             raise RuntimeError("fail")
 
@@ -404,6 +418,7 @@ class TestPipelineMap:
 
     def test_map_on_error_raise(self, sample_context):
         """on_error='raise' re-raises the first failure."""
+
         def explode(ctx):
             raise RuntimeError("fail")
 

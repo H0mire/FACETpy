@@ -8,8 +8,10 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import Dict, Type, Optional, List
+from typing import Optional
+
 from loguru import logger
+
 from .processor import Processor
 
 
@@ -40,8 +42,8 @@ class ProcessorRegistry:
         all_processors = registry.list_all()
     """
 
-    _instance: Optional['ProcessorRegistry'] = None
-    _registry: Dict[str, Type[Processor]] = {}
+    _instance: Optional["ProcessorRegistry"] = None
+    _registry: dict[str, type[Processor]] = {}
 
     def __init__(self):
         """Initialize registry (use get_instance() instead)."""
@@ -49,19 +51,14 @@ class ProcessorRegistry:
             raise RuntimeError("Use ProcessorRegistry.get_instance() instead")
 
     @classmethod
-    def get_instance(cls) -> 'ProcessorRegistry':
+    def get_instance(cls) -> "ProcessorRegistry":
         """Get singleton instance."""
         if cls._instance is None:
             cls._instance = cls.__new__(cls)
             cls._registry = {}
         return cls._instance
 
-    def register(
-        self,
-        name: str,
-        processor_class: Type[Processor],
-        force: bool = False
-    ) -> None:
+    def register(self, name: str, processor_class: type[Processor], force: bool = False) -> None:
         """
         Register a processor.
 
@@ -74,16 +71,10 @@ class ProcessorRegistry:
             ValueError: If name already registered and force=False
         """
         if name in self._registry and not force:
-            raise ValueError(
-                f"Processor '{name}' already registered. "
-                f"Use force=True to override."
-            )
+            raise ValueError(f"Processor '{name}' already registered. Use force=True to override.")
 
         if not issubclass(processor_class, Processor):
-            raise TypeError(
-                f"Processor class must inherit from Processor, "
-                f"got {processor_class}"
-            )
+            raise TypeError(f"Processor class must inherit from Processor, got {processor_class}")
 
         self._registry[name] = processor_class
         logger.debug(f"Registered processor: {name} -> {processor_class.__name__}")
@@ -104,7 +95,7 @@ class ProcessorRegistry:
         del self._registry[name]
         logger.debug(f"Unregistered processor: {name}")
 
-    def get(self, name: str) -> Type[Processor]:
+    def get(self, name: str) -> type[Processor]:
         """
         Get processor class by name.
 
@@ -118,21 +109,18 @@ class ProcessorRegistry:
             KeyError: If name not registered
         """
         if name not in self._registry:
-            raise KeyError(
-                f"Processor '{name}' not registered. "
-                f"Available: {self.list_names()}"
-            )
+            raise KeyError(f"Processor '{name}' not registered. Available: {self.list_names()}")
         return self._registry[name]
 
     def has(self, name: str) -> bool:
         """Check if processor is registered."""
         return name in self._registry
 
-    def list_names(self) -> List[str]:
+    def list_names(self) -> list[str]:
         """List all registered processor names."""
         return list(self._registry.keys())
 
-    def list_all(self) -> Dict[str, Type[Processor]]:
+    def list_all(self) -> dict[str, type[Processor]]:
         """Get dictionary of all registered processors."""
         return self._registry.copy()
 
@@ -141,7 +129,7 @@ class ProcessorRegistry:
         self._registry.clear()
         logger.debug("Cleared processor registry")
 
-    def get_by_category(self, category: str) -> Dict[str, Type[Processor]]:
+    def get_by_category(self, category: str) -> dict[str, type[Processor]]:
         """
         Get processors by category.
 
@@ -161,11 +149,7 @@ class ProcessorRegistry:
         return matching
 
 
-def register_processor(
-    processor_class: Optional[Type[Processor]] = None,
-    name: Optional[str] = None,
-    force: bool = False
-):
+def register_processor(processor_class: type[Processor] | None = None, name: str | None = None, force: bool = False):
     """
     Decorator to register a processor.
 
@@ -190,9 +174,10 @@ def register_processor(
     Returns:
         Decorator function or processor class
     """
-    def decorator(cls: Type[Processor]) -> Type[Processor]:
+
+    def decorator(cls: type[Processor]) -> type[Processor]:
         # Determine name
-        proc_name = name if name is not None else getattr(cls, 'name', cls.__name__)
+        proc_name = name if name is not None else getattr(cls, "name", cls.__name__)
 
         # Register
         registry = ProcessorRegistry.get_instance()
@@ -208,7 +193,7 @@ def register_processor(
     return decorator
 
 
-def get_processor(name: str) -> Type[Processor]:
+def get_processor(name: str) -> type[Processor]:
     """
     Get processor class by name (convenience function).
 
@@ -222,7 +207,7 @@ def get_processor(name: str) -> Type[Processor]:
     return registry.get(name)
 
 
-def list_processors(category: Optional[str] = None) -> Dict[str, Type[Processor]]:
+def list_processors(category: str | None = None) -> dict[str, type[Processor]]:
     """
     List all registered processors (convenience function).
 

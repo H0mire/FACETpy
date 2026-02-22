@@ -7,12 +7,10 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
-from typing import Optional
 import mne
 from loguru import logger
-import numpy as np
 
-from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..logging_config import suppress_stdout
 
 
@@ -50,12 +48,7 @@ class Resample(Processor):
     channel_wise = True
 
     def __init__(
-        self,
-        sfreq: float,
-        npad: str = 'auto',
-        window: str = 'boxcar',
-        n_jobs: int = 1,
-        verbose: bool = False
+        self, sfreq: float, npad: str = "auto", window: str = "boxcar", n_jobs: int = 1, verbose: bool = False
     ):
         self.sfreq = sfreq
         self.npad = npad
@@ -74,9 +67,7 @@ class Resample(Processor):
         # --- COMPUTE + NOISE + RETURN ---
         return self._do_resample(context, self.sfreq)
 
-    def _do_resample(
-        self, context: ProcessingContext, target_sfreq: float
-    ) -> ProcessingContext:
+    def _do_resample(self, context: ProcessingContext, target_sfreq: float) -> ProcessingContext:
         """Resample raw and noise to *target_sfreq* and update triggers.
 
         Parameters
@@ -93,17 +84,11 @@ class Resample(Processor):
             noise estimate.
         """
         raw = context.get_raw().copy()
-        old_sfreq = raw.info['sfreq']
+        old_sfreq = raw.info["sfreq"]
         # Capture info at original sfreq before resampling — needed for noise propagation.
         pre_resample_info = raw.info.copy()
 
-        raw.resample(
-            sfreq=target_sfreq,
-            npad=self.npad,
-            window=self.window,
-            n_jobs=self.n_jobs,
-            verbose=self.verbose
-        )
+        raw.resample(sfreq=target_sfreq, npad=self.npad, window=self.window, n_jobs=self.n_jobs, verbose=self.verbose)
 
         # --- BUILD RESULT ---
         new_ctx = context.with_raw(raw)
@@ -125,11 +110,7 @@ class Resample(Processor):
                 # wrong sample count.
                 noise_raw = mne.io.RawArray(noise, pre_resample_info)
             noise_raw.resample(
-                sfreq=target_sfreq,
-                npad=self.npad,
-                window=self.window,
-                n_jobs=self.n_jobs,
-                verbose=False
+                sfreq=target_sfreq, npad=self.npad, window=self.window, n_jobs=self.n_jobs, verbose=False
             )
             new_ctx.set_estimated_noise(noise_raw.get_data())
         else:
@@ -171,12 +152,7 @@ class UpSample(Resample):
     parallel_safe = True
 
     def __init__(
-        self,
-        factor: int = 10,
-        npad: str = 'auto',
-        window: str = 'boxcar',
-        n_jobs: int = 1,
-        verbose: bool = False
+        self, factor: int = 10, npad: str = "auto", window: str = "boxcar", n_jobs: int = 1, verbose: bool = False
     ):
         self.factor = factor
         self.npad = npad
@@ -188,12 +164,7 @@ class UpSample(Resample):
 
     def _get_parameters(self):
         """Expose factor instead of sfreq for history/serialization."""
-        return {
-            'factor': self.factor,
-            'npad': self.npad,
-            'window': self.window,
-            'n_jobs': self.n_jobs
-        }
+        return {"factor": self.factor, "npad": self.npad, "window": self.window, "n_jobs": self.n_jobs}
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
@@ -201,10 +172,7 @@ class UpSample(Resample):
         target_sfreq = old_sfreq * self.factor
 
         # --- LOG ---
-        logger.info(
-            "Upsampling by factor {} ({} Hz -> {} Hz)",
-            self.factor, old_sfreq, target_sfreq
-        )
+        logger.info("Upsampling by factor {} ({} Hz -> {} Hz)", self.factor, old_sfreq, target_sfreq)
 
         # --- COMPUTE + NOISE + RETURN ---
         return self._do_resample(context, target_sfreq)
@@ -242,12 +210,7 @@ class DownSample(Resample):
     parallel_safe = True
 
     def __init__(
-        self,
-        factor: int = 10,
-        npad: str = 'auto',
-        window: str = 'boxcar',
-        n_jobs: int = 1,
-        verbose: bool = False
+        self, factor: int = 10, npad: str = "auto", window: str = "boxcar", n_jobs: int = 1, verbose: bool = False
     ):
         self.factor = factor
         self.npad = npad
@@ -259,12 +222,7 @@ class DownSample(Resample):
 
     def _get_parameters(self):
         """Expose factor instead of sfreq for history/serialization."""
-        return {
-            'factor': self.factor,
-            'npad': self.npad,
-            'window': self.window,
-            'n_jobs': self.n_jobs
-        }
+        return {"factor": self.factor, "npad": self.npad, "window": self.window, "n_jobs": self.n_jobs}
 
     def validate(self, context: ProcessingContext) -> None:
         """Check that the resulting sampling frequency is at least 1 Hz."""
@@ -272,8 +230,8 @@ class DownSample(Resample):
         target_sfreq = context.get_sfreq() / self.factor
         if target_sfreq < 1:
             raise ProcessorValidationError(
-                "Downsampling factor {} would result in sampling frequency < 1 Hz "
-                "(current sfreq={} Hz)".format(self.factor, context.get_sfreq())
+                f"Downsampling factor {self.factor} would result in sampling frequency < 1 Hz "
+                f"(current sfreq={context.get_sfreq()} Hz)"
             )
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -282,10 +240,7 @@ class DownSample(Resample):
         target_sfreq = old_sfreq / self.factor
 
         # --- LOG ---
-        logger.info(
-            "Downsampling by factor {} ({} Hz -> {} Hz)",
-            self.factor, old_sfreq, target_sfreq
-        )
+        logger.info("Downsampling by factor {} ({} Hz -> {} Hz)", self.factor, old_sfreq, target_sfreq)
 
         # --- COMPUTE + NOISE + RETURN ---
         return self._do_resample(context, target_sfreq)
