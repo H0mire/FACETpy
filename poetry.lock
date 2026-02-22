@@ -788,7 +788,7 @@ name = "defusedxml"
 version = "0.7.1"
 description = "XML bomb protection for Python stdlib modules"
 category = "main"
-optional = true
+optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 files = [
     {file = "defusedxml-0.7.1-py2.py3-none-any.whl", hash = "sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"},
@@ -4610,4 +4610,4 @@ notebooks = ["ipython", "notebook"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "38a71e64ff11fe62f1a4ca0a28ababf53d1f2f291560a50cad0090f50ccd6582"
+content-hash = "d467e902b5732ebe49fbfb4d870db9895675396ad5572e87809b0b3071ad4f1a"

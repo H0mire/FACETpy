@@ -8,6 +8,7 @@ Date: 2025-01-12
 """
 
 from collections.abc import Callable
+from importlib.metadata import PackageNotFoundError, version as pkg_version
 from numbers import Integral, Real
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,29 @@ _EXTENSION_READERS: dict[str, tuple[Callable[..., BaseRaw], str]] = {
 }
 
 SUPPORTED_EXTENSIONS: list[str] = sorted(_EXTENSION_READERS.keys())
+
+
+def _ensure_mff_runtime_dependencies() -> None:
+    """Ensure optional dependencies required by MFF loading are usable.
+
+    Some dependency combinations ship ``defusedxml`` without a module-level
+    ``__version__`` attribute while older MNE code still expects it.
+    """
+    try:
+        import defusedxml  # type: ignore
+    except ImportError as exc:
+        raise ProcessorValidationError(
+            "Missing dependency for .mff loading: defusedxml. "
+            "Install with `poetry install` or `pip install defusedxml`."
+        ) from exc
+
+    if getattr(defusedxml, "__version__", None):
+        return
+
+    try:
+        setattr(defusedxml, "__version__", pkg_version("defusedxml"))
+    except PackageNotFoundError:
+        setattr(defusedxml, "__version__", "unknown")
 
 
 def _detect_format(path: Path) -> tuple[Callable[..., BaseRaw], str]:
@@ -304,6 +328,9 @@ class Loader(Processor):
         logger.info("Loading {} file: {}", format_name, self.path)
 
         # --- COMPUTE ---
+        if format_name == "MFF":
+            _ensure_mff_runtime_dependencies()
+
         with suppress_stdout():
             raw = reader_fn(str(resolved), preload=self.preload, verbose=False)
 

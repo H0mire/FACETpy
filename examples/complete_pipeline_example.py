@@ -40,9 +40,9 @@ from facet import (
     FFTNiazyCalculator,
     MetricsReport,
     RawPlotter,
-    WaitForConfirmation,
     load,
 )
+from facet.evaluation import ReferenceIntervalSelector
 from facet.preprocessing import TriggerExplorer
 
 # ---------------------------------------------------------------------------
@@ -126,6 +126,8 @@ if _has_anc:
 steps += [
     # 13. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
+
+    ReferenceIntervalSelector(),
 
     # 14. Compute evaluation metrics
     SNRCalculator(),
