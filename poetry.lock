@@ -808,6 +808,21 @@ files = [
 ]
 
 [[package]]
+name = "edfio"
+version = "0.4.13"
+description = "Read and write EDF/EDF+C/BDF/BDF+C files."
+category = "main"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "edfio-0.4.13-py3-none-any.whl", hash = "sha256:d70a1e50f7eb89f3af8c74d96a4daa7a0a7f74b82a8ee2fd01992267396afa23"},
+    {file = "edfio-0.4.13.tar.gz", hash = "sha256:1744a7e7fc354d4e39082edcd4cac72ec1fa13414ca8a07c630d35f78da6c4dd"},
+]
+
+[package.dependencies]
+numpy = ">=1.22.0"
+
+[[package]]
 name = "executing"
 version = "2.2.1"
 description = "Get the currently executing AST node of a frame, and other information"
@@ -4595,4 +4610,4 @@ notebooks = ["ipython", "notebook"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "2f317c09005a389031a9d4ca8f84a9c3e215e6b90f09e4579f10b46ffe2aa399"
+content-hash = "38a71e64ff11fe62f1a4ca0a28ababf53d1f2f291560a50cad0090f50ccd6582"

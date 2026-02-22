@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from facet.core import ProcessorValidationError
-from facet.io.loaders import Loader, _apply_sample_window
+from facet.io.loaders import _EXTENSION_READERS, Loader, _apply_sample_window
 
 pytestmark = pytest.mark.unit
 
@@ -66,7 +66,7 @@ def test_auto_loader_applies_sample_window(monkeypatch, raw_factory):
     def fake_read_raw_edf(path, *args, **kwargs):
         return raw_factory()
 
-    monkeypatch.setattr(mne.io, "read_raw_edf", fake_read_raw_edf)
+    monkeypatch.setitem(_EXTENSION_READERS, ".edf", (fake_read_raw_edf, "EDF"))
 
     loader = Loader(path="./examples/datasets/NiazyFMRI.edf", start_sample=50, stop_sample=150)
     context = loader.execute(None)
@@ -83,7 +83,7 @@ def test_auto_loader_invalid_window_raises(monkeypatch, raw_factory):
     def fake_read_raw_edf(path, *args, **kwargs):
         return raw_factory()
 
-    monkeypatch.setattr(mne.io, "read_raw_edf", fake_read_raw_edf)
+    monkeypatch.setitem(_EXTENSION_READERS, ".edf", (fake_read_raw_edf, "EDF"))
 
     loader = Loader(path="./examples/datasets/NiazyFMRI.edf", start_sample=600, stop_sample=550)
 
