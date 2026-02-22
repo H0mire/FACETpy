@@ -368,15 +368,15 @@ class ModernConsole(BaseConsole):
             if metrics:
                 for key, value in metrics.items():
                     self.extra_metrics[key] = str(value)
-            self._append_log("SUCCESS", f"✔ {name} ({duration:.2f}s)")
+            self._append_log("SUCCESS", f"✔ {name} ({self._format_duration(duration)})")
             self._refresh_locked()
 
     def pipeline_complete(self, success: bool, duration: float) -> None:
         with self._lock:
             self.pipeline_status = "Completed" if success else "Finished"
-            self.extra_metrics["elapsed"] = f"{duration:.2f}s"
+            self.extra_metrics["elapsed"] = self._format_duration(duration)
             self.current_step_name = "–"
-            self._append_log("INFO", f"Pipeline completed in {duration:.2f}s")
+            self._append_log("INFO", f"Pipeline completed in {self._format_duration(duration)}")
             self._pipeline_done = True
             self._stop_ticker_locked()
             self._refresh_locked()
@@ -390,7 +390,7 @@ class ModernConsole(BaseConsole):
     ) -> None:
         with self._lock:
             self.pipeline_status = "Failed"
-            self.extra_metrics["elapsed"] = f"{duration:.2f}s"
+            self.extra_metrics["elapsed"] = self._format_duration(duration)
             if step_index is not None and self._ensure_index(step_index):
                 state = self.step_states[step_index]
                 state.status = "failed"
@@ -1073,7 +1073,7 @@ class ModernConsole(BaseConsole):
             text.append(f"  •  Channel {cb.completed_channels + 1}/{cb.total_channels}", style="bold cyan")
         elapsed = self._elapsed_seconds()
         if elapsed > 0:
-            text.append(f"  •  {elapsed:.1f}s elapsed", style="dim")
+            text.append(f"  •  {self._format_duration(elapsed)} elapsed", style="dim")
         if self._pipeline_done:
             text.append("    press ", style="dim")
             text.append("q", style="bold red")
@@ -1095,7 +1095,7 @@ class ModernConsole(BaseConsole):
         else:
             for step in self.step_states:
                 icon, style = self._status_badge(step.status)
-                duration = f"{step.duration:.2f}s" if step.duration else ("…" if step.status == "running" else "–")
+                duration = self._format_duration(step.duration) if step.duration else ("…" if step.status == "running" else "–")
                 display_name = step.name or f"Step {step.index + 1}"
                 table.add_row(
                     display_name,
@@ -1122,12 +1122,12 @@ class ModernConsole(BaseConsole):
                 icon, sty = "▶", "cyan"
                 if cb.current_proc_start:
                     elapsed = time.time() - cb.current_proc_start
-                    dur_str = f"{elapsed:.1f}s…"
+                    dur_str = f"{self._format_duration(elapsed)}…"
                 else:
                     dur_str = "…"
             elif status == "done":
                 icon, sty = "✔", "green"
-                dur_str = f"{dur:.2f}s" if dur is not None else ""
+                dur_str = self._format_duration(dur) if dur is not None else ""
             elif status == "skipped":
                 icon, sty = "⊘", "yellow"
                 dur_str = "run_once"
@@ -1157,9 +1157,9 @@ class ModernConsole(BaseConsole):
         table.add_row("Progress", self._progress_bar())
         table.add_row("Completed", f"{self.completed_steps}/{max(self.total_steps, 1)}")
         table.add_row("Current", self.current_step_name)
-        last = f"{self.last_step_name} ({self.last_step_duration:.2f}s)" if self.last_step_duration else self.last_step_name
+        last = f"{self.last_step_name} ({self._format_duration(self.last_step_duration)})" if self.last_step_duration else self.last_step_name
         table.add_row("Last", last)
-        table.add_row("Elapsed", f"{self._elapsed_seconds():.1f}s")
+        table.add_row("Elapsed", self._format_duration(self._elapsed_seconds()))
 
         diagnostics, reported = self._split_extra_metrics()
         for key, value in diagnostics:
@@ -1193,21 +1193,21 @@ class ModernConsole(BaseConsole):
                 if 0 <= last_idx < len(cb.channel_names)
                 else "–"
             )
-            table.add_row("Last Ch", f"{last_name} ({cb.channel_durations[-1]:.2f}s)")
+            table.add_row("Last Ch", f"{last_name} ({self._format_duration(cb.channel_durations[-1])})")
 
             avg = sum(cb.channel_durations) / len(cb.channel_durations)
             remaining = max(cb.total_channels - cb.completed_channels, 0)
             eta = avg * remaining
-            table.add_row("Avg / Ch", f"{avg:.2f}s")
-            table.add_row("Est. Remain", f"~{eta:.1f}s")
+            table.add_row("Avg / Ch", self._format_duration(avg))
+            table.add_row("Est. Remain", f"~{self._format_duration(eta)}")
         else:
             table.add_row("Last Ch", "–")
 
         if cb.batch_start_time:
             batch_elapsed = time.time() - cb.batch_start_time
-            table.add_row("Batch Elapsed", f"{batch_elapsed:.1f}s")
+            table.add_row("Batch Elapsed", self._format_duration(batch_elapsed))
 
-        table.add_row("Total Elapsed", f"{self._elapsed_seconds():.1f}s")
+        table.add_row("Total Elapsed", self._format_duration(self._elapsed_seconds()))
 
         return Panel(table, title="Channel Progress", border_style="bright_black", box=box.ROUNDED)
 
@@ -1260,6 +1260,29 @@ class ModernConsole(BaseConsole):
         if not self.pipeline_start:
             return 0.0
         return max(time.time() - self.pipeline_start, 0.0)
+
+    @staticmethod
+    def _format_duration(seconds: float) -> str:
+        """Format seconds as days, hours, minutes, and seconds."""
+        if seconds < 0:
+            return "0.00s"
+        s = int(round(seconds))
+        d, s = divmod(s, 86400)
+        h, s = divmod(s, 3600)
+        m, s = divmod(s, 60)
+        parts = []
+        if d:
+            parts.append(f"{d}d")
+        if h:
+            parts.append(f"{h}h")
+        if m:
+            parts.append(f"{m}m")
+        # When only seconds, show two decimals for finer granularity
+        if d or h or m:
+            parts.append(f"{s}s")
+        else:
+            parts.append(f"{seconds:.2f}s")
+        return " ".join(parts)
 
     @staticmethod
     def _level_color(level: str) -> str:

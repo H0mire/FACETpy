@@ -23,13 +23,11 @@ from facet import (
     Pipeline,
     Loader,
     EDFExporter,
-    TriggerDetector,
     TriggerAligner,
     HighPassFilter,
     LowPassFilter,
     UpSample,
     DownSample,
-    Crop,
     DropChannels,
     AASCorrection,
     PCACorrection,
@@ -70,7 +68,7 @@ NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
 # ---------------------------------------------------------------------------
 try:
     from facet import ANCCorrection
-    _has_anc = True
+    _has_anc = False
 except ImportError:
     _has_anc = False
 

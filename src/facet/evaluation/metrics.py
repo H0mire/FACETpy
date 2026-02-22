@@ -7,15 +7,17 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+import time
 from typing import Optional, Dict, Any, List, Union
 import mne
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button, SpanSelector
 import pandas as pd
 from loguru import logger
 from scipy import signal
 
-from ..console import report_metric
+from ..console import report_metric, get_console, suspend_raw_mode
 from ..core import Processor, ProcessingContext, register_processor, ProcessorValidationError
 
 
@@ -44,7 +46,8 @@ class ReferenceDataMixin:
         raw: mne.io.BaseRaw,
         triggers: np.ndarray,
         artifact_length: int,
-        time_buffer: float = 0.1
+        time_buffer: float = 0.1,
+        context: Optional[ProcessingContext] = None,
     ) -> np.ndarray:
         """Extract reference data (outside acquisition window).
 
@@ -58,6 +61,10 @@ class ReferenceDataMixin:
             Length of one artifact in samples.
         time_buffer : float, optional
             Buffer in seconds to stay away from acquisition (default: 0.1).
+        context : ProcessingContext, optional
+            Current processing context. If it contains a user-selected
+            reference interval (set by ``ReferenceIntervalSelector``), that
+            interval is used before falling back to automatic extraction.
 
         Returns
         -------
@@ -70,6 +77,39 @@ class ReferenceDataMixin:
         if len(eeg_picks) == 0:
             logger.warning("No EEG channels found")
             return np.array([])
+
+        # Prefer explicit user-selected interval when available.
+        if context is not None:
+            selected_interval = self._get_selected_reference_interval(context, raw)
+            if selected_interval is not None:
+                sel_tmin, sel_tmax = selected_interval
+                try:
+                    selected_data = raw.get_data(
+                        picks=eeg_picks, tmin=sel_tmin, tmax=sel_tmax
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "Failed to load selected reference interval "
+                        "[{:.3f}, {:.3f}] s: {}. Falling back to automatic selection.",
+                        sel_tmin,
+                        sel_tmax,
+                        exc,
+                    )
+                else:
+                    if selected_data.size > 0 and selected_data.shape[1] > 0:
+                        return selected_data
+                    logger.warning(
+                        "Selected reference interval [{:.3f}, {:.3f}] s returned no data. "
+                        "Falling back to automatic selection.",
+                        sel_tmin,
+                        sel_tmax,
+                    )
+
+        if triggers is None or len(triggers) == 0 or artifact_length is None:
+            logger.warning(
+                "Cannot infer automatic reference interval without triggers and artifact length."
+            )
+            return np.array([]).reshape(len(eeg_picks), 0)
 
         # Acquisition is considered to span from first trigger to last trigger + artifact length.
         acq_start_sample = triggers[0]
@@ -85,14 +125,14 @@ class ReferenceDataMixin:
 
         if ref_pre_tmax > 0:
             try:
-                data = raw.copy().crop(tmax=ref_pre_tmax).get_data(picks=eeg_picks)
+                data = raw.get_data(picks=eeg_picks, tmax=ref_pre_tmax)
                 ref_segments.append(data)
             except Exception:
                 pass
 
         if ref_post_tmin < raw.times[-1]:
             try:
-                data = raw.copy().crop(tmin=ref_post_tmin).get_data(picks=eeg_picks)
+                data = raw.get_data(picks=eeg_picks, tmin=ref_post_tmin)
                 ref_segments.append(data)
             except Exception:
                 pass
@@ -102,6 +142,43 @@ class ReferenceDataMixin:
             return np.array([]).reshape(len(eeg_picks), 0)
 
         return np.concatenate(ref_segments, axis=1)
+
+    def _get_selected_reference_interval(
+        self,
+        context: ProcessingContext,
+        raw: mne.io.BaseRaw,
+    ) -> Optional[tuple[float, float]]:
+        """Return validated user-selected reference interval in seconds."""
+        custom = context.metadata.custom
+        interval = custom.get("reference_interval")
+        if not isinstance(interval, dict):
+            return None
+
+        tmin = interval.get("tmin")
+        tmax = interval.get("tmax")
+        if tmin is None or tmax is None:
+            return None
+
+        try:
+            tmin = float(tmin)
+            tmax = float(tmax)
+        except (TypeError, ValueError):
+            logger.warning("Invalid reference_interval metadata (non-numeric tmin/tmax)")
+            return None
+
+        raw_tmax = float(raw.times[-1]) if raw.n_times > 0 else 0.0
+        tmin = max(0.0, min(tmin, raw_tmax))
+        tmax = max(0.0, min(tmax, raw_tmax))
+
+        if tmax <= tmin:
+            logger.warning(
+                "Invalid reference_interval metadata (tmax <= tmin): [{:.3f}, {:.3f}]",
+                tmin,
+                tmax,
+            )
+            return None
+
+        return tmin, tmax
 
     def get_acquisition_data(
         self,
@@ -137,7 +214,294 @@ class ReferenceDataMixin:
         tmin = acq_start / sfreq
         tmax = min(acq_end / sfreq, raw.times[-1])
 
-        return raw.copy().crop(tmin=tmin, tmax=tmax).get_data(picks=eeg_picks)
+        return raw.get_data(picks=eeg_picks, tmin=tmin, tmax=tmax)
+
+
+@register_processor
+class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
+    """Interactively select a clean reference interval from a signal plot.
+
+    Opens a Matplotlib GUI window for one EEG channel and lets the user drag a
+    time span. The selected region is highlighted in green and, after
+    confirmation, stored in ``context.metadata.custom['reference_interval']``.
+    Downstream metrics processors can use this interval as explicit reference
+    data.
+
+    Parameters
+    ----------
+    channel : str | int | None, optional
+        Channel to display. If ``None`` (default), the first EEG channel is
+        used.
+    min_duration : float, optional
+        Minimum selectable interval length in seconds (default: 0.5).
+    """
+
+    name = "reference_interval_selector"
+    description = "Interactively select clean reference interval for metrics"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(
+        self,
+        channel: str | int | None = None,
+        min_duration: float = 0.5,
+    ) -> None:
+        self.channel = channel
+        self.min_duration = min_duration
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if self.min_duration <= 0:
+            raise ProcessorValidationError(
+                f"min_duration must be > 0, got {self.min_duration}"
+            )
+
+        raw = context.get_raw()
+        if raw.n_times < 2:
+            raise ProcessorValidationError("Raw must contain at least 2 samples.")
+
+        self._resolve_channel(raw)
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        raw = context.get_raw()
+        sfreq = raw.info["sfreq"]
+        ch_idx = self._resolve_channel(raw)
+        ch_name = raw.ch_names[ch_idx]
+        channel_data = raw.get_data(picks=[ch_idx])[0]
+        time_axis = raw.times
+
+        # --- LOG ---
+        logger.info("Opening reference interval selector for channel {}", ch_name)
+
+        # --- COMPUTE ---
+        selected_interval = self._show_selector(
+            time_axis=time_axis,
+            channel_data=channel_data,
+            channel_name=ch_name,
+            default_interval=self._get_default_interval(context, raw),
+            min_duration=self.min_duration,
+            sfreq=sfreq,
+        )
+
+        if selected_interval is None:
+            logger.info("Reference interval selection cancelled; keeping previous settings.")
+            return context
+
+        # --- BUILD RESULT ---
+        tmin, tmax = selected_interval
+        new_metadata = context.metadata.copy()
+        new_metadata.custom["reference_interval"] = {
+            "tmin": float(tmin),
+            "tmax": float(tmax),
+            "channel": ch_name,
+            "source": self.name,
+        }
+
+        logger.info(
+            "Selected clean reference interval: [{:.3f}, {:.3f}] s ({:.3f} s)",
+            tmin,
+            tmax,
+            tmax - tmin,
+        )
+
+        # --- RETURN ---
+        return context.with_metadata(new_metadata)
+
+    def _resolve_channel(self, raw: mne.io.BaseRaw) -> int:
+        """Resolve configured channel to an EEG channel index."""
+        eeg_picks = self.get_eeg_channels(raw)
+        if len(eeg_picks) == 0:
+            raise ProcessorValidationError("No EEG channels found in raw data.")
+
+        if self.channel is None:
+            return int(eeg_picks[0])
+
+        if isinstance(self.channel, int):
+            if self.channel < 0 or self.channel >= len(raw.ch_names):
+                raise ProcessorValidationError(
+                    f"channel index out of range: {self.channel}"
+                )
+            return int(self.channel)
+
+        if self.channel not in raw.ch_names:
+            raise ProcessorValidationError(f"channel '{self.channel}' not found")
+        return int(raw.ch_names.index(self.channel))
+
+    def _get_default_interval(
+        self,
+        context: ProcessingContext,
+        raw: mne.io.BaseRaw,
+    ) -> tuple[float, float]:
+        """Derive a sensible default interval for the selector."""
+        existing = self._get_selected_reference_interval(context, raw)
+        if existing is not None:
+            return existing
+
+        triggers = context.get_triggers()
+        artifact_length = context.get_artifact_length()
+        duration = float(raw.times[-1]) if raw.n_times > 0 else 0.0
+
+        if (
+            triggers is not None
+            and len(triggers) > 0
+            and artifact_length is not None
+            and raw.info["sfreq"] > 0
+        ):
+            sfreq = raw.info["sfreq"]
+            acq_start = triggers[0] / sfreq
+            acq_end = (triggers[-1] + artifact_length) / sfreq
+
+            if acq_start > self.min_duration:
+                return 0.0, acq_start
+            if duration - acq_end > self.min_duration:
+                return acq_end, duration
+
+        default_len = min(max(self.min_duration, 1.0), duration)
+        return 0.0, default_len
+
+    def _show_selector(
+        self,
+        time_axis: np.ndarray,
+        channel_data: np.ndarray,
+        channel_name: str,
+        default_interval: tuple[float, float],
+        min_duration: float,
+        sfreq: float,
+    ) -> Optional[tuple[float, float]]:
+        """Show the interactive GUI and return selected interval."""
+        backend = plt.get_backend().lower()
+        if "agg" in backend:
+            logger.warning(
+                "Matplotlib backend '{}' is non-interactive; skipping selector.", backend
+            )
+            return None
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        plt.subplots_adjust(bottom=0.24)
+
+        ax.plot(time_axis, channel_data, linewidth=0.8, alpha=0.9)
+        ax.set_title(f"Select clean reference interval - {channel_name}")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Amplitude")
+        ax.grid(alpha=0.3)
+
+        initial_tmin, initial_tmax = default_interval
+        interval_state: Dict[str, Any] = {
+            "tmin": float(initial_tmin),
+            "tmax": float(initial_tmax),
+            "confirmed": False,
+            "shade": None,
+        }
+
+        text_label = ax.text(
+            0.02,
+            0.96,
+            "",
+            transform=ax.transAxes,
+            va="top",
+            fontsize=10,
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
+        )
+
+        def _refresh_overlay() -> None:
+            if interval_state["shade"] is not None:
+                interval_state["shade"].remove()
+            interval_state["shade"] = ax.axvspan(
+                interval_state["tmin"],
+                interval_state["tmax"],
+                facecolor="green",
+                alpha=0.22,
+                edgecolor="green",
+                linewidth=1.0,
+            )
+            text_label.set_text(
+                "Selected: {:.3f}s to {:.3f}s ({:.3f}s)".format(
+                    interval_state["tmin"],
+                    interval_state["tmax"],
+                    interval_state["tmax"] - interval_state["tmin"],
+                )
+            )
+            fig.canvas.draw_idle()
+
+        def _on_select(xmin: float, xmax: float) -> None:
+            if xmin is None or xmax is None:
+                return
+            left = max(0.0, min(float(xmin), float(xmax)))
+            right = min(float(time_axis[-1]), max(float(xmin), float(xmax)))
+
+            if right - left < min_duration:
+                right = min(float(time_axis[-1]), left + min_duration)
+                left = max(0.0, right - min_duration)
+
+            # Snap to nearest sample boundaries.
+            left = round(left * sfreq) / sfreq
+            right = round(right * sfreq) / sfreq
+            if right <= left:
+                right = min(float(time_axis[-1]), left + (1.0 / sfreq))
+
+            interval_state["tmin"] = left
+            interval_state["tmax"] = right
+            _refresh_overlay()
+
+        span_props = dict(facecolor="green", edgecolor="green", alpha=0.25)
+        span_selector = SpanSelector(
+            ax,
+            _on_select,
+            "horizontal",
+            useblit=True,
+            interactive=True,
+            drag_from_anywhere=True,
+            props=span_props,
+        )
+        span_selector.set_active(True)
+
+        confirm_ax = fig.add_axes([0.70, 0.06, 0.12, 0.07])
+        confirm_btn = Button(confirm_ax, "Confirm")
+        cancel_ax = fig.add_axes([0.84, 0.06, 0.12, 0.07])
+        cancel_btn = Button(cancel_ax, "Cancel")
+
+        def _close_fig() -> None:
+            try:
+                fig.canvas.manager.destroy()
+            except Exception:
+                pass
+            plt.close(fig)
+
+        def _on_confirm(_) -> None:
+            interval_state["confirmed"] = True
+            _close_fig()
+
+        def _on_cancel(_) -> None:
+            _close_fig()
+
+        confirm_btn.on_clicked(_on_confirm)
+        cancel_btn.on_clicked(_on_cancel)
+        _refresh_overlay()
+
+        console = get_console()
+        console.set_active_prompt(
+            "Drag to select clean reference interval, then click Confirm"
+        )
+        try:
+            with suspend_raw_mode():
+                plt.show(block=False)
+                while plt.fignum_exists(fig.number):
+                    fig.canvas.flush_events()
+                    time.sleep(0.05)
+        finally:
+            plt.close("all")
+            console.clear_active_prompt()
+
+        if not interval_state["confirmed"]:
+            return None
+
+        return float(interval_state["tmin"]), float(interval_state["tmax"])
 
 
 @register_processor
@@ -193,7 +557,9 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         logger.info("Calculating Signal-to-Noise Ratio (SNR)")
 
         # --- COMPUTE ---
-        ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer)
+        ref_data = self.get_reference_data(
+            raw, triggers, artifact_length, self.time_buffer, context=context
+        )
         corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
 
         if ref_data.size == 0 or corrected_data.size == 0:
@@ -263,7 +629,9 @@ class RMSResidualCalculator(Processor, ReferenceDataMixin):
         logger.info("Calculating RMS Residual Ratio (corrected vs reference)")
 
         # --- COMPUTE ---
-        ref_data = self.get_reference_data(raw, triggers, artifact_length, self.time_buffer)
+        ref_data = self.get_reference_data(
+            raw, triggers, artifact_length, self.time_buffer, context=context
+        )
         corrected_data = self.get_acquisition_data(raw, triggers, artifact_length)
 
         if ref_data.size == 0 or corrected_data.size == 0:
@@ -351,17 +719,13 @@ class LegacySNRCalculator(Processor):
         acq_tmin = acq_start / sfreq
         acq_tmax = min(acq_end / sfreq, raw_corrected.times[-1])
 
-        corrected_data = raw_corrected.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=picks)
+        corrected_data = raw_corrected.get_data(picks=picks, tmin=acq_tmin, tmax=acq_tmax)
 
         ref_segments = []
         if acq_tmin > 0:
-            ref_segments.append(
-                raw_original.copy().crop(tmax=acq_tmin).get_data(picks=picks)
-            )
+            ref_segments.append(raw_original.get_data(picks=picks, tmax=acq_tmin))
         if acq_tmax < raw_original.times[-1]:
-            ref_segments.append(
-                raw_original.copy().crop(tmin=acq_tmax).get_data(picks=picks)
-            )
+            ref_segments.append(raw_original.get_data(picks=picks, tmin=acq_tmax))
 
         if ref_segments:
             reference_data = np.concatenate(ref_segments, axis=1)
@@ -453,8 +817,8 @@ class RMSCalculator(Processor):
         acq_tmin = acq_start / sfreq
         acq_tmax = min(acq_end / sfreq, raw.times[-1])
 
-        data_corrected = raw.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=eeg_channels)
-        data_uncorrected = raw_orig.copy().crop(tmin=acq_tmin, tmax=acq_tmax).get_data(picks=eeg_channels)
+        data_corrected = raw.get_data(picks=eeg_channels, tmin=acq_tmin, tmax=acq_tmax)
+        data_uncorrected = raw_orig.get_data(picks=eeg_channels, tmin=acq_tmin, tmax=acq_tmax)
 
         if data_corrected.shape[0] != data_uncorrected.shape[0]:
             min_channels = min(data_corrected.shape[0], data_uncorrected.shape[0])
@@ -581,32 +945,19 @@ class MedianArtifactCalculator(Processor, ReferenceDataMixin):
         tuple
             (median_artifact, median_ref, ratio) where nan indicates unavailable.
         """
-        tmin = context.metadata.artifact_to_trigger_offset
-        tmax = tmin + (artifact_len / sfreq)
+        offset_samples = int(round(context.metadata.artifact_to_trigger_offset * sfreq))
 
-        events = np.column_stack([
-            triggers,
-            np.zeros(len(triggers), dtype=int),
-            np.ones(len(triggers), dtype=int)
-        ])
-
-        epochs = mne.Epochs(
-            raw,
-            events=events,
-            tmin=tmin,
-            tmax=tmax,
-            baseline=None,
-            reject=None,
-            preload=True,
-            picks=eeg_channels,
-            verbose=False
-        )
-
-        p2p_per_epoch = [np.ptp(epoch, axis=1) for epoch in epochs.get_data(copy=False)]
+        p2p_per_epoch = []
+        for t in triggers:
+            start = t + offset_samples
+            end = start + artifact_len
+            if 0 <= start and end <= raw.n_times:
+                epoch_data = raw.get_data(picks=eeg_channels, start=start, stop=end)
+                p2p_per_epoch.append(np.ptp(epoch_data, axis=1))
         mean_p2p_per_epoch = [np.mean(epoch_p2p) for epoch_p2p in p2p_per_epoch]
         median_artifact = np.median(mean_p2p_per_epoch)
 
-        ref_data = self.get_reference_data(raw, triggers, artifact_len)
+        ref_data = self.get_reference_data(raw, triggers, artifact_len, context=context)
 
         median_ref = np.nan
         ratio = np.nan
@@ -679,7 +1030,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
         # --- COMPUTE ---
         n_fft = int(3.0 * sfreq)  # 3-second segments as in MATLAB
 
-        ref_data = self.get_reference_data(raw, triggers, artifact_len)
+        ref_data = self.get_reference_data(raw, triggers, artifact_len, context=context)
         corr_data = self.get_acquisition_data(raw, triggers, artifact_len)
 
         if ref_data.size == 0 or corr_data.size == 0:

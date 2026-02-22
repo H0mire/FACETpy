@@ -6,10 +6,10 @@ This directory contains the Sphinx documentation for FACETpy v2.0.
 
 ### Prerequisites
 
-Install documentation dependencies:
+Install documentation dependencies via Poetry:
 
 ```bash
-pip install -r requirements.txt
+poetry install -E docs
 ```
 
 ### Build HTML Documentation
@@ -142,8 +142,8 @@ Navigate to http://127.0.0.1:8000 - the page will auto-reload on changes.
 This documentation is configured for Read the Docs:
 
 - **Config file**: `.readthedocs.yaml` (in repository root)
-- **Requirements**: `docs/requirements.txt`
-- **Python version**: 3.8+
+- **Dependencies**: defined in `pyproject.toml` under the `docs` extra
+- **Python version**: 3.11+
 
 The documentation will be automatically built and published when changes are pushed to the repository.
 

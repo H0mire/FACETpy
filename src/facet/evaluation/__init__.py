@@ -8,6 +8,7 @@ Date: 2025-01-12
 """
 
 from .metrics import (
+    ReferenceIntervalSelector,
     SNRCalculator,
     LegacySNRCalculator,
     RMSCalculator,
@@ -20,6 +21,7 @@ from .metrics import (
 from .visualization import RawPlotter
 
 __all__ = [
+    'ReferenceIntervalSelector',
     'SNRCalculator',
     'LegacySNRCalculator',
     'RMSCalculator',

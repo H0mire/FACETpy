@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 
 from facet.evaluation import (
+    ReferenceIntervalSelector,
     SNRCalculator,
     RMSCalculator,
     MedianArtifactCalculator,
@@ -16,6 +17,35 @@ from facet.evaluation import (
     LegacySNRCalculator
 )
 from facet.core import ProcessingContext, ProcessorValidationError
+
+
+@pytest.mark.unit
+class TestReferenceIntervalSelector:
+    """Tests for ReferenceIntervalSelector processor."""
+
+    def test_reference_interval_selector_stores_interval(self, sample_context, monkeypatch):
+        """Selected interval should be written to metadata.custom."""
+        selector = ReferenceIntervalSelector(channel=0, min_duration=0.2)
+        monkeypatch.setattr(
+            selector,
+            "_show_selector",
+            lambda **kwargs: (0.5, 1.5),
+        )
+
+        result = selector.execute(sample_context)
+        interval = result.metadata.custom.get("reference_interval", {})
+
+        assert interval.get("tmin") == pytest.approx(0.5)
+        assert interval.get("tmax") == pytest.approx(1.5)
+        assert interval.get("source") == "reference_interval_selector"
+
+    def test_reference_interval_selector_cancel_keeps_context(self, sample_context, monkeypatch):
+        """Cancelling selection should keep metadata unchanged."""
+        selector = ReferenceIntervalSelector()
+        monkeypatch.setattr(selector, "_show_selector", lambda **kwargs: None)
+
+        result = selector.execute(sample_context)
+        assert "reference_interval" not in result.metadata.custom
 
 
 @pytest.mark.unit
@@ -60,6 +90,18 @@ class TestSNRCalculator:
         metrics = result.metadata.custom.get('metrics', {})
         assert 'snr_per_channel' in metrics
         assert len(metrics['snr_per_channel']) > 0
+
+    def test_snr_uses_selected_reference_interval(self, sample_context):
+        """User-selected reference interval should override automatic extraction."""
+        metadata = sample_context.metadata.copy()
+        metadata.custom["reference_interval"] = {"tmin": 0.0, "tmax": 1.0}
+        context = sample_context.with_metadata(metadata)
+
+        snr_calc = SNRCalculator()
+        result = snr_calc.execute(context)
+
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "snr" in metrics
 
 
 @pytest.mark.unit

@@ -66,6 +66,7 @@ Optional extras:
 poetry install -E deeplearning   # TensorFlow-based models
 poetry install -E notebooks      # Jupyter notebook support
 poetry install -E gui            # PyQt6 GUI components
+poetry install -E docs           # Sphinx documentation toolchain
 poetry install -E all            # everything above
 ```
 
@@ -121,17 +122,19 @@ open htmlcov/index.html
 ## Documentation
 
 ```bash
+# Install docs dependencies
+poetry install -E docs
+
 # Build HTML docs
 poetry run sphinx-build -b html docs/source docs/build
-
-# Live-rebuild on every file save (requires sphinx-autobuild)
-poetry run sphinx-autobuild docs/source docs/build
 
 # Open locally
 open docs/build/index.html
 ```
 
 Full online documentation: https://facetpy.readthedocs.io/
+
+For comprehensive build instructions, theme configuration, and contribution guidelines see [`docs/README.md`](docs/README.md).
 
 
 ## Project structure

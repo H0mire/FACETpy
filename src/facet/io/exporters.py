@@ -54,12 +54,26 @@ class EDFExporter(Processor):
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         # --- EXTRACT ---
-        raw = context.get_raw()
+        raw = context.get_raw().copy()
 
         # --- LOG ---
         logger.info("Exporting to EDF: {}", self.path)
 
         # --- COMPUTE ---
+        # EDF header subfield equipment_code (raw.info['device_info']['type'])
+        # must not contain spaces per the EDF spec; replace them with underscores.
+        device_info = raw.info.get("device_info")
+        if device_info is not None:
+            device_type = device_info.get("type") or ""
+            if " " in device_type:
+                with raw.info._unlock():
+                    raw.info["device_info"]["type"] = device_type.replace(" ", "_")
+                logger.debug(
+                    "Sanitized device_info.type for EDF export: '{}' -> '{}'",
+                    device_type,
+                    raw.info["device_info"]["type"],
+                )
+
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         raw.export(self.path, fmt="edf", overwrite=self.overwrite)
 
