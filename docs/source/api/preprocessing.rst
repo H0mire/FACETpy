@@ -120,3 +120,54 @@ SubsampleAligner
    :members:
    :undoc-members:
    :show-inheritance:
+
+Transforms
+----------
+
+Crop
+~~~~
+
+.. autoclass:: Crop
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MagicErasor
+~~~~~~~~~~~
+
+.. autoclass:: MagicErasor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+RawTransform
+~~~~~~~~~~~~
+
+.. autoclass:: RawTransform
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+PickChannels
+~~~~~~~~~~~~
+
+.. autoclass:: PickChannels
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+DropChannels
+~~~~~~~~~~~~
+
+.. autoclass:: DropChannels
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+PrintMetric
+~~~~~~~~~~~
+
+.. autoclass:: PrintMetric
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -308,6 +308,30 @@ acquisition window around fMRI triggers for cleaner downstream processing.
 
    crop = Crop(tmin=10.0, tmax=300.0)  # Keep 10 s – 300 s
 
+**MagicErasor** - Interactively erase selected signal segments with multiple modes
+
+.. code-block:: python
+
+   from facet.preprocessing import MagicErasor
+
+   # Opens an interactive editor and stays open until "Done" is clicked.
+   # Multiple edits can be applied in one session.
+   erasor = MagicErasor(
+       picks="eeg",          # channels to edit
+       default_mode="zero",  # zero | mean | interpolate | generated_eeg
+       random_seed=42,       # optional, used for generated_eeg mode
+   )
+   context = erasor.execute(context)
+
+MagicErasor precision controls:
+
+- ``View Center (s)``: move the visible time window.
+- ``Window (s)``: zoom in/out horizontally for precise segment selection.
+- ``Y Zoom``: zoom amplitude vertically (default ``0.5``, max ``3.0``).
+- ``Apply Edit`` applies the current selection without closing the window.
+- ``Done`` confirms all edits and returns the updated context.
+- ``Cancel`` closes without applying the session changes.
+
 **PickChannels** / **DropChannels** - Select or remove channels
 
 .. code-block:: python

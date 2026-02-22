@@ -23,6 +23,7 @@ from mne import verbose
 from facet import (
     ANCCorrection,
     ArtifactOffsetFinder,
+    MagicErasor,
     Pipeline,
     Loader,
     EDFExporter,
@@ -58,7 +59,7 @@ os.environ["FACET_LOG_FILE"] = "1"
 # ---------------------------------------------------------------------------
 INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
 OUTPUT_DIR  = Path("./output")
-OUTPUT_FILE = str(OUTPUT_DIR / "corrected_full.edf")
+OUTPUT_FILE = str(OUTPUT_DIR / "corrected_EEGfMRI_20250519_20180312_004257.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -132,6 +133,7 @@ if _has_anc:
     steps.append(ANCCorrection(use_c_extension=True))
 
 steps += [
+    MagicErasor(),
     # 13. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
     # 14. Compute evaluation metrics
