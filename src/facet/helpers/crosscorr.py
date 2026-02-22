@@ -12,7 +12,6 @@ def crosscorrelation(x, y, maxlag, mode="corr"):
 
     The return vaue has length 2*maxlag + 1.
     """
-    # ensure that x an y are the same length
     len_diff = len(x) - len(y)
 
     if len_diff > 0:
@@ -32,6 +31,4 @@ def crosscorrelation(x, y, maxlag, mode="corr"):
     if mode == "dot":  # get lagged dot product
         return T.dot(px)
     elif mode == "corr":  # gets Pearson correlation
-        return (T.dot(px) / px.size - (T.mean(axis=1) * px.mean())) / (
-            np.std(T, axis=1) * np.std(px)
-        )
+        return (T.dot(px) / px.size - (T.mean(axis=1) * px.mean())) / (np.std(T, axis=1) * np.std(px))
