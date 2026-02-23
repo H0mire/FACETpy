@@ -8,6 +8,7 @@ Date: 2025-01-12
 """
 
 import mne
+import numpy as np
 from loguru import logger
 
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
@@ -99,6 +100,12 @@ class Resample(Processor):
             new_triggers = (triggers * scale_factor).astype(int)
             logger.debug("Updated {} trigger positions", len(new_triggers))
             new_ctx = new_ctx.with_triggers(new_triggers)
+        else:
+            scale_factor = target_sfreq / old_sfreq
+
+        # Keep sample-based metadata (artifact/window bounds) consistent with
+        # the new sampling frequency.
+        new_ctx = self._scale_sample_metadata(new_ctx, scale_factor)
 
         # --- NOISE ---
         if context.has_estimated_noise():
@@ -118,6 +125,73 @@ class Resample(Processor):
 
         # --- RETURN ---
         return new_ctx
+
+    @staticmethod
+    def _round_half_up(value: float) -> int:
+        """Round positive sample indices with half-up semantics."""
+        return int(np.floor(value + 0.5))
+
+    def _scale_sample_metadata(self, context: ProcessingContext, scale_factor: float) -> ProcessingContext:
+        """Scale sample-based metadata fields after resampling.
+
+        Parameters
+        ----------
+        context : ProcessingContext
+            Context after raw/triggers have been resampled.
+        scale_factor : float
+            ``target_sfreq / old_sfreq``.
+
+        Returns
+        -------
+        ProcessingContext
+            Context with scaled metadata.
+        """
+        if scale_factor <= 0:
+            return context
+
+        metadata = context.metadata.copy()
+        changed = False
+
+        def _scale_opt(value: int | None, min_value: int = 0) -> int | None:
+            if value is None:
+                return None
+            scaled = self._round_half_up(float(value) * scale_factor)
+            return max(min_value, scaled)
+
+        old_art_len = metadata.artifact_length
+        new_art_len = _scale_opt(old_art_len, min_value=1) if old_art_len is not None else None
+        if new_art_len is not None and new_art_len != old_art_len:
+            metadata.artifact_length = new_art_len
+            changed = True
+
+        for field in ("pre_trigger_samples", "post_trigger_samples", "acq_start_sample", "acq_end_sample"):
+            old_val = getattr(metadata, field)
+            new_val = _scale_opt(old_val, min_value=0)
+            if new_val != old_val:
+                setattr(metadata, field, new_val)
+                changed = True
+
+        # Keep custom acquisition mirror in sync when present.
+        acquisition = metadata.custom.get("acquisition")
+        if isinstance(acquisition, dict):
+            for key in ("pre_trigger_samples", "post_trigger_samples", "acq_start_sample", "acq_end_sample"):
+                if key in acquisition and isinstance(acquisition[key], (int, np.integer)):
+                    old_val = int(acquisition[key])
+                    new_val = _scale_opt(old_val, min_value=0)
+                    if new_val != old_val:
+                        acquisition[key] = new_val
+                        changed = True
+
+        if changed:
+            logger.debug(
+                "Scaled sample metadata by factor {:.6f} (artifact_length={} -> {})",
+                scale_factor,
+                old_art_len,
+                metadata.artifact_length,
+            )
+            return context.with_metadata(metadata)
+
+        return context
 
 
 @register_processor

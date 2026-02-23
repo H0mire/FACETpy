@@ -120,6 +120,63 @@ class TestResampling:
 
         np.testing.assert_array_equal(new_triggers, expected_triggers)
 
+    def test_upsample_scales_sample_metadata(self, sample_context):
+        """Upsampling should scale artifact/window metadata in sample units."""
+        metadata = sample_context.metadata.copy()
+        metadata.artifact_length = 51
+        metadata.pre_trigger_samples = 21
+        metadata.post_trigger_samples = 30
+        metadata.acq_start_sample = 101
+        metadata.acq_end_sample = 901
+        metadata.custom["acquisition"] = {
+            "pre_trigger_samples": 21,
+            "post_trigger_samples": 30,
+            "acq_start_sample": 101,
+            "acq_end_sample": 901,
+        }
+        context = sample_context.with_metadata(metadata)
+
+        result = UpSample(factor=2).execute(context)
+
+        assert result.metadata.artifact_length == 102
+        assert result.metadata.pre_trigger_samples == 42
+        assert result.metadata.post_trigger_samples == 60
+        assert result.metadata.acq_start_sample == 202
+        assert result.metadata.acq_end_sample == 1802
+        assert result.metadata.custom["acquisition"]["pre_trigger_samples"] == 42
+        assert result.metadata.custom["acquisition"]["post_trigger_samples"] == 60
+        assert result.metadata.custom["acquisition"]["acq_start_sample"] == 202
+        assert result.metadata.custom["acquisition"]["acq_end_sample"] == 1802
+
+    def test_downsample_scales_sample_metadata(self, sample_context):
+        """Downsampling should scale artifact/window metadata in sample units."""
+        metadata = sample_context.metadata.copy()
+        metadata.artifact_length = 51
+        metadata.pre_trigger_samples = 21
+        metadata.post_trigger_samples = 30
+        metadata.acq_start_sample = 101
+        metadata.acq_end_sample = 901
+        metadata.custom["acquisition"] = {
+            "pre_trigger_samples": 21,
+            "post_trigger_samples": 30,
+            "acq_start_sample": 101,
+            "acq_end_sample": 901,
+        }
+        context = sample_context.with_metadata(metadata)
+
+        result = DownSample(factor=2).execute(context)
+
+        # Half-up rounding: 51/2 -> 25.5 -> 26, 21/2 -> 10.5 -> 11.
+        assert result.metadata.artifact_length == 26
+        assert result.metadata.pre_trigger_samples == 11
+        assert result.metadata.post_trigger_samples == 15
+        assert result.metadata.acq_start_sample == 51
+        assert result.metadata.acq_end_sample == 451
+        assert result.metadata.custom["acquisition"]["pre_trigger_samples"] == 11
+        assert result.metadata.custom["acquisition"]["post_trigger_samples"] == 15
+        assert result.metadata.custom["acquisition"]["acq_start_sample"] == 51
+        assert result.metadata.custom["acquisition"]["acq_end_sample"] == 451
+
     def test_upsample_downsample_roundtrip(self, sample_context):
         """Test upsampling then downsampling returns to original."""
         original_sfreq = sample_context.get_raw().info["sfreq"]
