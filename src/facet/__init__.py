@@ -44,10 +44,17 @@ from .correction import (
 
 # I/O processors
 from .io import (
+    BDFExporter,
     BIDSExporter,
     BIDSLoader,
+    BrainVisionExporter,
     EDFExporter,
+    EEGLABExporter,
+    Exporter,
+    FIFExporter,
+    GDFExporter,
     Loader,
+    MFFExporter,
 )
 from .logging_config import configure_logging as _configure_logging
 
@@ -148,7 +155,14 @@ __all__ = [
     # I/O
     "Loader",
     "BIDSLoader",
+    "Exporter",
     "EDFExporter",
+    "BDFExporter",
+    "BrainVisionExporter",
+    "EEGLABExporter",
+    "FIFExporter",
+    "GDFExporter",
+    "MFFExporter",
     "BIDSExporter",
     # Preprocessing
     "Filter",
@@ -242,3 +256,36 @@ def load(path: str, **kwargs) -> "ProcessingContext":
 
 
 __all__.append("load")
+
+
+def export(context: "ProcessingContext", path: str, **kwargs) -> "ProcessingContext":
+    """Export a :class:`ProcessingContext` using extension-based auto routing.
+
+    Uses :class:`~facet.io.Exporter` to dispatch export handling from ``path``
+    extension (for example ``.edf``, ``.set``, ``.vhdr``).
+
+    Parameters
+    ----------
+    context : ProcessingContext
+        Input context that contains the Raw data to export.
+    path : str
+        Destination path; extension selects the exporter implementation.
+    **kwargs
+        Additional keyword arguments forwarded to
+        :class:`~facet.io.Exporter` (for example ``overwrite``).
+
+    Returns
+    -------
+    ProcessingContext
+        The unchanged input context after export.
+
+    Examples
+    --------
+    >>> import facet
+    >>> ctx = facet.load("./data/subject01.edf", preload=True)
+    >>> ctx = facet.export(ctx, "./data/subject01_corrected.set", overwrite=True)
+    """
+    return Exporter(path=path, **kwargs).execute(context)
+
+
+__all__.append("export")

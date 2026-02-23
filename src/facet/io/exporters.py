@@ -14,7 +14,26 @@ import numpy as np
 from loguru import logger
 from mne_bids import BIDSPath, write_raw_bids
 
-from ..core import ProcessingContext, Processor, register_processor
+from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
+
+
+def _detect_export_extension(path: Path) -> str:
+    """Detect the export extension from a target path."""
+    suffixes = path.suffixes
+    if len(suffixes) >= 2 and suffixes[-2] == ".fif" and suffixes[-1] == ".gz":
+        return ".fif"
+    return path.suffix.lower()
+
+
+def _resolve_exporter_class(path: Path) -> type[Processor]:
+    """Resolve the processor class responsible for a file extension."""
+    ext = _detect_export_extension(path)
+    if ext in _EXTENSION_EXPORTERS:
+        return _EXTENSION_EXPORTERS[ext]
+    raise ProcessorValidationError(
+        f"Unsupported export extension '{path.suffix.lower()}' for '{path.name}'. "
+        f"Supported extensions: {', '.join(SUPPORTED_EXPORT_EXTENSIONS)}."
+    )
 
 
 @register_processor
@@ -80,6 +99,264 @@ class EDFExporter(Processor):
 
         # --- RETURN ---
         return context
+
+
+@register_processor
+class BDFExporter(Processor):
+    """Export EEG data to BDF format.
+
+    Parameters
+    ----------
+    path : str
+        Destination file path for the exported BDF.
+    overwrite : bool, optional
+        Whether to overwrite an existing file (default: True).
+    """
+
+    name = "bdf_exporter"
+    description = "Export EEG data to BDF file"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        logger.info("Exporting to BDF: {}", self.path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        raw.export(self.path, fmt="bdf", overwrite=self.overwrite)
+        logger.info("Export completed")
+        return context
+
+
+@register_processor
+class BrainVisionExporter(Processor):
+    """Export EEG data to BrainVision format.
+
+    Parameters
+    ----------
+    path : str
+        Destination BrainVision header path (``.vhdr``).
+    overwrite : bool, optional
+        Whether to overwrite an existing file set (default: True).
+    """
+
+    name = "brainvision_exporter"
+    description = "Export EEG data to BrainVision file set"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        logger.info("Exporting to BrainVision: {}", self.path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        raw.export(self.path, fmt="brainvision", overwrite=self.overwrite)
+        logger.info("Export completed")
+        return context
+
+
+@register_processor
+class EEGLABExporter(Processor):
+    """Export EEG data to MATLAB EEGLAB format.
+
+    Parameters
+    ----------
+    path : str
+        Destination file path for the exported EEGLAB ``.set`` file.
+    overwrite : bool, optional
+        Whether to overwrite an existing file (default: True).
+    """
+
+    name = "eeglab_exporter"
+    description = "Export EEG data to MATLAB EEGLAB file"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        logger.info("Exporting to EEGLAB (.set): {}", self.path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        raw.export(self.path, fmt="eeglab", overwrite=self.overwrite)
+        logger.info("Export completed")
+        return context
+
+
+@register_processor
+class FIFExporter(Processor):
+    """Export EEG data to FIF format.
+
+    Parameters
+    ----------
+    path : str
+        Destination file path for the exported FIF file (``.fif`` or ``.fif.gz``).
+    overwrite : bool, optional
+        Whether to overwrite an existing file (default: True).
+    """
+
+    name = "fif_exporter"
+    description = "Export EEG data to FIF file"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        raw = context.get_raw().copy()
+        logger.info("Exporting to FIF: {}", self.path)
+        Path(self.path).parent.mkdir(parents=True, exist_ok=True)
+        raw.save(self.path, overwrite=self.overwrite, verbose=False)
+        logger.info("Export completed")
+        return context
+
+
+@register_processor
+class GDFExporter(Processor):
+    """Route target for GDF exports.
+
+    MNE currently does not provide GDF writing support.
+    """
+
+    name = "gdf_exporter"
+    description = "Export EEG data to GDF file (unsupported in current runtime)"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        raise ProcessorValidationError(
+            "GDF export is not supported by MNE 1.10.2. "
+            "Use EDF (.edf), BDF (.bdf), BrainVision (.vhdr), EEGLAB (.set), or FIF (.fif/.fif.gz)."
+        )
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        return context
+
+
+@register_processor
+class MFFExporter(Processor):
+    """Route target for EGI MFF exports.
+
+    MNE currently does not provide MFF writing support.
+    """
+
+    name = "mff_exporter"
+    description = "Export EEG data to MFF directory (unsupported in current runtime)"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        raise ProcessorValidationError(
+            "MFF export is not supported by MNE 1.10.2. "
+            "Use EDF (.edf), BDF (.bdf), BrainVision (.vhdr), EEGLAB (.set), or FIF (.fif/.fif.gz)."
+        )
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        return context
+
+
+_EXTENSION_EXPORTERS: dict[str, type[Processor]] = {
+    ".edf": EDFExporter,
+    ".bdf": BDFExporter,
+    ".gdf": GDFExporter,
+    ".vhdr": BrainVisionExporter,
+    ".set": EEGLABExporter,
+    ".fif": FIFExporter,
+    ".mff": MFFExporter,
+}
+
+SUPPORTED_EXPORT_EXTENSIONS: list[str] = sorted([*list(_EXTENSION_EXPORTERS.keys()), ".fif.gz"])
+
+
+@register_processor
+class Exporter(Processor):
+    """Export EEG data with automatic file-format routing.
+
+    Routes export requests to the file-type-specific exporter based on
+    the destination extension.
+
+    Parameters
+    ----------
+    path : str
+        Destination path; extension determines exporter selection.
+    overwrite : bool, optional
+        Whether to overwrite existing outputs (default: True).
+    """
+
+    name = "auto_exporter"
+    description = "Export EEG data with automatic format detection"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(self, path: str, overwrite: bool = True) -> None:
+        self.path = path
+        self.overwrite = overwrite
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        _resolve_exporter_class(Path(self.path))
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        destination = Path(self.path)
+        exporter_class = _resolve_exporter_class(destination)
+        logger.info("Routing export '{}' to {}", destination.suffix.lower(), exporter_class.__name__)
+        exporter = exporter_class(path=self.path, overwrite=self.overwrite)
+        return exporter.execute(context)
 
 
 @register_processor
