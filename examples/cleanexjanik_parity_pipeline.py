@@ -262,6 +262,7 @@ def build_pipeline(probe: ParityProbe) -> Pipeline:
             window_size=30,
             correlation_threshold=0.975,
             realign_after_averaging=True,
+            apply_epoch_alpha_scaling=True,
         ),
         probe.checkpoint("aas", to_native=True),
         PCACorrection(

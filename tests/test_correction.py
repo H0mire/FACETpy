@@ -14,6 +14,7 @@ from facet.correction import (
     FARMCorrection,
     MoosmannCorrection,
     PCACorrection,
+    SliceTriggerCorrection,
     VolumeArtifactCorrection,
     VolumeTriggerCorrection,
 )
@@ -29,6 +30,7 @@ class TestAASCorrection:
 
         assert aas.window_size == 30
         assert aas.correlation_threshold == 0.975
+        assert aas.apply_epoch_alpha_scaling is False
 
     def test_aas_requires_triggers(self, sample_raw):
         """Test that AAS requires triggers."""
@@ -129,6 +131,52 @@ class TestAASCorrection:
 
         assert np.allclose(noise_base, 0.0)
         assert np.any(np.abs(noise_interp) > 0.0)
+
+    def test_aas_epoch_alpha_scaling_reduces_amplitude_residual(self):
+        """MATLAB-like per-epoch alpha scaling should reduce residuals for drifting amplitudes."""
+        sfreq = 100.0
+        artifact_length = 20
+        n_epochs = 12
+        spacing = 30
+        triggers = (np.arange(n_epochs) * spacing + 20).astype(int)
+        n_samples = int(triggers[-1] + artifact_length + 20)
+
+        template = np.sin(np.linspace(0, np.pi, artifact_length))
+        scales = np.linspace(0.5, 1.8, n_epochs)
+
+        data = np.zeros((1, n_samples), dtype=float)
+        for idx, trg in enumerate(triggers):
+            data[0, trg : trg + artifact_length] += scales[idx] * template
+
+        raw = mne.io.RawArray(data, mne.create_info(["EEG1"], sfreq=sfreq, ch_types=["eeg"]), verbose=False)
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+        base = AASCorrection(
+            window_size=n_epochs,
+            correlation_threshold=0.8,
+            realign_after_averaging=False,
+            apply_epoch_alpha_scaling=False,
+        ).execute(context)
+        scaled = AASCorrection(
+            window_size=n_epochs,
+            correlation_threshold=0.8,
+            realign_after_averaging=False,
+            apply_epoch_alpha_scaling=True,
+        ).execute(context)
+
+        def _artifact_rms(ctx: ProcessingContext) -> float:
+            ch = ctx.get_raw()._data[0]
+            epochs = [ch[t : t + artifact_length] for t in triggers]
+            stacked = np.concatenate(epochs)
+            return float(np.sqrt(np.mean(stacked**2)))
+
+        rms_base = _artifact_rms(base)
+        rms_scaled = _artifact_rms(scaled)
+        assert rms_scaled < rms_base
 
 
 @pytest.mark.unit
@@ -279,6 +327,7 @@ class TestFARMCorrection:
         assert farm.window_size == 20
         assert farm.correlation_threshold == 0.9
         assert farm.search_half_window == 60
+        assert farm.apply_epoch_alpha_scaling is False
 
     def test_farm_execution(self, sample_context):
         """Test FARM execution."""
@@ -402,6 +451,22 @@ class TestVolumeArtifactCorrection:
 class TestAASWeightingVariants:
     """Tests for additional MATLAB-style AAS weighting variants."""
 
+    def test_weighting_variants_accept_epoch_alpha_scaling(self, temp_dir):
+        """All AAS-derived weighting variants should expose shared epoch alpha scaling."""
+        rp_file = temp_dir / "rp_alpha.tsv"
+        rp_file.write_text("x\ty\tz\tpitch\troll\tyaw\n0\t0\t0\t0\t0\t0\n", encoding="utf-8")
+
+        processors = [
+            CorrespondingSliceCorrection(slices_per_volume=2, apply_epoch_alpha_scaling=True),
+            VolumeTriggerCorrection(apply_epoch_alpha_scaling=True),
+            SliceTriggerCorrection(apply_epoch_alpha_scaling=True),
+            FARMCorrection(apply_epoch_alpha_scaling=True),
+            MoosmannCorrection(rp_file=str(rp_file), apply_epoch_alpha_scaling=True),
+        ]
+
+        for proc in processors:
+            assert proc.apply_epoch_alpha_scaling is True
+
     def test_corresponding_slice_correction_execution(self, sample_context):
         metadata = sample_context.metadata.copy()
         metadata.slices_per_volume = 2
@@ -419,6 +484,31 @@ class TestAASWeightingVariants:
 
         assert result.get_raw() is not None
         assert result.has_estimated_noise()
+
+    def test_slice_trigger_correction_execution(self, sample_context):
+        processor = SliceTriggerCorrection(window_size=3, realign_after_averaging=False)
+        result = processor.execute(sample_context)
+
+        assert result.get_raw() is not None
+        assert result.has_estimated_noise()
+
+    def test_slice_trigger_correction_uses_every_second_epochs(self):
+        processor = SliceTriggerCorrection(window_size=2, realign_after_averaging=False)
+        epochs = np.zeros((12, 10), dtype=float)
+
+        matrix = processor._calc_averaging_matrix(
+            epochs=epochs,
+            window_size=2,
+            rel_window_offset=0.0,
+            correlation_threshold=0.0,
+        )
+
+        first_row = np.flatnonzero(matrix[0])
+        second_row = np.flatnonzero(matrix[1])
+
+        assert np.array_equal(first_row, np.array([1, 3, 5]))
+        assert np.array_equal(second_row, np.array([2, 4, 6]))
+        np.testing.assert_allclose(matrix.sum(axis=1), 1.0)
 
     def test_moosmann_correction_execution(self, sample_context, temp_dir):
         rp_file = temp_dir / "rp_test.tsv"

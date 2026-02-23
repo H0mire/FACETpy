@@ -42,6 +42,9 @@ class FARMCorrection(AASCorrection):
     interpolate_volume_gaps : bool
         If ``True``, interpolate estimated artifact/noise in inter-epoch gaps
         (default: False).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, apply MATLAB-like per-epoch least-squares alpha scaling
+        before subtraction (default: False).
     """
 
     name = "farm_correction"
@@ -58,6 +61,7 @@ class FARMCorrection(AASCorrection):
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
         interpolate_volume_gaps: bool = False,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         self.search_half_window = search_half_window
         self.search_half_window_factor = search_half_window_factor
@@ -69,6 +73,7 @@ class FARMCorrection(AASCorrection):
             realign_after_averaging=realign_after_averaging,
             search_window_factor=search_window_factor,
             interpolate_volume_gaps=interpolate_volume_gaps,
+            apply_epoch_alpha_scaling=apply_epoch_alpha_scaling,
         )
 
     def validate(self, context: ProcessingContext) -> None:

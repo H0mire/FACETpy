@@ -57,6 +57,14 @@ VolumeTriggerCorrection
    :undoc-members:
    :show-inheritance:
 
+SliceTriggerCorrection
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SliceTriggerCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 MoosmannCorrection
 ~~~~~~~~~~~~~~~~~~
 

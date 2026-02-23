@@ -30,10 +30,12 @@ from facet import (
     ANCCorrection,
     ArtifactOffsetFinder,
     Crop,
+    FARMCorrection,
     MagicErasor,
     Pipeline,
     Loader,
     EDFExporter,
+    SliceTriggerCorrection,
     TriggerAligner,
     HighPassFilter,
     LowPassFilter,
@@ -124,11 +126,24 @@ steps = [
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
 
     # 10. Averaged Artifact Subtraction — the primary correction step
-    AASCorrection(
+    # AASCorrection(
+    #     window_size=30,
+    #     correlation_threshold=0.975,
+    #     realign_after_averaging=True,
+    #     apply_epoch_alpha_scaling=False,
+    # ),
+
+    FARMCorrection(
         window_size=30,
         correlation_threshold=0.975,
         realign_after_averaging=True,
     ),
+
+    # SliceTriggerCorrection(
+    #     window_size=30,
+    #     realign_after_averaging=True,
+    #     apply_epoch_alpha_scaling=True,
+    # ),
 
     # 11. PCA — remove systematic residual artifact components
     PCACorrection(n_components=0.95, hp_freq=1.0),

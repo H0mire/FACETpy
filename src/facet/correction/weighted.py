@@ -31,6 +31,9 @@ class CorrespondingSliceCorrection(AASCorrection):
         If ``True``, realign triggers after averaging (default: True).
     search_window_factor : float
         Trigger realignment search-window factor (default: 3.0).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, apply MATLAB-like per-epoch least-squares alpha scaling
+        before subtraction (default: False).
     """
 
     name = "corresponding_slice_correction"
@@ -44,6 +47,7 @@ class CorrespondingSliceCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
+        apply_epoch_alpha_scaling: bool = True,
     ) -> None:
         self.slices_per_volume = slices_per_volume
         self._runtime_slices_per_volume: int | None = None
@@ -54,6 +58,7 @@ class CorrespondingSliceCorrection(AASCorrection):
             plot_artifacts=plot_artifacts,
             realign_after_averaging=realign_after_averaging,
             search_window_factor=search_window_factor,
+            apply_epoch_alpha_scaling=apply_epoch_alpha_scaling,
         )
 
     def validate(self, context: ProcessingContext) -> None:
@@ -147,6 +152,9 @@ class VolumeTriggerCorrection(AASCorrection):
         If ``True``, realign triggers after averaging (default: True).
     search_window_factor : float
         Trigger realignment search-window factor (default: 3.0).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, apply MATLAB-like per-epoch least-squares alpha scaling
+        before subtraction (default: False).
     """
 
     name = "volume_trigger_correction"
@@ -159,6 +167,7 @@ class VolumeTriggerCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
+        apply_epoch_alpha_scaling: bool = True,
     ) -> None:
         super().__init__(
             window_size=window_size,
@@ -167,6 +176,7 @@ class VolumeTriggerCorrection(AASCorrection):
             plot_artifacts=plot_artifacts,
             realign_after_averaging=realign_after_averaging,
             search_window_factor=search_window_factor,
+            apply_epoch_alpha_scaling=apply_epoch_alpha_scaling,
         )
 
     def _calc_averaging_matrix(
@@ -206,6 +216,91 @@ class VolumeTriggerCorrection(AASCorrection):
 
 
 @register_processor
+class SliceTriggerCorrection(AASCorrection):
+    """AAS with MATLAB FACET slice-trigger odd/even template weighting.
+
+    Reproduces ``AvgArtWghtSliceTrigger`` behavior by constructing one
+    averaging set from every second epoch (even offsets) and another from
+    the complementary epochs (odd offsets), then alternating between them.
+
+    Parameters
+    ----------
+    window_size : int
+        Half-window size in epochs (default: 30).
+    plot_artifacts : bool
+        If ``True``, plot one random averaged artifact (default: False).
+    realign_after_averaging : bool
+        If ``True``, realign triggers after averaging (default: True).
+    search_window_factor : float
+        Trigger realignment search-window factor (default: 3.0).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, apply MATLAB-like per-epoch least-squares alpha scaling
+        before subtraction (default: False).
+    """
+
+    name = "slice_trigger_correction"
+    description = "AAS with MATLAB slice-trigger odd/even averaging weights"
+    version = "1.0.0"
+
+    def __init__(
+        self,
+        window_size: int = 30,
+        plot_artifacts: bool = False,
+        realign_after_averaging: bool = True,
+        search_window_factor: float = 3.0,
+        apply_epoch_alpha_scaling: bool = True,
+    ) -> None:
+        super().__init__(
+            window_size=window_size,
+            rel_window_position=0.0,
+            correlation_threshold=0.975,
+            plot_artifacts=plot_artifacts,
+            realign_after_averaging=realign_after_averaging,
+            search_window_factor=search_window_factor,
+            apply_epoch_alpha_scaling=apply_epoch_alpha_scaling,
+        )
+
+    def _calc_averaging_matrix(
+        self,
+        epochs: np.ndarray,
+        window_size: int,
+        rel_window_offset: float,
+        correlation_threshold: float,
+    ) -> np.ndarray:
+        """Create slice-trigger odd/even averaging matrix."""
+        del rel_window_offset, correlation_threshold
+
+        n_epochs = int(epochs.shape[0])
+        matrix = np.zeros((n_epochs, n_epochs), dtype=float)
+        if n_epochs == 0:
+            return matrix
+
+        half_window = max(1, int(window_size))
+        start_index_1based = 2
+
+        for s0 in range(n_epochs):
+            s = s0 + 1
+            if s == 1:
+                start_index_1based = 2
+            elif s == 2:
+                start_index_1based = 3
+            elif (s > (3 + half_window)) and (s <= (n_epochs - (half_window + 2))):
+                start_index_1based = s - half_window
+
+            end_index_1based = start_index_1based + (2 * half_window)
+            indices_1based = np.arange(start_index_1based, end_index_1based + 1, 2, dtype=int)
+            indices_1based = indices_1based[(indices_1based >= 1) & (indices_1based <= n_epochs)]
+
+            if indices_1based.size == 0:
+                indices_1based = np.array([s], dtype=int)
+
+            indices_0based = indices_1based - 1
+            matrix[s0, indices_0based] = 1.0 / float(indices_0based.size)
+
+        return matrix
+
+
+@register_processor
 class MoosmannCorrection(AASCorrection):
     """AAS with motion-informed Moosmann averaging weights.
 
@@ -229,6 +324,9 @@ class MoosmannCorrection(AASCorrection):
         If ``True``, realign triggers after averaging (default: True).
     search_window_factor : float
         Trigger realignment search-window factor (default: 3.0).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, apply MATLAB-like per-epoch least-squares alpha scaling
+        before subtraction (default: False).
     """
 
     name = "moosmann_correction"
@@ -244,6 +342,7 @@ class MoosmannCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
+        apply_epoch_alpha_scaling: bool = True,
     ) -> None:
         self.rp_file = rp_file
         self.motion_threshold = motion_threshold
@@ -257,6 +356,7 @@ class MoosmannCorrection(AASCorrection):
             plot_artifacts=plot_artifacts,
             realign_after_averaging=realign_after_averaging,
             search_window_factor=search_window_factor,
+            apply_epoch_alpha_scaling=apply_epoch_alpha_scaling,
         )
 
     def validate(self, context: ProcessingContext) -> None:
@@ -322,4 +422,5 @@ class MoosmannCorrection(AASCorrection):
 # Aliases for backwards compatibility / readability
 AvgArtWghtCorrespondingSliceCorrection = CorrespondingSliceCorrection
 AvgArtWghtVolumeTriggerCorrection = VolumeTriggerCorrection
+AvgArtWghtSliceTriggerCorrection = SliceTriggerCorrection
 AvgArtWghtMoosmannCorrection = MoosmannCorrection

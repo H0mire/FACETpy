@@ -13,9 +13,11 @@ from .volume import RemoveVolumeArtifactCorrection, VolumeArtifactCorrection
 from .weighted import (
     AvgArtWghtCorrespondingSliceCorrection,
     AvgArtWghtMoosmannCorrection,
+    AvgArtWghtSliceTriggerCorrection,
     AvgArtWghtVolumeTriggerCorrection,
     CorrespondingSliceCorrection,
     MoosmannCorrection,
+    SliceTriggerCorrection,
     VolumeTriggerCorrection,
 )
 
@@ -32,9 +34,11 @@ __all__ = [
     # AAS weighting variants
     "CorrespondingSliceCorrection",
     "VolumeTriggerCorrection",
+    "SliceTriggerCorrection",
     "MoosmannCorrection",
     "AvgArtWghtCorrespondingSliceCorrection",
     "AvgArtWghtVolumeTriggerCorrection",
+    "AvgArtWghtSliceTriggerCorrection",
     "AvgArtWghtMoosmannCorrection",
 ]
 

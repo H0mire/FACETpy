@@ -51,6 +51,10 @@ class AASCorrection(Processor):
     interpolate_volume_gaps : bool
         If ``True``, linearly interpolate estimated artifact/noise values in
         gaps between consecutive artifact windows (default: False).
+    apply_epoch_alpha_scaling : bool
+        If ``True``, scale each epoch template by a least-squares ``alpha``
+        factor before subtraction, similar to MATLAB FACET ``CalcAvgArt``
+        (default: False).
     """
 
     name = "aas_correction"
@@ -72,6 +76,7 @@ class AASCorrection(Processor):
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
         interpolate_volume_gaps: bool = False,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         self.window_size = window_size
         self.rel_window_position = rel_window_position
@@ -80,6 +85,7 @@ class AASCorrection(Processor):
         self.realign_after_averaging = realign_after_averaging
         self.search_window_factor = search_window_factor
         self.interpolate_volume_gaps = interpolate_volume_gaps
+        self.apply_epoch_alpha_scaling = apply_epoch_alpha_scaling
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -343,6 +349,11 @@ class AASCorrection(Processor):
             for ch_list_idx, ch_idx in enumerate(averaging_matrices.keys()):
                 ch_name = raw.ch_names[ch_idx]
                 artifacts = artifacts_per_channel[ch_list_idx]
+                alpha_values = np.ones(len(aligned_triggers), dtype=float)
+                # Keep a stable source signal for alpha estimation while raw is modified in-place.
+                ch_data_zero_mean = None
+                if self.apply_epoch_alpha_scaling:
+                    ch_data_zero_mean = raw._data[ch_idx].copy() - np.mean(raw._data[ch_idx])
 
                 for epoch_idx, trigger_pos in enumerate(aligned_triggers):
                     start = trigger_pos + smin
@@ -350,8 +361,29 @@ class AASCorrection(Processor):
                     if start < 0 or start >= n_samples:
                         continue
                     artifact_segment = artifacts[epoch_idx, : stop - start]
+                    if self.apply_epoch_alpha_scaling:
+                        data_segment = ch_data_zero_mean[start:stop]
+                        denom = float(np.dot(artifact_segment, artifact_segment))
+                        if denom > np.finfo(float).eps:
+                            alpha = float(np.dot(data_segment, artifact_segment) / denom)
+                            if np.isfinite(alpha):
+                                alpha_values[epoch_idx] = alpha
+                        artifact_segment = alpha_values[epoch_idx] * artifact_segment
                     raw._data[ch_idx, start:stop] -= artifact_segment
                     estimated_artifacts[ch_idx, start:stop] += artifact_segment
+
+                if self.apply_epoch_alpha_scaling and alpha_values.size:
+                    alpha_min = float(np.min(alpha_values))
+                    alpha_mean = float(np.mean(alpha_values))
+                    alpha_max = float(np.max(alpha_values))
+                    if alpha_min < 0 or (alpha_mean > 0 and alpha_max > (2.0 * alpha_mean)):
+                        logger.warning(
+                            "[{}] AAS alpha scaling produced unusual values: min={:.3f}, mean={:.3f}, max={:.3f}",
+                            ch_name,
+                            alpha_min,
+                            alpha_mean,
+                            alpha_max,
+                        )
 
                 progress.advance(
                     1,
