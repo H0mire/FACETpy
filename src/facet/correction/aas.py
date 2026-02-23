@@ -48,6 +48,9 @@ class AASCorrection(Processor):
     search_window_factor : float
         Multiplier of the upsampling factor used as the cross-correlation
         search window (default: 3.0).
+    interpolate_volume_gaps : bool
+        If ``True``, linearly interpolate estimated artifact/noise values in
+        gaps between consecutive artifact windows (default: False).
     """
 
     name = "aas_correction"
@@ -68,6 +71,7 @@ class AASCorrection(Processor):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
+        interpolate_volume_gaps: bool = False,
     ) -> None:
         self.window_size = window_size
         self.rel_window_position = rel_window_position
@@ -75,6 +79,7 @@ class AASCorrection(Processor):
         self.plot_artifacts = plot_artifacts
         self.realign_after_averaging = realign_after_averaging
         self.search_window_factor = search_window_factor
+        self.interpolate_volume_gaps = interpolate_volume_gaps
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -150,6 +155,15 @@ class AASCorrection(Processor):
             artifact_offset_samples,
             artifact_length,
         )
+        if self.interpolate_volume_gaps:
+            self._interpolate_volume_gap_artifacts(
+                raw=raw,
+                estimated_artifacts=estimated_artifacts,
+                aligned_triggers=aligned_triggers,
+                artifact_offset_samples=artifact_offset_samples,
+                artifact_length=artifact_length,
+                channel_indices=list(averaging_matrices.keys()),
+            )
 
         # --- NOISE ---
         new_ctx = context.with_raw(raw)
@@ -345,6 +359,63 @@ class AASCorrection(Processor):
                 )
 
         return estimated_artifacts
+
+    def _interpolate_volume_gap_artifacts(
+        self,
+        raw: mne.io.Raw,
+        estimated_artifacts: np.ndarray,
+        aligned_triggers: np.ndarray,
+        artifact_offset_samples: int,
+        artifact_length: int,
+        channel_indices: list[int],
+    ) -> None:
+        """Interpolate estimated artifacts in gaps between consecutive epochs.
+
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            Raw data modified in-place.
+        estimated_artifacts : np.ndarray
+            Estimated artifact signal, modified in-place.
+        aligned_triggers : np.ndarray
+            Trigger positions used for subtraction.
+        artifact_offset_samples : int
+            Artifact start offset relative to trigger.
+        artifact_length : int
+            Artifact length in samples.
+        channel_indices : List[int]
+            Processed channel indices.
+        """
+        if len(aligned_triggers) < 2 or artifact_length <= 0:
+            return
+
+        n_samples = raw._data.shape[1]
+        smin = artifact_offset_samples
+        smax = artifact_offset_samples + artifact_length - 1
+
+        for i in range(1, len(aligned_triggers)):
+            start_this = int(aligned_triggers[i] + smin)
+            end_prev = int(aligned_triggers[i - 1] + smax)
+
+            if start_this <= 0 or start_this >= n_samples:
+                continue
+            if end_prev < 0 or end_prev >= n_samples:
+                continue
+
+            gap_len = start_this - end_prev - 1
+            if gap_len <= 0:
+                continue
+
+            for ch_idx in channel_indices:
+                end_val = estimated_artifacts[ch_idx, end_prev]
+                start_val = estimated_artifacts[ch_idx, start_this]
+                diff = start_val - end_val
+                gap = end_val + (np.arange(1, gap_len + 1) * (diff / (gap_len + 1)))
+
+                gap_start = end_prev + 1
+                gap_stop = start_this
+                estimated_artifacts[ch_idx, gap_start:gap_stop] = gap
+                raw._data[ch_idx, gap_start:gap_stop] -= gap
 
     def _plot_artifact_debug(
         self,

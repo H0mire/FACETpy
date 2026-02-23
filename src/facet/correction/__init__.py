@@ -8,11 +8,34 @@ Date: 2025-01-12
 """
 
 from .aas import AASCorrection, AveragedArtifactSubtraction
+from .farm import FARMArtifactCorrection, FARMCorrection
+from .volume import RemoveVolumeArtifactCorrection, VolumeArtifactCorrection
+from .weighted import (
+    AvgArtWghtCorrespondingSliceCorrection,
+    AvgArtWghtMoosmannCorrection,
+    AvgArtWghtVolumeTriggerCorrection,
+    CorrespondingSliceCorrection,
+    MoosmannCorrection,
+    VolumeTriggerCorrection,
+)
 
 __all__ = [
     # AAS
     "AASCorrection",
     "AveragedArtifactSubtraction",
+    # FARM
+    "FARMCorrection",
+    "FARMArtifactCorrection",
+    # Volume transitions
+    "VolumeArtifactCorrection",
+    "RemoveVolumeArtifactCorrection",
+    # AAS weighting variants
+    "CorrespondingSliceCorrection",
+    "VolumeTriggerCorrection",
+    "MoosmannCorrection",
+    "AvgArtWghtCorrespondingSliceCorrection",
+    "AvgArtWghtVolumeTriggerCorrection",
+    "AvgArtWghtMoosmannCorrection",
 ]
 
 # Import ANC if available

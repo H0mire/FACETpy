@@ -26,13 +26,15 @@ class PCACorrection(Processor):
     - An integer keeps exactly that many components.
     - A float in (0, 1) retains enough components to explain that fraction of
       the total variance (e.g. 0.95 → 95 %).
+    - ``"auto"`` uses MATLAB FACET OBS heuristics.
     - 0 skips PCA for all channels.
 
     Parameters
     ----------
-    n_components : int or float
+    n_components : int or float or str
         Number of PCA components to retain (int) or variance fraction to
-        retain (float in (0, 1)).  Default: 0.95.
+        retain (float in (0, 1)). Use ``"auto"`` for MATLAB-like OBS auto
+        selection. Default: 0.95.
     hp_freq : float, optional
         High-pass cutoff frequency in Hz applied before PCA. None skips
         filtering (default: None).
@@ -52,9 +54,13 @@ class PCACorrection(Processor):
     parallel_safe = True
     channel_wise = True
 
+    TH_SLOPE = 2.0
+    TH_CUMVAR = 80.0
+    TH_VAREXP = 5.0
+
     def __init__(
         self,
-        n_components: int | float = 0.95,
+        n_components: int | float | str = 0.95,
         hp_freq: float | None = None,
         hp_filter_weights: np.ndarray | None = None,
         exclude_channels: list | None = None,
@@ -283,6 +289,15 @@ class PCACorrection(Processor):
         if isinstance(self.n_components, int):
             return max(1, min(self.n_components, max_components))
 
+        if isinstance(self.n_components, str):
+            if self.n_components.lower() != "auto":
+                raise ValueError("n_components as string must be 'auto'.")
+
+            explained_var = (singular_values**2) / (n_samples - 1)
+            explained_pct = 100.0 * (explained_var / np.sum(explained_var))
+            n = self._select_n_components_auto(explained_pct)
+            return max(1, min(int(n), max_components))
+
         if not 0 < self.n_components < 1:
             raise ValueError("n_components as float must be between 0 and 1.")
 
@@ -290,6 +305,36 @@ class PCACorrection(Processor):
         explained_ratio = np.cumsum(explained_var) / np.sum(explained_var)
         n = np.searchsorted(explained_ratio, self.n_components) + 1
         return max(1, min(int(n), max_components))
+
+    def _select_n_components_auto(self, explained_pct: np.ndarray) -> int:
+        """Select component count using MATLAB FACET OBS auto heuristics."""
+        if len(explained_pct) == 0:
+            return 1
+
+        d_oev = np.where(np.abs(np.diff(explained_pct)) < self.TH_SLOPE)[0] + 1
+        slope_pc = 1
+        if len(d_oev) > 0:
+            if len(d_oev) >= 4:
+                dd_oev = np.diff(d_oev)
+                run_pos = None
+                for i in range(len(dd_oev) - 2):
+                    if dd_oev[i] == 1 and dd_oev[i + 1] == 1 and dd_oev[i + 2] == 1:
+                        run_pos = i
+                        break
+                idx = run_pos if run_pos is not None else 0
+                slope_pc = int(max(d_oev[idx] - 1, 1))
+            else:
+                slope_pc = int(max(d_oev[0] - 1, 1))
+
+        cumvar = np.cumsum(explained_pct)
+        tmp = np.where(cumvar > self.TH_CUMVAR)[0]
+        cumvar_pc = int(tmp[0] + 1) if len(tmp) > 0 else len(explained_pct)
+
+        tmp = np.where(explained_pct < self.TH_VAREXP)[0]
+        varexp_pc = int(max(tmp[0], 1)) if len(tmp) > 0 else len(explained_pct)
+
+        pcs = int(np.floor(np.mean([slope_pc, cumvar_pc, varexp_pc])))
+        return max(1, pcs)
 
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
         """Create Butterworth high-pass filter weights.

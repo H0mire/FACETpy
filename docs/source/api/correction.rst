@@ -16,6 +16,55 @@ AASCorrection
    :undoc-members:
    :show-inheritance:
 
+FARM Correction
+---------------
+
+FARMCorrection
+~~~~~~~~~~~~~~
+
+.. autoclass:: FARMCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Volume Artifact Correction
+--------------------------
+
+VolumeArtifactCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: VolumeArtifactCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+AAS Weighting Variants
+----------------------
+
+CorrespondingSliceCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: CorrespondingSliceCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+VolumeTriggerCorrection
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: VolumeTriggerCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MoosmannCorrection
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: MoosmannCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ANC Correction
 --------------
 

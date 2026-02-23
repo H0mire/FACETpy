@@ -2,11 +2,21 @@
 Tests for correction processors.
 """
 
+import mne
 import numpy as np
 import pytest
 
-from facet.core import ProcessingContext, ProcessorValidationError
-from facet.correction import AASCorrection, ANCCorrection, PCACorrection
+from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
+from facet.correction import (
+    AASCorrection,
+    ANCCorrection,
+    CorrespondingSliceCorrection,
+    FARMCorrection,
+    MoosmannCorrection,
+    PCACorrection,
+    VolumeArtifactCorrection,
+    VolumeTriggerCorrection,
+)
 
 
 @pytest.mark.unit
@@ -99,6 +109,26 @@ class TestAASCorrection:
 
         # Triggers may have been adjusted
         assert result.has_triggers()
+
+    def test_aas_interpolate_volume_gaps(self, sample_context):
+        """Interpolating volume gaps should fill estimated-noise gaps."""
+        base = AASCorrection(window_size=5, realign_after_averaging=False, interpolate_volume_gaps=False).execute(
+            sample_context
+        )
+        interp = AASCorrection(window_size=5, realign_after_averaging=False, interpolate_volume_gaps=True).execute(
+            sample_context
+        )
+
+        triggers = sample_context.get_triggers()
+        artifact_length = sample_context.get_artifact_length()
+        gap_start = triggers[0] + artifact_length
+        gap_end = triggers[1]
+
+        noise_base = base.get_estimated_noise()[:, gap_start:gap_end]
+        noise_interp = interp.get_estimated_noise()[:, gap_start:gap_end]
+
+        assert np.allclose(noise_base, 0.0)
+        assert np.any(np.abs(noise_interp) > 0.0)
 
 
 @pytest.mark.unit
@@ -218,6 +248,13 @@ class TestPCACorrection:
         # Data should be unchanged
         np.testing.assert_array_equal(result.get_raw()._data, original_data)
 
+    def test_pca_with_auto_components(self, sample_context):
+        """Test PCA with MATLAB-style auto component selection."""
+        pca = PCACorrection(n_components="auto")
+        result = pca.execute(sample_context)
+        assert result.get_raw() is not None
+        assert result.has_estimated_noise()
+
     def test_pca_acquisition_window_uses_trigger_min_max(self, sample_context):
         """Acquisition window should be robust to unsorted trigger arrays."""
         metadata = sample_context.metadata.copy()
@@ -230,6 +267,178 @@ class TestPCACorrection:
 
         assert start == 80
         assert end == 340
+
+
+@pytest.mark.unit
+class TestFARMCorrection:
+    """Tests for FARMCorrection processor."""
+
+    def test_farm_initialization(self):
+        """Test FARM processor initialization."""
+        farm = FARMCorrection(window_size=20, correlation_threshold=0.9, search_half_window=60)
+        assert farm.window_size == 20
+        assert farm.correlation_threshold == 0.9
+        assert farm.search_half_window == 60
+
+    def test_farm_execution(self, sample_context):
+        """Test FARM execution."""
+        original_data = sample_context.get_raw()._data.copy()
+
+        farm = FARMCorrection(window_size=5, realign_after_averaging=False)
+        result = farm.execute(sample_context)
+
+        corrected_data = result.get_raw()._data
+        assert corrected_data.shape == original_data.shape
+        assert not np.array_equal(original_data, corrected_data)
+        assert result.has_estimated_noise()
+
+    def test_farm_matrix_rows_are_nonzero(self):
+        """FARM should keep valid averaging rows even for low-correlation epochs."""
+        rng = np.random.RandomState(0)
+        epochs = rng.randn(12, 50)
+        farm = FARMCorrection(window_size=4, correlation_threshold=0.9999, search_half_window=6)
+        matrix = farm._calc_averaging_matrix(
+            epochs=epochs,
+            window_size=4,
+            rel_window_offset=0.0,
+            correlation_threshold=0.9999,
+        )
+        row_sums = matrix.sum(axis=1)
+        np.testing.assert_allclose(row_sums, np.ones_like(row_sums), atol=1e-12)
+
+
+@pytest.mark.unit
+class TestVolumeArtifactCorrection:
+    """Tests for VolumeArtifactCorrection processor."""
+
+    def _build_volume_gap_context(self) -> ProcessingContext:
+        sfreq = 250.0
+        n_channels = 3
+        n_samples = 2500
+        data = np.zeros((n_channels, n_samples), dtype=float)
+
+        triggers = np.array([100, 140, 180, 220, 260, 300, 340, 380, 480, 520, 560, 600, 640, 680, 720], dtype=int)
+        artifact_length = 40
+        pre_samples = 5
+        post_samples = artifact_length - pre_samples - 1
+
+        base_epoch = np.sin(np.linspace(0, 2 * np.pi, artifact_length, endpoint=False)) * 5e-6
+        for ch in range(n_channels):
+            for trig in triggers:
+                start = trig - pre_samples
+                stop = start + artifact_length
+                if start < 0 or stop > n_samples:
+                    continue
+                data[ch, start:stop] += base_epoch
+
+            # Add stronger volume-transition artifact on both slices around the gap.
+            pre_trig = triggers[7]
+            post_trig = triggers[8]
+            pre_start = pre_trig - pre_samples
+            post_start = post_trig - pre_samples
+            transition = np.linspace(0.0, 20e-6, artifact_length)
+            data[ch, pre_start : pre_start + artifact_length] += transition
+            data[ch, post_start : post_start + artifact_length] += transition[::-1]
+
+            gap_start = pre_trig + post_samples + 1
+            gap_end = post_trig - pre_samples - 1
+            data[ch, gap_start : gap_end + 1] = 15e-6
+
+        info = mne.create_info(
+            ch_names=[f"EEG{i + 1:03d}" for i in range(n_channels)],
+            sfreq=sfreq,
+            ch_types=["eeg"] * n_channels,
+        )
+        raw = mne.io.RawArray(data, info, verbose=False)
+
+        metadata = ProcessingMetadata(
+            triggers=triggers,
+            artifact_length=artifact_length,
+            pre_trigger_samples=pre_samples,
+            post_trigger_samples=post_samples,
+            volume_gaps=True,
+            artifact_to_trigger_offset=0.0,
+        )
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_volume_artifact_correction_requires_artifact_length(self, sample_raw, sample_triggers):
+        """Processor should validate artifact length."""
+        metadata = ProcessingMetadata(triggers=sample_triggers, artifact_length=None, volume_gaps=True)
+        context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
+        processor = VolumeArtifactCorrection()
+        with pytest.raises(ProcessorValidationError):
+            processor.execute(context)
+
+    def test_volume_artifact_correction_no_volume_gaps_noop(self, sample_context):
+        """Processor should no-op when volume_gaps metadata is False."""
+        processor = VolumeArtifactCorrection()
+        result = processor.execute(sample_context)
+        assert result is sample_context
+
+    def test_volume_artifact_correction_execution(self):
+        """Volume artifact correction should modify data around detected gaps."""
+        context = self._build_volume_gap_context()
+        original = context.get_raw()._data.copy()
+
+        processor = VolumeArtifactCorrection()
+        result = processor.execute(context)
+
+        corrected = result.get_raw()._data
+        assert corrected.shape == original.shape
+        assert not np.array_equal(corrected, original)
+        assert not np.any(np.isnan(corrected))
+        assert not np.any(np.isinf(corrected))
+
+        pre_trig = context.get_triggers()[7]
+        post_trig = context.get_triggers()[8]
+        pre = context.metadata.pre_trigger_samples
+        post = context.metadata.post_trigger_samples
+        gap_start = pre_trig + post + 1
+        gap_end = post_trig - pre - 1
+        assert not np.array_equal(original[:, gap_start : gap_end + 1], corrected[:, gap_start : gap_end + 1])
+
+
+@pytest.mark.unit
+class TestAASWeightingVariants:
+    """Tests for additional MATLAB-style AAS weighting variants."""
+
+    def test_corresponding_slice_correction_execution(self, sample_context):
+        metadata = sample_context.metadata.copy()
+        metadata.slices_per_volume = 2
+        context = sample_context.with_metadata(metadata)
+
+        processor = CorrespondingSliceCorrection(window_size=2, realign_after_averaging=False)
+        result = processor.execute(context)
+
+        assert result.get_raw() is not None
+        assert result.has_estimated_noise()
+
+    def test_volume_trigger_correction_execution(self, sample_context):
+        processor = VolumeTriggerCorrection(window_size=4, realign_after_averaging=False)
+        result = processor.execute(sample_context)
+
+        assert result.get_raw() is not None
+        assert result.has_estimated_noise()
+
+    def test_moosmann_correction_execution(self, sample_context, temp_dir):
+        rp_file = temp_dir / "rp_test.tsv"
+        n_rows = max(2, len(sample_context.get_triggers()))
+        with rp_file.open("w", encoding="utf-8") as f:
+            f.write("x\ty\tz\tpitch\troll\tyaw\n")
+            for _ in range(n_rows):
+                f.write("0\t0\t0\t0\t0\t0\n")
+
+        processor = MoosmannCorrection(
+            rp_file=str(rp_file),
+            window_size=3,
+            motion_threshold=5.0,
+            realign_after_averaging=False,
+        )
+        result = processor.execute(sample_context)
+
+        assert result.get_raw() is not None
+        assert result.has_estimated_noise()
+        assert "moosmann" in result.metadata.custom
 
 
 @pytest.mark.integration

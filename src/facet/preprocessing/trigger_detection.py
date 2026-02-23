@@ -589,3 +589,304 @@ class MissingTriggerDetector(Processor):
             return corr > self.correlation_threshold
         except ValueError:
             return False
+
+
+@register_processor
+class MissingTriggerCompleter(Processor):
+    """Deterministically complete missing triggers using volume/slice counts.
+
+    MATLAB FACET parity processor for ``FindMissingTriggers(volumes, slices)``
+    based on the ``CompleteTriggers`` reconstruction heuristic.
+
+    Parameters
+    ----------
+    volumes : int
+        Total number of fMRI volumes expected.
+    slices : int
+        Number of slices per volume.
+    add_to_context : bool, optional
+        If ``True``, replace ``metadata.triggers`` with the completed list
+        (default: True).
+    add_annotations : bool, optional
+        If ``True`` and raw is available, add annotations for inserted
+        triggers (default: True).
+    strict : bool, optional
+        If ``True``, mismatches raise ``ProcessorValidationError``. If
+        ``False``, best-effort completion is used (default: True).
+    """
+
+    name = "missing_trigger_completer"
+    description = "Deterministically complete missing triggers from volume/slice counts"
+    version = "1.0.0"
+
+    requires_triggers = True
+    requires_raw = False
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(
+        self,
+        volumes: int,
+        slices: int,
+        add_to_context: bool = True,
+        add_annotations: bool = True,
+        strict: bool = True,
+    ) -> None:
+        self.volumes = int(volumes)
+        self.slices = int(slices)
+        self.add_to_context = add_to_context
+        self.add_annotations = add_annotations
+        self.strict = strict
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if self.volumes < 1:
+            raise ProcessorValidationError(f"volumes must be >= 1, got {self.volumes}")
+        if self.slices < 1:
+            raise ProcessorValidationError(f"slices must be >= 1, got {self.slices}")
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        triggers = np.sort(np.asarray(context.get_triggers(), dtype=int))
+        expected = int(self.volumes * self.slices)
+
+        # --- LOG ---
+        logger.info(
+            "Completing triggers deterministically (expected={}, current={})",
+            expected,
+            len(triggers),
+        )
+
+        # --- COMPUTE ---
+        completed = self._complete_triggers(triggers, expected, self.slices)
+        inserted = np.setdiff1d(completed, triggers)
+        logger.info("Inserted {} trigger(s)", len(inserted))
+
+        # --- BUILD RESULT ---
+        metadata = context.metadata.copy()
+        metadata.custom["missing_trigger_completer"] = {
+            "volumes": self.volumes,
+            "slices": self.slices,
+            "expected_triggers": expected,
+            "original_triggers": int(len(triggers)),
+            "completed_triggers": int(len(completed)),
+            "inserted_triggers": inserted.tolist(),
+        }
+
+        if not self.add_to_context:
+            return context.with_metadata(metadata)
+
+        metadata.triggers = completed
+        result = context.with_metadata(metadata)
+
+        if self.add_annotations and context.has_raw() and len(inserted) > 0:
+            raw = context.get_raw().copy()
+            sfreq = raw.info["sfreq"]
+            extra = mne.Annotations(
+                onset=np.asarray(inserted, dtype=float) / sfreq,
+                duration=np.zeros(len(inserted)),
+                description=["completed_trigger"] * len(inserted),
+            )
+            existing = raw.annotations
+            merged = mne.Annotations(
+                onset=np.concatenate([existing.onset, extra.onset]),
+                duration=np.concatenate([existing.duration, extra.duration]),
+                description=list(existing.description) + list(extra.description),
+            )
+            raw.set_annotations(merged)
+            return result.with_raw(raw)
+
+        # --- RETURN ---
+        return result
+
+    def _complete_triggers(self, triggers: np.ndarray, expected: int, slices: int) -> np.ndarray:
+        """Reconstruct missing triggers with MATLAB-style heuristics."""
+        if len(triggers) == expected:
+            return triggers
+        if len(triggers) == 0:
+            raise ProcessorValidationError("No triggers available for completion.")
+
+        err_num = expected - len(triggers)
+        if err_num < 0:
+            raise ProcessorValidationError(f"Found more triggers ({len(triggers)}) than expected ({expected}).")
+
+        diffs = np.diff(triggers)
+        if len(diffs) == 0:
+            raise ProcessorValidationError("Not enough triggers to infer missing positions.")
+
+        trigs_per_section = 5 * slices
+        sections = len(diffs) // trigs_per_section
+
+        if sections > 0:
+            diff_mat = diffs[: sections * trigs_per_section].reshape(sections, trigs_per_section)
+            diff_max = int(np.min(np.max(diff_mat, axis=1)))
+            diff_min = int(np.round(np.mean(np.min(diff_mat, axis=1))))
+            diff_err = int(np.max(np.max(diff_mat, axis=1)))
+        else:
+            diff_min = int(np.round(np.median(diffs)))
+            diff_max = int(np.max(diffs))
+            diff_err = diff_max
+
+        err_threshold = float(np.mean([diff_min, diff_err]))
+        err_indices = np.where(diffs > err_threshold)[0]
+
+        if len(err_indices) != err_num:
+            if self.strict:
+                raise ProcessorValidationError(
+                    f"Cannot determine missing triggers: expected {err_num}, detected {len(err_indices)} gaps."
+                )
+            ranked = np.argsort(diffs)[::-1]
+            err_indices = np.sort(ranked[:err_num])
+
+        volume_trigs = np.where((diffs >= (diff_max - 2)) & (diffs <= (diff_max + 2)))[0]
+        reconstructed = triggers.tolist()
+
+        for err_idx in err_indices:
+            post_volume_candidates = np.where((volume_trigs - err_idx) > 0)[0]
+            if len(post_volume_candidates) == 0 or post_volume_candidates[0] == 0:
+                interval = diff_min
+            else:
+                post_volume_index = int(post_volume_candidates[0])
+                if (volume_trigs[post_volume_index] - volume_trigs[post_volume_index - 1]) > slices:
+                    interval = diff_max
+                else:
+                    interval = diff_min
+            reconstructed.append(int(triggers[err_idx] + interval))
+
+        all_trigs = np.array(sorted(set(reconstructed)), dtype=int)
+
+        # Best-effort fallback for ambiguous cases in non-strict mode.
+        if not self.strict and len(all_trigs) < expected:
+            while len(all_trigs) < expected:
+                d = np.diff(all_trigs)
+                idx = int(np.argmax(d))
+                step = diff_max if d[idx] > (1.5 * diff_min) else diff_min
+                candidate = int(all_trigs[idx] + step)
+                all_trigs = np.array(sorted(set([*all_trigs.tolist(), candidate])), dtype=int)
+
+        if len(all_trigs) != expected and self.strict:
+            raise ProcessorValidationError(
+                f"Trigger completion produced {len(all_trigs)} triggers, expected {expected}."
+            )
+
+        return all_trigs
+
+
+@register_processor
+class SliceTriggerGenerator(Processor):
+    """Generate slice triggers from volume triggers.
+
+    MATLAB FACET parity processor for ``GenerateSliceTriggers``.
+
+    Parameters
+    ----------
+    slices : int
+        Number of slices per volume.
+    duration_samples : float, optional
+        Slice duration in samples. If ``None``, derived from trigger spacing.
+    relative_position : float
+        Relative position of first slice trigger with respect to the volume
+        trigger (default: 0.03).
+    add_annotations : bool, optional
+        If ``True`` and raw is available, generated triggers are added as
+        annotations (default: False).
+    """
+
+    name = "slice_trigger_generator"
+    description = "Generate slice triggers from volume triggers"
+    version = "1.0.0"
+
+    requires_triggers = True
+    requires_raw = False
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(
+        self,
+        slices: int,
+        duration_samples: float | None = None,
+        relative_position: float = 0.03,
+        add_annotations: bool = False,
+    ) -> None:
+        self.slices = int(slices)
+        self.duration_samples = duration_samples
+        self.relative_position = relative_position
+        self.add_annotations = add_annotations
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if self.slices < 1:
+            raise ProcessorValidationError(f"slices must be >= 1, got {self.slices}")
+        if self.duration_samples is not None and self.duration_samples <= 0:
+            raise ProcessorValidationError(f"duration_samples must be positive when set, got {self.duration_samples}")
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        volume_triggers = np.asarray(context.get_triggers(), dtype=float)
+        if len(volume_triggers) == 0:
+            return context
+
+        # --- COMPUTE ---
+        duration = self._resolve_slice_duration(context, volume_triggers)
+        slice_offsets = np.round((np.arange(self.slices) - self.relative_position) * duration).astype(int)
+
+        generated = np.zeros(len(volume_triggers) * self.slices, dtype=int)
+        for i, trigger in enumerate(volume_triggers.astype(int)):
+            generated[i * self.slices : (i + 1) * self.slices] = trigger + slice_offsets
+
+        metadata = context.metadata.copy()
+        metadata.triggers = generated
+        metadata.slices_per_volume = self.slices
+
+        if len(generated) > 1:
+            diffs = np.diff(generated)
+            if np.ptp(diffs) > 3:
+                mean_val = np.mean([np.median(diffs), np.max(diffs)])
+                slice_diffs = diffs[diffs < mean_val]
+                metadata.artifact_length = int(np.max(slice_diffs)) if len(slice_diffs) > 0 else int(np.max(diffs))
+                metadata.volume_gaps = True
+            else:
+                metadata.artifact_length = int(np.max(diffs))
+                metadata.volume_gaps = False
+
+        metadata.custom["slice_trigger_generator"] = {
+            "slices": self.slices,
+            "duration_samples": float(duration),
+            "relative_position": float(self.relative_position),
+            "num_generated_triggers": int(len(generated)),
+        }
+
+        result = context.with_metadata(metadata)
+
+        if self.add_annotations and context.has_raw():
+            raw = context.get_raw().copy()
+            sfreq = raw.info["sfreq"]
+            raw.set_annotations(
+                mne.Annotations(
+                    onset=generated.astype(float) / sfreq,
+                    duration=np.zeros(len(generated)),
+                    description=["generated_slice_trigger"] * len(generated),
+                )
+            )
+            return result.with_raw(raw)
+
+        return result
+
+    def _resolve_slice_duration(self, context: ProcessingContext, volume_triggers: np.ndarray) -> float:
+        """Resolve slice period in samples."""
+        if self.duration_samples is not None:
+            return float(self.duration_samples)
+
+        if context.metadata.slices_per_volume and context.metadata.artifact_length:
+            return float(context.metadata.artifact_length)
+
+        if len(volume_triggers) > 1:
+            vol_period = float(np.median(np.diff(volume_triggers)))
+            return max(vol_period / float(self.slices), 1.0)
+
+        if context.metadata.artifact_length:
+            return float(context.metadata.artifact_length)
+
+        raise ProcessorValidationError("Cannot infer slice duration; provide duration_samples explicitly.")
