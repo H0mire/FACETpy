@@ -225,6 +225,21 @@ GDF Format
        EDFExporter(path="corrected.edf")
    ])
 
+Converting Between Formats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the convenience functions :func:`facet.load` and :func:`facet.export` to convert between supported formats (EDF, GDF, BDF, SET, MFF, etc.):
+
+.. code-block:: python
+
+   from facet import load, export
+
+   INPUT_FILE = "./examples/datasets/NiazyFMRI.set"
+   OUTPUT_FILE = "./examples/datasets/NiazyFMRI.bdf"
+
+   ctx = load(INPUT_FILE)
+   export(ctx, OUTPUT_FILE)
+
 Performance Optimization
 ------------------------
 
@@ -296,6 +311,7 @@ See the ``examples/`` directory in the repository for more complete examples:
 * ``channelwise_execution.py`` - Channel-wise execution: flag inspection, backend comparison, custom processor
 * ``batch_processing.py`` - Batch correction across multiple files with ``Pipeline.map()``
 * ``evaluation.py`` - SNR, RMS, and other quality metrics
+* ``convert_types.py`` - Convert between file formats (e.g. SET to BDF) using ``load`` and ``export``
 * ``inline_steps.py`` - Inline callable steps and ``ProcessingContext`` pipe operator
 * ``memory_efficient_pipeline.py`` - Streaming-style workflow for large recordings
 * ``quickstart.py`` - Minimal runnable correction example
