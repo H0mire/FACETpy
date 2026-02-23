@@ -23,6 +23,7 @@ from mne import verbose
 from facet import (
     ANCCorrection,
     ArtifactOffsetFinder,
+    FARMCorrection,
     MagicErasor,
     Pipeline,
     Loader,
@@ -67,7 +68,7 @@ OUTPUT_FILE = str(OUTPUT_DIR / "corrected_EEGfMRI_20250519_20180312_004257_with_
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
-UPSAMPLE         = 10          # upsample factor for sub-sample trigger alignment
+UPSAMPLE         = 20          # upsample factor for sub-sample trigger alignment
 RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
 RECORDING_END    = None        # seconds — crop end (None keeps until the end)
 
@@ -99,7 +100,6 @@ steps = [
         preload=True,
     ),
 
-
     # 2. Remove non-EEG channels present in the EDF file
     DropChannels(channels=NON_EEG_CHANNELS),
 
@@ -122,7 +122,7 @@ steps = [
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
 
     # 8. Averaged Artifact Subtraction — the primary correction step
-    AASCorrection(
+    FARMCorrection(
         window_size=30,
         correlation_threshold=0.975,
         realign_after_averaging=True,
@@ -145,8 +145,8 @@ steps = [
 
     # 13. BCG correction (QRS-triggered AAS on cardiac cycle)
     QRSTriggerDetector(),
-    ArtifactOffsetFinder(channel="ECG"),
-    AASCorrection(window_size=20),
+    # ArtifactOffsetFinder(channel="ECG"),
+    AASCorrection(window_size=15),
 ]
 
 # 14. Adaptive Noise Cancellation (requires the compiled C extension)
