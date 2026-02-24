@@ -48,6 +48,14 @@ NotchFilter
    :undoc-members:
    :show-inheritance:
 
+MATLABPreFilter
+~~~~~~~~~~~~~~~
+
+.. autoclass:: MATLABPreFilter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Resampling
 ----------
 
@@ -98,6 +106,22 @@ MissingTriggerDetector
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: MissingTriggerDetector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+MissingTriggerCompleter
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: MissingTriggerCompleter
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+SliceTriggerGenerator
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SliceTriggerGenerator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -168,6 +192,25 @@ PrintMetric
 ~~~~~~~~~~~
 
 .. autoclass:: PrintMetric
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Diagnostics
+-----------
+
+AnalyzeDataReport
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AnalyzeDataReport
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+CheckDataReport
+~~~~~~~~~~~~~~~
+
+.. autoclass:: CheckDataReport
    :members:
    :undoc-members:
    :show-inheritance:

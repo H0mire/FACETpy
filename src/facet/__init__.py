@@ -40,6 +40,18 @@ from .core import (
 from .correction import (
     AASCorrection,
     AveragedArtifactSubtraction,  # Alias
+    AvgArtWghtCorrespondingSliceCorrection,
+    AvgArtWghtMoosmannCorrection,
+    AvgArtWghtSliceTriggerCorrection,
+    AvgArtWghtVolumeTriggerCorrection,
+    CorrespondingSliceCorrection,
+    FARMArtifactCorrection,
+    FARMCorrection,
+    MoosmannCorrection,
+    RemoveVolumeArtifactCorrection,
+    SliceTriggerCorrection,
+    VolumeArtifactCorrection,
+    VolumeTriggerCorrection,
 )
 
 # I/O processors
@@ -60,7 +72,10 @@ from .logging_config import configure_logging as _configure_logging
 
 # Preprocessing processors
 from .preprocessing import (
+    AnalyzeDataReport,
     BandPassFilter,
+    # Alignment
+    CheckDataReport,
     # Transforms
     Crop,
     # Acquisition window
@@ -72,6 +87,8 @@ from .preprocessing import (
     HighPassFilter,
     LowPassFilter,
     MagicErasor,
+    MATLABPreFilter,
+    MissingTriggerCompleter,
     MissingTriggerDetector,
     NotchFilter,
     PasteAcquisitionWindow,
@@ -82,8 +99,8 @@ from .preprocessing import (
     # Resampling
     Resample,
     SliceAligner,
+    SliceTriggerGenerator,
     SubsampleAligner,
-    # Alignment
     TriggerAligner,
     # Trigger detection
     TriggerDetector,
@@ -176,6 +193,8 @@ __all__ = [
     "TriggerDetector",
     "QRSTriggerDetector",
     "MissingTriggerDetector",
+    "MissingTriggerCompleter",
+    "SliceTriggerGenerator",
     "TriggerAligner",
     "SliceAligner",
     "SubsampleAligner",
@@ -187,9 +206,24 @@ __all__ = [
     "PickChannels",
     "DropChannels",
     "PrintMetric",
+    "MATLABPreFilter",
+    "AnalyzeDataReport",
+    "CheckDataReport",
     # Correction
     "AASCorrection",
     "AveragedArtifactSubtraction",
+    "CorrespondingSliceCorrection",
+    "VolumeTriggerCorrection",
+    "SliceTriggerCorrection",
+    "MoosmannCorrection",
+    "AvgArtWghtCorrespondingSliceCorrection",
+    "AvgArtWghtVolumeTriggerCorrection",
+    "AvgArtWghtSliceTriggerCorrection",
+    "AvgArtWghtMoosmannCorrection",
+    "FARMCorrection",
+    "FARMArtifactCorrection",
+    "VolumeArtifactCorrection",
+    "RemoveVolumeArtifactCorrection",
     # Evaluation
     "SNRCalculator",
     "LegacySNRCalculator",

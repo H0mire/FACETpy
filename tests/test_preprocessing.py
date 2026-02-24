@@ -8,13 +8,18 @@ import pytest
 
 from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
 from facet.preprocessing import (
+    AnalyzeDataReport,
     BandPassFilter,
+    CheckDataReport,
     CutAcquisitionWindow,
     DownSample,
     HighPassFilter,
     LowPassFilter,
     MagicErasor,
+    MATLABPreFilter,
+    MissingTriggerCompleter,
     SliceAligner,
+    SliceTriggerGenerator,
     SubsampleAligner,
     TriggerAligner,
     TriggerDetector,
@@ -119,6 +124,63 @@ class TestResampling:
         expected_triggers = (original_triggers * scaling_factor).astype(int)
 
         np.testing.assert_array_equal(new_triggers, expected_triggers)
+
+    def test_upsample_scales_sample_metadata(self, sample_context):
+        """Upsampling should scale artifact/window metadata in sample units."""
+        metadata = sample_context.metadata.copy()
+        metadata.artifact_length = 51
+        metadata.pre_trigger_samples = 21
+        metadata.post_trigger_samples = 30
+        metadata.acq_start_sample = 101
+        metadata.acq_end_sample = 901
+        metadata.custom["acquisition"] = {
+            "pre_trigger_samples": 21,
+            "post_trigger_samples": 30,
+            "acq_start_sample": 101,
+            "acq_end_sample": 901,
+        }
+        context = sample_context.with_metadata(metadata)
+
+        result = UpSample(factor=2).execute(context)
+
+        assert result.metadata.artifact_length == 102
+        assert result.metadata.pre_trigger_samples == 42
+        assert result.metadata.post_trigger_samples == 60
+        assert result.metadata.acq_start_sample == 202
+        assert result.metadata.acq_end_sample == 1802
+        assert result.metadata.custom["acquisition"]["pre_trigger_samples"] == 42
+        assert result.metadata.custom["acquisition"]["post_trigger_samples"] == 60
+        assert result.metadata.custom["acquisition"]["acq_start_sample"] == 202
+        assert result.metadata.custom["acquisition"]["acq_end_sample"] == 1802
+
+    def test_downsample_scales_sample_metadata(self, sample_context):
+        """Downsampling should scale artifact/window metadata in sample units."""
+        metadata = sample_context.metadata.copy()
+        metadata.artifact_length = 51
+        metadata.pre_trigger_samples = 21
+        metadata.post_trigger_samples = 30
+        metadata.acq_start_sample = 101
+        metadata.acq_end_sample = 901
+        metadata.custom["acquisition"] = {
+            "pre_trigger_samples": 21,
+            "post_trigger_samples": 30,
+            "acq_start_sample": 101,
+            "acq_end_sample": 901,
+        }
+        context = sample_context.with_metadata(metadata)
+
+        result = DownSample(factor=2).execute(context)
+
+        # Half-up rounding: 51/2 -> 25.5 -> 26, 21/2 -> 10.5 -> 11.
+        assert result.metadata.artifact_length == 26
+        assert result.metadata.pre_trigger_samples == 11
+        assert result.metadata.post_trigger_samples == 15
+        assert result.metadata.acq_start_sample == 51
+        assert result.metadata.acq_end_sample == 451
+        assert result.metadata.custom["acquisition"]["pre_trigger_samples"] == 11
+        assert result.metadata.custom["acquisition"]["post_trigger_samples"] == 15
+        assert result.metadata.custom["acquisition"]["acq_start_sample"] == 51
+        assert result.metadata.custom["acquisition"]["acq_end_sample"] == 451
 
     def test_upsample_downsample_roundtrip(self, sample_context):
         """Test upsampling then downsampling returns to original."""
@@ -323,6 +385,98 @@ class TestFiltering:
 
         # Should be finite
         assert np.all(np.isfinite(filtered_data))
+
+
+@pytest.mark.unit
+class TestMATLABPreFilter:
+    """Tests for MATLABPreFilter processor."""
+
+    def test_prefilter_gaussian_hp_changes_signal(self, sample_context):
+        original = sample_context.get_raw()._data.copy()
+        processor = MATLABPreFilter(gauss_hp_frequency=1.0)
+        result = processor.execute(sample_context)
+        filtered = result.get_raw()._data
+
+        assert filtered.shape == original.shape
+        assert not np.array_equal(filtered, original)
+
+    def test_prefilter_custom_transfer_function(self, sample_context):
+        original = sample_context.get_raw()._data.copy()
+        processor = MATLABPreFilter(
+            transfer_frequencies=np.array([0.0, 0.2, 0.25, 1.0]),
+            transfer_amplitudes=np.array([0.0, 0.0, 1.0, 1.0]),
+            gauss_hp_frequency=None,
+        )
+        result = processor.execute(sample_context)
+        filtered = result.get_raw()._data
+        assert filtered.shape == original.shape
+        assert not np.array_equal(filtered, original)
+
+    def test_prefilter_propagates_noise(self, sample_context_with_noise):
+        original_noise = sample_context_with_noise.get_estimated_noise().copy()
+        processor = MATLABPreFilter(gauss_hp_frequency=1.0)
+        result = processor.execute(sample_context_with_noise)
+        assert result.get_estimated_noise() is not None
+        assert not np.array_equal(result.get_estimated_noise(), original_noise)
+
+
+@pytest.mark.unit
+class TestMATLABTriggerParity:
+    """Tests for deterministic missing-trigger completion and slice generation."""
+
+    def test_missing_trigger_completer(self, sample_raw):
+        missing = np.array([100, 140, 180, 260, 300, 340, 380], dtype=int)  # missing one trigger
+
+        metadata = ProcessingMetadata(
+            triggers=missing,
+            artifact_length=40,
+            volume_gaps=True,
+            slices_per_volume=4,
+        )
+        context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
+
+        processor = MissingTriggerCompleter(volumes=2, slices=4, add_annotations=False, strict=False)
+        result = processor.execute(context)
+
+        assert result.has_triggers()
+        assert len(result.get_triggers()) == 8
+        assert 220 in result.get_triggers()
+
+    def test_slice_trigger_generator(self, sample_raw):
+        metadata = ProcessingMetadata(triggers=np.array([100, 500], dtype=int), artifact_length=400, volume_gaps=True)
+        context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
+
+        processor = SliceTriggerGenerator(slices=4, duration_samples=50, relative_position=0.0)
+        result = processor.execute(context)
+
+        expected = np.array([100, 150, 200, 250, 500, 550, 600, 650], dtype=int)
+        np.testing.assert_array_equal(result.get_triggers(), expected)
+        assert result.metadata.slices_per_volume == 4
+
+
+@pytest.mark.unit
+class TestDiagnosticReports:
+    """Tests for AnalyzeDataReport and CheckDataReport processors."""
+
+    def test_analyze_data_report(self, sample_context):
+        result = AnalyzeDataReport().execute(sample_context)
+        report = result.metadata.custom.get("analyze_data_report")
+        assert report is not None
+        assert report["samples"] == sample_context.get_raw().n_times
+        assert report["channels"] == sample_context.get_n_channels()
+
+    def test_check_data_report_passes(self, sample_context):
+        result = CheckDataReport(require_triggers=True, strict=True).execute(sample_context)
+        report = result.metadata.custom.get("check_data_report")
+        assert report is not None
+        assert report["num_errors"] == 0
+
+    def test_check_data_report_non_strict(self, sample_raw):
+        context = ProcessingContext(raw=sample_raw)
+        result = CheckDataReport(require_triggers=True, strict=False).execute(context)
+        report = result.metadata.custom.get("check_data_report")
+        assert report is not None
+        assert report["num_errors"] >= 1
 
 
 @pytest.mark.unit
@@ -532,6 +686,58 @@ class TestMagicErasor:
             edited[:, start_sample:end_sample],
             original[:, start_sample:end_sample],
         )
+
+    def test_magic_erasor_generated_eeg_matches_environment_stats(self, sample_context, monkeypatch):
+        """Generated EEG mode should match surrounding mean and amplitude."""
+        start_sample, end_sample = 300, 420
+        window = end_sample - start_sample
+
+        raw = sample_context.get_raw().copy()
+        sfreq = float(raw.info["sfreq"])
+        time_axis = np.arange(raw.n_times) / sfreq
+
+        for ch_idx in range(raw._data.shape[0]):
+            baseline = (ch_idx + 1) * 8e-6
+            amplitude = (ch_idx + 1) * 2e-6
+            raw._data[ch_idx] = baseline + amplitude * np.sin(2 * np.pi * (1.5 + 0.3 * ch_idx) * time_axis)
+            raw._data[ch_idx, start_sample:end_sample] = baseline + (40.0 * amplitude) * np.cos(
+                2 * np.pi * 6.0 * time_axis[start_sample:end_sample]
+            )
+
+        context = sample_context.with_raw(raw)
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(data, target_picks, start_sample, end_sample, "generated_eeg", sfreq, 0)
+            return [
+                {
+                    "mode": "generated_eeg",
+                    "start_sample": start_sample,
+                    "end_sample": end_sample,
+                    "start_time": start_sample / sfreq,
+                    "end_time": end_sample / sfreq,
+                }
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        result = context | MagicErasor(random_seed=7)
+        edited = result.get_raw().get_data()
+
+        assert not np.allclose(
+            edited[:, start_sample:end_sample],
+            raw._data[:, start_sample:end_sample],
+        )
+
+        for ch_idx in range(edited.shape[0]):
+            environment = np.concatenate(
+                [
+                    raw._data[ch_idx, start_sample - window : start_sample],
+                    raw._data[ch_idx, end_sample : end_sample + window],
+                ]
+            )
+            segment = edited[ch_idx, start_sample:end_sample]
+            np.testing.assert_allclose(float(np.mean(segment)), float(np.mean(environment)), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(float(np.std(segment)), float(np.std(environment)), rtol=5e-3, atol=1e-12)
 
     def test_magic_erasor_cancel_keeps_context(self, sample_context, monkeypatch):
         """Cancelled editor should keep the context unchanged."""
