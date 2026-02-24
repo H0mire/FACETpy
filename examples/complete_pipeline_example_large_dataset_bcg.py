@@ -79,8 +79,6 @@ NON_EEG_CHANNELS = ["EMG", "EOG"]
 
 
 def _remove_channel_from_bads(raw, channel_name):
-    print('Is Channel in bads?')
-    print(channel_name in raw.info["bads"])
     raw_copy = raw.copy()
     raw_copy.info["bads"] = [ch for ch in raw_copy.info["bads"] if ch != channel_name]
     return raw_copy
