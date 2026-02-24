@@ -21,7 +21,7 @@ Correction processors:
 
 Usage
 -----
-1) Run one or more demos by setting DEMOS_TO_RUN below.
+1) Run one or more demos by setting DEMO_CHOICES below (by default, all demos run).
 2) Start with "farm_volume" first.
 3) Outputs are written to ./output/new_processors_compact/
 """
