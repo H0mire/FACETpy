@@ -47,7 +47,7 @@ class CorrespondingSliceCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
-        apply_epoch_alpha_scaling: bool = True,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         self.slices_per_volume = slices_per_volume
         self._runtime_slices_per_volume: int | None = None
@@ -167,7 +167,7 @@ class VolumeTriggerCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
-        apply_epoch_alpha_scaling: bool = True,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         super().__init__(
             window_size=window_size,
@@ -248,7 +248,7 @@ class SliceTriggerCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
-        apply_epoch_alpha_scaling: bool = True,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         super().__init__(
             window_size=window_size,
@@ -342,7 +342,7 @@ class MoosmannCorrection(AASCorrection):
         plot_artifacts: bool = False,
         realign_after_averaging: bool = True,
         search_window_factor: float = 3.0,
-        apply_epoch_alpha_scaling: bool = True,
+        apply_epoch_alpha_scaling: bool = False,
     ) -> None:
         self.rp_file = rp_file
         self.motion_threshold = motion_threshold
