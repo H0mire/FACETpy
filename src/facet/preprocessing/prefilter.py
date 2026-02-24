@@ -178,7 +178,7 @@ class MATLABPreFilter(Processor):
             return self._apply_filters(out, sfreq, channel_pos)
 
         if acq_start > 0:
-            out[: acq_start + 1] = self._apply_filters(out[: acq_start + 1], sfreq, channel_pos)
+            out[:acq_start] = self._apply_filters(out[:acq_start], sfreq, channel_pos)
         out[acq_start : acq_end + 1] = self._apply_filters_padded(
             out[acq_start : acq_end + 1],
             sfreq,
@@ -186,7 +186,7 @@ class MATLABPreFilter(Processor):
             context,
         )
         if acq_end < len(out) - 1:
-            out[acq_end:] = self._apply_filters(out[acq_end:], sfreq, channel_pos)
+            out[acq_end + 1 :] = self._apply_filters(out[acq_end + 1 :], sfreq, channel_pos)
 
         return out
 
