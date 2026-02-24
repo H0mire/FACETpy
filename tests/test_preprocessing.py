@@ -687,6 +687,58 @@ class TestMagicErasor:
             original[:, start_sample:end_sample],
         )
 
+    def test_magic_erasor_generated_eeg_matches_environment_stats(self, sample_context, monkeypatch):
+        """Generated EEG mode should match surrounding mean and amplitude."""
+        start_sample, end_sample = 300, 420
+        window = end_sample - start_sample
+
+        raw = sample_context.get_raw().copy()
+        sfreq = float(raw.info["sfreq"])
+        time_axis = np.arange(raw.n_times) / sfreq
+
+        for ch_idx in range(raw._data.shape[0]):
+            baseline = (ch_idx + 1) * 8e-6
+            amplitude = (ch_idx + 1) * 2e-6
+            raw._data[ch_idx] = baseline + amplitude * np.sin(2 * np.pi * (1.5 + 0.3 * ch_idx) * time_axis)
+            raw._data[ch_idx, start_sample:end_sample] = baseline + (40.0 * amplitude) * np.cos(
+                2 * np.pi * 6.0 * time_axis[start_sample:end_sample]
+            )
+
+        context = sample_context.with_raw(raw)
+
+        def _fake_editor(self, data, sfreq, target_picks, preview_channel, channel_names):
+            self._apply_edit(data, target_picks, start_sample, end_sample, "generated_eeg", sfreq, 0)
+            return [
+                {
+                    "mode": "generated_eeg",
+                    "start_sample": start_sample,
+                    "end_sample": end_sample,
+                    "start_time": start_sample / sfreq,
+                    "end_time": end_sample / sfreq,
+                }
+            ]
+
+        monkeypatch.setattr(MagicErasor, "_show_interactive_editor", _fake_editor)
+
+        result = context | MagicErasor(random_seed=7)
+        edited = result.get_raw().get_data()
+
+        assert not np.allclose(
+            edited[:, start_sample:end_sample],
+            raw._data[:, start_sample:end_sample],
+        )
+
+        for ch_idx in range(edited.shape[0]):
+            environment = np.concatenate(
+                [
+                    raw._data[ch_idx, start_sample - window : start_sample],
+                    raw._data[ch_idx, end_sample : end_sample + window],
+                ]
+            )
+            segment = edited[ch_idx, start_sample:end_sample]
+            np.testing.assert_allclose(float(np.mean(segment)), float(np.mean(environment)), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(float(np.std(segment)), float(np.std(environment)), rtol=5e-3, atol=1e-12)
+
     def test_magic_erasor_cancel_keeps_context(self, sample_context, monkeypatch):
         """Cancelled editor should keep the context unchanged."""
 

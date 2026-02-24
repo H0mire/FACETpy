@@ -21,6 +21,7 @@ from pathlib import Path
 from mne import verbose
 
 from facet import (
+    AASCorrection,
     ANCCorrection,
     ArtifactOffsetFinder,
     FARMCorrection,
@@ -37,7 +38,6 @@ from facet import (
     DropChannels,
     QRSTriggerDetector,
     RawTransform,
-    AASCorrection,
     PCACorrection,
     SNRCalculator,
     LegacySNRCalculator,
@@ -48,6 +48,7 @@ from facet import (
     FFTNiazyCalculator,
     MetricsReport,
     RawPlotter,
+    VolumeTriggerCorrection,
     load,
 )
 from facet.evaluation import ReferenceIntervalSelector
@@ -63,12 +64,12 @@ os.environ["FACET_LOG_FILE"] = "1"
 # ---------------------------------------------------------------------------
 INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
 OUTPUT_DIR  = Path("./output")
-OUTPUT_FILE = str(OUTPUT_DIR / "corrected_EEGfMRI_20250519_20180312_004257_with_bcg.edf")
+OUTPUT_FILE = str(OUTPUT_DIR / "corrected_fMRI_BCG_EEGfMRI_20250519_20180312_004257.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
-UPSAMPLE         = 20          # upsample factor for sub-sample trigger alignment
+UPSAMPLE         = 10          # upsample factor for sub-sample trigger alignment
 RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
 RECORDING_END    = None        # seconds — crop end (None keeps until the end)
 
@@ -78,16 +79,20 @@ NON_EEG_CHANNELS = ["EMG", "EOG"]
 
 
 def _remove_channel_from_bads(raw, channel_name):
+    print('Is Channel in bads?')
+    print(channel_name in raw.info["bads"])
     raw_copy = raw.copy()
     raw_copy.info["bads"] = [ch for ch in raw_copy.info["bads"] if ch != channel_name]
     return raw_copy
 
+def anc_skipped(ctx):
+    return ctx
 
 # ---------------------------------------------------------------------------
 # Enable costly ANC correction
 # ---------------------------------------------------------------------------
 
-_has_anc = True
+do_anc = True
 
 
 # ---------------------------------------------------------------------------
@@ -124,7 +129,6 @@ steps = [
     # 8. Averaged Artifact Subtraction — the primary correction step
     FARMCorrection(
         window_size=30,
-        correlation_threshold=0.975,
         realign_after_averaging=True,
     ),
 
@@ -142,18 +146,11 @@ steps = [
         "remove_ecg_from_bads",
         lambda raw: _remove_channel_from_bads(raw, "ECG"),
     ),
-
     # 13. BCG correction (QRS-triggered AAS on cardiac cycle)
     QRSTriggerDetector(),
     # ArtifactOffsetFinder(channel="ECG"),
-    AASCorrection(window_size=15),
-]
-
-# 14. Adaptive Noise Cancellation (requires the compiled C extension)
-if _has_anc:
-    steps.append(ANCCorrection(use_c_extension=True))
-
-steps += [
+    AASCorrection(window_size=15, realign_after_averaging=True),
+    ANCCorrection(use_c_extension=True) if do_anc else anc_skipped,
     MagicErasor(),
     SignalIntervalSelector(),
     # 15. Save corrected recording
@@ -169,15 +166,15 @@ steps += [
     MetricsReport(),
 
     # 17. Plot a before/after comparison for a single channel
-    lambda ctx: ctx | RawPlotter(
-           mode="mne",
-           channel="Fp1",
-           duration=ctx.get_raw().times[-1],  # full recording length
-           overlay_original=False,
-           save_path=str(OUTPUT_DIR / "before_after.png"),
-           show=True,
-           title="Fp1 — Before vs After Correction",
-       ),
+    RawPlotter(
+        mode="mne",
+        channel="Fp1",
+        duration=20, 
+        overlay_original=False,
+        save_path=str(OUTPUT_DIR / "before_after.png"),
+        show=True,
+        title="Fp1 — Before vs After Correction",
+    ),
 ]
 pipeline = Pipeline(steps, name="Full fMRI + BCG Correction Pipeline")
 

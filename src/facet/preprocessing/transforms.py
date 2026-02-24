@@ -250,7 +250,8 @@ class MagicErasor(Processor):
     - ``mean``: set samples to the channel mean.
     - ``interpolate``: linearly interpolate between segment boundaries.
     - ``generated_eeg``: replace with synthetic EEG generated through
-      :class:`~facet.misc.EEGGenerator`.
+      :class:`~facet.misc.EEGGenerator`, then adapt channel-wise mean and
+      amplitude to the local surrounding signal.
 
     The editor stays open until the user clicks **Done**, enabling multiple
     edits in a single session.
@@ -270,7 +271,7 @@ class MagicErasor(Processor):
 
     name = "magic_erasor"
     description = "Interactively erase selected segments with multiple replacement modes"
-    version = "1.0.0"
+    version = "1.1.0"
 
     requires_triggers = False
     requires_raw = True
@@ -681,7 +682,14 @@ class MagicErasor(Processor):
                 sfreq=sfreq,
                 edit_index=edit_index,
             )
-            data[picks_array, start_sample:end_sample] = generated
+            adapted = self._adapt_segment_to_environment(
+                generated=generated,
+                data=data,
+                picks_array=picks_array,
+                start_sample=start_sample,
+                end_sample=end_sample,
+            )
+            data[picks_array, start_sample:end_sample] = adapted
             return
 
         raise ProcessorValidationError(f"Unsupported mode '{mode}'.")
@@ -739,6 +747,81 @@ class MagicErasor(Processor):
         generated_context = generator.process(None)
         generated = generated_context.get_raw().get_data(picks="eeg")
         return self._fit_segment_shape(generated, n_channels=n_channels, n_samples=n_samples)
+
+    def _adapt_segment_to_environment(
+        self,
+        generated: np.ndarray,
+        data: np.ndarray,
+        picks_array: np.ndarray,
+        start_sample: int,
+        end_sample: int,
+    ) -> np.ndarray:
+        """Match generated segment statistics to surrounding channel data."""
+        adapted = generated.copy()
+        for out_idx, ch_idx in enumerate(picks_array):
+            environment = self._extract_environment(
+                channel_data=data[ch_idx],
+                start_sample=start_sample,
+                end_sample=end_sample,
+            )
+            target_mean, target_amplitude = self._compute_stats(environment)
+            adapted[out_idx] = self._match_stats(
+                segment=adapted[out_idx],
+                target_mean=target_mean,
+                target_amplitude=target_amplitude,
+            )
+        return adapted
+
+    def _extract_environment(
+        self,
+        channel_data: np.ndarray,
+        start_sample: int,
+        end_sample: int,
+    ) -> np.ndarray:
+        """Extract neighboring samples around the edited interval."""
+        n_times = channel_data.shape[0]
+        window = max(1, end_sample - start_sample)
+
+        left = channel_data[max(0, start_sample - window) : start_sample]
+        right = channel_data[end_sample : min(n_times, end_sample + window)]
+
+        if left.size + right.size > 0:
+            return np.concatenate((left, right))
+
+        fallback_left = channel_data[:start_sample]
+        fallback_right = channel_data[end_sample:]
+        if fallback_left.size + fallback_right.size > 0:
+            return np.concatenate((fallback_left, fallback_right))
+
+        return channel_data.copy()
+
+    def _compute_stats(self, signal: np.ndarray) -> tuple[float, float]:
+        """Compute mean and amplitude estimate for a signal."""
+        if signal.size == 0:
+            return 0.0, 1.0
+
+        mean = float(np.mean(signal))
+        centered = signal - mean
+        amplitude = float(np.std(centered))
+        if not np.isfinite(amplitude) or amplitude <= 1e-12:
+            amplitude = float(np.max(np.abs(centered))) if centered.size > 0 else 1.0
+        return mean, max(amplitude, 1e-12)
+
+    def _match_stats(
+        self,
+        segment: np.ndarray,
+        target_mean: float,
+        target_amplitude: float,
+    ) -> np.ndarray:
+        """Shift and scale one segment to match target mean and amplitude."""
+        source_mean = float(np.mean(segment))
+        centered = segment - source_mean
+        source_amplitude = float(np.std(centered))
+        if not np.isfinite(source_amplitude) or source_amplitude <= 1e-12:
+            return np.full(segment.shape, target_mean, dtype=float)
+
+        scaled = centered * (target_amplitude / source_amplitude)
+        return scaled + target_mean
 
     def _fit_segment_shape(self, segment: np.ndarray, n_channels: int, n_samples: int) -> np.ndarray:
         """Adapt generated segment to requested shape."""
