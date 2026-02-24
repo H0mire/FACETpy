@@ -188,6 +188,14 @@ DropChannels
    :undoc-members:
    :show-inheritance:
 
+ChannelStandardizer
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: ChannelStandardizer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 PrintMetric
 ~~~~~~~~~~~
 

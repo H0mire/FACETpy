@@ -338,8 +338,22 @@ MagicErasor precision controls:
 
    from facet.preprocessing import PickChannels, DropChannels
 
-   picker = PickChannels(channels=["Fp1", "Fp2", "F3", "F4"])
+   picker = PickChannels(picks=["Fp1", "Fp2", "F3", "F4"])
    dropper = DropChannels(channels=["ECG", "EOG"])
+
+**ChannelStandardizer** - Convert EEG channels to predefined standards
+
+.. code-block:: python
+
+   from facet.preprocessing import ChannelStandardizer
+
+   # Convert to classic 10-20 subset and keep auxiliary channels (stim/ecg)
+   standardizer = ChannelStandardizer("10-20", keep_auxiliary=True)
+   context = standardizer.execute(context)
+
+   # Or use an explicit custom subset
+   custom = ChannelStandardizer(["Cz", "Pz", "Oz"], on_missing="ignore", keep_auxiliary=False)
+   context = custom.execute(context)
 
 **PrintMetric** - Print a context metadata value to the console
 

@@ -20,6 +20,106 @@ from ..core import ProcessingContext, Processor, ProcessorValidationError, regis
 from ..helpers.plotting import show_matplotlib_figure
 from ..misc import EEGGenerator
 
+_STANDARD_1020_19_CHANNELS: list[str] = [
+    "Fp1",
+    "Fp2",
+    "F7",
+    "F3",
+    "Fz",
+    "F4",
+    "F8",
+    "T7",
+    "C3",
+    "Cz",
+    "C4",
+    "T8",
+    "P7",
+    "P3",
+    "Pz",
+    "P4",
+    "P8",
+    "O1",
+    "O2",
+]
+
+_STANDARD_1020_32_CHANNELS: list[str] = [
+    "Fp1",
+    "Fpz",
+    "Fp2",
+    "F7",
+    "F3",
+    "Fz",
+    "F4",
+    "F8",
+    "FC5",
+    "FC1",
+    "FC2",
+    "FC6",
+    "T7",
+    "C3",
+    "Cz",
+    "C4",
+    "T8",
+    "CP5",
+    "CP1",
+    "CP2",
+    "CP6",
+    "P7",
+    "P3",
+    "Pz",
+    "P4",
+    "P8",
+    "POz",
+    "O1",
+    "Oz",
+    "O2",
+    "Iz",
+    "C1",
+]
+
+_CHANNEL_STANDARD_PRESETS: dict[str, list[str]] = {
+    "standard_1020_19": _STANDARD_1020_19_CHANNELS,
+    "standard_1020_32": _STANDARD_1020_32_CHANNELS,
+}
+
+_CHANNEL_STANDARD_ALIASES: dict[str, str] = {
+    "10-20": "standard_1020_19",
+    "10_20": "standard_1020_19",
+    "1020": "standard_1020_19",
+    "1020_19": "standard_1020_19",
+    "standard_1020": "standard_1020_19",
+    "standard_1020_19": "standard_1020_19",
+    "32": "standard_1020_32",
+    "1020_32": "standard_1020_32",
+    "standard_1020_32": "standard_1020_32",
+}
+
+_CHANNEL_ALIASES: dict[str, tuple[str, ...]] = {
+    "T7": ("T3",),
+    "T8": ("T4",),
+    "P7": ("T5",),
+    "P8": ("T6",),
+    "M1": ("A1",),
+    "M2": ("A2",),
+}
+
+
+def _normalize_channel_name(name: str) -> str:
+    """Normalize channel names for robust matching."""
+    return "".join(char for char in name.upper() if char.isalnum())
+
+
+_NORMALIZED_CHANNEL_ALIASES: dict[str, tuple[str, ...]] = {
+    _normalize_channel_name(target): tuple(_normalize_channel_name(alias) for alias in aliases)
+    for target, aliases in _CHANNEL_ALIASES.items()
+}
+
+_REVERSE_CHANNEL_ALIASES: dict[str, tuple[str, ...]] = {}
+for canonical_name, alias_names in _NORMALIZED_CHANNEL_ALIASES.items():
+    for alias_name in alias_names:
+        _REVERSE_CHANNEL_ALIASES.setdefault(alias_name, tuple())
+        _REVERSE_CHANNEL_ALIASES[alias_name] = _REVERSE_CHANNEL_ALIASES[alias_name] + (canonical_name,)
+
 
 @register_processor
 class Crop(Processor):
@@ -970,6 +1070,277 @@ class DropChannels(Processor):
 
         # --- RETURN ---
         return context.with_raw(raw)
+
+
+@register_processor
+class ChannelStandardizer(Processor):
+    """Convert EEG channel layouts to predefined standards or custom subsets.
+
+    Keeps EEG channels that match the requested standard in a deterministic
+    order, optionally preserving non-EEG channels (e.g., trigger/stim channels).
+    Legacy aliases such as ``T3 -> T7`` and ``T5 -> P7`` are resolved
+    automatically. When alias channels are used, they can be renamed to the
+    target standard labels.
+
+    Parameters
+    ----------
+    standard : str | list[str]
+        Target standard identifier or explicit ordered channel list.
+        Supported built-in identifiers:
+        - ``"10-20"`` / ``"standard_1020_19"``
+        - ``"32"`` / ``"standard_1020_32"``
+        For other strings, the processor tries to load an MNE standard montage
+        via :func:`mne.channels.make_standard_montage` and uses its channel list.
+    on_missing : str, optional
+        Missing-channel behavior: ``"ignore"`` (default) keeps available
+        matches only, ``"raise"`` fails when any requested channel is missing.
+    keep_auxiliary : bool, optional
+        If ``True`` (default), append non-EEG channels after the selected EEG
+        subset.
+    rename_aliases : bool, optional
+        If ``True`` (default), rename selected alias channels to the requested
+        target labels when possible (e.g., ``T3`` becomes ``T7``).
+    """
+
+    name = "channel_standardizer"
+    description = "Convert EEG channels to standard subsets with optional alias renaming"
+    version = "1.0.0"
+
+    requires_triggers = False
+    requires_raw = True
+    modifies_raw = True
+    parallel_safe = True
+    channel_wise = False
+
+    _VALID_ON_MISSING = ("ignore", "raise")
+
+    def __init__(
+        self,
+        standard: str | list[str],
+        on_missing: str = "ignore",
+        keep_auxiliary: bool = True,
+        rename_aliases: bool = True,
+    ) -> None:
+        self.standard = standard
+        self.on_missing = on_missing
+        self.keep_auxiliary = keep_auxiliary
+        self.rename_aliases = rename_aliases
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if self.on_missing not in self._VALID_ON_MISSING:
+            raise ProcessorValidationError(
+                f"on_missing must be one of {self._VALID_ON_MISSING}, got '{self.on_missing}'"
+            )
+
+        target_channels = self._resolve_target_channels()
+        if len(target_channels) == 0:
+            raise ProcessorValidationError("standard must resolve to at least one channel")
+
+        normalized_targets = [_normalize_channel_name(name) for name in target_channels]
+        if len(normalized_targets) != len(set(normalized_targets)):
+            raise ProcessorValidationError(
+                f"standard contains duplicate channel names after normalization: {target_channels}"
+            )
+
+        channel_types = context.get_raw().get_channel_types()
+        if "eeg" not in channel_types:
+            raise ProcessorValidationError("Raw contains no EEG channels")
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        input_raw = context.get_raw()
+        raw = input_raw.copy()
+        target_channels = self._resolve_target_channels()
+        eeg_channels, auxiliary_channels = self._split_channels_by_type(input_raw)
+        matched_channels, missing_channels = self._match_channels(
+            target_channels=target_channels,
+            available_eeg_channels=eeg_channels,
+        )
+
+        if self.on_missing == "raise" and missing_channels:
+            raise ProcessorValidationError(
+                "Missing channels for standard '{}': {}".format(
+                    self._resolve_standard_label(),
+                    ", ".join(missing_channels),
+                )
+            )
+
+        if len(matched_channels) == 0:
+            raise ProcessorValidationError(
+                f"No requested EEG channels found for standard '{self._resolve_standard_label()}'"
+            )
+
+        selected_eeg_channels = [source_name for _, source_name in matched_channels]
+        selected_channels = selected_eeg_channels.copy()
+        if self.keep_auxiliary:
+            selected_channels.extend(ch for ch in auxiliary_channels if ch not in selected_eeg_channels)
+
+        # --- LOG ---
+        logger.info(
+            "Converting to channel standard '{}' (matched={}, missing={}, keep_auxiliary={})",
+            self._resolve_standard_label(),
+            len(matched_channels),
+            len(missing_channels),
+            self.keep_auxiliary,
+        )
+
+        # --- COMPUTE ---
+        raw.pick(picks=selected_channels, verbose=False)
+        rename_map = self._build_rename_map(
+            selected_channels=raw.ch_names,
+            matched_channels=matched_channels,
+        )
+        if rename_map:
+            raw.rename_channels(rename_map)
+
+        # --- BUILD RESULT ---
+        new_ctx = context.with_raw(raw)
+
+        # --- NOISE ---
+        if context.has_estimated_noise():
+            estimated_noise = context.get_estimated_noise()
+            if estimated_noise is None or estimated_noise.shape[0] != len(input_raw.ch_names):
+                raise ProcessorValidationError(
+                    "Estimated noise shape does not match raw channels: "
+                    f"noise_shape={None if estimated_noise is None else estimated_noise.shape}, "
+                    f"n_channels={len(input_raw.ch_names)}"
+                )
+
+            index_by_name = {ch_name: idx for idx, ch_name in enumerate(input_raw.ch_names)}
+            selected_indices = [index_by_name[ch_name] for ch_name in selected_channels]
+            new_ctx.set_estimated_noise(estimated_noise[selected_indices, :].copy())
+        else:
+            logger.debug("No noise estimate present — skipping noise propagation")
+
+        metadata = new_ctx.metadata.copy()
+        metadata.custom["channel_standardizer"] = {
+            "standard": self._resolve_standard_label(),
+            "requested_eeg_channels": len(target_channels),
+            "matched_eeg_channels": len(matched_channels),
+            "missing_eeg_channels": missing_channels,
+            "keep_auxiliary": self.keep_auxiliary,
+            "rename_aliases": self.rename_aliases,
+            "renamed_channels": rename_map,
+        }
+
+        # --- RETURN ---
+        return new_ctx.with_metadata(metadata)
+
+    def _resolve_target_channels(self) -> list[str]:
+        """Resolve standard configuration to an ordered target channel list."""
+        if isinstance(self.standard, list):
+            return [str(name) for name in self.standard]
+
+        normalized_standard = self.standard.strip().lower()
+        resolved_standard = _CHANNEL_STANDARD_ALIASES.get(normalized_standard, normalized_standard)
+        if resolved_standard in _CHANNEL_STANDARD_PRESETS:
+            return _CHANNEL_STANDARD_PRESETS[resolved_standard].copy()
+
+        try:
+            montage = mne.channels.make_standard_montage(self.standard)
+        except Exception as exc:
+            raise ProcessorValidationError(
+                f"Unknown channel standard '{self.standard}'. Use a built-in standard "
+                "(10-20, standard_1020_19, 32, standard_1020_32) or a valid "
+                "MNE montage name."
+            ) from exc
+        return [str(name) for name in montage.ch_names]
+
+    def _resolve_standard_label(self) -> str:
+        """Return human-readable standard label for logs/metadata."""
+        if isinstance(self.standard, str):
+            return self.standard
+        return "custom"
+
+    @staticmethod
+    def _split_channels_by_type(raw: mne.io.BaseRaw) -> tuple[list[str], list[str]]:
+        """Split raw channel names into EEG and non-EEG sets."""
+        eeg_channels: list[str] = []
+        auxiliary_channels: list[str] = []
+        for ch_name, ch_type in zip(raw.ch_names, raw.get_channel_types(), strict=True):
+            if ch_type == "eeg":
+                eeg_channels.append(ch_name)
+            else:
+                auxiliary_channels.append(ch_name)
+        return eeg_channels, auxiliary_channels
+
+    def _match_channels(
+        self,
+        target_channels: list[str],
+        available_eeg_channels: list[str],
+    ) -> tuple[list[tuple[str, str]], list[str]]:
+        """Match ordered target channels against available EEG channels."""
+        lookup = {_normalize_channel_name(ch_name): ch_name for ch_name in available_eeg_channels}
+
+        matched: list[tuple[str, str]] = []
+        missing: list[str] = []
+        used_sources: set[str] = set()
+
+        for target_name in target_channels:
+            source_name = self._resolve_source_channel(target_name, lookup, used_sources)
+            if source_name is None:
+                missing.append(target_name)
+                continue
+
+            matched.append((target_name, source_name))
+            used_sources.add(source_name)
+
+        return matched, missing
+
+    def _resolve_source_channel(
+        self,
+        target_name: str,
+        lookup: dict[str, str],
+        used_sources: set[str],
+    ) -> str | None:
+        """Resolve one target channel to an available source channel."""
+        candidate_names = self._candidate_aliases(target_name)
+
+        for candidate_name in candidate_names:
+            resolved_name = lookup.get(candidate_name)
+            if resolved_name is None:
+                continue
+            if resolved_name in used_sources:
+                continue
+            return resolved_name
+        return None
+
+    def _candidate_aliases(self, target_name: str) -> list[str]:
+        """Return normalized candidate names for one target channel."""
+        normalized_target = _normalize_channel_name(target_name)
+        candidates = [normalized_target]
+        candidates.extend(_NORMALIZED_CHANNEL_ALIASES.get(normalized_target, tuple()))
+        candidates.extend(_REVERSE_CHANNEL_ALIASES.get(normalized_target, tuple()))
+        return candidates
+
+    def _build_rename_map(
+        self,
+        selected_channels: list[str],
+        matched_channels: list[tuple[str, str]],
+    ) -> dict[str, str]:
+        """Build source->target rename mapping for alias-normalization."""
+        if not self.rename_aliases:
+            return {}
+
+        rename_map: dict[str, str] = {}
+        normalized_to_current = {_normalize_channel_name(ch_name): ch_name for ch_name in selected_channels}
+
+        for target_name, source_name in matched_channels:
+            source_norm = _normalize_channel_name(source_name)
+            target_norm = _normalize_channel_name(target_name)
+            if source_norm == target_norm:
+                continue
+
+            existing_target_name = normalized_to_current.get(target_norm)
+            if existing_target_name is not None and existing_target_name != source_name:
+                continue
+
+            rename_map[source_name] = target_name
+            normalized_to_current[target_norm] = target_name
+
+        return rename_map
 
 
 @register_processor

@@ -75,6 +75,7 @@ from .preprocessing import (
     AnalyzeDataReport,
     BandPassFilter,
     # Alignment
+    ChannelStandardizer,
     CheckDataReport,
     # Transforms
     Crop,
@@ -205,6 +206,7 @@ __all__ = [
     "RawTransform",
     "PickChannels",
     "DropChannels",
+    "ChannelStandardizer",
     "PrintMetric",
     "MATLABPreFilter",
     "AnalyzeDataReport",

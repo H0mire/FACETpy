@@ -10,6 +10,7 @@ from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidatio
 from facet.preprocessing import (
     AnalyzeDataReport,
     BandPassFilter,
+    ChannelStandardizer,
     CheckDataReport,
     CutAcquisitionWindow,
     DownSample,
@@ -586,6 +587,111 @@ class TestRawTransform:
         proc = RawTransform("my_custom_step", lambda raw: raw.copy())
         # The name attribute is set on the instance
         assert proc.name == "my_custom_step"
+
+
+@pytest.mark.unit
+class TestChannelStandardizer:
+    """Tests for ChannelStandardizer."""
+
+    @staticmethod
+    def _build_context() -> ProcessingContext:
+        """Create a context with EEG + auxiliary channels."""
+        ch_names = [
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T3",
+            "C3",
+            "Cz",
+            "C4",
+            "T4",
+            "T5",
+            "P3",
+            "Pz",
+            "P4",
+            "T6",
+            "O1",
+            "O2",
+            "ECG",
+            "STI 014",
+        ]
+        ch_types = ["eeg"] * 19 + ["ecg", "stim"]
+        data = np.random.randn(len(ch_names), 500) * 1e-6
+        info = mne.create_info(ch_names=ch_names, sfreq=250.0, ch_types=ch_types)
+        raw = mne.io.RawArray(data, info, verbose=False)
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=ProcessingMetadata())
+
+    def test_standard_1020_alias_renaming_and_auxiliary(self):
+        """Legacy alias channels should be mapped and renamed to target labels."""
+        context = self._build_context()
+        result = context | ChannelStandardizer("10-20", on_missing="raise", keep_auxiliary=True, rename_aliases=True)
+
+        expected_eeg = [
+            "Fp1",
+            "Fp2",
+            "F7",
+            "F3",
+            "Fz",
+            "F4",
+            "F8",
+            "T7",
+            "C3",
+            "Cz",
+            "C4",
+            "T8",
+            "P7",
+            "P3",
+            "Pz",
+            "P4",
+            "P8",
+            "O1",
+            "O2",
+        ]
+        assert result.get_raw().ch_names[: len(expected_eeg)] == expected_eeg
+        assert result.get_raw().ch_names[-2:] == ["ECG", "STI 014"]
+
+    def test_custom_standard_subset(self):
+        """Custom ordered subsets should be respected exactly."""
+        context = self._build_context()
+        result = context | ChannelStandardizer(["Cz", "Pz", "O1"], on_missing="raise", keep_auxiliary=False)
+        assert result.get_raw().ch_names == ["Cz", "Pz", "O1"]
+
+    def test_unknown_standard_raises(self, sample_context):
+        """Invalid standard names should fail validation."""
+        with pytest.raises(ProcessorValidationError):
+            sample_context | ChannelStandardizer("does_not_exist")
+
+    def test_missing_channels_raise_when_configured(self):
+        """on_missing='raise' should fail when requested channels are absent."""
+        context = self._build_context()
+        with pytest.raises(ProcessorValidationError):
+            context | ChannelStandardizer(["Fz", "CPz"], on_missing="raise", keep_auxiliary=False)
+
+    def test_missing_channels_ignored(self):
+        """on_missing='ignore' should keep only available channels."""
+        context = self._build_context()
+        result = context | ChannelStandardizer(["Fz", "CPz"], on_missing="ignore", keep_auxiliary=False)
+        assert result.get_raw().ch_names == ["Fz"]
+
+    def test_noise_propagation_tracks_selected_channels(self):
+        """Estimated noise should be subset in the same channel order."""
+        context = self._build_context()
+        original_noise = np.random.randn(*context.get_raw()._data.shape) * 1e-7
+        context.set_estimated_noise(original_noise)
+
+        result = context | ChannelStandardizer(["Fp1", "Cz", "O2"], on_missing="raise", keep_auxiliary=False)
+        noise = result.get_estimated_noise()
+
+        assert noise is not None
+        assert noise.shape == (3, context.get_raw().n_times)
+
+        source_names = context.get_raw().ch_names
+        expected_indices = [source_names.index(ch_name) for ch_name in ["Fp1", "Cz", "O2"]]
+        np.testing.assert_allclose(noise, original_noise[expected_indices, :])
 
 
 @pytest.mark.unit

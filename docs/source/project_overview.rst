@@ -1,9 +1,14 @@
 Project Overview
 ================
 
-.. image:: _static/logo.png
-   :align: center
-   :width: 200px
+.. raw:: html
+
+   <p style="text-align: center;">
+     <span class="logo-container">
+       <img src="_static/logo_light_theme.png" class="logo-light" alt="FACETpy logo" width="200"/>
+       <img src="_static/logo_dark_theme.png" class="logo-dark" alt="FACETpy logo" width="200"/>
+     </span>
+   </p>
 
 What is FACETpy?
 ----------------

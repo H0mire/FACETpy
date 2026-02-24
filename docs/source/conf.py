@@ -84,7 +84,10 @@ exclude_patterns = []
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-html_logo = '_static/logo.png'
+# Logo is theme-dependent (light/dark) via layout template override
+html_logo = '_static/logo_light_theme.png'
+
+html_css_files = ['css/theme_logo.css']
 
 html_theme_options = {
     'navigation_depth': 4,
