@@ -1,13 +1,8 @@
 .. FACETpy documentation master file
 
-.. raw:: html
-
-   <p style="text-align: center;">
-     <span class="logo-container">
-       <img src="_static/logo_light_theme.png" class="logo-light" alt="FACETpy logo" width="300"/>
-       <img src="_static/logo_dark_theme.png" class="logo-dark" alt="FACETpy logo" width="300"/>
-     </span>
-   </p>
+.. image:: _static/logo.png
+   :align: center
+   :width: 300px
 
 Welcome to FACETpy's Documentation!
 ====================================
