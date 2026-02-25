@@ -50,41 +50,40 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 
 ## Installation
 
-Requires **Python 3.11 or 3.12**.  No additional package manager is required — standard `pip` works.
+Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.4.
+Conda is optional, not required.
 
-### Option A (recommended): pip + virtualenv
+### Option A (recommended): system Python + Poetry
 ```bash
-# 1 — create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+# 1 — verify Python
+python3 --version
 
-# 2 — install FACETpy and all dependencies
-pip install .
+# 2 — install Poetry (pick one)
+pipx install poetry
+# or: python3 -m pip install --user poetry
+
+# 3 — install FACETpy and dependencies
+poetry install --no-interaction
 ```
 
 ### Option B (optional): Conda workflow
 ```bash
 conda create -n facetpy python=3.12 -y
 conda activate facetpy
-pip install .
+conda install -c conda-forge poetry -y
+poetry install --no-interaction
 ```
 
-Optional extras (deep learning, notebooks, GUI, docs):
+Optional extras:
 ```bash
-pip install ".[deeplearning]"   # TensorFlow-based models
-pip install ".[notebooks]"      # Jupyter notebook support
-pip install ".[gui]"            # PyQt6 GUI components
-pip install ".[docs]"           # Sphinx documentation toolchain
-pip install ".[all]"            # everything above
+poetry install -E deeplearning   # TensorFlow-based models
+poetry install -E notebooks      # Jupyter notebook support
+poetry install -E gui            # PyQt6 GUI components
+poetry install -E docs           # Sphinx documentation toolchain
+poetry install -E all            # everything above
 ```
 
-For an editable (development) install that picks up source changes immediately:
-```bash
-pip install -e ".[dev]"
-```
-
-> **Poetry users** — the `pyproject.toml` is still fully Poetry-compatible.
-> Running `poetry install` continues to work as before.
+Run commands with `poetry run ...` (for example, `poetry run python examples/quickstart.py`).
 
 
 ### Build the C extension (optional)
@@ -93,8 +92,7 @@ The fast Adaptive Noise Cancellation (ANC) step uses a compiled C extension.
 Build it once after installing:
 
 ```bash
-python -m facet.build
-# or, if installed via Poetry: poetry run build-fastranc
+poetry run build-fastranc
 ```
 
 If the extension is absent, ANC is skipped automatically and the rest of the
@@ -104,40 +102,34 @@ toolbox works normally.
 ## Running the examples
 
 All examples are in the `examples/` folder and use the bundled
-`NiazyFMRI.edf` dataset.  Run them from the project root (with your venv active):
+`NiazyFMRI.edf` dataset.  Run them from the project root:
 
 ```bash
 # Recommended order for new users:
-python examples/quickstart.py          # minimal pipeline
-python examples/evaluation.py          # metrics & comparison
-python examples/advanced_workflows.py  # conditional, parallel, factory
-python examples/batch_processing.py    # multiple files at once
-python examples/inline_steps.py        # custom steps & pipe operator
-python examples/complete_pipeline_example.py  # full clinical pipeline
-python examples/eeg_generation_visualization_example.py  # synthetic EEG
+poetry run python examples/quickstart.py          # minimal pipeline
+poetry run python examples/evaluation.py          # metrics & comparison
+poetry run python examples/advanced_workflows.py  # conditional, parallel, factory
+poetry run python examples/batch_processing.py    # multiple files at once
+poetry run python examples/inline_steps.py        # custom steps & pipe operator
+poetry run python examples/complete_pipeline_example.py  # full clinical pipeline
+poetry run python examples/eeg_generation_visualization_example.py  # synthetic EEG
 ```
 
 
 ## Testing
 
-First install the dev dependencies:
-```bash
-pip install -e ".[dev]"
-# or: pip install -r requirements-dev.txt && pip install -e .
-```
-
 ```bash
 # Run the full test suite
-pytest
+poetry run pytest
 
 # Only fast unit tests (skip slow integration tests)
-pytest -m "not slow"
+poetry run pytest -m "not slow"
 
 # A single test file
-pytest tests/test_core_pipeline.py -v
+poetry run pytest tests/test_core_pipeline.py -v
 
 # With coverage report
-pytest --cov=facet --cov-report=html
+poetry run pytest --cov=facet --cov-report=html
 open htmlcov/index.html
 ```
 
@@ -146,11 +138,10 @@ open htmlcov/index.html
 
 ```bash
 # Install docs dependencies
-pip install ".[docs]"
-# or: pip install -r requirements-docs.txt && pip install -e .
+poetry install -E docs
 
 # Build HTML docs
-sphinx-build -b html docs/source docs/build
+poetry run sphinx-build -b html docs/source docs/build
 
 # Open locally
 open docs/build/index.html
@@ -200,10 +191,10 @@ Tasks are defined in `.vscode/tasks.json` and can be run via **Ctrl+Shift+P** �
 | **Lint: Fix (Ruff)** | | Auto-fix lint errors in place |
 | **Format: Check (Ruff)** | | Verify formatting without changing files |
 | **Format: Apply (Ruff)** | | Apply ruff formatting to `src/` and `tests/` |
-| **Build: FastRANC C Extension** | | Compile via `python -m facet.build` |
-| **Build: Install Dependencies** | | `pip install -e .` |
-| **Build: Install All Extras** | | `pip install -e ".[all]"` |
-| **Build: Install Dev Dependencies** | | `pip install -e ".[dev]"` (includes pytest, ruff) |
+| **Build: FastRANC C Extension** | | Compile the FastRANC C extension |
+| **Build: Install Dependencies** | | `poetry install` |
+| **Build: Install All Extras** | | `poetry install -E all` |
+| **Build: Update Dependencies** | | `poetry update` |
 | **Docs: Build HTML** | | Build Sphinx documentation |
 | **Docs: Open in Browser** | | Open the built docs in the browser |
 | **Docs: Build & Open** | | Build docs and open immediately |

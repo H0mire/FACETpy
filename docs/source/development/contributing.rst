@@ -14,30 +14,23 @@ Quick Setup
    git clone https://github.com/<your-username>/facetpy.git
    cd facetpy
 
-3. Create a virtual environment and install all dev dependencies.
+3. Install dependencies with Poetry.
 
 .. code-block:: bash
 
-   python -m venv .venv
-   source .venv/bin/activate        # Windows: .venv\Scripts\activate
-   pip install -e ".[dev]"
+   poetry install --no-interaction
 
-4. (Optional) Also install docs dependencies when working on documentation.
+4. (Optional) Install docs dependencies when working on documentation.
 
 .. code-block:: bash
 
-   pip install -e ".[docs]"
+   poetry install -E docs
 
 5. Verify your environment.
 
 .. code-block:: bash
 
-   pytest -m "not slow"
-
-.. note::
-
-   **Poetry users** — ``poetry install`` continues to work as before.
-   Use ``poetry run pytest`` etc. as you normally would.
+   poetry run pytest -m "not slow"
 
 Development Workflow
 --------------------
@@ -55,13 +48,13 @@ Development Workflow
 
 .. code-block:: bash
 
-   pytest
+   poetry run pytest
 
 6. Build docs locally when docs changed.
 
 .. code-block:: bash
 
-   sphinx-build -b html docs/source docs/build
+   poetry run sphinx-build -b html docs/source docs/build
 
 Code Style
 ----------
@@ -80,13 +73,13 @@ Ruff is the active linter configuration for this repository.
 
 .. code-block:: bash
 
-   ruff check src tests
+   poetry run ruff check src tests
 
 (Optional auto-fix)
 
 .. code-block:: bash
 
-   ruff check --fix src tests
+   poetry run ruff check --fix src tests
 
 Testing
 -------
@@ -104,13 +97,13 @@ Run tests:
 
 .. code-block:: bash
 
-   pytest
+   poetry run pytest
 
 Run a subset:
 
 .. code-block:: bash
 
-   pytest -m "not slow"
+   poetry run pytest -m "not slow"
 
 Documentation Style
 -------------------
@@ -151,3 +144,4 @@ for example:
 
 - ``docs, refactor: clarify pipeline flow``
 - ``fix: handle missing trigger channel``
+
