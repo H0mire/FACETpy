@@ -23,7 +23,9 @@ from mne import verbose
 from facet import (
     AASCorrection,
     ANCCorrection,
+    AnalyzeDataReport,
     ArtifactOffsetFinder,
+    CheckDataReport,
     FARMCorrection,
     MagicErasor,
     Pipeline,
@@ -48,13 +50,13 @@ from facet import (
     FFTNiazyCalculator,
     MetricsReport,
     RawPlotter,
-    VolumeTriggerCorrection,
     load,
 )
 from facet.evaluation import ReferenceIntervalSelector
 from facet.preprocessing import TriggerExplorer
 
 import os
+from datetime import datetime
 
 # Ensure that per-run log files are created by setting the FACET_LOG_FILE environment variable.
 os.environ["FACET_LOG_FILE"] = "1"
@@ -64,7 +66,8 @@ os.environ["FACET_LOG_FILE"] = "1"
 # ---------------------------------------------------------------------------
 INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
 OUTPUT_DIR  = Path("./output")
-OUTPUT_FILE = str(OUTPUT_DIR / "corrected_fMRI_BCG_EEGfMRI_20250519_20180312_004257.edf")
+CURRENT_DATE = datetime.now().strftime("%Y%m%d_%H%M%S")
+OUTPUT_FILE = str(OUTPUT_DIR / f"EEGfMRI_20250519_20180312_004257_mff_corrected_FMRI_BCG_{CURRENT_DATE}.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -111,6 +114,9 @@ steps = [
 
     # 4. Detect fMRI slice-onset triggers
     TriggerExplorer(),
+
+    AnalyzeDataReport(),
+    CheckDataReport(),
 
     ArtifactOffsetFinder(),
 
@@ -171,7 +177,7 @@ steps = [
         overlay_original=False,
         save_path=str(OUTPUT_DIR / "before_after.png"),
         show=True,
-        title="Fp1 — Before vs After Correction",
+        title="Fp1 — After Correction",
     ),
 ]
 pipeline = Pipeline(steps, name="Full fMRI + BCG Correction Pipeline")

@@ -5,7 +5,7 @@
     {
       "label": "Test: Run All",
       "type": "shell",
-      "command": "poetry run pytest",
+      "command": "pytest --cov=facet --cov-report=html",
       "group": {
         "kind": "test",
         "isDefault": true
@@ -20,7 +20,7 @@
     {
       "label": "Test: Run Current File",
       "type": "shell",
-      "command": "poetry run pytest ${file} -v",
+      "command": "pytest ${file} -v",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
@@ -32,7 +32,7 @@
     {
       "label": "Test: Unit Only",
       "type": "shell",
-      "command": "poetry run pytest -m unit -v",
+      "command": "pytest -m unit -v",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
@@ -44,7 +44,7 @@
     {
       "label": "Test: Integration Only",
       "type": "shell",
-      "command": "poetry run pytest -m integration -v",
+      "command": "pytest -m integration -v",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
@@ -56,7 +56,7 @@
     {
       "label": "Test: Skip Slow",
       "type": "shell",
-      "command": "poetry run pytest -m 'not slow' -v",
+      "command": "pytest -m 'not slow' -v",
       "group": "test",
       "problemMatcher": [],
       "presentation": {
@@ -78,7 +78,7 @@
     {
       "label": "Lint: Check (Ruff)",
       "type": "shell",
-      "command": "poetry run ruff check src/ tests/",
+      "command": "ruff check src/ tests/",
       "group": "build",
       "problemMatcher": [],
       "presentation": {
@@ -90,7 +90,7 @@
     {
       "label": "Lint: Fix (Ruff)",
       "type": "shell",
-      "command": "poetry run ruff check --fix src/ tests/ && poetry run ruff format src/ tests/",
+      "command": "ruff check --fix src/ tests/ && ruff format src/ tests/",
       "group": "build",
       "problemMatcher": [],
       "presentation": {
@@ -102,7 +102,7 @@
     {
       "label": "Format: Check (Ruff)",
       "type": "shell",
-      "command": "poetry run ruff format --check src/ tests/",
+      "command": "ruff format --check src/ tests/",
       "group": "build",
       "problemMatcher": [],
       "presentation": {
@@ -114,7 +114,7 @@
     {
       "label": "Format: Apply (Ruff)",
       "type": "shell",
-      "command": "poetry run ruff format src/ tests/",
+      "command": "ruff format src/ tests/",
       "group": "build",
       "problemMatcher": [],
       "presentation": {
@@ -127,7 +127,7 @@
     {
       "label": "Build: FastRANC C Extension",
       "type": "shell",
-      "command": "poetry run build-fastranc",
+      "command": "python -m facet.build",
       "group": {
         "kind": "build",
         "isDefault": true
@@ -142,7 +142,7 @@
     {
       "label": "Build: Install Dependencies",
       "type": "shell",
-      "command": "poetry install",
+      "command": "pip install -e .",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -153,7 +153,7 @@
     {
       "label": "Build: Install All Extras",
       "type": "shell",
-      "command": "poetry install -E all",
+      "command": "pip install -e \".[all]\"",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -162,9 +162,9 @@
       }
     },
     {
-      "label": "Build: Update Dependencies",
+      "label": "Build: Install Dev Dependencies",
       "type": "shell",
-      "command": "poetry update",
+      "command": "pip install -e \".[dev]\"",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -176,7 +176,7 @@
     {
       "label": "Docs: Build HTML",
       "type": "shell",
-      "command": "poetry run sphinx-build -b html docs/source docs/build/html",
+      "command": "sphinx-build -b html docs/source docs/build/html",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -196,7 +196,7 @@
     {
       "label": "Docs: Build & Open",
       "type": "shell",
-      "command": "poetry run sphinx-build -b html docs/source docs/build/html && open docs/build/html/index.html",
+      "command": "sphinx-build -b html docs/source docs/build/html && open docs/build/html/index.html",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -208,7 +208,7 @@
     {
       "label": "Run: Current Python File",
       "type": "shell",
-      "command": "poetry run python ${file}",
+      "command": "python ${file}",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -243,7 +243,7 @@
     {
       "label": "QA: Full Check (Lint + Format + Test)",
       "type": "shell",
-      "command": "poetry run ruff check src/ tests/ && poetry run ruff format --check src/ tests/ && poetry run pytest",
+      "command": "ruff check src/ tests/ && ruff format --check src/ tests/ && pytest",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

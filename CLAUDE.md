@@ -17,24 +17,28 @@ FACETpy is a Python toolbox for correcting EEG artifacts in simultaneous EEG-fMR
 
 ### Environment Setup
 ```bash
-# Install Poetry 1.4+ if needed
-conda install -c conda-forge poetry=1.4
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
-# Install project dependencies
-poetry install
+# Install FACETpy with dev dependencies (pytest, ruff, etc.)
+pip install -e ".[dev]"
 
-# Activate virtual environment
-poetry shell
+# Optional: Conda workflow
+conda create -n facetpy python=3.12 -y && conda activate facetpy
+pip install -e ".[dev]"
 ```
+
+> **Poetry users** — `poetry install` still works as before.
 
 ### Building C Extensions
 The project includes a C extension for fast adaptive noise cancellation (ANC):
 ```bash
 # Compile the FastRANC C extension
-poetry run build-fastranc
-
-# Or manually via the script defined in pyproject.toml
 python -m facet.build
+
+# Alternative (if installed via Poetry)
+poetry run build-fastranc
 ```
 
 Note: The C extension (libfastranc.dylib/so/dll) is optional. If not built, ANC features will be unavailable but the rest of the toolbox works normally.
@@ -283,10 +287,12 @@ Core dependencies (from `pyproject.toml`):
 - neurokit2 ^0.2.7 (BCG detection)
 - rich ^14.2.0 (console output)
 
-Optional extras (`poetry install -E <extra>`):
+Optional extras (`pip install ".[<extra>]"` or `poetry install -E <extra>`):
 - `deeplearning`: TensorFlow ^2.19.0
 - `gui`: PyQt6 ^6.6.1
 - `notebooks`: notebook ^7.1.2
+- `docs`: Sphinx + MyST
+- `dev`: pytest, ruff (for development)
 - `all`: all optional dependencies
 
 Dev dependencies:

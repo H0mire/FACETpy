@@ -4,16 +4,17 @@ This directory contains the Sphinx documentation sources for FACETpy.
 
 ## Build Documentation
 
-Install docs dependencies:
+Install docs dependencies (no Poetry required):
 
 ```bash
-poetry install -E docs
+pip install ".[docs]"
+# or: pip install -r requirements-docs.txt && pip install -e .
 ```
 
 Build HTML docs from repository root:
 
 ```bash
-poetry run sphinx-build -b html docs/source docs/build
+sphinx-build -b html docs/source docs/build
 ```
 
 Open `docs/build/index.html` in your browser.
@@ -22,7 +23,7 @@ Open `docs/build/index.html` in your browser.
 
 ```bash
 rm -rf docs/build
-poetry run sphinx-build -b html docs/source docs/build
+sphinx-build -b html docs/source docs/build
 ```
 
 ## Documentation Structure
@@ -54,7 +55,7 @@ docs/source/
 ### Missing `myst_parser`
 
 ```bash
-poetry install -E docs
+pip install ".[docs]"
 ```
 
 ### Autodoc import errors
@@ -62,16 +63,18 @@ poetry install -E docs
 Run builds from the repository root so `docs/source/conf.py` path setup stays valid:
 
 ```bash
-poetry run sphinx-build -b html docs/source docs/build
+sphinx-build -b html docs/source docs/build
 ```
 
 ### Theme issues
 
 ```bash
-poetry install -E docs
+pip install ".[docs]"
 ```
 
 ## Read the Docs
 
 Read the Docs uses repository configuration (`.readthedocs.yaml`) and the `docs`
 extra dependencies from `pyproject.toml`.
+
+> **Poetry users** — `poetry install -E docs` and `poetry run sphinx-build ...` continue to work as before.

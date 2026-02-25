@@ -5,45 +5,74 @@ Requirements
 ------------
 
 * Python 3.11 or 3.12
-* MNE-Python 1.10.2
-* NumPy 2.1.3
-* SciPy >= 1.15.3
-* scikit-learn >= 1.4.2
-* `Poetry <https://python-poetry.org>`_ >= 1.4 (package manager)
+* pip (ships with every Python installer — no extra package manager required)
+
+The package metadata follows PEP 517/518 so ``pip install .`` resolves and
+installs all dependencies automatically.
 
 Install from Source
 -------------------
 
-FACETpy is managed with Poetry. Clone the repository and install:
+Clone the repository and install with pip:
 
 .. code-block:: bash
 
    git clone https://github.com/H0mire/facetpy.git
    cd facetpy
-   poetry install
 
-Run commands inside the Poetry environment:
+   # create and activate an isolated environment (recommended)
+   python -m venv .venv
+   source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+   pip install .
+
+Optional extras
+~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   poetry run pytest
+   pip install ".[deeplearning]"   # TensorFlow-based extras
+   pip install ".[notebooks]"      # Jupyter notebook support
+   pip install ".[gui]"            # PyQt6 GUI components
+   pip install ".[docs]"           # Sphinx + MyST documentation toolchain
+   pip install ".[all]"            # all optional dependencies
 
-Optional extras:
+Conda environment
+~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   poetry install -E deeplearning   # TensorFlow-based extras
-   poetry install -E notebooks      # Jupyter notebook support
-   poetry install -E gui            # PyQt6 GUI components
-   poetry install -E docs           # Sphinx + MyST documentation toolchain
-   poetry install -E all            # all optional dependencies
+   conda create -n facetpy python=3.12 -y
+   conda activate facetpy
+   pip install .
 
 Development Installation
 ------------------------
 
-The standard ``poetry install`` includes development dependencies such as
-``pytest`` and ``ruff``. Documentation tooling (``sphinx``, ``myst-parser``)
-is installed via ``-E docs``.
+For an editable install that picks up source changes immediately, plus
+the test and lint toolchain:
+
+.. code-block:: bash
+
+   pip install -e ".[dev]"
+
+Alternatively, use the explicit requirements files:
+
+.. code-block:: bash
+
+   pip install -r requirements-dev.txt
+   pip install -e .
+
+Run tests directly:
+
+.. code-block:: bash
+
+   pytest
+
+.. note::
+
+   **Poetry users** — the ``pyproject.toml`` is still fully Poetry-compatible.
+   Running ``poetry install`` continues to work as before.
 
 Optional Components
 -------------------
@@ -55,7 +84,7 @@ For faster Adaptive Noise Cancellation, compile the C extension once after insta
 
 .. code-block:: bash
 
-   poetry run build-fastranc
+   python -m facet.build
 
 This will create:
 
@@ -99,4 +128,4 @@ If you get import errors, reinstall dependencies:
 
 .. code-block:: bash
 
-   poetry install
+   pip install -e .

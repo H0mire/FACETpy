@@ -10,7 +10,7 @@ Welcome to FACETpy's Documentation!
 **FACETpy** (fMRI Artifact Correction and Evaluation Toolbox for Python) is a comprehensive,
 modular toolkit for correcting fMRI-induced artifacts in EEG data.
 
-Version 2.0 introduces a completely refactored architecture with:
+FACETpy features a modular architecture with:
 
 * 🧩 **Modular Design** - Composable processors for flexible workflows
 * 🔌 **Plugin System** - Easy extensibility via decorators
@@ -22,13 +22,14 @@ Version 2.0 introduces a completely refactored architecture with:
 Quick Start
 -----------
 
-Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.4):
+Install FACETpy (requires Python ≥ 3.11, no extra package manager needed):
 
 .. code-block:: bash
 
    git clone https://github.com/H0mire/facetpy.git
    cd facetpy
-   poetry install
+   python -m venv .venv && source .venv/bin/activate
+   pip install .
 
 Run a complete correction pipeline:
 

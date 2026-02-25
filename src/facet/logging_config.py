@@ -22,7 +22,7 @@ from loguru import logger
 from .console import ConsoleMode, configure_console
 
 _LOGGING_CONFIGURED = False
-DEFAULT_FACET_CONSOLE_MODE = "modern"
+DEFAULT_FACET_CONSOLE_MODE = "classic"
 
 
 def _resolve_console_mode() -> ConsoleMode:
