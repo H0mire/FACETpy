@@ -9,7 +9,7 @@ Requirements
 * NumPy 2.1.3
 * SciPy >= 1.15.3
 * scikit-learn >= 1.4.2
-* `Poetry <https://python-poetry.org>`_ >= 1.4 (package manager)
+* `Poetry <https://python-poetry.org>`_ >= 1.8 (package manager)
 
 Install from Source
 -------------------

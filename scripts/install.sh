@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MIN_POETRY_VERSION="1.4.0"
+MIN_POETRY_VERSION="1.8.0"
 ASSUME_YES=0
 EXTRAS=()
 

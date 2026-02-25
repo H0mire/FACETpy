@@ -22,7 +22,7 @@ Version 2.0 introduces a completely refactored architecture with:
 Quick Start
 -----------
 
-Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.4):
+Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.8):
 
 .. code-block:: bash
 

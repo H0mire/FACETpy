@@ -58,7 +58,7 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 
 ## Installation
 
-Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.4.
+Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.8.
 Conda is optional, not required.
 
 ### Option A (recommended): bootstrap script
