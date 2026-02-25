@@ -241,7 +241,16 @@ ensure_poetry() {
   if [[ "$ASSUME_YES" -eq 1 ]]; then
     answer="y"
   else
-    read -r -p "Poetry is not installed. Install it now? [y/N] " answer
+    if [[ -t 0 ]]; then
+      read -r -p "Poetry is not installed. Install it now? [y/N] " answer
+    elif [[ -r /dev/tty ]]; then
+      printf '%s' "Poetry is not installed. Install it now? [y/N] " >/dev/tty
+      read -r answer </dev/tty
+    else
+      fail "Poetry is not installed, but no interactive terminal is available for confirmation."
+      fail "Re-run with --yes to auto-install Poetry, or install Poetry manually."
+      exit 1
+    fi
   fi
 
   local answer_lower
