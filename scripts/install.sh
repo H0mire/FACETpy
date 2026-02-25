@@ -241,10 +241,26 @@ ensure_poetry() {
   if [[ "$ASSUME_YES" -eq 1 ]]; then
     answer="y"
   else
+    local poetry_prompt
+    poetry_prompt="$(cat <<EOF
+${YELLOW}${BOLD}
+Poetry is required to install FACETpy.
+${RESET}${DIM}
+Why this is needed:
+  - Poetry creates and manages the project virtual environment
+  - Poetry installs all pinned dependencies from pyproject.toml/poetry.lock
+  - FACETpy commands in this repo are expected to run via 'poetry run ...'
+
+Install Poetry now using the official installer? [y/N]
+${RESET}
+EOF
+)"
+
     if [[ -t 0 ]]; then
-      read -r -p "Poetry is not installed. Install it now? [y/N] " answer
+      printf '%b' "$poetry_prompt"
+      read -r answer
     elif [[ -r /dev/tty ]]; then
-      printf '%s' "Poetry is not installed. Install it now? [y/N] " >/dev/tty
+      printf '%b' "$poetry_prompt" >/dev/tty
       read -r answer </dev/tty
     else
       fail "Poetry is not installed, but no interactive terminal is available for confirmation."
