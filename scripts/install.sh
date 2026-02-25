@@ -46,17 +46,18 @@ EOF
 }
 
 farewell() {
-  cat <<EOF
-${GREEN}${BOLD}
+  printf '%b\n' "${GREEN}${BOLD}"
+  cat <<'EOF'
     _________   __________________               _            __        ____         __   __
    / ____/   | / ____/ ____/_  __/___  __  __   (_)___  _____/ /_____ _/ / /__  ____/ /  / /
   / /_  / /| |/ /   / __/   / / / __ \/ / / /  / / __ \/ ___/ __/ __ `/ / / _ \/ __  /  / / 
  / __/ / ___ / /___/ /___  / / / /_/ / /_/ /  / / / / (__  ) /_/ /_/ / / /  __/ /_/ /  /_/  
 /_/   /_/  |_\____/_____/ /_/ / .___/\__, /  /_/_/ /_/____/\__/\__,_/_/_/\___/\__,_/  (_)   
-                             /_/    /____/                                                      
-${RESET}
-${CYAN}${BOLD}FACETpy was installed successfully.${RESET}
-${DIM}
+                             /_/    /____/                                                
+EOF
+  printf '%b\n' "${RESET}${CYAN}${BOLD}FACETpy was installed successfully.${RESET}"
+  printf '%b\n' "${DIM}"
+  cat <<'EOF'
 Next steps:
   1) Run examples:
        poetry run python examples/quickstart.py
@@ -65,8 +66,8 @@ Next steps:
        poetry run build-fastranc
   3) Optional extras:
        ./scripts/install.sh -E all
-${RESET}
 EOF
+  printf '%b\n' "${RESET}"
 }
 
 info() { printf '%b\n' "${BLUE}${BOLD}[INFO]${RESET} $*"; }
