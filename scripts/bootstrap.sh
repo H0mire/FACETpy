@@ -69,6 +69,36 @@ require_cmd() {
   fi
 }
 
+find_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo "python3"
+    return 0
+  fi
+
+  if command -v python >/dev/null 2>&1; then
+    echo "python"
+    return 0
+  fi
+
+  return 1
+}
+
+check_python_version() {
+  python_bin="$1"
+  version="$("$python_bin" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+
+  case "$version" in
+    3.11|3.12)
+      ok "Detected supported Python ${version} (${python_bin})."
+      ;;
+    *)
+      fail "FACETpy requires Python 3.11 or 3.12, found ${version} (${python_bin})."
+      fail "Install a supported Python version, then re-run bootstrap."
+      exit 1
+      ;;
+  esac
+}
+
 clone_or_reuse_repo() {
   if [ -d "${TARGET_DIR}/.git" ]; then
     info "Using existing repository at ${TARGET_DIR}"
@@ -136,6 +166,14 @@ main() {
         ;;
     esac
   done
+
+  info "Checking Python prerequisites..."
+  if ! python_bin="$(find_python)"; then
+    fail "Python was not found."
+    fail "Install Python 3.11 or 3.12, then re-run bootstrap."
+    exit 1
+  fi
+  check_python_version "$python_bin"
 
   clone_or_reuse_repo
   cd "${TARGET_DIR}"
