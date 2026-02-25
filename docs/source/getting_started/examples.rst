@@ -48,30 +48,25 @@ Process multiple files:
 
 .. code-block:: python
 
-   from facet.core import Pipeline, ProcessingContext
-   from facet.io import Loader, EDFExporter
+   from facet.core import Pipeline
+   from facet.preprocessing import TriggerDetector, UpSample, DownSample
+   from facet.correction import AASCorrection
 
-   # Define correction pipeline
-   correction = Pipeline([
+   files = ["s1.edf", "s2.mff", "s3.bdf"]
+
+   # Do not add Loader to the pipeline — map() loads each file automatically
+   pipeline = Pipeline([
        TriggerDetector(regex=r"\b1\b"),
        UpSample(factor=10),
        AASCorrection(window_size=30),
-       DownSample(factor=10)
-   ])
+       DownSample(factor=10),
+   ], name="Batch Correction")
 
-   # Process files
-   files = ["s1.edf", "s2.edf", "s3.edf"]
-
-   for file in files:
-       loader = Loader(path=file, preload=True)
-       context = loader.execute(ProcessingContext())
-
-       result = correction.run(initial_context=context)
-
-       if result.success:
-           output = file.replace('.edf', '_corrected.edf')
-           exporter = EDFExporter(path=output)
-           exporter.execute(result.context)
+   results = pipeline.map(
+       files,
+       on_error="continue",   # log failures, keep going
+   )
+   results.print_summary()
 
 Conditional Processing
 ----------------------

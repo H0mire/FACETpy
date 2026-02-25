@@ -39,22 +39,34 @@ Development Workflow
 
 .. code-block:: bash
 
-   git checkout -b codex/<short-topic>
+   git checkout -b feature/<short-topic>
 
 2. Implement the change in ``src/facet``.
 3. Add or update tests in ``tests``.
 4. Update docs in ``docs/source`` when behavior or API changes.
-5. Run checks locally.
+5. Run lint check and fix.
+
+.. code-block:: bash
+
+   poetry run ruff check src tests
+   poetry run ruff check --fix src tests
+   poetry run ruff format src tests
+
+6. Run checks locally.
 
 .. code-block:: bash
 
    poetry run pytest
 
-6. Build docs locally when docs changed.
+7. Build docs locally when docs changed.
 
 .. code-block:: bash
 
    poetry run sphinx-build -b html docs/source docs/build
+
+VS Code users can run these steps via the predefined tasks in
+``.vscode/tasks.json`` (e.g. ``Lint: Fix (Ruff)``, ``Test: Run All``,
+``Docs: Build HTML``) using the Command Palette (``Tasks: Run Task``).
 
 Code Style
 ----------

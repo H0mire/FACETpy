@@ -9,7 +9,6 @@ Call results.print_summary() for a formatted table — no manual formatting need
 
 from facet import (
     Pipeline,
-    Loader,
     TriggerDetector,
     HighPassFilter,
     LowPassFilter,
@@ -28,7 +27,7 @@ INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
 INPUT_FILES = [INPUT_FILE, INPUT_FILE, INPUT_FILE]
 
 # ---------------------------------------------------------------------------
-# Define the correction pipeline without a loader — map() injects one per file
+# Define the correction pipeline — do not add Loader, map() handles it
 # ---------------------------------------------------------------------------
 pipeline = Pipeline([
     TriggerDetector(regex=r"\b1\b"),
@@ -44,10 +43,6 @@ pipeline = Pipeline([
 
 results = pipeline.map(
     INPUT_FILES,
-    loader_factory=lambda p: Loader(
-        path=p,
-        preload=True
-    ),
     on_error="continue",   # log failures, keep going
 )
 

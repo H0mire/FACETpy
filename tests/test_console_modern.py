@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import signal
 import threading
-from unittest.mock import patch
+import time
+from unittest.mock import Mock, patch
 
 from facet.console.modern import ModernConsole
 
@@ -35,3 +36,40 @@ def test_handle_quit_key_closes_when_pipeline_finished() -> None:
     assert should_close is True
     assert console._quit_event.is_set()
     kill.assert_not_called()
+
+
+def test_resize_signal_handler_sets_refresh_pending_and_calls_old_handler() -> None:
+    console = ModernConsole.__new__(ModernConsole)
+    console._resize_refresh_pending = threading.Event()
+    old_handler = Mock()
+
+    handler = console._make_resize_signal_handler(old_handler)
+    handler(signal.SIGTERM, None)
+
+    assert console._resize_refresh_pending.is_set()
+    old_handler.assert_called_once()
+
+
+def test_resize_loop_refreshes_when_pending_event_is_set() -> None:
+    console = ModernConsole.__new__(ModernConsole)
+    console._resize_stop = threading.Event()
+    console._resize_refresh_pending = threading.Event()
+    console._lock = threading.Lock()
+    console._rebuild_sink_console = Mock()
+    console._trim_logs = Mock()
+    console._refresh_locked = Mock()
+
+    thread = threading.Thread(target=console._resize_loop, daemon=True)
+    thread.start()
+    console._resize_refresh_pending.set()
+
+    for _ in range(10):
+        if console._refresh_locked.called:
+            break
+        time.sleep(0.02)
+
+    console._resize_stop.set()
+    console._resize_refresh_pending.set()
+    thread.join(timeout=0.5)
+
+    assert console._refresh_locked.called

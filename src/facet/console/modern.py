@@ -227,6 +227,12 @@ class ModernConsole(BaseConsole):
         # Used by suspend_raw_mode() to pause the keyboard loop
         self._raw_suspend = threading.Event()
         self._raw_paused = threading.Event()
+        # Terminal-resize refreshes are requested from SIGWINCH and processed
+        # asynchronously so the signal handler itself stays minimal/safe.
+        self._resize_refresh_pending = threading.Event()
+        self._resize_stop = threading.Event()
+        self._resize_thread: threading.Thread | None = None
+        self._start_resize_listener()
         self._mouse_tracking: bool = False
         self._start_keyboard_listener()
 
@@ -263,6 +269,7 @@ class ModernConsole(BaseConsole):
             self._quit_event.wait(timeout=_WAIT_FOR_CLOSE_TIMEOUT)
         self._uninstall_signal_handlers()
         self._stop_keyboard_listener()
+        self._stop_resize_listener()
         self._uninstall_output_tee()
         with self._lock:
             self._stop_ticker_locked()
@@ -522,6 +529,13 @@ class ModernConsole(BaseConsole):
         self._stderr_tee = _LogTee(self._real_stderr, self, level="WARNING")
         sys.stdout = self._stdout_tee  # type: ignore[assignment]
         sys.stderr = self._stderr_tee  # type: ignore[assignment]
+        self._rebuild_sink_console()
+
+    def _rebuild_sink_console(self) -> None:
+        """Create/recreate the Rich sink console with the current terminal width."""
+        if self._stdout_tee is None:
+            self._sink_console = None
+            return
         # Create an external-facing Rich Console that writes through the tee so
         # callers using get_rich_console().print() land in the log panel instead
         # of escaping above the Live display.
@@ -604,6 +618,36 @@ class ModernConsole(BaseConsole):
     def _ticker_loop(self) -> None:
         while not self._ticker_stop.wait(0.25):
             with self._lock:
+                self._refresh_locked()
+
+    def _start_resize_listener(self) -> None:
+        if getattr(signal, "SIGWINCH", None) is None:
+            return
+        if self._resize_thread and self._resize_thread.is_alive():
+            return
+        self._resize_stop.clear()
+        self._resize_thread = threading.Thread(target=self._resize_loop, daemon=True, name="facet-resize")
+        self._resize_thread.start()
+
+    def _stop_resize_listener(self) -> None:
+        if self._resize_thread is None:
+            return
+        self._resize_stop.set()
+        self._resize_refresh_pending.set()
+        self._resize_thread.join(timeout=0.5)
+        self._resize_thread = None
+        self._resize_refresh_pending.clear()
+
+    def _resize_loop(self) -> None:
+        while not self._resize_stop.is_set():
+            if not self._resize_refresh_pending.wait(0.1):
+                continue
+            self._resize_refresh_pending.clear()
+            if self._resize_stop.is_set():
+                break
+            with self._lock:
+                self._rebuild_sink_console()
+                self._trim_logs()
                 self._refresh_locked()
 
     # ------------------------------------------------------------------
@@ -718,6 +762,15 @@ class ModernConsole(BaseConsole):
 
         return handler
 
+    def _make_resize_signal_handler(self, old_handler: Any):
+        def handler(signum: int, frame: Any) -> None:
+            self._resize_refresh_pending.set()
+            if callable(old_handler):
+                with contextlib.suppress(Exception):
+                    old_handler(signum, frame)
+
+        return handler
+
     def _install_signal_handlers(self) -> None:
         for sig in (signal.SIGTERM, signal.SIGHUP):
             try:
@@ -728,6 +781,15 @@ class ModernConsole(BaseConsole):
                 # signal.signal() raises ValueError when called from a non-main
                 # thread; silently skip in that case.
                 pass
+        sigwinch = getattr(signal, "SIGWINCH", None)
+        if sigwinch is None:
+            return
+        try:
+            old = signal.getsignal(sigwinch)
+            signal.signal(sigwinch, self._make_resize_signal_handler(old))
+            self._old_signal_handlers[sigwinch] = old
+        except (OSError, ValueError):
+            pass
 
     def _uninstall_signal_handlers(self) -> None:
         for sig, old in self._old_signal_handlers.items():

@@ -837,16 +837,19 @@ class Pipeline:
         Each input can be:
 
         - A ``ProcessingContext`` — passed directly as ``initial_context``.
-        - A **file path string** — a loader is looked up or created automatically.
-          The pipeline must contain a loader as its first processor **or** you
-          must supply *loader_factory* so the method can create one per file.
+        - A **file path string** — a fresh :class:`~facet.io.Loader` is created
+          automatically for each path via *loader_factory*.
+
+        .. note::
+            Do **not** add a :class:`~facet.io.Loader` processor to the pipeline
+            when using ``map()``.  Loading is handled outside the pipeline so
+            that each file gets its own isolated loader instance.
 
         Args:
             inputs: List of file paths or ``ProcessingContext`` objects.
             loader_factory: ``Callable[[path], Processor]`` that creates a fresh
-                loader for each path string.  When not provided the first
-                processor in the pipeline is expected to be a loader that exposes
-                a ``path`` attribute; a shallow copy of it is made for each file.
+                loader for each path string.  Defaults to
+                ``lambda p: Loader(path=p, preload=True)``.
             parallel: Whether to pass ``parallel=True`` to each ``pipeline.run()``.
             n_jobs: Passed through to ``pipeline.run()``.
             on_error: ``"continue"`` (default) — log failures and keep going;
@@ -874,11 +877,23 @@ class Pipeline:
 
             results = pipeline.map(
                 ["sub-01.edf", "sub-02.edf", "sub-03.edf"],
-                loader_factory=lambda p: Loader(path=p, preload=True),
                 keep_raw=False,
             )
             results.print_summary()
         """
+        from ..io.loaders import Loader as _Loader
+
+        if loader_factory is None:
+            loader_factory = lambda p: _Loader(path=p, preload=True)  # noqa: E731
+
+        for proc in self.processors:
+            if isinstance(proc, _Loader):
+                raise ValueError(
+                    "A Loader processor was found inside the pipeline passed to map(). "
+                    "map() handles loading automatically — remove the Loader from the "
+                    "pipeline and pass file paths directly to map()."
+                )
+
         results: list[PipelineResult] = []
         labels: list[str] = []
 
@@ -891,44 +906,23 @@ class Pipeline:
                 label = str(item)
                 initial_ctx = None
 
-                if loader_factory is not None:
-                    # External loader: all pipeline processors run in full.
-                    loader = loader_factory(item)
-                    try:
-                        initial_ctx = loader.execute(None)
-                    except Exception as exc:
-                        logger.error(f"Loader failed for '{label}': {exc}")
-                        result = PipelineResult(
-                            context=None,
-                            success=False,
-                            error=exc,
-                            failed_processor=getattr(loader, "name", "loader"),
-                        )
-                        results.append(result)
-                        labels.append(label)
-                        if on_error == "raise":
-                            raise
-                        continue
-                    run_pipeline = self
-                else:
-                    # No loader_factory: the first processor must be a loader with
-                    # a 'path' attribute.  Patch its path and build a fresh
-                    # pipeline so none of the other processors are skipped.
-                    import copy
-
-                    first = self.processors[0] if self.processors else None
-                    if first is not None and hasattr(first, "path"):
-                        patched = copy.copy(first)
-                        patched.path = item
-                        run_pipeline = Pipeline(
-                            [patched] + list(self.processors[1:]),
-                            name=self.name,
-                        )
-                    else:
-                        raise ValueError(
-                            f"Cannot load '{label}': supply a loader_factory or "
-                            "ensure the first pipeline processor has a 'path' attribute."
-                        )
+                loader = loader_factory(item)
+                try:
+                    initial_ctx = loader.execute(None)
+                except Exception as exc:
+                    logger.error(f"Loader failed for '{label}': {exc}")
+                    result = PipelineResult(
+                        context=None,
+                        success=False,
+                        error=exc,
+                        failed_processor=getattr(loader, "name", "loader"),
+                    )
+                    results.append(result)
+                    labels.append(label)
+                    if on_error == "raise":
+                        raise
+                    continue
+                run_pipeline = self
 
             logger.info(f"Pipeline.map: processing '{label}'")
 

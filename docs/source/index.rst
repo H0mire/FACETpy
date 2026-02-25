@@ -82,6 +82,7 @@ Documentation Overview
    :caption: Development
 
    development/contributing
+   development/ai_agents_processors
    development/changelog
    development/roadmap
 

@@ -64,7 +64,10 @@ Next steps:
        poetry run python examples/evaluation.py
   2) Build optional ANC extension:
        poetry run build-fastranc
-  3) Optional extras:
+  3) Tutorial:
+       https://facetpy.readthedocs.io/en/latest/getting_started/tutorial.html
+       (local source: docs/source/getting_started/tutorial.rst)
+  4) Optional extras:
        ./scripts/install.sh -E all
 EOF
   printf '%b\n' "${RESET}"
