@@ -14,12 +14,34 @@ Requirements
 Install from Source
 -------------------
 
-FACETpy is managed with Poetry. Clone the repository and install:
+FACETpy is managed with Poetry. The quickest setup is the bootstrap URL:
+
+.. code-block:: bash
+
+   curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
+   cd facetpy
+
+This clones FACETpy into ``./facetpy`` and runs the installer.
+
+You can also clone first and run the local installer:
 
 .. code-block:: bash
 
    git clone https://github.com/H0mire/facetpy.git
    cd facetpy
+   ./scripts/install.sh
+
+The script:
+
+* checks for Python 3.11/3.12
+* checks whether Poetry is installed
+* prompts to install Poetry if missing
+* runs ``poetry install --no-interaction``
+
+Manual installation:
+
+.. code-block:: bash
+
    poetry install
 
 Run commands inside the Poetry environment:

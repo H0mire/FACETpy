@@ -3,6 +3,13 @@ Quick Start
 
 This guide will get you up and running with FACETpy in 5 minutes.
 
+Before running examples, install dependencies from the repository root:
+
+.. code-block:: bash
+
+   curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
+   cd facetpy
+
 Basic Correction Pipeline
 --------------------------
 

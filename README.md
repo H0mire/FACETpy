@@ -28,6 +28,14 @@ results with minimal code.
 
 ## Quick start
 
+Install dependencies first:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
+# clones into ./facetpy and runs the installer
+cd facetpy
+```
+
 ```python
 from facet import (
     Pipeline, Loader, EDFExporter,
@@ -53,7 +61,30 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.4.
 Conda is optional, not required.
 
-### Option A (recommended): system Python + Poetry
+### Option A (recommended): bootstrap script
+```bash
+curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
+cd facetpy
+```
+
+This bootstrap script:
+- clones the FACETpy repository into `./facetpy`
+- runs `./scripts/install.sh` inside that clone
+
+### Option B: clone first, then run local installer
+```bash
+git clone https://github.com/H0mire/facetpy.git
+cd facetpy
+./scripts/install.sh
+```
+
+The script:
+- checks for Python 3.11/3.12
+- checks whether Poetry is installed
+- asks whether Poetry should be installed if missing
+- runs `poetry install --no-interaction`
+
+### Option C: system Python + Poetry (manual)
 ```bash
 # 1 — verify Python
 python3 --version
@@ -66,7 +97,7 @@ pipx install poetry
 poetry install --no-interaction
 ```
 
-### Option B (optional): Conda workflow
+### Option D (optional): Conda workflow
 ```bash
 conda create -n facetpy python=3.12 -y
 conda activate facetpy

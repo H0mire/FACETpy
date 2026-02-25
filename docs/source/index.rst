@@ -26,9 +26,8 @@ Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org
 
 .. code-block:: bash
 
-   git clone https://github.com/H0mire/facetpy.git
+   curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
    cd facetpy
-   poetry install
 
 Run a complete correction pipeline:
 
