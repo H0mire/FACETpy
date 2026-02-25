@@ -1,11 +1,11 @@
+# FACETpy — fMRI Artifact Correction and Evaluation Toolbox
+
 <p align="center">
   <picture>
     <source srcset="docs/source/_static/logo_dark_theme.png" media="(prefers-color-scheme: dark)">
     <img src="docs/source/_static/logo_light_theme.png" width="300" alt="FACETpy logo" />
   </picture>
 </p>
-
-# FACETpy — fMRI Artifact Correction and Evaluation Toolbox
 
 [![Documentation Status](https://readthedocs.org/projects/facetpy/badge/?version=latest)](https://facetpy.readthedocs.io/en/latest/?badge=latest)
 
@@ -28,11 +28,10 @@ results with minimal code.
 
 ## Quick start
 
-Install dependencies first:
+Quick installation via script (requires python 3.11/3.12):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
-# clones into ./facetpy and runs the installer
 cd facetpy
 ```
 
