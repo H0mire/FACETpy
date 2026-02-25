@@ -146,7 +146,7 @@ main() {
   fi
 
   info "Running FACETpy installer..."
-  bash ./scripts/install.sh "$@"
+  FACETPY_BOOTSTRAP=1 bash ./scripts/install.sh "$@"
   ok "Bootstrap finished."
 }
 

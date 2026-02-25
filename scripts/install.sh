@@ -30,13 +30,15 @@ setup_colors() {
 }
 
 banner() {
+  [[ "${FACETPY_BOOTSTRAP:-0}" -eq 1 ]] && return
   cat <<EOF
 ${CYAN}${BOLD}
-  ______   ___   ______ ______ ______
- / ____/  /   | / ____// ____//_  __/
-/ / __   / /| |/ /    / __/    / /
-/ /_/ / / ___ / /___ / /___   / /
-\____/ /_/  |_\____//_____/  /_/
+    _________   __________________
+   / ____/   | / ____/ ____/_  __/___  __  __
+  / /_  / /| |/ /   / __/   / / / __ \/ / / /
+ / __/ / ___ / /___/ /___  / / / /_/ / /_/ /
+/_/   /_/  |_\____/_____/ /_/ / .___/\__, /
+                             /_/    /____/
 ${RESET}${DIM}
 FACETpy Installer
 ${RESET}
@@ -253,7 +255,7 @@ install_dependencies() {
   local args=(install --no-interaction)
   local extra
 
-  for extra in "${EXTRAS[@]}"; do
+  for extra in "${EXTRAS[@]+"${EXTRAS[@]}"}"; do
     args+=(-E "$extra")
   done
 
