@@ -562,7 +562,7 @@ Unit Tests
        def test_validation_failure(self):
            """Test validation failure."""
            processor = MyProcessor(param1="value")
-           context = ProcessingContext()  # Empty context
+           context = None  # Missing context should fail for requires_raw processors
 
            with pytest.raises(ProcessorValidationError):
                processor.execute(context)

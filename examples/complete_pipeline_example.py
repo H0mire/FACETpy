@@ -35,14 +35,12 @@ from facet import (
     Pipeline,
     Loader,
     EDFExporter,
-    SliceTriggerCorrection,
     TriggerAligner,
     HighPassFilter,
     LowPassFilter,
     UpSample,
     DownSample,
     DropChannels,
-    AASCorrection,
     PCACorrection,
     SNRCalculator,
     LegacySNRCalculator,
@@ -54,8 +52,10 @@ from facet import (
     MetricsReport,
     RawPlotter,
 )
-from facet.evaluation import ReferenceIntervalSelector, SignalIntervalSelector
 from facet.preprocessing import TriggerExplorer
+from facet.config import set_config
+
+set_config(log_level="INFO", console_mode="modern")
 
 # ---------------------------------------------------------------------------
 # Paths and shared settings — adjust these for your study

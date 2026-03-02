@@ -16,6 +16,14 @@ AASCorrection
    :undoc-members:
    :show-inheritance:
 
+AveragedArtifactSubtraction (alias)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AveragedArtifactSubtraction
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 FARM Correction
 ---------------
 
@@ -34,6 +42,14 @@ VolumeArtifactCorrection
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: VolumeArtifactCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+RemoveVolumeArtifactCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: RemoveVolumeArtifactCorrection
    :members:
    :undoc-members:
    :show-inheritance:
@@ -84,6 +100,14 @@ ANCCorrection
    :undoc-members:
    :show-inheritance:
 
+AdaptiveNoiseCancellation (alias)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AdaptiveNoiseCancellation
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 PCA Correction
 --------------
 
@@ -91,6 +115,41 @@ PCACorrection
 ~~~~~~~~~~~~~
 
 .. autoclass:: PCACorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Legacy Weighting Aliases
+------------------------
+
+AvgArtWghtCorrespondingSliceCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AvgArtWghtCorrespondingSliceCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+AvgArtWghtVolumeTriggerCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AvgArtWghtVolumeTriggerCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+AvgArtWghtSliceTriggerCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AvgArtWghtSliceTriggerCorrection
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+AvgArtWghtMoosmannCorrection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: AvgArtWghtMoosmannCorrection
    :members:
    :undoc-members:
    :show-inheritance:

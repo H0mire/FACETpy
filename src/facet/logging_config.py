@@ -11,7 +11,6 @@ from __future__ import annotations
 import contextlib
 import io
 import logging
-import os
 import sys
 from collections.abc import Generator
 from datetime import datetime
@@ -19,14 +18,15 @@ from pathlib import Path
 
 from loguru import logger
 
+from .config import get_config
 from .console import ConsoleMode, configure_console
 
 _LOGGING_CONFIGURED = False
-DEFAULT_FACET_CONSOLE_MODE = "modern"
+DEFAULT_FACET_CONSOLE_MODE = "classic"
 
 
 def _resolve_console_mode() -> ConsoleMode:
-    value = os.environ.get("FACET_CONSOLE_MODE", DEFAULT_FACET_CONSOLE_MODE).strip().lower()
+    value = str(get_config("console_mode") or DEFAULT_FACET_CONSOLE_MODE).strip().lower()
     if value in {"classic", "legacy", "loguru"}:
         return ConsoleMode.CLASSIC
     return ConsoleMode.MODERN
@@ -59,12 +59,12 @@ class _InterceptHandler(logging.Handler):
 
 def _should_auto_configure() -> bool:
     """Return True unless the user explicitly disables auto logging."""
-    return os.environ.get("FACET_DISABLE_AUTO_LOGGING", "").lower() not in {"1", "true", "yes", "on"}
+    return bool(get_config("auto_logging"))
 
 
 def _file_logging_enabled() -> bool:
     """Return True only when the user explicitly opts in to per-run log files."""
-    return os.environ.get("FACET_LOG_FILE", "").lower() in {"1", "true", "yes", "on"}
+    return bool(get_config("log_file"))
 
 
 @contextlib.contextmanager
@@ -83,8 +83,8 @@ def suppress_stdout() -> Generator[None, None, None]:
 
 def _resolve_log_directory() -> Path:
     """Return the directory where log files should be written."""
-    env_dir = os.environ.get("FACET_LOG_DIR")
-    log_dir = Path(env_dir).expanduser() if env_dir else Path.cwd() / "logs"
+    config_dir = get_config("log_dir")
+    log_dir = Path(config_dir).expanduser() if config_dir else Path.cwd() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     return log_dir
 
@@ -111,7 +111,7 @@ def configure_logging(force: bool = False) -> Path | None:
     if not _should_auto_configure():
         return None
 
-    console_level = os.environ.get("FACET_LOG_CONSOLE_LEVEL", "INFO").upper()
+    console_level = str(get_config("log_level")).upper()
     console_mode = _resolve_console_mode()
     console_renderer = configure_console(console_mode)
 
@@ -139,7 +139,7 @@ def configure_logging(force: bool = False) -> Path | None:
         log_dir = _resolve_log_directory()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         log_file = log_dir / f"facet_{timestamp}.log"
-        file_level = os.environ.get("FACET_LOG_FILE_LEVEL", "DEBUG").upper()
+        file_level = str(get_config("log_file_level")).upper()
         logger.add(
             log_file,
             level=file_level,

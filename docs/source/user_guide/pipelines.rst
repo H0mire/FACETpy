@@ -468,8 +468,10 @@ Best Practices
 
       if result.success:
           # Process results
+          pass
       else:
           # Handle error
+          pass
 
 4. **Use Type Hints**
 

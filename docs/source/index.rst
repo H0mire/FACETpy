@@ -38,11 +38,12 @@ Run a complete correction pipeline:
    pipeline = create_standard_pipeline(
        input_path="data.edf",
        output_path="corrected.edf",
-       trigger_regex=r"\b1\b"
+       trigger_regex=r"\b1\b",
+       evaluate=True,
    )
 
-   result = pipeline.run(evaluate=True)
-   print(f"SNR: {result.context.metadata.custom['metrics']['snr']:.2f}")
+   result = pipeline.run()
+   print(f"SNR: {result.metrics['snr']:.2f}")
 
 Documentation Overview
 ----------------------
@@ -62,7 +63,10 @@ Documentation Overview
    :caption: User Guide
 
    user_guide/architecture
+   user_guide/configuration
    user_guide/pipelines
+   user_guide/helper_cookbook
+   user_guide/mne_integration
    user_guide/processors
    user_guide/parallel_processing
    user_guide/custom_processors
@@ -71,6 +75,7 @@ Documentation Overview
    :maxdepth: 2
    :caption: API Reference
 
+   api/top_level
    api/core
    api/io
    api/preprocessing
@@ -110,8 +115,7 @@ Compose processors into declarative pipelines:
 
 .. code-block:: python
 
-   from facet.core import Pipeline
-   from facet.io import Loader, EDFExporter
+   from facet import Pipeline, Loader, EDFExporter, TriggerDetector, UpSample, AASCorrection, DownSample
 
    pipeline = Pipeline([
        Loader(path="data.edf"),

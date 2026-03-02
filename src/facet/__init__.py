@@ -12,6 +12,7 @@ __version__ = "2.0.0"
 __author__ = "FACETpy Team"
 
 # Core architecture
+from .config import get_config, reset_config, set_config
 from .core import (
     BatchResult,
     ConditionalProcessor,
@@ -248,6 +249,10 @@ __all__ = [
     "ArtifactParams",
     "generate_synthetic_eeg",
     "create_standard_pipeline",
+    # Global config
+    "get_config",
+    "set_config",
+    "reset_config",
 ]
 
 if _has_anc:

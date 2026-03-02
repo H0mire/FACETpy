@@ -22,11 +22,10 @@ First, let's load the EEG data:
 .. code-block:: python
 
    from facet.io import Loader
-   from facet.core import ProcessingContext
 
    # Load EEG file (EDF, GDF, etc.)
    loader = Loader(path="my_data.edf", preload=True)
-   context = loader.execute(ProcessingContext())
+   context = loader.execute(None)
 
    # Inspect the data
    raw = context.get_raw()

@@ -48,16 +48,17 @@ The standard pipeline performs these steps:
 
 1. **Load** EDF file
 2. **Detect** triggers using regex pattern
-3. **Upsample** to 10x for precise alignment
-4. **Align** triggers using cross-correlation
-5. **Correct** artifacts with AAS (Averaged Artifact Subtraction)
-6. **Downsample** back to original sampling rate
-7. **Optional** PCA correction (enabled by default if available)
-8. **Downsample** back to original sampling rate
-9. **Restore** previously cut acquisition windows
-10. **Filter** with lowpass filter (70 Hz)
-11. **Optional** ANC correction (enabled by default if available)
-12. **Export** corrected data
+3. **Cut acquisition window** around trigger periods
+4. **High-pass filter** (1 Hz)
+5. **Upsample** to 10x for precise alignment
+6. **Align** triggers (slice + subsample alignment)
+7. **Correct** artifacts with AAS (Averaged Artifact Subtraction)
+8. **Optional** PCA correction (enabled by default if available)
+9. **Downsample** back to original sampling rate
+10. **Restore** previously cut acquisition windows
+11. **Low-pass filter** (70 Hz)
+12. **Optional** ANC correction (enabled by default if available)
+13. **Export** corrected data
 
 Custom Pipeline
 ---------------
@@ -109,14 +110,13 @@ For maximum control, process step by step:
 
 .. code-block:: python
 
-   from facet.core import ProcessingContext
    from facet.io import Loader
    from facet.preprocessing import TriggerDetector, UpSample
    from facet.correction import AASCorrection
 
    # 1. Load data
    loader = Loader(path="data.edf", preload=True)
-   context = loader.execute(ProcessingContext())
+   context = loader.execute(None)
 
    # 2. Detect triggers
    detector = TriggerDetector(regex=r"\b1\b")
@@ -179,6 +179,8 @@ For ballistocardiogram (BCG) artifact correction:
 
 .. code-block:: python
 
+   from facet.core import Pipeline
+   from facet.io import Loader, EDFExporter
    from facet.preprocessing import QRSTriggerDetector
    from facet.correction import AASCorrection
 
@@ -196,8 +198,10 @@ Process multiple files with the same pipeline:
 
 .. code-block:: python
 
-   from facet.core import Pipeline, ProcessingContext
+   from facet.core import Pipeline
    from facet.io import Loader, EDFExporter
+   from facet.preprocessing import TriggerDetector, UpSample, DownSample
+   from facet.correction import AASCorrection
 
    # Define reusable correction pipeline
    correction = Pipeline([
@@ -215,7 +219,7 @@ Process multiple files with the same pipeline:
 
        # Load
        loader = Loader(path=input_file, preload=True)
-       context = loader.execute(ProcessingContext())
+       context = loader.execute(None)
 
        # Correct
        result = correction.run(initial_context=context)
@@ -249,7 +253,7 @@ Get data and metrics from the result:
 
    # Processing history
    for entry in result.context.get_history():
-       print(f"{entry['processor']} at {entry['timestamp']}")
+       print(f"{entry.name} at {entry.timestamp}")
 
 Next Steps
 ----------

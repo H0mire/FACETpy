@@ -99,9 +99,8 @@ Loading Data
    loader = Loader(
        path="data.edf",
        preload=True,  # Load into memory
-       stim_channel="auto"  # Auto-detect stimulus channel
    )
-   context = loader.execute(ProcessingContext())
+   context = loader.execute(None)
 
 **BIDSLoader** - Load BIDS format data
 
@@ -110,12 +109,12 @@ Loading Data
    from facet.io import BIDSLoader
 
    loader = BIDSLoader(
-       bids_path="/path/to/bids",
+       root="/path/to/bids",
        subject="01",
        session="01",
-       task="rest",
-       run="01"
+       task="rest"
    )
+   context = loader.execute(None)
 
 Exporting Data
 ^^^^^^^^^^^^^^
@@ -139,11 +138,12 @@ Exporting Data
    from facet.io import BIDSExporter
 
    exporter = BIDSExporter(
-       bids_path="/path/to/bids",
+       root="/path/to/bids",
        subject="01",
        session="01",
        task="rest"
    )
+   exporter.execute(context)
 
 Preprocessing Processors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -223,7 +223,6 @@ Trigger Detection
 
    detector = TriggerDetector(
        regex=r"\b1\b",  # Pattern to match
-       stim_channel="auto"  # Channel to search
    )
    context = detector.execute(context)
 
@@ -252,6 +251,16 @@ Trigger Detection
        tolerance=0.1  # 10% tolerance
    )
 
+**TriggerExplorer** / **InteractiveTriggerExplorer** - Inspect and QA trigger
+detection results interactively
+
+.. code-block:: python
+
+   from facet.preprocessing import TriggerExplorer
+
+   explorer = TriggerExplorer()
+   context = explorer.execute(context)
+
 Alignment
 ^^^^^^^^^
 
@@ -263,7 +272,7 @@ Alignment
 
    aligner = TriggerAligner(
        ref_trigger_index=0,  # Reference trigger
-       max_shift=50  # Maximum shift in samples
+       search_window=50  # Maximum lag search window in samples
    )
    context = aligner.execute(context)
 
@@ -275,7 +284,7 @@ Alignment
 
    aligner = SubsampleAligner(
        ref_trigger_index=0,
-       upsample_factor=10
+       search_window=20
    )
 
 **SliceAligner** - Align artifacts slice-by-slice
@@ -379,7 +388,6 @@ The main correction algorithm:
        window_size=30,  # Sliding window size
        correlation_threshold=0.975,  # Correlation threshold
        realign_after_averaging=True,  # Realign to template
-       pad_to_size=None  # Auto-pad artifacts
    )
    context = aas.execute(context)
 
@@ -564,8 +572,6 @@ Common Requirements
 
 - ``requires_raw`` - Needs MNE Raw data
 - ``requires_triggers`` - Needs trigger positions
-- ``requires_artifact_length`` - Needs artifact length calculated
-- ``requires_estimated_noise`` - Needs noise estimate
 
 Checking Requirements
 ~~~~~~~~~~~~~~~~~~~~~
@@ -644,16 +650,19 @@ Processors are callable:
 Chaining Processors
 ~~~~~~~~~~~~~~~~~~~
 
-Chain processor calls:
+Chain processor calls with the pipe operator:
 
 .. code-block:: python
 
-   context = ProcessingContext(raw=raw)
+   from facet import load, TriggerDetector, UpSample, TriggerAligner, AASCorrection
 
-   context = (detector.execute(context)
-              .pipe(upsampler.execute)
-              .pipe(aligner.execute)
-              .pipe(aas.execute))
+   context = (
+       load("data.edf", preload=True)
+       | TriggerDetector(regex=r"\b1\b")
+       | UpSample(factor=10)
+       | TriggerAligner(ref_trigger_index=0)
+       | AASCorrection(window_size=30)
+   )
 
 Processor Discovery
 -------------------

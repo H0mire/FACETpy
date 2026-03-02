@@ -73,7 +73,7 @@ Added
 
 - Complete API reference
 - User guide (architecture, pipelines, processors, parallel processing, custom processors)
-- Migration guide from v1.x
+- Migration notes in examples and updated API docstrings
 - Tutorial and examples
 - Comprehensive docstrings (NumPy style)
 

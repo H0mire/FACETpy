@@ -5,6 +5,12 @@ I/O processors for loading and exporting EEG data.
 
 .. currentmodule:: facet.io
 
+.. note::
+
+   ``GDFExporter`` and ``MFFExporter`` are included for explicit format routing,
+   but currently raise ``ProcessorValidationError`` at runtime because MNE does
+   not support writing those formats in the current dependency stack.
+
 Loaders
 -------
 

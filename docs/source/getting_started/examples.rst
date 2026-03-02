@@ -76,6 +76,7 @@ Apply processors conditionally:
 .. code-block:: python
 
    from facet.core import ConditionalProcessor
+   from facet import Pipeline, AASCorrection, SNRCalculator, PCACorrection
 
    def needs_pca(context):
        metrics = context.metadata.custom.get('metrics', {})
@@ -162,20 +163,16 @@ Provide triggers manually instead of detecting:
 
 .. code-block:: python
 
-   import numpy as np
-   from facet.core import ProcessingContext, ProcessingMetadata
+   from facet.io import Loader
+   from facet.correction import AASCorrection
 
    # Load data
    loader = Loader(path="data.edf", preload=True)
-   context = loader.execute(ProcessingContext())
+   context = loader.execute(None)
 
-   # Manually set triggers
-   triggers = np.array([1000, 2000, 3000, 4000])  # Sample positions
-   metadata = context.metadata.copy()
-   metadata.triggers = triggers
-   metadata.artifact_length = 950  # Samples
-
-   context = context.with_metadata(metadata)
+   # Manually set trigger samples.
+   # artifact_length defaults to the median sample distance between triggers.
+   context = context.with_trigger_samples([1000, 2000, 3000, 4000])
 
    # Continue with correction
    aas = AASCorrection(window_size=30)
@@ -189,18 +186,19 @@ BIDS Format
 
 .. code-block:: python
 
+   from facet import Pipeline
    from facet.io import BIDSLoader, BIDSExporter
 
    pipeline = Pipeline([
        BIDSLoader(
-           bids_root="/path/to/bids",
+           root="/path/to/bids",
            subject="01",
            session="01",
            task="rest"
        ),
        # ... correction ...
        BIDSExporter(
-           bids_root="/path/to/bids_corrected",
+           root="/path/to/bids_corrected",
            subject="01",
            session="01",
            task="rest"
@@ -212,7 +210,8 @@ GDF Format
 
 .. code-block:: python
 
-   from facet.io import Loader
+   from facet.core import Pipeline
+   from facet.io import Loader, EDFExporter
 
    pipeline = Pipeline([
        Loader(path="data.gdf", preload=True),
@@ -223,7 +222,9 @@ GDF Format
 Converting Between Formats
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Use the convenience functions :func:`facet.load` and :func:`facet.export` to convert between supported formats (EDF, GDF, BDF, SET, MFF, etc.):
+Use the convenience functions :func:`facet.load` and :func:`facet.export` to
+convert between supported formats (for example EDF, BDF, BrainVision, EEGLAB,
+and FIF):
 
 .. code-block:: python
 
@@ -266,9 +267,9 @@ Check Processing History
 
    if result.success:
        for entry in result.context.get_history():
-           print(f"{entry['processor']}")
-           print(f"  Timestamp: {entry['timestamp']}")
-           print(f"  Parameters: {entry['parameters']}")
+           print(f"{entry.name}")
+           print(f"  Timestamp: {entry.timestamp}")
+           print(f"  Parameters: {entry.parameters}")
 
 Save Intermediate Results
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -301,7 +302,6 @@ More Examples
 See the ``examples/`` directory in the repository for more complete examples:
 
 * ``complete_pipeline_example.py`` - Full correction workflow
-* ``complete_pipeline_example_mff.py`` - End-to-end workflow using MFF input
 * ``advanced_workflows.py`` - Conditional steps, parallel execution, factory shortcut
 * ``channelwise_execution.py`` - Channel-wise execution: flag inspection, backend comparison, custom processor
 * ``batch_processing.py`` - Batch correction across multiple files with ``Pipeline.map()``

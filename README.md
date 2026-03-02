@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstr
 cd facetpy
 ```
 <p align="center">
-  <img src="docs/source/_static/facetpy_banner.png" alt="FACETpy overview banner" width="700" />
+  <img src="docs/source/_static/run_example.png" alt="FACETpy example run" width="700" />
 </p>
 
 

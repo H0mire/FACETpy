@@ -18,9 +18,9 @@ providing:
 Current Status
 --------------
 
-**Version 2.0** (In development) - 🚧 Not yet released
+**Version 2.0.0** (released on 2025-10-31) - ✅ Current stable major release
 
-- Ongoing architectural refactoring
-- Pipeline-based API design in progress
-- Targeting 30+ modular processors
-- Test suite and documentation still under construction
+- Processor-based architecture shipped
+- Pipeline API and context model stabilized
+- Modular processor catalog expanded across I/O, preprocessing, correction, and evaluation
+- Documentation and test suite are actively maintained with ongoing updates

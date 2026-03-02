@@ -251,10 +251,13 @@ Execute multiple pipelines concurrently:
 
    import concurrent.futures
 
+   def run_pipeline(pipeline):
+       return pipeline.run()
+
    pipelines = [create_pipeline(file) for file in files]
 
    with concurrent.futures.ProcessPoolExecutor() as executor:
-       results = executor.map(lambda p: p.run(), pipelines)
+       results = list(executor.map(run_pipeline, pipelines))
 
 Processor-Level Parallelization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

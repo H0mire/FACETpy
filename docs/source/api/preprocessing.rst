@@ -126,6 +126,22 @@ SliceTriggerGenerator
    :undoc-members:
    :show-inheritance:
 
+TriggerExplorer
+~~~~~~~~~~~~~~~
+
+.. autoclass:: TriggerExplorer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+InteractiveTriggerExplorer
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: InteractiveTriggerExplorer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Alignment
 ---------
 
@@ -133,6 +149,14 @@ TriggerAligner
 ~~~~~~~~~~~~~~
 
 .. autoclass:: TriggerAligner
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+SliceAligner
+~~~~~~~~~~~~
+
+.. autoclass:: SliceAligner
    :members:
    :undoc-members:
    :show-inheritance:
@@ -147,6 +171,22 @@ SubsampleAligner
 
 Transforms
 ----------
+
+CutAcquisitionWindow
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: CutAcquisitionWindow
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+PasteAcquisitionWindow
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: PasteAcquisitionWindow
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Crop
 ~~~~

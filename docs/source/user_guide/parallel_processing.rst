@@ -130,18 +130,21 @@ Check the ``parallel_safe`` flag:
 Processors marked ``parallel_safe = True``:
 
 - ``AASCorrection``
-- ``ANCCorrection``
 - ``PCACorrection``
 - ``HighPassFilter``
 - ``LowPassFilter``
 - ``BandPassFilter``
 - ``NotchFilter``
+- ``UpSample`` / ``DownSample`` / ``Resample``
+- ``TriggerAligner`` / ``SliceAligner`` / ``SubsampleAligner`` (with ``run_once=True``)
 
 Processors that are NOT parallel safe:
 
 - ``TriggerDetector`` (operates on annotations)
-- ``TriggerAligner`` (requires cross-channel information)
+- ``MissingTriggerDetector`` / ``QRSTriggerDetector`` (stateful trigger operations)
+- ``ANCCorrection`` (currently marked ``parallel_safe = False``)
 - ``Loader``/``EDFExporter`` (I/O operations)
+- ``SNRCalculator`` / ``RMSCalculator`` / ``MetricsReport`` (aggregation/reporting steps)
 
 ParallelExecutor
 ~~~~~~~~~~~~~~~~
@@ -255,9 +258,9 @@ serially — no special handling required.
        Loader(path="data.edf", preload=True),
        TriggerDetector(regex=r"\b1\b"),   # serial
        HighPassFilter(freq=1.0),           # channel-wise
-       UpSample(factor=10),                # serial (MNE resamples all channels together)
+       UpSample(factor=10),                # channel-wise
        AASCorrection(window_size=30),      # channel-wise
-       DownSample(factor=10),              # serial
+       DownSample(factor=10),              # channel-wise
        LowPassFilter(freq=70),             # channel-wise
        EDFExporter(path="corrected.edf", overwrite=True),
    ])
@@ -289,7 +292,7 @@ pick a specific backend:
      - When to use
    * - ``multiprocessing``
      - Default.  Each worker is a separate process — true CPU parallelism.
-       Best for compute-heavy corrections (AAS, ANC, PCA).
+       Best for compute-heavy channel-wise processors (AAS, PCA, filtering, resampling).
    * - ``threading``
      - Shared memory, lower startup cost.  Limited by the GIL for pure-Python
        code, but can help for NumPy/C-extension-heavy processors.
@@ -683,7 +686,7 @@ Create custom parallel execution:
    from facet.core import ParallelExecutor
 
    class CustomExecutor(ParallelExecutor):
-       def __init__(self, n_jobs=-1, backend='loky'):
+       def __init__(self, n_jobs=-1, backend='multiprocessing'):
            super().__init__(n_jobs=n_jobs)
            self.backend = backend
 

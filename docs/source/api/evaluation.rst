@@ -35,10 +35,26 @@ SNRCalculator
    :undoc-members:
    :show-inheritance:
 
+LegacySNRCalculator
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: LegacySNRCalculator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 RMSCalculator
 ~~~~~~~~~~~~~
 
 .. autoclass:: RMSCalculator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+RMSResidualCalculator
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: RMSResidualCalculator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -51,6 +67,22 @@ MedianArtifactCalculator
    :undoc-members:
    :show-inheritance:
 
+FFTAllenCalculator
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: FFTAllenCalculator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+FFTNiazyCalculator
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: FFTNiazyCalculator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Reports
 -------
 
@@ -58,6 +90,14 @@ MetricsReport
 ~~~~~~~~~~~~~
 
 .. autoclass:: MetricsReport
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+RawPlotter
+~~~~~~~~~~
+
+.. autoclass:: RawPlotter
    :members:
    :undoc-members:
    :show-inheritance:

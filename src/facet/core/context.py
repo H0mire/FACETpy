@@ -10,6 +10,7 @@ Date: 2025-01-12
 
 from copy import deepcopy
 from dataclasses import dataclass, field
+from numbers import Integral, Real
 from typing import Any
 
 import mne
@@ -364,6 +365,205 @@ class ProcessingContext:
         new_metadata = self._metadata.copy()
         new_metadata.triggers = triggers
         return self.with_metadata(new_metadata)
+
+    @staticmethod
+    def _coerce_integer_array(values: Any, *, name: str) -> np.ndarray:
+        """Convert scalar/array-like input to a 1D integer numpy array."""
+        arr = np.asarray(values)
+        if arr.ndim == 0:
+            arr = arr.reshape(1)
+        arr = np.ravel(arr)
+
+        if arr.size == 0:
+            return arr.astype(np.int64)
+
+        if np.issubdtype(arr.dtype, np.bool_):
+            raise ValueError(f"{name} must contain integer sample positions, not booleans")
+
+        if np.issubdtype(arr.dtype, np.integer):
+            return arr.astype(np.int64, copy=False)
+
+        if np.issubdtype(arr.dtype, np.floating):
+            if not np.all(np.isfinite(arr)):
+                raise ValueError(f"{name} must contain only finite numeric values")
+            rounded = np.rint(arr)
+            if not np.allclose(arr, rounded):
+                raise ValueError(f"{name} must contain integer-valued sample positions")
+            return rounded.astype(np.int64)
+
+        converted: list[int] = []
+        for value in arr.tolist():
+            if isinstance(value, bool):
+                raise ValueError(f"{name} must contain integer sample positions, not booleans")
+            if isinstance(value, Integral):
+                converted.append(int(value))
+                continue
+            if isinstance(value, Real):
+                float_value = float(value)
+                if not np.isfinite(float_value) or not float_value.is_integer():
+                    raise ValueError(f"{name} must contain integer-valued sample positions")
+                converted.append(int(float_value))
+                continue
+            raise ValueError(f"{name} must contain integer sample positions")
+        return np.asarray(converted, dtype=np.int64)
+
+    def with_trigger_samples(
+        self,
+        triggers: np.ndarray | list[int],
+        *,
+        artifact_length: int | None = None,
+        tr_seconds: float | None = None,
+        trigger_regex: str | None = None,
+        custom: dict[str, Any] | None = None,
+        samples_are_absolute: bool = False,
+    ) -> "ProcessingContext":
+        """
+        Return a new context with trigger samples and optional artifact metadata.
+
+        Parameters
+        ----------
+        triggers : array-like of int
+            Trigger sample positions.
+        artifact_length : int, optional
+            Artifact window length in samples. If omitted (and ``tr_seconds``
+            is also omitted), FACETpy infers it as the median spacing between
+            trigger samples when at least two triggers are available.
+        tr_seconds : float, optional
+            Artifact window length in seconds. Converted using ``raw.info['sfreq']``.
+        trigger_regex : str, optional
+            Label/pattern stored in metadata for provenance.
+        custom : dict, optional
+            Additional ``metadata.custom`` entries to merge in.
+        samples_are_absolute : bool, optional
+            If ``True``, trigger samples are interpreted as absolute MNE sample
+            indices and converted to context-relative indices by subtracting
+            ``raw.first_samp``.
+        """
+        trigger_array = self._coerce_integer_array(triggers, name="triggers")
+
+        if samples_are_absolute:
+            trigger_array = trigger_array - int(self._raw.first_samp)
+
+        if trigger_array.size > 0 and (trigger_array.min() < 0 or trigger_array.max() >= self._raw.n_times):
+            raise ValueError(
+                f"Trigger samples must fall within [0, {self._raw.n_times - 1}] "
+                f"for this context, got min={int(trigger_array.min())}, max={int(trigger_array.max())}"
+            )
+
+        if tr_seconds is not None and artifact_length is not None:
+            raise ValueError("Pass either artifact_length or tr_seconds, not both")
+        if tr_seconds is not None:
+            if not isinstance(tr_seconds, Real) or isinstance(tr_seconds, bool) or tr_seconds <= 0:
+                raise ValueError("tr_seconds must be a positive number")
+            artifact_length = int(round(float(tr_seconds) * self.get_sfreq()))
+        if artifact_length is not None:
+            if not isinstance(artifact_length, Integral) or isinstance(artifact_length, bool):
+                raise ValueError("artifact_length must be an integer number of samples")
+            artifact_length = int(artifact_length)
+            if artifact_length <= 0:
+                raise ValueError("artifact_length must be > 0")
+        elif self._metadata.artifact_length is None and trigger_array.size > 1:
+            # Default for trigger-based workflows: infer artifact length from
+            # trigger spacing when none is provided.
+            sorted_triggers = np.sort(trigger_array)
+            positive_diffs = np.diff(sorted_triggers)
+            positive_diffs = positive_diffs[positive_diffs > 0]
+            if positive_diffs.size > 0:
+                artifact_length = int(round(float(np.median(positive_diffs))))
+
+        new_metadata = self._metadata.copy()
+        new_metadata.triggers = trigger_array.astype(np.int32, copy=False)
+
+        if artifact_length is not None:
+            new_metadata.artifact_length = artifact_length
+        if trigger_regex is not None:
+            new_metadata.trigger_regex = trigger_regex
+        if custom:
+            new_metadata.custom.update(deepcopy(custom))
+
+        return self.with_metadata(new_metadata)
+
+    def with_mne_events(
+        self,
+        events: np.ndarray,
+        *,
+        event: int | str | None = None,
+        event_id: dict[str, int] | None = None,
+        artifact_length: int | None = None,
+        tr_seconds: float | None = None,
+        store_event_id: bool = True,
+    ) -> "ProcessingContext":
+        """
+        Build trigger metadata from MNE events and return a new context.
+
+        Parameters
+        ----------
+        events : np.ndarray
+            MNE-style event array with shape ``(n_events, 3)``.
+        event : int | str | None, optional
+            Event code or event name to select. If ``None``, events must
+            contain exactly one unique code.
+        event_id : dict[str, int], optional
+            Mapping from event names to integer codes (from
+            ``mne.events_from_annotations``). Required when ``event`` is a str.
+        artifact_length : int, optional
+            Artifact length in samples.
+        tr_seconds : float, optional
+            Artifact length in seconds. Takes precedence over default
+            inference, but cannot be combined with ``artifact_length``.
+        store_event_id : bool, optional
+            If ``True`` and ``event_id`` is provided, stores it in
+            ``metadata.custom['event_id']``.
+        """
+        event_arr = np.asarray(events)
+        if event_arr.ndim != 2 or event_arr.shape[1] < 3:
+            raise ValueError("events must be an array with shape (n_events, 3)")
+        if event_arr.shape[0] == 0:
+            raise ValueError("events is empty")
+
+        sample_positions = self._coerce_integer_array(event_arr[:, 0], name="events[:, 0]")
+        event_codes = self._coerce_integer_array(event_arr[:, 2], name="events[:, 2]")
+        unique_codes = np.unique(event_codes)
+
+        selected_name: str | None = None
+        if event is None:
+            if unique_codes.size != 1:
+                raise ValueError(
+                    "events contains multiple event codes; pass `event=<code>` or `event=<name>` to select one"
+                )
+            selected_code = int(unique_codes[0])
+        elif isinstance(event, str):
+            if event_id is None:
+                raise ValueError("event_id is required when event is a string")
+            if event not in event_id:
+                available = ", ".join(sorted(event_id)) if event_id else "<none>"
+                raise ValueError(f"Unknown event name '{event}'. Available names: {available}")
+            selected_code = int(event_id[event])
+            selected_name = event
+        elif isinstance(event, Integral) and not isinstance(event, bool):
+            selected_code = int(event)
+        else:
+            raise ValueError("event must be an integer code, an event name, or None")
+
+        selected_samples = sample_positions[event_codes == selected_code]
+        if selected_samples.size == 0:
+            raise ValueError(f"No samples found for event code {selected_code}")
+
+        custom: dict[str, Any] = {"selected_event_code": selected_code}
+        if selected_name is not None:
+            custom["selected_event_name"] = selected_name
+        if store_event_id and event_id is not None:
+            custom["event_id"] = deepcopy(event_id)
+
+        trigger_label = f"MNE:{selected_name}" if selected_name is not None else f"MNE:{selected_code}"
+        return self.with_trigger_samples(
+            selected_samples,
+            artifact_length=artifact_length,
+            tr_seconds=tr_seconds,
+            trigger_regex=trigger_label,
+            custom=custom,
+            samples_are_absolute=True,
+        )
 
     # =========================================================================
     # Utility Methods

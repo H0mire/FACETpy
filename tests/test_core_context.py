@@ -2,6 +2,7 @@
 Tests for ProcessingContext and ProcessingMetadata.
 """
 
+import mne
 import numpy as np
 import pytest
 
@@ -221,6 +222,87 @@ class TestProcessingContext:
         # Original should be unchanged
         assert sample_context.get_raw() is original_raw
         assert np.array_equal(sample_context.get_triggers(), original_triggers)
+
+    def test_with_trigger_samples_accepts_tr_seconds(self, sample_raw):
+        """tr_seconds should be converted to artifact_length in samples."""
+        context = ProcessingContext(raw=sample_raw)
+        result = context.with_trigger_samples([10, 30, 50], tr_seconds=0.2)
+
+        assert np.array_equal(result.get_triggers(), np.array([10, 30, 50], dtype=np.int32))
+        assert result.get_artifact_length() == int(round(0.2 * sample_raw.info["sfreq"]))
+
+    def test_with_trigger_samples_infers_artifact_length_from_trigger_delta(self, sample_raw):
+        """Without explicit length, artifact_length defaults to median trigger delta."""
+        context = ProcessingContext(raw=sample_raw)
+        result = context.with_trigger_samples([80, 20, 50])  # unsorted on purpose
+
+        assert np.array_equal(result.get_triggers(), np.array([80, 20, 50], dtype=np.int32))
+        assert result.get_artifact_length() == 30
+
+    def test_with_trigger_samples_normalizes_absolute_samples(self):
+        """Absolute trigger samples should be shifted by raw.first_samp."""
+        sfreq = 200.0
+        data = np.zeros((1, 300))
+        info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, first_samp=1000, verbose=False)
+
+        context = ProcessingContext(raw=raw)
+        result = context.with_trigger_samples([1010, 1020], samples_are_absolute=True)
+
+        assert np.array_equal(result.get_triggers(), np.array([10, 20], dtype=np.int32))
+
+    def test_with_mne_events_by_name(self, sample_raw):
+        """Event names should resolve via event_id mapping."""
+        context = ProcessingContext(raw=sample_raw)
+        events = np.array([[100, 0, 1], [200, 0, 2], [300, 0, 1]])
+        event_id = {"R128": 1, "other": 2}
+
+        result = context.with_mne_events(events, event="R128", event_id=event_id, tr_seconds=0.5)
+
+        assert np.array_equal(result.get_triggers(), np.array([100, 300], dtype=np.int32))
+        assert result.get_artifact_length() == int(round(0.5 * sample_raw.info["sfreq"]))
+        assert result.metadata.custom["event_id"] == event_id
+        assert result.metadata.custom["selected_event_name"] == "R128"
+        assert result.metadata.custom["selected_event_code"] == 1
+
+    def test_with_mne_events_infers_artifact_length_from_selected_event_deltas(self, sample_raw):
+        """with_mne_events should default artifact_length to event sample delta."""
+        context = ProcessingContext(raw=sample_raw)
+        events = np.array([[100, 0, 1], [130, 0, 1], [170, 0, 2], [160, 0, 1]])
+
+        result = context.with_mne_events(events, event=1)
+
+        assert np.array_equal(result.get_triggers(), np.array([100, 130, 160], dtype=np.int32))
+        assert result.get_artifact_length() == 30
+
+    def test_with_mne_events_normalizes_absolute_samples(self):
+        """MNE absolute event samples should be shifted by first_samp."""
+        sfreq = 200.0
+        data = np.zeros((1, 300))
+        info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, first_samp=5000, verbose=False)
+        context = ProcessingContext(raw=raw)
+        events = np.array([[5010, 0, 1], [5030, 0, 1]])
+
+        result = context.with_mne_events(events, event=1)
+
+        assert np.array_equal(result.get_triggers(), np.array([10, 30], dtype=np.int32))
+
+    def test_with_mne_events_requires_event_selection_for_multiple_codes(self, sample_raw):
+        """Multiple event codes require explicit event selection."""
+        context = ProcessingContext(raw=sample_raw)
+        events = np.array([[100, 0, 1], [200, 0, 2]])
+
+        with pytest.raises(ValueError, match="multiple event codes"):
+            context.with_mne_events(events)
+
+    def test_with_mne_events_requires_event_id_for_string_event(self, sample_raw):
+        """String event selection requires event_id mapping."""
+        context = ProcessingContext(raw=sample_raw)
+        events = np.array([[100, 0, 1]])
+
+        with pytest.raises(ValueError, match="event_id is required"):
+            context.with_mne_events(events, event="R128")
 
 
 @pytest.mark.unit

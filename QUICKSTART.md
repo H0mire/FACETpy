@@ -6,11 +6,11 @@ Get started with FACETpy in minutes!
 
 ```bash
 # From source
-git clone https://github.com/your-org/facetpy.git
+git clone https://github.com/H0mire/facetpy.git
 cd facetpy
 pip install -e .
 
-# Or from PyPI (when released)
+# Or from PyPI
 pip install facetpy
 ```
 
@@ -88,14 +88,13 @@ result = pipeline.run(parallel=True, n_jobs=-1)
 ### 3. Step-by-Step Processing
 
 ```python
-from facet.core import ProcessingContext
 from facet.io import Loader
 from facet.preprocessing import TriggerDetector, UpSample
 from facet.correction import AASCorrection
 
 # Load data
 loader = Loader(path="data.edf", preload=True)
-context = loader.execute(ProcessingContext())
+context = loader.execute(None)
 
 # Detect triggers
 detector = TriggerDetector(regex=r"\b1\b")
@@ -121,7 +120,7 @@ corrected_raw.save("corrected.fif")
 ### Batch Processing Multiple Files
 
 ```python
-from facet.core import Pipeline, ProcessingContext
+from facet.core import Pipeline
 from facet.io import Loader, EDFExporter
 from facet.preprocessing import TriggerDetector, UpSample, DownSample
 from facet.correction import AASCorrection
@@ -142,7 +141,7 @@ for input_file in files:
 
     # Load
     loader = Loader(path=input_file, preload=True)
-    context = loader.execute(ProcessingContext())
+    context = loader.execute(None)
 
     # Correct
     result = correction_steps.run(initial_context=context)
@@ -207,7 +206,7 @@ metrics = result.context.metadata.custom.get('metrics', {})
 
 # Access processing history
 for entry in result.context.get_history():
-    print(f"{entry['processor']}: {entry['timestamp']}")
+    print(f"{entry.name}: {entry.timestamp}")
 ```
 
 ## Configuration Tips
@@ -296,15 +295,15 @@ anc = ANCCorrection(use_c_extension=False)  # Force Python fallback
 ## Next Steps
 
 - Read the [complete pipeline example](examples/complete_pipeline_example.py)
-- Check [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md) for detailed features
-- See [CLAUDE.md](CLAUDE.md) for architecture details
+- Read [README.md](README.md) for installation and test workflows
+- See [docs/source/index.rst](docs/source/index.rst) for the full Sphinx docs structure
 - Write your own custom processors!
 
 ## Getting Help
 
-- **Issues:** https://github.com/your-org/facetpy/issues
-- **Discussions:** https://github.com/your-org/facetpy/discussions
-- **Documentation:** https://facetpy.readthedocs.io (when available)
+- **Issues:** https://github.com/H0mire/facetpy/issues
+- **Discussions:** https://github.com/H0mire/facetpy/discussions
+- **Documentation:** https://facetpy.readthedocs.io
 
 ## Example: Full Correction Script
 
