@@ -1,10 +1,5 @@
 # FACETpy — fMRI Artifact Correction and Evaluation Toolbox
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_light_theme.png" width="240" alt="FACETpy logo (light theme)" />
-  <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_dark_theme.png" width="240" alt="FACETpy logo (dark theme)" />
-</p>
-
 [![Documentation Status](https://readthedocs.org/projects/facetpy/badge/?version=latest)](https://facetpy.readthedocs.io/en/latest/?badge=latest)
 
 A Python toolbox for correcting fMRI-induced EEG artifacts using Averaged
