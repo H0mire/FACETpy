@@ -1,7 +1,11 @@
 # FACETpy — fMRI Artifact Correction and Evaluation Toolbox
 
-![FACETpy logo (light)](https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_light_theme.png#gh-light-mode-only)
-![FACETpy logo (dark)](https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_dark_theme.png#gh-dark-mode-only)
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_dark_theme.png">
+    <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_light_theme.png" width="240" alt="FACETpy logo" />
+  </picture>
+</p>
 
 [![Documentation Status](https://readthedocs.org/projects/facetpy/badge/?version=latest)](https://facetpy.readthedocs.io/en/latest/?badge=latest)
 
