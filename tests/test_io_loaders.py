@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from facet.core import ProcessorValidationError
-from facet.io.loaders import BIDSLoader, _EXTENSION_READERS, Loader, _apply_sample_window
+from facet.io.loaders import _EXTENSION_READERS, BIDSLoader, Loader, _apply_sample_window
 
 pytestmark = pytest.mark.unit
 

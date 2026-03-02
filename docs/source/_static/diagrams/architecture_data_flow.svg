@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="480" viewBox="0 0 1100 480" role="img" aria-labelledby="title desc">
+  <title id="title">FACETpy Data Flow</title>
+  <desc id="desc">Pipeline flow from loading data to export.</desc>
+  <defs>
+    <style>
+      .title { font: 700 20px Arial, sans-serif; fill: #1f2933; }
+      .label { font: 600 14px Arial, sans-serif; fill: #102a43; }
+      .small { font: 12px Arial, sans-serif; fill: #486581; }
+      .box { fill: #f0f4f8; stroke: #334e68; stroke-width: 1.8; rx: 8; ry: 8; }
+      .arrow { stroke: #7b8ba1; stroke-width: 2; fill: none; opacity: 0.75; }
+      .callout { fill: #fff4bf; stroke: #d9b949; stroke-width: 1; rx: 6; ry: 6; }
+      .callout-text { font: 700 12px Arial, sans-serif; fill: #102a43; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#7b8ba1" />
+    </marker>
+  </defs>
+
+  <text x="40" y="42" class="title">Typical FACETpy Pipeline Flow</text>
+
+  <g id="arrow-layer">
+    <line class="arrow" x1="160" y1="118" x2="190" y2="118" marker-end="url(#arrow)" />
+    <line class="arrow" x1="310" y1="118" x2="340" y2="118" marker-end="url(#arrow)" />
+    <line class="arrow" x1="460" y1="118" x2="490" y2="118" marker-end="url(#arrow)" />
+    <line class="arrow" x1="610" y1="118" x2="640" y2="118" marker-end="url(#arrow)" />
+    <line class="arrow" x1="760" y1="118" x2="790" y2="118" marker-end="url(#arrow)" />
+    <line class="arrow" x1="910" y1="118" x2="940" y2="118" marker-end="url(#arrow)" />
+    <path class="arrow" d="M1000,146 C1000,260 720,260 610,320" marker-end="url(#arrow)" />
+  </g>
+
+  <g id="node-layer">
+    <rect class="box" x="40" y="90" width="120" height="56" />
+    <text class="label" x="100" y="124" text-anchor="middle">Load Data</text>
+    <text class="small" x="100" y="164" text-anchor="middle">Loader</text>
+
+    <rect class="box" x="190" y="90" width="120" height="56" />
+    <text class="label" x="250" y="118" text-anchor="middle">Detect</text>
+    <text class="label" x="250" y="136" text-anchor="middle">Triggers</text>
+    <text class="small" x="250" y="164" text-anchor="middle">TriggerDetector</text>
+
+    <rect class="box" x="340" y="90" width="120" height="56" />
+    <text class="label" x="400" y="124" text-anchor="middle">Upsample</text>
+    <text class="small" x="400" y="164" text-anchor="middle">UpSample</text>
+
+    <rect class="box" x="490" y="90" width="120" height="56" />
+    <text class="label" x="550" y="118" text-anchor="middle">Align</text>
+    <text class="label" x="550" y="136" text-anchor="middle">Triggers</text>
+    <text class="small" x="550" y="164" text-anchor="middle">TriggerAligner</text>
+
+    <rect class="box" x="640" y="90" width="120" height="56" />
+    <text class="label" x="700" y="118" text-anchor="middle">AAS</text>
+    <text class="label" x="700" y="136" text-anchor="middle">Correction</text>
+    <text class="small" x="700" y="164" text-anchor="middle">AASCorrection</text>
+
+    <rect class="box" x="790" y="90" width="120" height="56" />
+    <text class="label" x="850" y="118" text-anchor="middle">ANC</text>
+    <text class="label" x="850" y="136" text-anchor="middle">Correction</text>
+    <text class="small" x="850" y="164" text-anchor="middle">ANCCorrection</text>
+
+    <rect class="box" x="940" y="90" width="120" height="56" />
+    <text class="label" x="1000" y="124" text-anchor="middle">Downsample</text>
+    <text class="small" x="1000" y="164" text-anchor="middle">DownSample</text>
+
+    <rect class="box" x="490" y="320" width="120" height="56" />
+    <text class="label" x="550" y="354" text-anchor="middle">Export</text>
+    <text class="small" x="550" y="394" text-anchor="middle">EDFExporter</text>
+  </g>
+
+  <g id="annotation-layer">
+    <rect class="callout" x="890" y="260" width="130" height="22" />
+    <text class="callout-text" x="955" y="275" text-anchor="middle">Export branch</text>
+    <text class="small" x="550" y="450" text-anchor="middle">Each arrow represents a ProcessingContext passed between processors.</text>
+  </g>
+</svg>

@@ -27,13 +27,14 @@ poetry run sphinx-build -b html docs/source docs/build
 
 ## Documentation Structure
 
-```text
-docs/source/
-├── index.rst                 # Main index
-├── getting_started/          # Installation, quickstart, tutorial, examples
-├── user_guide/               # Architecture, pipelines, processors, parallelization
-├── api/                      # API reference pages
-└── development/              # Contributing, changelog, roadmap
+```mermaid
+flowchart TD
+    A["docs/source/"]
+    A --> B["index.rst<br/>Main index"]
+    A --> C["getting_started/<br/>Installation, quickstart, tutorial, examples"]
+    A --> D["user_guide/<br/>Architecture, pipelines, processors, parallelization"]
+    A --> E["api/<br/>API reference pages"]
+    A --> F["development/<br/>Contributing, changelog, roadmap"]
 ```
 
 ## Style Guidelines

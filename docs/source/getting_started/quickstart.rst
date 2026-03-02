@@ -27,8 +27,8 @@ The simplest way to correct fMRI artifacts:
        evaluate=True
    )
 
-   # Run correction
-   result = pipeline.run()
+   # Run correction (recommended default for memory efficiency)
+   result = pipeline.run(channel_sequential=True)
 
    # Check results
    if result.success:
@@ -100,8 +100,8 @@ For more control, build a custom pipeline:
        EDFExporter(path="corrected.edf", overwrite=True)
    ], name="My fMRI Correction Pipeline")
 
-   # Run it
-   result = pipeline.run()
+   # Run it (recommended default for memory efficiency)
+   result = pipeline.run(channel_sequential=True)
 
 Step-by-Step Processing
 ------------------------
@@ -154,20 +154,29 @@ operator (``__or__``):
        | AASCorrection(window_size=30)
    )
 
-Parallel Processing
--------------------
+Execution Modes
+---------------
 
-Speed up processing with parallel execution:
+Start with channel-sequential execution (recommended):
 
 .. code-block:: python
 
-   # Use all CPU cores
+   # Memory-optimized per-channel execution
+   result = pipeline.run(channel_sequential=True)
+
+If your machine has enough free RAM and you want maximum throughput:
+
+.. code-block:: python
+
+   # Use all CPU cores (speed-oriented mode)
    result = pipeline.run(parallel=True, n_jobs=-1)
 
-   # Use specific number of cores
+   # Use a specific number of cores
    result = pipeline.run(parallel=True, n_jobs=4)
 
-Processors automatically parallelize by channel when safe to do so.
+Processors automatically split by channel when safe to do so.
+For long recordings and upsampling-heavy pipelines, prefer
+``channel_sequential=True`` to reduce peak memory usage.
 
 Common Patterns
 ---------------
@@ -222,7 +231,7 @@ Process multiple files with the same pipeline:
        context = loader.execute(None)
 
        # Correct
-       result = correction.run(initial_context=context)
+       result = correction.run(initial_context=context, channel_sequential=True)
 
        if result.success:
            # Save
@@ -238,7 +247,7 @@ Get data and metrics from the result:
 
 .. code-block:: python
 
-   result = pipeline.run()
+   result = pipeline.run(channel_sequential=True)
 
    # Corrected MNE Raw object
    corrected_raw = result.context.get_raw()

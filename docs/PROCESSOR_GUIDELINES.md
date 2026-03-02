@@ -894,17 +894,17 @@ FACETpy ships a console system (`facet.console`) that provides live progress bar
 
 ### 8.1 Architecture Overview
 
-```
-Pipeline
-  ├── console.start_pipeline()
-  ├── for each processor:
-  │     ├── console.step_started(i, name)
-  │     ├── set_current_step_index(i)        ← enables processor_progress()
-  │     ├── processor.execute(context)
-  │     │     └── processor_progress(...)     ← processor reports sub-progress
-  │     ├── set_current_step_index(None)
-  │     └── console.step_completed(i, name, duration)
-  └── console.pipeline_complete()
+```mermaid
+flowchart TD
+    A["Pipeline"] --> B["console.start_pipeline()"]
+    B --> C["for each processor"]
+    C --> D["console.step_started(i, name)"]
+    D --> E["set_current_step_index(i)"]
+    E --> F["processor.execute(context)"]
+    F --> G["processor_progress(...)"]
+    G --> H["set_current_step_index(None)"]
+    H --> I["console.step_completed(i, name, duration)"]
+    I --> J["console.pipeline_complete()"]
 ```
 
 The pipeline sets a thread-local step index before calling your processor. This is what allows `processor_progress()` to route updates to the correct step in the console display. You don't need to manage this yourself — just use the APIs below.

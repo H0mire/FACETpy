@@ -1,23 +1,29 @@
-Parallel Processing
-===================
+Parallel and Channel-Sequential Processing
+==========================================
 
-FACETpy supports parallel processing to speed up computation on multi-channel data.
-This guide explains how to use parallelization effectively.
+FACETpy supports multiple execution modes for multi-channel data.
+This guide explains when to use channel-sequential execution for memory
+efficiency and when to use parallelization for throughput.
 
 Overview
 --------
 
-FACETpy offers two main approaches to parallelization:
+FACETpy offers three execution strategies:
 
-1. **Pipeline-level parallelization** - Process multiple files concurrently
+1. **Channel-sequential execution (recommended default)** - Run a full
+   channel-wise processor chain per channel to minimize peak memory.
 2. **Processor-level parallelization** - Split channels across CPU cores
+   for maximum speed when sufficient RAM is available.
+3. **Pipeline-level parallelization** - Process multiple files concurrently.
 
-Both can be combined for maximum performance on large datasets.
+Rule of thumb: start with ``channel_sequential=True`` for large recordings,
+upsampling-heavy pipelines, or constrained memory. Switch to
+``parallel=True`` when speed is the primary goal and memory is not a bottleneck.
 
 Quick Start
 -----------
 
-Enable parallel processing in your pipeline:
+Start with channel-sequential execution:
 
 .. code-block:: python
 
@@ -30,8 +36,82 @@ Enable parallel processing in your pipeline:
        AASCorrection(window_size=30)
    ])
 
-   # Use all CPU cores
+   # Recommended for memory-sensitive workloads
+   result = pipeline.run(channel_sequential=True)
+
+If memory headroom is sufficient and you want maximum throughput:
+
+.. code-block:: python
+
+   # Use all CPU cores for eligible processors
    result = pipeline.run(parallel=True, n_jobs=-1)
+
+Channel-Sequential Execution
+----------------------------
+
+Why It Matters
+~~~~~~~~~~~~~~
+
+Channel-sequential execution is a core FACETpy feature for memory-efficient
+processing. Instead of creating large intermediate arrays for all channels at
+once, FACETpy processes one data channel through the full local processor chain
+before moving to the next channel.
+
+This is especially important for pipelines that contain upsampling and
+artifact-correction steps (for example ``UpSample -> AASCorrection -> DownSample``).
+
+How It Works
+~~~~~~~~~~~~
+
+With ``channel_sequential=True``, consecutive processors marked as
+``channel_wise=True`` (or ``run_once=True``) are merged into one per-channel
+execution batch.
+
+.. code-block:: text
+
+   for each channel:
+       channel -> HP-filter -> UpSample -> AAS -> DownSample -> store
+
+Key properties:
+
+- Full high-sampling-rate intermediate data is not materialized for all channels at once.
+- ``run_once=True`` processors execute only for the first channel and their
+  metadata is reused for the remaining channels.
+- Non-data channels (for example stim/misc) are passed through or resampled as needed.
+
+When to Prefer Channel-Sequential
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use ``channel_sequential=True`` when:
+
+- recordings are long,
+- channel count is high,
+- upsampling factors are high,
+- runs fail or become unstable due to memory pressure.
+
+Enabling Channel-Sequential Execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   from facet import (
+       Pipeline, Loader, EDFExporter,
+       TriggerDetector, HighPassFilter, LowPassFilter,
+       UpSample, DownSample, AASCorrection,
+   )
+
+   pipeline = Pipeline([
+       Loader(path="data.edf", preload=True),
+       TriggerDetector(regex=r"\b1\b"),    # serial/global step
+       HighPassFilter(freq=1.0),           # channel-wise
+       UpSample(factor=10),                # channel-wise
+       AASCorrection(window_size=30),      # channel-wise
+       DownSample(factor=10),              # channel-wise
+       LowPassFilter(freq=70),             # channel-wise
+       EDFExporter(path="corrected.edf", overwrite=True),
+   ])
+
+   result = pipeline.run(channel_sequential=True)
 
 Processor-Level Parallelization
 --------------------------------
@@ -42,36 +122,10 @@ How It Works
 When a processor is marked as ``parallel_safe = True``, the ``ParallelExecutor``
 can automatically split processing by channels:
 
-.. code-block:: text
-
-   Original Data (4 channels)
-   ┌─────────────────────────┐
-   │ Ch1, Ch2, Ch3, Ch4      │
-   └───────────┬─────────────┘
-               │
-      Split by channels
-               │
-   ┌───────────┴─────────────┐
-   │                         │
-   │   ┌──────┐   ┌──────┐  │
-   │   │ Ch1  │   │ Ch3  │  │
-   │   │ Ch2  │   │ Ch4  │  │
-   │   └──────┘   └──────┘  │
-   │                         │
-   │   Process in parallel   │
-   │                         │
-   │   ┌──────┐   ┌──────┐  │
-   │   │ Ch1' │   │ Ch3' │  │
-   │   │ Ch2' │   │ Ch4' │  │
-   │   └──────┘   └──────┘  │
-   │                         │
-   └───────────┬─────────────┘
-               │
-       Merge channels
-               │
-   ┌───────────▼─────────────┐
-   │ Ch1', Ch2', Ch3', Ch4'  │
-   └─────────────────────────┘
+.. figure:: ../_static/diagrams/parallel_processing_overview.svg
+   :alt: Diagram showing how channels are split, processed in parallel, and merged back.
+   :width: 100%
+   :align: center
 
 Enabling Parallelization
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +143,7 @@ Enabling Parallelization
        AASCorrection(window_size=30)  # parallel_safe = True
    ])
 
-   # Enable parallel processing
+   # Speed-oriented mode (higher memory usage than channel-sequential)
    result = pipeline.run(
        parallel=True,  # Enable parallelization
        n_jobs=-1       # Use all CPU cores
@@ -181,6 +235,7 @@ A processor opts in by setting two class-level flags:
 ``parallel_safe`` and ``channel_wise`` are **independent** concepts.
 ``channel_wise`` is the flag used by both the parallel executor (``parallel=True``)
 and the channel-sequential executor (``channel_sequential=True``).
+In contrast, ``parallel_safe`` only affects multiprocessing mode.
 
 Built-in processors that are channel-wise safe:
 
@@ -219,30 +274,16 @@ Processors that are **not** channel-wise:
 Execution Flow
 ~~~~~~~~~~~~~~
 
-.. code-block:: text
-
-   Original data  [Ch1 | Ch2 | Ch3 | Ch4 | … | ChN]
-                               │
-                    Split into n_jobs chunks
-                               │
-             ┌─────────────────┼─────────────────┐
-             │                 │                 │
-       [Ch1, Ch2]        [Ch3, Ch4]         [ChN-1, ChN]
-       worker 0           worker 1           worker k
-             │                 │                 │
-       processor(…)      processor(…)      processor(…)
-             │                 │                 │
-       [Ch1', Ch2']      [Ch3', Ch4']      [ChN-1', ChN']
-             └─────────────────┼─────────────────┘
-                               │
-                  Merge back into original order
-                               │
-            Corrected data [Ch1' | Ch2' | … | ChN']
+.. figure:: ../_static/diagrams/parallel_execution_flow.svg
+   :alt: Diagram of parallel execution flow with split, per-worker processing, and merge.
+   :width: 100%
+   :align: center
 
 Enabling it via the Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass ``parallel=True`` to ``Pipeline.run(...)``.
+Pass ``parallel=True`` to ``Pipeline.run(...)`` for speed, or
+``channel_sequential=True`` for memory-optimized per-channel execution.
 Processors that do *not* set ``channel_wise = True`` are silently executed
 serially — no special handling required.
 
@@ -265,7 +306,8 @@ serially — no special handling required.
        EDFExporter(path="corrected.edf", overwrite=True),
    ])
 
-   result = pipeline.run(parallel=True, n_jobs=-1)   # -1 → all CPU cores
+   result = pipeline.run(channel_sequential=True)    # memory-optimized default
+   result = pipeline.run(parallel=True, n_jobs=-1)   # speed-oriented alternative
 
 Choosing a Backend
 ~~~~~~~~~~~~~~~~~~
@@ -452,6 +494,9 @@ When to Use Parallelization
 - Single file processing with few channels
 - I/O-bound operations
 
+For memory-bound pipelines, prefer ``channel_sequential=True`` instead of
+``parallel=True``.
+
 Optimal Number of Workers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -489,6 +534,10 @@ Parallel processing increases memory usage:
    import psutil
    print(f"Available memory: {psutil.virtual_memory().available / 1e9:.1f} GB")
 
+For the same processor chain, ``channel_sequential=True`` typically lowers
+peak memory because only one channel's large intermediate representation is
+kept in memory at a time.
+
 Overhead
 ~~~~~~~~
 
@@ -515,21 +564,25 @@ Compare Performance
 
    import time
 
-   # Sequential processing
+   # Serial processing
    start = time.time()
-   result = pipeline.run(parallel=False)
-   sequential_time = time.time() - start
+   result = pipeline.run(parallel=False, channel_sequential=False)
+   serial_time = time.time() - start
+
+   # Channel-sequential processing (memory-optimized)
+   start = time.time()
+   result = pipeline.run(channel_sequential=True)
+   channel_seq_time = time.time() - start
 
    # Parallel processing
    start = time.time()
    result = pipeline.run(parallel=True, n_jobs=-1)
    parallel_time = time.time() - start
 
-   # Calculate speedup
-   speedup = sequential_time / parallel_time
-   print(f"Sequential: {sequential_time:.2f}s")
-   print(f"Parallel:   {parallel_time:.2f}s")
-   print(f"Speedup:    {speedup:.2f}x")
+   # Compare runtimes
+   print(f"Serial:            {serial_time:.2f}s")
+   print(f"Channel-sequential:{channel_seq_time:.2f}s")
+   print(f"Parallel:          {parallel_time:.2f}s")
 
 Scaling Analysis
 ~~~~~~~~~~~~~~~~
@@ -583,16 +636,16 @@ Best Practices
       result = pipeline.run()
       print(f"Time: {time.time() - start:.2f}s")
 
-2. **Start Conservative**
+2. **Start with Memory-Safe Mode**
 
-   Begin with fewer workers:
+   Use channel-sequential first, then scale to parallel if needed:
 
    .. code-block:: python
 
-      # Start with 2-4 workers
-      result = pipeline.run(parallel=True, n_jobs=4)
+      # Recommended starting point
+      result = pipeline.run(channel_sequential=True)
 
-      # Scale up if beneficial
+      # If runtime is the bottleneck and memory is sufficient:
       result = pipeline.run(parallel=True, n_jobs=-1)
 
 3. **Monitor Resources**
@@ -650,15 +703,18 @@ Check if processors support parallelization:
 Out of Memory Errors
 ~~~~~~~~~~~~~~~~~~~~
 
-Reduce number of workers:
+First switch to channel-sequential mode. If needed, then reduce workers:
 
 .. code-block:: python
+
+   # Preferred fix for memory pressure
+   result = pipeline.run(channel_sequential=True)
 
    # Use fewer workers
    result = pipeline.run(parallel=True, n_jobs=2)
 
-   # Or disable parallelization
-   result = pipeline.run(parallel=False)
+   # Or disable both advanced modes
+   result = pipeline.run(parallel=False, channel_sequential=False)
 
 Slower with Parallelization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -667,9 +723,12 @@ Overhead may exceed benefit:
 
 .. code-block:: python
 
-   # Disable parallelization for small datasets
+   # Use simple serial mode for very small datasets
    if n_channels < 10 or duration < 60:
-       result = pipeline.run(parallel=False)
+       result = pipeline.run(parallel=False, channel_sequential=False)
+   # Use memory-optimized channel-sequential mode for larger but memory-bound data
+   elif memory_limited:
+       result = pipeline.run(channel_sequential=True)
    else:
        result = pipeline.run(parallel=True, n_jobs=-1)
 

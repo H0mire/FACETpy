@@ -156,10 +156,18 @@ Pipeline Features
 
    result = pipeline.run()  # Runs processors in order
 
+**Channel-Sequential Execution (Memory-optimized)**
+
+.. code-block:: python
+
+   # Recommended for long recordings / upsampling-heavy pipelines
+   result = pipeline.run(channel_sequential=True)
+
 **Parallel Execution**
 
 .. code-block:: python
 
+   # Throughput-oriented alternative when sufficient RAM is available
    result = pipeline.run(parallel=True, n_jobs=-1)
 
 **Initial Context**
@@ -295,50 +303,10 @@ Data Flow
 
 Typical data flow through FACETpy:
 
-.. code-block:: text
-
-   ┌─────────────┐
-   │ Load Data   │ Loader
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ Detect      │ TriggerDetector
-   │ Triggers    │
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ Upsample    │ UpSample
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ Align       │ TriggerAligner
-   │ Triggers    │
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ AAS         │ AASCorrection
-   │ Correction  │
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ ANC         │ ANCCorrection
-   │ Correction  │
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ Downsample  │ DownSample
-   └──────┬──────┘
-          │
-          ▼
-   ┌─────────────┐
-   │ Export      │ EDFExporter
-   └─────────────┘
+.. figure:: ../_static/diagrams/architecture_data_flow.svg
+   :alt: Diagram of the typical FACETpy pipeline flow from loading to export.
+   :width: 100%
+   :align: center
 
 Each arrow represents a ``ProcessingContext`` being passed between processors.
 

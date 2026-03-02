@@ -747,12 +747,11 @@ Package Your Processor
 
 Create a Python package:
 
-.. code-block:: text
+.. figure:: ../_static/diagrams/custom_processors_package_structure.svg
+   :alt: Diagram of a minimal package structure for sharing FACETpy processors.
+   :width: 85%
+   :align: center
 
-   my_facet_processors/
-   ├── __init__.py
-   ├── processors.py
-   └── setup.py
 
 .. code-block:: python
 

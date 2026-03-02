@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="280" viewBox="0 0 820 280" role="img" aria-labelledby="title desc">
+  <title id="title">Custom Processor Package Structure</title>
+  <desc id="desc">Minimal package layout for sharing FACETpy processors.</desc>
+  <defs>
+    <style>
+      .title { font: 700 20px Arial, sans-serif; fill: #1f2933; }
+      .label { font: 600 14px Arial, sans-serif; fill: #102a43; }
+      .small { font: 12px Arial, sans-serif; fill: #486581; }
+      .folder { fill: #d9e2ec; stroke: #334e68; stroke-width: 1.8; rx: 8; ry: 8; }
+      .file { fill: #f0f4f8; stroke: #334e68; stroke-width: 1.6; rx: 6; ry: 6; }
+      .arrow { stroke: #7b8ba1; stroke-width: 2; fill: none; opacity: 0.75; }
+      .callout { fill: #fff4bf; stroke: #d9b949; stroke-width: 1; rx: 6; ry: 6; }
+      .callout-text { font: 700 12px Arial, sans-serif; fill: #102a43; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#7b8ba1" />
+    </marker>
+  </defs>
+
+  <text x="40" y="42" class="title">Package Layout for Shared Processors</text>
+
+  <g id="arrow-layer">
+    <line class="arrow" x1="320" y1="124" x2="420" y2="99" marker-end="url(#arrow)" />
+    <line class="arrow" x1="320" y1="136" x2="420" y2="161" marker-end="url(#arrow)" />
+    <line class="arrow" x1="320" y1="148" x2="420" y2="223" marker-end="url(#arrow)" />
+  </g>
+
+  <g id="node-layer">
+    <rect class="folder" x="60" y="100" width="260" height="72" />
+    <text class="label" x="190" y="140" text-anchor="middle">my_facet_processors/</text>
+
+    <rect class="file" x="420" y="74" width="320" height="50" />
+    <text class="label" x="580" y="103" text-anchor="middle">__init__.py</text>
+
+    <rect class="file" x="420" y="136" width="320" height="50" />
+    <text class="label" x="580" y="165" text-anchor="middle">processors.py</text>
+
+    <rect class="file" x="420" y="198" width="320" height="50" />
+    <text class="label" x="580" y="227" text-anchor="middle">setup.py</text>
+  </g>
+
+  <g id="annotation-layer">
+    <rect class="callout" x="350" y="54" width="118" height="22" />
+    <text class="callout-text" x="409" y="69" text-anchor="middle">Package files</text>
+    <text class="small" x="60" y="266">Minimal distributable structure for a reusable FACETpy processor plugin.</text>
+  </g>
+</svg>
