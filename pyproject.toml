@@ -1,10 +1,26 @@
 [tool.poetry]
-name = "facet"
+name = "facetpy"
 version = "2.0.0"
 description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
 authors = ["Janik Michael Mueller <janik.michael.mueller@gmail.com>"]
 license = "GPL-3.0-only"
 readme = "README.md"
+homepage = "https://github.com/H0mire/facetpy"
+repository = "https://github.com/H0mire/facetpy"
+documentation = "https://facetpy.readthedocs.io/"
+keywords = ["eeg", "fmri", "artifact-correction", "mne", "neuroscience"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+packages = [{ include = "facet", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"

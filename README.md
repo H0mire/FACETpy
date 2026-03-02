@@ -74,7 +74,15 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 Requires **Python 3.11, 3.12, or 3.13** and [Poetry](https://python-poetry.org) >= 1.8.
 Conda is optional, not required.
 
-### Option A (Unix recommended): bootstrap script
+### Option A (PyPI): install from package index
+
+```bash
+pip install facetpy
+```
+
+The package name on PyPI is `facetpy`; import it in Python as `facet`.
+
+### Option B (Unix recommended): bootstrap script
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
@@ -84,7 +92,7 @@ This bootstrap script:
 - clones the FACETpy repository into `./facetpy`
 - runs `./scripts/install.sh` inside that clone
 
-### Option B (Unix): clone first, then run local installer
+### Option C (Unix): clone first, then run local installer
 ```bash
 git clone https://github.com/H0mire/facetpy.git
 cd facetpy
@@ -97,7 +105,7 @@ The script:
 - asks whether Poetry should be installed if missing
 - runs `poetry install --no-interaction`
 
-### Option C (Windows PowerShell): manual install
+### Option D (Windows PowerShell): manual install
 
 ```powershell
 git clone https://github.com/H0mire/facetpy.git
@@ -105,9 +113,9 @@ Set-Location facetpy
 poetry install --no-interaction
 ```
 
-Use Option A/B inside WSL or Git Bash if you want to run the `.sh` installer scripts.
+Use Option B/C inside WSL or Git Bash if you want to run the `.sh` installer scripts.
 
-### Option D: system Python + Poetry (manual)
+### Option E: system Python + Poetry (manual)
 
 Unix (macOS/Linux):
 ```bash
@@ -136,7 +144,7 @@ pipx install poetry
 poetry install --no-interaction
 ```
 
-### Option E (optional): Conda workflow
+### Option F (optional): Conda workflow
 
 Unix (macOS/Linux):
 
@@ -257,6 +265,7 @@ start docs/build/index.html
 Full online documentation: https://facetpy.readthedocs.io/
 
 For comprehensive build instructions, theme configuration, and contribution guidelines see [`docs/README.md`](docs/README.md).
+For PyPI release steps, see [`RELEASING.md`](RELEASING.md).
 
 
 ## Project structure
