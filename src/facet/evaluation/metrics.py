@@ -97,7 +97,7 @@ class ReferenceDataMixin:
             Length of one artifact in samples.
         time_buffer : float, optional
             Buffer in seconds to stay away from acquisition (default: 0.1).
-        context : ProcessingContext, optional
+        context : facet.core.ProcessingContext, optional
             Current processing context. If it contains a user-selected
             reference interval (set by ``ReferenceIntervalSelector``), that
             interval is used before falling back to automatic extraction.
@@ -304,7 +304,7 @@ class ReferenceDataMixin:
             Trigger indices.
         artifact_length : int
             Length of one artifact in samples.
-        context : ProcessingContext, optional
+        context : facet.core.ProcessingContext, optional
             Current processing context. If it contains a user-selected
             evaluation interval (set by ``SignalIntervalSelector``), that
             interval is used before falling back to automatic extraction.
@@ -366,7 +366,7 @@ class ReferenceIntervalSelector(Processor, ReferenceDataMixin):
 
     Parameters
     ----------
-    channel : str | int | None, optional
+    channel : str or int, optional
         Channel to display. If ``None`` (default), the first EEG channel is
         used.
     min_duration : float, optional
@@ -660,7 +660,7 @@ class SignalIntervalSelector(Processor, ReferenceDataMixin):
 
     Parameters
     ----------
-    channel : str | int | None, optional
+    channel : str or int, optional
         Channel to display. If ``None`` (default), the first EEG channel is
         used.
     min_duration : float, optional
@@ -1622,7 +1622,7 @@ class FFTAllenCalculator(Processor, ReferenceDataMixin):
 
         Returns
         -------
-        Dict[str, float]
+        dict
             Band name → median percent difference.
         """
         results: dict[str, float] = {}
@@ -1789,7 +1789,7 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
 
         Returns
         -------
-        Dict[str, Any]
+        dict
             Nested dict with 'slice' and 'volume' harmonic ratios in dB.
         """
         results: dict[str, Any] = {"slice": {}, "volume": {}}
@@ -2044,12 +2044,12 @@ class MetricsReport(Processor):
 
         Parameters
         ----------
-        metrics : Dict[str, Any]
+        metrics : dict
             Raw metrics dict from context (may contain nested dicts).
 
         Returns
         -------
-        Dict[str, float]
+        dict
             Flat dict of scalar metric values.
         """
         scalar_metrics: dict[str, float] = {}
@@ -2134,7 +2134,7 @@ class MetricsReport(Processor):
 
         Parameters
         ----------
-        results : Dict[str, Dict[str, float]]
+        results : dict
             Dictionary of results ``{name: {metric: value}}``.
         title : str, optional
             Plot title (default: "Metrics Comparison").

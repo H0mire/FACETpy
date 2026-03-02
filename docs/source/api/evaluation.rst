@@ -5,6 +5,17 @@ Evaluation processors for assessing correction quality.
 
 .. currentmodule:: facet.evaluation
 
+Utilities
+---------
+
+ReferenceDataMixin
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: facet.evaluation.metrics.ReferenceDataMixin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Interactive Selectors
 ---------------------
 

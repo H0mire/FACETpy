@@ -102,6 +102,22 @@ SwitchProcessor
    :undoc-members:
    :show-inheritance:
 
+NoOpProcessor
+~~~~~~~~~~~~~
+
+.. autoclass:: NoOpProcessor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+LambdaProcessor
+~~~~~~~~~~~~~~~
+
+.. autoclass:: LambdaProcessor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Registry
 --------
 

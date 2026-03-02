@@ -350,7 +350,7 @@ class MagicErasor(Processor):
     - ``mean``: set samples to the channel mean.
     - ``interpolate``: linearly interpolate between segment boundaries.
     - ``generated_eeg``: replace with synthetic EEG generated through
-      :class:`~facet.misc.EEGGenerator`, then adapt channel-wise mean and
+      ``EEGGenerator``, then adapt channel-wise mean and
       amplitude to the local surrounding signal.
 
     The editor stays open until the user clicks **Done**, enabling multiple
@@ -358,14 +358,14 @@ class MagicErasor(Processor):
 
     Parameters
     ----------
-    picks : str | list[str], optional
+    picks : str or list[str], optional
         Channels to edit (default: ``"eeg"``).
-    channel : str | int | None, optional
+    channel : str or int, optional
         Channel used for preview in the interactive window. When ``None``,
         the first edited EEG channel is used.
     default_mode : str, optional
         Initially selected editing mode (default: ``"zero"``).
-    random_seed : int | None, optional
+    random_seed : int, optional
         Optional seed used when ``generated_eeg`` mode is applied.
     """
 
@@ -1084,7 +1084,7 @@ class ChannelStandardizer(Processor):
 
     Parameters
     ----------
-    standard : str | list[str]
+    standard : str or list[str]
         Target standard identifier or explicit ordered channel list.
         Supported built-in identifiers:
         - ``"10-20"`` / ``"standard_1020_19"``

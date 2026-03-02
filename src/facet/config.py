@@ -178,7 +178,7 @@ def get_config(key: str | None = None) -> Any:
 
     Parameters
     ----------
-    key : str | None
+    key : str, optional
         Optional key to retrieve. If ``None``, the full config dict is returned.
     """
     resolved = _resolve_config()
@@ -201,7 +201,7 @@ def set_config(config: Mapping[str, Any] | None = None, /, *, apply_logging: boo
 
     Parameters
     ----------
-    config : Mapping[str, Any] | None
+    config : mapping, optional
         Optional mapping with config keys/values.
     apply_logging : bool
         Reconfigure FACETpy logging immediately after applying overrides.

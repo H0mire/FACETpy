@@ -5,14 +5,13 @@ Get started with FACETpy in minutes!
 ## Installation
 
 ```bash
-# From source
-git clone https://github.com/H0mire/facetpy.git
+# Recommended: Poetry bootstrap installer
+curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
-pip install -e .
-
-# Or from PyPI
-pip install facetpy
 ```
+
+The bootstrap script clones the repository and runs the Poetry-based installer.
+For manual setup details, see `README.md` and `docs/source/getting_started/installation.rst`.
 
 ## Basic Usage
 

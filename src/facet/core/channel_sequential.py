@@ -37,7 +37,7 @@ class ChannelSequentialExecutor:
     when the batch changes the sampling rate.
 
     The live console (when active) receives fine-grained channel and
-    processor progress updates via :class:`~facet.console.modern.ModernConsole`.
+    processor progress updates via the modern console manager.
 
     Example::
 

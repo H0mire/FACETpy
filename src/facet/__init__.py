@@ -268,10 +268,11 @@ _configure_logging()
 
 
 def load(path: str, **kwargs) -> "ProcessingContext":
-    """Load an EEG file and return a :class:`ProcessingContext`.
+    """Load an EEG file and return a :class:`~facet.core.ProcessingContext`.
 
     Automatically detects the file format from the extension (EDF, BDF, GDF,
-    BrainVision, EEGLAB, FIF).  For BIDS datasets, use :class:`BIDSLoader`.
+    BrainVision, EEGLAB, FIF). For BIDS datasets, use
+    :class:`~facet.io.BIDSLoader`.
 
     Parameters
     ----------
@@ -284,7 +285,7 @@ def load(path: str, **kwargs) -> "ProcessingContext":
 
     Returns
     -------
-    ProcessingContext
+    facet.core.ProcessingContext
         Context containing the loaded recording.
 
     Examples
@@ -300,14 +301,14 @@ __all__.append("load")
 
 
 def export(context: "ProcessingContext", path: str, **kwargs) -> "ProcessingContext":
-    """Export a :class:`ProcessingContext` using extension-based auto routing.
+    """Export a :class:`~facet.core.ProcessingContext` using extension-based auto routing.
 
     Uses :class:`~facet.io.Exporter` to dispatch export handling from ``path``
     extension (for example ``.edf``, ``.set``, ``.vhdr``).
 
     Parameters
     ----------
-    context : ProcessingContext
+    context : facet.core.ProcessingContext
         Input context that contains the Raw data to export.
     path : str
         Destination path; extension selects the exporter implementation.
@@ -317,7 +318,7 @@ def export(context: "ProcessingContext", path: str, **kwargs) -> "ProcessingCont
 
     Returns
     -------
-    ProcessingContext
+    facet.core.ProcessingContext
         The unchanged input context after export.
 
     Examples

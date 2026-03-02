@@ -22,20 +22,20 @@ class MATLABPreFilter(Processor):
 
     Parameters
     ----------
-    lp_frequency : float | Sequence[float] | None
+    lp_frequency : float or sequence of float, optional
         Low-pass cutoff in Hz (scalar or per-channel values). ``None`` means
         no LP from generated transfer functions.
-    hp_frequency : float | Sequence[float] | None
+    hp_frequency : float or sequence of float, optional
         High-pass cutoff in Hz (scalar or per-channel values). ``None`` means
         no HP from generated transfer functions.
-    transfer_frequencies : np.ndarray | Sequence[np.ndarray] | None
+    transfer_frequencies : np.ndarray or sequence of np.ndarray, optional
         Custom normalized frequency points in ``[0, 1]`` for transfer-function
         filtering. If set, overrides LP/HP synthesis.
-    transfer_amplitudes : np.ndarray | Sequence[np.ndarray] | None
+    transfer_amplitudes : np.ndarray or sequence of np.ndarray, optional
         Amplitude points corresponding to ``transfer_frequencies``.
-    gauss_hp_frequency : float | Sequence[float] | None
+    gauss_hp_frequency : float or sequence of float, optional
         Gaussian high-pass cutoff in Hz (scalar or per-channel values).
-    picks : str | Sequence[str]
+    picks : str or sequence of str
         Channels to filter (default: ``"eeg"``).
     pad_acquisition : bool
         Use acquisition-window padding during filtering (default: True).

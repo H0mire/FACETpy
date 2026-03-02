@@ -100,7 +100,8 @@ Create your own processor:
 
 .. code-block:: python
 
-   from facet.core import Processor, register_processor
+   from facet.core import Pipeline, Processor, register_processor
+   from facet.io import EDFExporter, Loader
 
    @register_processor
    class CustomDenoiser(Processor):
@@ -212,6 +213,9 @@ GDF Format
 .. code-block:: python
 
    from facet.core import Pipeline
+   from facet.correction import AASCorrection
+   from facet.io import Loader
+   from facet.preprocessing import DownSample, TriggerDetector, UpSample
    from facet.io import Loader, EDFExporter
 
    pipeline = Pipeline([

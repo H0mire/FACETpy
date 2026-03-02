@@ -3,7 +3,7 @@ Quick Start
 
 This guide will get you up and running with FACETpy in 5 minutes.
 
-Before running examples, install dependencies from the repository root:
+Before running examples, bootstrap and install FACETpy:
 
 .. code-block:: bash
 

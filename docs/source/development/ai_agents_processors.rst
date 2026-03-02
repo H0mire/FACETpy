@@ -1,82 +1,82 @@
-KI-Agenten fuer Prozessor-Entwicklung
-=====================================
+AI Agents For Processor Development
+===================================
 
-Diese Seite beschreibt einen pragmatischen Workflow, um Prozessoren in FACETpy mit KI-Agenten
-zu entwickeln, zu refaktorieren und zu reviewen.
+This page describes a pragmatic workflow for implementing, refactoring, and reviewing FACETpy processors with AI agents.
 
-Pflicht-Kontext fuer Prompts
-----------------------------
+Required Prompt Context
+-----------------------
 
-Wenn du einen KI-Agenten fuer Prozessor-Code nutzt, gib immer den Inhalt von
-``docs/PROCESSOR_GUIDELINES.md`` im Prompt mit (oder als zusaetzliche Kontextdatei).
-Ohne diese Guidelines sind Stil- und Architekturabweichungen sehr wahrscheinlich.
+When using an AI agent for processor code, always provide
+``docs/PROCESSOR_GUIDELINES.md`` in the prompt (or as an attached context file).
+Without these guidelines, style and architecture drift is very likely.
 
-Empfohlener Minimal-Kontext pro Prompt:
+Recommended minimum context for each prompt:
 
-- Ziel des Prozessors in einem Satz
-- Betroffene Dateien (z. B. ``src/facet/correction/...`` und ``tests/...``)
-- Akzeptanzkriterien (funktional + technisch)
-- ``docs/PROCESSOR_GUIDELINES.md`` als verpflichtende Richtlinie
+- Processor goal in one sentence
+- Affected files (for example ``src/facet/correction/...`` and ``tests/...``)
+- Acceptance criteria (functional and technical)
+- ``docs/PROCESSOR_GUIDELINES.md`` as mandatory rules
 
-Prompt-Template (kurz)
-----------------------
+Prompt Template (Short)
+-----------------------
 
 .. code-block:: text
 
-   Aufgabe: [kurze Beschreibung]
-   Scope: [Dateien/Module]
-   Anforderungen:
-   - Folge strikt den Regeln aus docs/PROCESSOR_GUIDELINES.md.
-   - Schreibe/aktualisiere passende Tests.
-   - Halte dich an bestehende APIs und Namenskonventionen.
+   Task: [short description]
+   Scope: [files/modules]
+   Requirements:
+   - Follow docs/PROCESSOR_GUIDELINES.md strictly.
+   - Write/update matching tests.
+   - Keep existing APIs and naming conventions.
    Definition of Done:
-   - Tests laufen lokal durch.
-   - Doku ist bei Verhaltensaenderungen aktualisiert.
+   - Tests pass locally.
+   - Documentation is updated for behavior changes.
 
-Tipps und Tricks
-----------------
+Tips And Practices
+------------------
 
-- Arbeite in kleinen, klaren Schritten statt in grossen Sammel-Prompts.
-- Fordere immer einen konkreten Diff-Plan an, bevor der Agent mehrere Dateien aendert.
-- Lass den Agenten zuerst Tests formulieren oder bestehende Tests erweitern, dann implementieren.
-- Gib Randfaelle explizit vor (z. B. fehlende Trigger, ungueltige Parameter, leere Daten).
-- Verlange bei Performance-kritischen Aenderungen eine kurze Begruendung zur Laufzeit-/Speicherwirkung.
+- Work in small, explicit steps instead of large monolithic prompts.
+- Request a concrete diff plan before the agent edits multiple files.
+- Ask the agent to write or extend tests first, then implement.
+- Specify edge cases explicitly (for example missing triggers, invalid parameters, empty data).
+- For performance-critical changes, require a short runtime/memory impact rationale.
 
-Review-Workflow mit Codex
--------------------------
+Review Workflow With Codex
+--------------------------
 
-Wenn Codex installiert ist, kannst du vor dem manuellen Review direkt den VSCode-Task
-``Review: Uncommitted Changes (Codex)`` ausfuehren (``Tasks: Run Task`` in VSCode).
-Fuer Branch-Vergleiche steht zusaetzlich ``Review: Against Branch (Codex)`` zur Verfuegung.
+If Codex is installed, run the VS Code task
+``Review: Uncommitted Changes (Codex)`` before manual review
+(``Tasks: Run Task`` in VS Code).
+For branch comparisons, use ``Review: Against Branch (Codex)``.
 
-Sinnvolle zusaetzliche Kontexte
+Useful Additional Context Files
 -------------------------------
 
-Je nach Aenderung sind diese Dateien als Zusatzkontext oft hilfreich:
+Depending on the change, these files are often useful extra context:
 
-- ``AGENTS.md`` (Repo-spezifische Arbeitsregeln)
-- ``docs/source/development/contributing.rst`` (lokaler Workflow und Checks)
-- ``.vscode/tasks.json`` (standardisierte Build-/Test-/Review-Tasks)
-- Betroffene API- oder User-Guide-Seiten unter ``docs/source/``
+- ``AGENTS.md`` (repository-specific working rules)
+- ``docs/source/development/contributing.rst`` (local workflow and checks)
+- ``.vscode/tasks.json`` (standard build/test/review tasks)
+- Affected API or user-guide pages under ``docs/source/``
 
-Wenn ihr haeufig mit Agenten arbeitet, lohnt sich ein eigenes Playbook wie
-``AI_AGENT_PLAYBOOK.md`` mit team-spezifischen Prompt-Vorlagen und Do/Don'ts.
+If your team uses agents frequently, maintain a dedicated playbook such as
+``AI_AGENT_PLAYBOOK.md`` with team-specific templates and do/don't rules.
 
-Optionale Skill-Ideen
----------------------
+Optional Skill Ideas
+--------------------
 
-Fuer wiederkehrende Aufgaben koennt ihr zusaetzlich eigene Agent-Skills aufsetzen, z. B.:
+For recurring workflows, define dedicated agent skills, for example:
 
-- ``processor-implementation``: Erstellt neuen Prozessor + Grundtests nach Guidelines.
-- ``processor-review-check``: Prueft Diffs gegen ``docs/PROCESSOR_GUIDELINES.md``.
-- ``processor-doc-sync``: Prueft, ob API-/User-Guide-Doku bei Codeaenderungen nachgezogen wurde.
+- ``processor-implementation``: create a new processor and baseline tests following the guidelines.
+- ``processor-review-check``: validate diffs against ``docs/PROCESSOR_GUIDELINES.md``.
+- ``processor-doc-sync``: verify API/user-guide docs are updated for code changes.
 
-Starter Kit im Repository
--------------------------
+Starter Kit In This Repository
+------------------------------
 
-Im Repository gibt es jetzt ein kleines Starter-Kit fuer Agent-Workflows:
+This repository includes a small starter kit for agent workflows:
 
-- ``AI_AGENT_PLAYBOOK.md`` (standardisierter Ablauf)
-- ``AI_PROMPT_TEMPLATES.md`` (Prompt-Vorlagen fuer Implementierung/Refactor/Review)
-- ``scripts/agent_context.sh`` (Kontext-Bundle fuer Prompts erzeugen)
-- ``.github/pull_request_template.md`` (PR-Checklist inkl. Agent-Checks)
+- ``AI_AGENT_PLAYBOOK.md`` (standardized workflow)
+- ``AI_PROMPT_TEMPLATES.md`` (implementation/refactor/review templates)
+- ``scripts/agent_context.sh`` (builds a context bundle for prompts)
+- ``.github/pull_request_template.md`` (PR checklist including agent checks)

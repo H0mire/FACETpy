@@ -500,10 +500,10 @@ class ProcessingContext:
         ----------
         events : np.ndarray
             MNE-style event array with shape ``(n_events, 3)``.
-        event : int | str | None, optional
+        event : int or str, optional
             Event code or event name to select. If ``None``, events must
             contain exactly one unique code.
-        event_id : dict[str, int], optional
+        event_id : dict, optional
             Mapping from event names to integer codes (from
             ``mne.events_from_annotations``). Required when ``event`` is a str.
         artifact_length : int, optional
@@ -648,7 +648,7 @@ class ProcessingContext:
                 ``Callable[[ProcessingContext], ProcessingContext]``.
 
         Returns:
-            New :class:`ProcessingContext` produced by applying *other*.
+            New :class:`~facet.core.context.ProcessingContext` produced by applying *other*.
         """
         from .processor import Processor
 

@@ -313,7 +313,7 @@ class PipelineResult:
         Release the Raw data held by the context to free memory.
 
         After calling this, ``get_raw()`` and ``plot()`` will no longer work,
-        but :attr:`metrics` and :attr:`execution_time` remain accessible.
+        but :attr:`metrics` and ``execution_time`` remain accessible.
         Useful when running batch jobs where you only need summary statistics.
         """
         if self.context is not None:
@@ -327,7 +327,8 @@ class PipelineResult:
 
 class BatchResult:
     """
-    Result of :meth:`Pipeline.map` — a list of :class:`PipelineResult` objects
+    Result of ``Pipeline.map(...)`` - a list of
+    :class:`~facet.core.pipeline.PipelineResult` objects
     with built-in helpers for quick inspection.
 
     It behaves like a regular list (iteration, indexing, ``len``), so existing
@@ -860,10 +861,10 @@ class Pipeline:
                 and you only need summary statistics.  Defaults to ``True``.
 
         Returns:
-            :class:`BatchResult` containing one :class:`PipelineResult` per
+            :class:`~facet.core.pipeline.BatchResult` containing one
+            :class:`~facet.core.pipeline.PipelineResult` per
             input, in the same order.  It behaves like a plain list but also
-            offers :meth:`~BatchResult.print_summary` and
-            :attr:`~BatchResult.summary_df`.
+            offers ``BatchResult.print_summary()`` and ``BatchResult.summary_df``.
 
         Example::
 

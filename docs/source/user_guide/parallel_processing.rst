@@ -242,7 +242,7 @@ Execution Flow
 Enabling it via the Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Pass ``parallel=True`` to :meth:`~facet.core.pipeline.Pipeline.run`.
+Pass ``parallel=True`` to ``Pipeline.run(...)``.
 Processors that do *not* set ``channel_wise = True`` are silently executed
 serially — no special handling required.
 

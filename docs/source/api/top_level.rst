@@ -1,7 +1,7 @@
 Top-Level API
 =============
 
-The :mod:`facet` package re-exports the most commonly used classes and helper
+The ``facet`` package re-exports the most commonly used classes and helper
 functions.
 
 .. currentmodule:: facet

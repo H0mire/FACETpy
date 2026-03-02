@@ -45,6 +45,9 @@ autodoc_default_options = {
     'undoc-members': True,
     'exclude-members': '__weakref__'
 }
+autodoc_type_aliases = {
+    "Path": "pathlib.Path",
+}
 
 # Napoleon settings (for Google/NumPy style docstrings)
 napoleon_google_docstring = True
@@ -58,9 +61,35 @@ napoleon_use_admonition_for_references = True
 napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
-napoleon_preprocess_types = False
-napoleon_type_aliases = None
+napoleon_preprocess_types = True
+napoleon_type_aliases = {
+    "array-like": "typing.Iterable",
+    "optional": "typing.Optional",
+    "callable": "collections.abc.Callable",
+    "sequence": "collections.abc.Sequence",
+    "np.ndarray": "numpy.ndarray",
+    "Path": "pathlib.Path",
+    "pathlib._local.Path": "pathlib.Path",
+}
 napoleon_attr_annotations = True
+
+# Keep strict/nitpicky builds actionable by ignoring unhelpful pseudo-type
+# tokens that appear in third-party-style docstrings.
+nitpick_ignore_regex = [
+    (r"py:class", r"optional"),
+    (r"py:class", r"array-like"),
+    (r"py:class", r"callable"),
+    (r"py:class", r"sequence"),
+    (r"py:class", r".*\|.*"),
+    (r"py:class", r".*\[.*"),
+    (r"py:class", r"pathlib\._local\.Path"),
+    (r"py:class", r"ProcessingContext"),
+    (r"py:class", r"np\.ndarray"),
+    (r"py:class", r"mapping"),
+    (r"py:meth", r"facet\.core\.pipeline\.Pipeline\.map"),
+    (r"py:meth", r"facet\.core\.pipeline\.BatchResult\.print_summary"),
+    (r"py:attr", r"facet\.core\.pipeline\.BatchResult\.summary_df"),
+]
 
 # Intersphinx mapping
 intersphinx_mapping = {
