@@ -1,10 +1,7 @@
 # FACETpy — fMRI Artifact Correction and Evaluation Toolbox
 
 <p align="center">
-  <picture>
-    <source srcset="docs/source/_static/logo_dark_theme.png" media="(prefers-color-scheme: dark)">
-    <img src="docs/source/_static/logo_light_theme.png" width="300" alt="FACETpy logo" />
-  </picture>
+  <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_auto.svg" width="300" alt="FACETpy logo" />
 </p>
 
 [![Documentation Status](https://readthedocs.org/projects/facetpy/badge/?version=latest)](https://facetpy.readthedocs.io/en/latest/?badge=latest)
@@ -45,7 +42,7 @@ Set-Location facetpy
 poetry install --no-interaction
 ```
 <p align="center">
-  <img src="docs/source/_static/run_example.png" alt="FACETpy example run" width="700" />
+  <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/run_example.png" alt="FACETpy example run" width="700" />
 </p>
 
 

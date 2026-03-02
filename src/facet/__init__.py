@@ -8,7 +8,7 @@ Date: 2025-01-12
 Version: 2.0.0
 """
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 __author__ = "FACETpy Team"
 
 # Core architecture
