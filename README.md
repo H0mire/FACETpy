@@ -28,11 +28,21 @@ results with minimal code.
 
 ## Quick start
 
-Quick installation via script (requires python 3.11/3.12/3.13):
+Quick installation (requires Python 3.11/3.12/3.13):
+
+Unix (macOS/Linux):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
+```
+
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/H0mire/facetpy.git
+Set-Location facetpy
+poetry install --no-interaction
 ```
 <p align="center">
   <img src="docs/source/_static/run_example.png" alt="FACETpy example run" width="700" />
@@ -64,7 +74,7 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 Requires **Python 3.11, 3.12, or 3.13** and [Poetry](https://python-poetry.org) >= 1.8.
 Conda is optional, not required.
 
-### Option A (recommended): bootstrap script
+### Option A (Unix recommended): bootstrap script
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
@@ -74,7 +84,7 @@ This bootstrap script:
 - clones the FACETpy repository into `./facetpy`
 - runs `./scripts/install.sh` inside that clone
 
-### Option B: clone first, then run local installer
+### Option B (Unix): clone first, then run local installer
 ```bash
 git clone https://github.com/H0mire/facetpy.git
 cd facetpy
@@ -87,7 +97,19 @@ The script:
 - asks whether Poetry should be installed if missing
 - runs `poetry install --no-interaction`
 
-### Option C: system Python + Poetry (manual)
+### Option C (Windows PowerShell): manual install
+
+```powershell
+git clone https://github.com/H0mire/facetpy.git
+Set-Location facetpy
+poetry install --no-interaction
+```
+
+Use Option A/B inside WSL or Git Bash if you want to run the `.sh` installer scripts.
+
+### Option D: system Python + Poetry (manual)
+
+Unix (macOS/Linux):
 ```bash
 # 1 — verify Python
 python3 --version
@@ -100,7 +122,24 @@ pipx install poetry
 poetry install --no-interaction
 ```
 
-### Option D (optional): Conda workflow
+Windows (PowerShell):
+
+```powershell
+# 1 — verify Python
+py --version
+
+# 2 — install Poetry (pick one)
+pipx install poetry
+# or: py -m pip install --user poetry
+
+# 3 — install FACETpy and dependencies
+poetry install --no-interaction
+```
+
+### Option E (optional): Conda workflow
+
+Unix (macOS/Linux):
+
 ```bash
 conda create -n facetpy python=3.13 -y
 conda activate facetpy
@@ -108,8 +147,17 @@ conda install -c conda-forge poetry -y
 poetry install --no-interaction
 ```
 
+Windows (PowerShell):
+
+```powershell
+conda create -n facetpy python=3.13 -y
+conda activate facetpy
+conda install -c conda-forge poetry -y
+poetry install --no-interaction
+```
+
 Optional extras:
-```bash
+```text
 poetry install -E deeplearning   # TensorFlow-based models
 poetry install -E notebooks      # Jupyter notebook support
 poetry install -E gui            # PyQt6 GUI components
@@ -164,7 +212,20 @@ poetry run pytest tests/test_core_pipeline.py -v
 
 # With coverage report
 poetry run pytest --cov=facet --cov-report=html
+```
+
+Open the coverage report:
+
+Unix (macOS/Linux):
+
+```bash
 open htmlcov/index.html
+```
+
+Windows (PowerShell):
+
+```powershell
+start htmlcov/index.html
 ```
 
 
@@ -177,8 +238,20 @@ poetry install -E docs
 # Build HTML docs
 poetry run sphinx-build -b html docs/source docs/build
 
-# Open locally
+```
+
+Open docs locally:
+
+Unix (macOS/Linux):
+
+```bash
 open docs/build/index.html
+```
+
+Windows (PowerShell):
+
+```powershell
+start docs/build/index.html
 ```
 
 Full online documentation: https://facetpy.readthedocs.io/

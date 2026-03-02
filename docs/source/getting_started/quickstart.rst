@@ -5,10 +5,20 @@ This guide will get you up and running with FACETpy in 5 minutes.
 
 Before running examples, bootstrap and install FACETpy:
 
+Unix (macOS/Linux):
+
 .. code-block:: bash
 
    curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
    cd facetpy
+
+Windows (PowerShell):
+
+.. code-block:: powershell
+
+   git clone https://github.com/H0mire/facetpy.git
+   Set-Location facetpy
+   poetry install --no-interaction
 
 Basic Correction Pipeline
 --------------------------

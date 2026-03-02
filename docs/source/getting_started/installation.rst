@@ -14,7 +14,12 @@ Requirements
 Install from Source
 -------------------
 
-FACETpy is managed with Poetry. The quickest setup is the bootstrap URL:
+FACETpy is managed with Poetry.
+
+Unix (macOS/Linux)
+~~~~~~~~~~~~~~~~~~
+
+The quickest setup on Unix-like systems is the bootstrap URL:
 
 .. code-block:: bash
 
@@ -31,6 +36,20 @@ You can also clone first and run the local installer:
    cd facetpy
    ./scripts/install.sh
 
+Windows (PowerShell)
+~~~~~~~~~~~~~~~~~~~~
+
+For native Windows terminals, use manual installation in PowerShell:
+
+.. code-block:: powershell
+
+   git clone https://github.com/H0mire/facetpy.git
+   Set-Location facetpy
+   poetry install --no-interaction
+
+If you prefer the script-based installer, run the Unix commands above inside
+WSL or Git Bash (the installer scripts are ``.sh`` only).
+
 The script:
 
 * checks for Python 3.11/3.12/3.13
@@ -38,21 +57,21 @@ The script:
 * prompts to install Poetry if missing
 * runs ``poetry install --no-interaction``
 
-Manual installation:
+Manual installation (Unix and Windows):
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry install
 
-Run commands inside the Poetry environment:
+Run commands inside the Poetry environment (Unix and Windows):
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run pytest
 
-Optional extras:
+Optional extras (Unix and Windows):
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry install -E deeplearning   # TensorFlow-based extras
    poetry install -E notebooks      # Jupyter notebook support
@@ -108,9 +127,17 @@ MNE-Python Issues
 
 If you encounter issues with MNE-Python installation:
 
+Unix (macOS/Linux):
+
 .. code-block:: bash
 
-   pip install --upgrade mne
+   python -m pip install --upgrade mne
+
+Windows (PowerShell):
+
+.. code-block:: powershell
+
+   py -m pip install --upgrade mne
 
 See `MNE installation guide <https://mne.tools/stable/install/index.html>`_ for platform-specific instructions.
 

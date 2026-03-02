@@ -490,14 +490,22 @@ Best Practices
    durations, and a live progress bar. This interactive view is enabled by
    default—just run your pipeline and watch the terminal update in place.
 
-   Prefer the legacy line-by-line console output? Export
+   Prefer the legacy line-by-line console output? Set
    ``FACET_CONSOLE_MODE=classic`` (or ``legacy``) before starting Python and
    you'll get the traditional loguru sink back while file logging remains
    untouched.
 
+   Unix (macOS/Linux):
+
    .. code-block:: bash
 
       FACET_CONSOLE_MODE=classic python my_pipeline.py
+
+   Windows (PowerShell):
+
+   .. code-block:: powershell
+
+      $env:FACET_CONSOLE_MODE = "classic"; python my_pipeline.py
 
    You can still log explicitly from processors using loguru:
 

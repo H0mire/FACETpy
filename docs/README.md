@@ -6,22 +6,43 @@ This directory contains the Sphinx documentation sources for FACETpy.
 
 Install docs dependencies:
 
-```bash
+```text
 poetry install -E docs
 ```
 
 Build HTML docs from repository root:
 
-```bash
+```text
 poetry run sphinx-build -b html docs/source docs/build
 ```
 
-Open `docs/build/index.html` in your browser.
+Open `docs/build/index.html` in your browser:
+
+Unix (macOS/Linux):
+
+```bash
+open docs/build/index.html
+```
+
+Windows (PowerShell):
+
+```powershell
+start docs/build/index.html
+```
 
 ## Clean Build
 
+Unix (macOS/Linux):
+
 ```bash
 rm -rf docs/build
+poetry run sphinx-build -b html docs/source docs/build
+```
+
+Windows (PowerShell):
+
+```powershell
+Remove-Item -Recurse -Force docs/build
 poetry run sphinx-build -b html docs/source docs/build
 ```
 
@@ -54,7 +75,7 @@ flowchart TD
 
 ### Missing `myst_parser`
 
-```bash
+```text
 poetry install -E docs
 ```
 
@@ -62,13 +83,13 @@ poetry install -E docs
 
 Run builds from the repository root so `docs/source/conf.py` path setup stays valid:
 
-```bash
+```text
 poetry run sphinx-build -b html docs/source docs/build
 ```
 
 ### Theme issues
 
-```bash
+```text
 poetry install -E docs
 ```
 

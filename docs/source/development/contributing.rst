@@ -3,32 +3,48 @@ Contributing to FACETpy
 
 Thanks for contributing. This guide documents the current development workflow.
 
+Terminal Conventions
+--------------------
+
+- ``bash`` blocks target Unix shells (macOS/Linux).
+- ``powershell`` blocks target Windows PowerShell.
+- Commands shown as ``text`` are identical on both platforms.
+
 Quick Setup
 -----------
 
 1. Fork ``https://github.com/H0mire/facetpy``.
 2. Clone your fork.
 
+Unix (macOS/Linux):
+
 .. code-block:: bash
 
    git clone https://github.com/<your-username>/facetpy.git
    cd facetpy
 
+Windows (PowerShell):
+
+.. code-block:: powershell
+
+   git clone https://github.com/<your-username>/facetpy.git
+   Set-Location facetpy
+
 3. Install dependencies with Poetry.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry install --no-interaction
 
 4. (Optional) Install docs dependencies when working on documentation.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry install -E docs
 
 5. Verify your environment.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run pytest -m "not slow"
 
@@ -37,7 +53,7 @@ Development Workflow
 
 1. Create a topic branch.
 
-.. code-block:: bash
+.. code-block:: text
 
    git checkout -b feature/<short-topic>
 
@@ -46,7 +62,7 @@ Development Workflow
 4. Update docs in ``docs/source`` when behavior or API changes.
 5. Run lint check and fix.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run ruff check src tests
    poetry run ruff check --fix src tests
@@ -54,13 +70,13 @@ Development Workflow
 
 6. Run checks locally.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run pytest
 
 7. Build docs locally when docs changed.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run sphinx-build -b html docs/source docs/build
 
@@ -83,13 +99,13 @@ Linting and Formatting
 
 Ruff is the active linter configuration for this repository.
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run ruff check src tests
 
 (Optional auto-fix)
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run ruff check --fix src tests
 
@@ -107,13 +123,13 @@ Testing
 
 Run tests:
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run pytest
 
 Run a subset:
 
-.. code-block:: bash
+.. code-block:: text
 
    poetry run pytest -m "not slow"
 
@@ -156,4 +172,3 @@ for example:
 
 - ``docs, refactor: clarify pipeline flow``
 - ``fix: handle missing trigger channel``
-

@@ -22,12 +22,22 @@ FACETpy provides a modular architecture with:
 Quick Start
 -----------
 
-Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.8):
+Install FACETpy (requires Python ≥ 3.11 and `Poetry <https://python-poetry.org>`_ ≥ 1.8).
+
+Unix (macOS/Linux):
 
 .. code-block:: bash
 
    curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
    cd facetpy
+
+Windows (PowerShell):
+
+.. code-block:: powershell
+
+   git clone https://github.com/H0mire/facetpy.git
+   Set-Location facetpy
+   poetry install --no-interaction
 
 Run a complete correction pipeline:
 
