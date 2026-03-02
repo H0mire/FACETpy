@@ -146,18 +146,33 @@ class RawPlotter(Processor):
         plot_kwargs["block"] = False
         fig = raw.plot(**plot_kwargs)
 
+        # MNE returns different types depending on backend:
+        # - matplotlib backend: Figure with savefig()
+        # - Qt backend (mne-qt-browser): MNEQtBrowser without savefig()
+        is_matplotlib_figure = hasattr(fig, "savefig")
+
         if self.save_path:
             self.save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(self.save_path, dpi=150, bbox_inches="tight")
-            logger.info("Saved MNE plot to {}", self.save_path)
+            if is_matplotlib_figure:
+                fig.savefig(self.save_path, dpi=150, bbox_inches="tight")
+                logger.info("Saved MNE plot to {}", self.save_path)
+            else:
+                logger.warning(
+                    "MNE returned {} (Qt backend); savefig not supported. "
+                    "Use mode='matplotlib' or mne.viz.set_browser_backend('matplotlib') for saving.",
+                    type(fig).__name__,
+                )
+                return
 
         if self.show:
-            with suspend_raw_mode():
-                plt.show(block=False)
-                while plt.fignum_exists(fig.number):
-                    fig.canvas.flush_events()
-                    time.sleep(0.05)
-        elif self.auto_close or self.save_path:
+            if is_matplotlib_figure:
+                with suspend_raw_mode():
+                    plt.show(block=False)
+                    while plt.fignum_exists(fig.number):
+                        fig.canvas.flush_events()
+                        time.sleep(0.05)
+            # Qt backend handles display independently; nothing to do
+        elif (self.auto_close or self.save_path) and is_matplotlib_figure:
             plt.close(fig)
 
     def _plot_with_matplotlib(self, raw, context: ProcessingContext) -> None:

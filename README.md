@@ -28,12 +28,16 @@ results with minimal code.
 
 ## Quick start
 
-Quick installation via script (requires python 3.11/3.12):
+Quick installation via script (requires python 3.11/3.12/3.13):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
 ```
+<p align="center">
+  <img src="docs/source/_static/facetpy_banner.png" alt="FACETpy overview banner" width="700" />
+</p>
+
 
 ```python
 from facet import (
@@ -57,7 +61,7 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 
 ## Installation
 
-Requires **Python 3.11 or 3.12** and [Poetry](https://python-poetry.org) >= 1.8.
+Requires **Python 3.11, 3.12, or 3.13** and [Poetry](https://python-poetry.org) >= 1.8.
 Conda is optional, not required.
 
 ### Option A (recommended): bootstrap script
@@ -78,7 +82,7 @@ cd facetpy
 ```
 
 The script:
-- checks for Python 3.11/3.12
+- checks for Python 3.11/3.12/3.13
 - checks whether Poetry is installed
 - asks whether Poetry should be installed if missing
 - runs `poetry install --no-interaction`
@@ -98,7 +102,7 @@ poetry install --no-interaction
 
 ### Option D (optional): Conda workflow
 ```bash
-conda create -n facetpy python=3.12 -y
+conda create -n facetpy python=3.13 -y
 conda activate facetpy
 conda install -c conda-forge poetry -y
 poetry install --no-interaction

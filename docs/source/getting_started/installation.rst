@@ -4,7 +4,7 @@ Installation
 Requirements
 ------------
 
-* Python 3.11 or 3.12
+* Python 3.11, 3.12, or 3.13
 * MNE-Python 1.10.2
 * NumPy 2.1.3
 * SciPy >= 1.15.3
@@ -33,7 +33,7 @@ You can also clone first and run the local installer:
 
 The script:
 
-* checks for Python 3.11/3.12
+* checks for Python 3.11/3.12/3.13
 * checks whether Poetry is installed
 * prompts to install Poetry if missing
 * runs ``poetry install --no-interaction``

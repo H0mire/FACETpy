@@ -88,11 +88,11 @@ check_python_version() {
   version="$("$python_bin" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
 
   case "$version" in
-    3.11|3.12)
+    3.11|3.12|3.13)
       ok "Detected supported Python ${version} (${python_bin})."
       ;;
     *)
-      fail "FACETpy requires Python 3.11 or 3.12, found ${version} (${python_bin})."
+      fail "FACETpy requires Python 3.11, 3.12, or 3.13, found ${version} (${python_bin})."
       fail "Install a supported Python version, then re-run bootstrap."
       exit 1
       ;;
@@ -170,7 +170,7 @@ main() {
   info "Checking Python prerequisites..."
   if ! python_bin="$(find_python)"; then
     fail "Python was not found."
-    fail "Install Python 3.11 or 3.12, then re-run bootstrap."
+    fail "Install Python 3.11, 3.12, or 3.13, then re-run bootstrap."
     exit 1
   fi
   check_python_version "$python_bin"

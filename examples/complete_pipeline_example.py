@@ -109,7 +109,7 @@ steps = [
         overlay_original=True,
         save_path=str(OUTPUT_DIR / "before_after.png"),
         show=True,
-        auto_close=True,
+        auto_close=False,
         title="Fp1 — Before Correction",
     ),
 
@@ -184,7 +184,7 @@ steps += [
         overlay_original=True,
         save_path=str(OUTPUT_DIR / "before_after.png"),
         show=True,
-        auto_close=True,
+        auto_close=False,
         title="Fp1 — Before vs After Correction",
     ),
 ]
