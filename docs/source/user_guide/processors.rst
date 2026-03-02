@@ -112,9 +112,13 @@ Loading Data
        root="/path/to/bids",
        subject="01",
        session="01",
-       task="rest"
+       task="rest",
+       run="01",
    )
    context = loader.execute(None)
+
+Use ``run`` when your BIDS dataset has multiple recordings for the same
+subject/session/task combination.
 
 Exporting Data
 ^^^^^^^^^^^^^^

@@ -143,7 +143,7 @@ If your project is BIDS-based, you can keep everything in BIDS using
    from facet import Pipeline, BIDSLoader, TriggerDetector, AASCorrection, BIDSExporter
 
    pipeline = Pipeline([
-       BIDSLoader(root="./bids", subject="01", session="01", task="rest"),
+       BIDSLoader(root="./bids", subject="01", session="01", task="rest", run="01"),
        TriggerDetector(regex=r"\\b1\\b"),
        AASCorrection(window_size=30),
        BIDSExporter(root="./bids_derivatives/facetpy", subject="01", session="01", task="rest"),

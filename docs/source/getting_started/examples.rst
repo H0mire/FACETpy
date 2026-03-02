@@ -194,7 +194,8 @@ BIDS Format
            root="/path/to/bids",
            subject="01",
            session="01",
-           task="rest"
+           task="rest",
+           run="01",
        ),
        # ... correction ...
        BIDSExporter(

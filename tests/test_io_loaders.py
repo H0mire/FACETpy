@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from facet.core import ProcessorValidationError
-from facet.io.loaders import _EXTENSION_READERS, Loader, _apply_sample_window
+from facet.io.loaders import BIDSLoader, _EXTENSION_READERS, Loader, _apply_sample_window
 
 pytestmark = pytest.mark.unit
 
@@ -89,3 +89,27 @@ def test_auto_loader_invalid_window_raises(monkeypatch, raw_factory):
 
     with pytest.raises(ProcessorValidationError):
         loader.execute(None)
+
+
+def test_bids_loader_passes_run_to_bids_path(monkeypatch, raw_factory, tmp_path):
+    captured: dict[str, object] = {}
+
+    def fake_read_raw_bids(bids_path, *args, **kwargs):
+        captured["bids_path"] = bids_path
+        return raw_factory()
+
+    monkeypatch.setattr("facet.io.loaders.read_raw_bids", fake_read_raw_bids)
+
+    loader = BIDSLoader(
+        root=str(tmp_path),
+        subject="01",
+        session="01",
+        task="rest",
+        run="02",
+    )
+
+    context = loader.execute(None)
+
+    assert context.get_raw().n_times == 500
+    bids_path = captured["bids_path"]
+    assert bids_path.run == "02"

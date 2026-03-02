@@ -366,6 +366,8 @@ class BIDSLoader(Processor):
         Task name.
     session : str, optional
         Session identifier (without the ``ses-`` prefix).
+    run : str, optional
+        Run identifier (without the ``run-`` prefix).
     bad_channels : list of str, optional
         Channel names to mark as bad (default: none).
     preload : bool, optional
@@ -395,6 +397,7 @@ class BIDSLoader(Processor):
         subject: str,
         task: str,
         session: str | None = None,
+        run: str | None = None,
         bad_channels: list[str] | None = None,
         preload: bool = True,
         artifact_to_trigger_offset: float = 0.0,
@@ -406,6 +409,7 @@ class BIDSLoader(Processor):
         self.subject = subject
         self.task = task
         self.session = session
+        self.run = run
         self.bad_channels = bad_channels or []
         self.preload = preload
         self.artifact_to_trigger_offset = artifact_to_trigger_offset
@@ -421,10 +425,11 @@ class BIDSLoader(Processor):
     def process(self, context: ProcessingContext | None) -> ProcessingContext:
         # --- LOG ---
         logger.info(
-            "Loading BIDS data: subject={}, task={}, session={}",
+            "Loading BIDS data: subject={}, task={}, session={}, run={}",
             self.subject,
             self.task,
             self.session,
+            self.run,
         )
 
         # --- COMPUTE ---
@@ -432,6 +437,7 @@ class BIDSLoader(Processor):
             subject=self.subject,
             session=self.session,
             task=self.task,
+            run=self.run,
             root=self.root,
         )
 
