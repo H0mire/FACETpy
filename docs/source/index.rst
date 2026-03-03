@@ -71,6 +71,7 @@ Documentation Overview
    :maxdepth: 2
    :caption: User Guide
 
+   user_guide/use_cases
    user_guide/architecture
    user_guide/configuration
    user_guide/pipelines

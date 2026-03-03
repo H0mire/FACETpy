@@ -31,10 +31,24 @@ Built on [MNE-Python](https://mne.tools), FACETpy provides a modular pipeline ar
 - Load EEG from EDF, GDF, and BIDS formats
 - Artifact correction: AAS, PCA, Adaptive Noise Cancellation (ANC)
 - Full evaluation suite: SNR, RMS, Median Artifact, FFT-based metrics
-- One-call results: `result.print_metrics()`, `result.print_summary()`
 - Batch processing across subjects/sessions with `Pipeline.map()`
 - Generate synthetic EEG for algorithm testing
 - Rich progress display in the terminal
+
+
+## Supported artifacts
+
+| Artifact | Origin | Correction methods |
+|---|---|---|
+| **Gradient artifact (GA)** | MRI scanner gradient switching during simultaneous EEG-fMRI | AAS, PCA |
+| **Ballistocardiogram (BCG)** | Cardiac-induced electrode movements in the MRI magnetic field | AAS (after BCG detection), PCA |
+| **Cardioballistic / pulse artifact** | Pulsatile skin/vessel movement under electrodes | BCG detector + AAS |
+| **Motion artifact** | Head movement, cable pull, electrode shift | Preprocessing filters, PCA |
+| **Power-line noise (50/60 Hz)** | Electrical mains interference | Notch filter (via MNE preprocessing) |
+| **Muscle (EMG) artifact** | Jaw, neck muscle activity contaminating high-frequency EEG | High-frequency filtering, PCA |
+| **Amplifier saturation / drift** | Slow DC drift or clipping from long recordings | Baseline correction, filtering |
+
+For a detailed description of use cases (EEG-fMRI research, batch studies, benchmarking, clinical pipelines, and more) see the [Use Cases & Supported Artifacts](https://facetpy.readthedocs.io/en/latest/user_guide/use_cases.html) page in the documentation.
 
 
 ## Quick start
