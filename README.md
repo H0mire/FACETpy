@@ -31,10 +31,46 @@ Built on [MNE-Python](https://mne.tools), FACETpy provides a modular pipeline ar
 - Load EEG from EDF, GDF, and BIDS formats
 - Artifact correction: AAS, PCA, Adaptive Noise Cancellation (ANC)
 - Full evaluation suite: SNR, RMS, Median Artifact, FFT-based metrics
-- One-call results: `result.print_metrics()`, `result.print_summary()`
 - Batch processing across subjects/sessions with `Pipeline.map()`
 - Generate synthetic EEG for algorithm testing
 - Rich progress display in the terminal
+
+
+## Use cases & supported artifacts
+
+### Supported artifacts
+
+FACETpy is designed to remove or reduce EEG artifacts that arise from the recording environment or physiological sources. Supported artifact types include:
+
+| Artifact | Origin | Correction methods |
+|---|---|---|
+| **Gradient artifact (GA)** | MRI scanner gradient switching during simultaneous EEG-fMRI | AAS, PCA |
+| **Ballistocardiogram (BCG)** | Cardiac-induced electrode movements in the MRI magnetic field | AAS (after BCG detection), PCA |
+| **Cardioballistic / pulse artifact** | Pulsatile skin/vessel movement under electrodes | BCG detector + AAS |
+| **Motion artifact** | Head movement, cable pull, electrode shift | Preprocessing filters, PCA |
+| **Power-line noise (50/60 Hz)** | Electrical mains interference | Notch filter (via MNE preprocessing) |
+| **Muscle (EMG) artifact** | Jaw, neck muscle activity contaminating high-frequency EEG | High-frequency filtering, PCA |
+| **Amplifier saturation / drift** | Slow DC drift or clipping from long recordings | Baseline correction, filtering |
+
+### Use cases
+
+**Simultaneous EEG-fMRI research** *(primary use case)*  
+Remove gradient and BCG artifacts from EEG recorded inside an MRI scanner. FACETpy implements AAS with optional upsampling and volumetric alignment to achieve artifact rejection of > 95 % without distorting the underlying EEG signal.
+
+**Multi-subject / multi-session batch studies**  
+Use `Pipeline.map()` to iterate over a BIDS dataset and apply an identical correction pipeline to every subject and session automatically. Metrics (SNR, RMS) are collected per run and returned as a structured `BatchResult`.
+
+**Algorithm comparison and benchmarking**  
+Run several correction strategies (AAS, PCA, ANC) on the same data and compare them side-by-side with the built-in evaluation module. Useful for methodology papers that need quantitative SNR / RMS tables.
+
+**Synthetic EEG testing and algorithm development**  
+Generate controlled EEG signals with injected artifact profiles using `EEGGenerator`. Benchmark new algorithms without needing access to real scanner hardware.
+
+**Clinical feasibility studies**  
+Evaluate artifact correction for clinical applications such as epilepsy monitoring or sleep staging during MRI, where preserving pathological waveforms (spikes, slow waves) is critical.
+
+**Teaching and reproducible science**  
+Bundle entire processing pipelines into a single `Pipeline` object that can be serialised, shared, and re-run by collaborators, making analyses transparent and reproducible.
 
 
 ## Quick start
