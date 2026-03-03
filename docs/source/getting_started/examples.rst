@@ -3,6 +3,23 @@ Examples
 
 This page provides various examples of using FACETpy for different scenarios.
 
+Running Repository Examples
+---------------------------
+
+The scripts on this page live in the repository ``examples/`` directory.
+You can run them without Poetry.
+Install FACETpy with pip, then run the scripts from a repository checkout:
+
+.. code-block:: bash
+
+   pip install facetpy
+   git clone https://github.com/H0mire/facetpy.git
+   cd facetpy
+   python examples/quickstart.py
+
+For full contribution workflows (tests, linting, docs), use
+:doc:`../development/contributing` (Poetry-based).
+
 Basic Correction
 ----------------
 

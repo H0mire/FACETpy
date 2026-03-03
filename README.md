@@ -1,19 +1,30 @@
-# FACETpy — fMRI Artifact Correction and Evaluation Toolbox
+<p align="center">
+  <a href="https://facetpy.readthedocs.io/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_dark_theme.png">
+      <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_light_theme.png" alt="FACETpy logo" width="300">
+    </picture>
+  </a>
+</p>
+
+<h3 align="center">FACETpy - EEG-Data Correction Framework</h3>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_dark_theme.png">
-    <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/logo_light_theme.png" alt="FACETpy logo" />
-  </picture>
+  A Python toolbox for correcting EEG artifacts using Averaged Artifact Subtraction (AAS) and other advanced methods. Built on MNE-Python.
+  <br>
+  <a href="https://facetpy.readthedocs.io/"><strong>Explore FACETpy docs »</strong></a>
+  <br>
+  <br>
+  <a href="https://github.com/H0mire/facetpy/issues/new?assignees=&labels=bug">Report bug</a>
+  ·
+  <a href="https://github.com/H0mire/facetpy/issues/new?assignees=&labels=feature">Request feature</a>
+  ·
+  <a href="https://facetpy.readthedocs.io/">Documentation</a>
 </p>
 
 [![Documentation Status](https://readthedocs.org/projects/facetpy/badge/?version=latest)](https://facetpy.readthedocs.io/en/latest/?badge=latest)
 
-A Python toolbox for correcting fMRI-induced EEG artifacts using Averaged
-Artifact Subtraction (AAS) and other advanced methods.  Built on
-[MNE-Python](https://mne.tools), it provides a modular pipeline
-architecture that lets researchers process, evaluate, and compare correction
-results with minimal code.
+Built on [MNE-Python](https://mne.tools), FACETpy provides a modular pipeline architecture that lets researchers process, evaluate, and compare correction results with minimal code.
 
 **Key features**
 
@@ -28,22 +39,28 @@ results with minimal code.
 
 ## Quick start
 
-Quick installation (requires Python 3.11/3.12/3.13):
+Quick installation from PyPI (requires Python 3.11/3.12/3.13):
 
-Unix (macOS/Linux):
+```bash
+pip install facetpy
+```
+
+Strongly recommended for fast ANC performance:
+
+```bash
+python -m facet.build
+```
+
+For the Full Setup + Early Access to features  (Repository, Examples, Contributing):  
+Unix (WSL/macOS/Linux) - bootstrap shortcut:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
 ```
 
-Windows (PowerShell):
+## Preview
 
-```powershell
-git clone https://github.com/H0mire/facetpy.git
-Set-Location facetpy
-poetry install --no-interaction
-```
 <p align="center">
   <img src="https://raw.githubusercontent.com/H0mire/facetpy/main/docs/source/_static/run_example.png" alt="FACETpy example run" width="700" />
 </p>
@@ -71,10 +88,10 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 
 ## Installation
 
-Requires **Python 3.11, 3.12, or 3.13** and [Poetry](https://python-poetry.org) >= 1.8.
-Conda is optional, not required.
+Requires **Python 3.11, 3.12, or 3.13**.
+For normal usage, Poetry is not required.
 
-### Option A (PyPI): install from package index
+### Normal usage (recommended): install from PyPI
 
 ```bash
 pip install facetpy
@@ -82,89 +99,56 @@ pip install facetpy
 
 The package name on PyPI is `facetpy`; import it in Python as `facet`.
 
-### Option B (Unix recommended): bootstrap script
+### Contributing setup (source + Poetry)
+
+Poetry is required for contribution workflows (tests, linting, docs).
+
+Unix (macOS/Linux) - bootstrap shortcut (installs poetry):
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
 ```
 
-This bootstrap script:
-- clones the FACETpy repository into `./facetpy`
-- runs `./scripts/install.sh` inside that clone
+Unix (macOS/Linux) - existing clone (installs peotry):
 
-### Option C (Unix): clone first, then run local installer
 ```bash
-git clone https://github.com/H0mire/facetpy.git
-cd facetpy
 ./scripts/install.sh
 ```
 
-The script:
+Other platforms (including Windows) with Poetry installed:
+
+```bash
+git clone https://github.com/H0mire/facetpy.git
+cd facetpy
+poetry install --no-interaction
+```
+
+The Unix `./scripts/install.sh` script:
 - checks for Python 3.11/3.12/3.13
 - checks whether Poetry is installed
 - asks whether Poetry should be installed if missing
 - runs `poetry install --no-interaction`
 
-### Option D (Windows PowerShell): manual install
+The bootstrap script:
+- clones FACETpy into `./facetpy`
+- runs `./scripts/install.sh` inside that clone
 
-```powershell
-git clone https://github.com/H0mire/facetpy.git
-Set-Location facetpy
-poetry install --no-interaction
-```
+Manual Poetry installation (contributors):
 
-Use Option B/C inside WSL or Git Bash if you want to run the `.sh` installer scripts.
-
-### Option E: system Python + Poetry (manual)
-
-Unix (macOS/Linux):
 ```bash
 # 1 — verify Python
-python3 --version
+python --version
 
 # 2 — install Poetry (pick one)
 pipx install poetry
-# or: python3 -m pip install --user poetry
+# or: pip install --user poetry
 
-# 3 — install FACETpy and dependencies
+# 3 — install repository dependencies
 poetry install --no-interaction
 ```
 
-Windows (PowerShell):
-
-```powershell
-# 1 — verify Python
-py --version
-
-# 2 — install Poetry (pick one)
-pipx install poetry
-# or: py -m pip install --user poetry
-
-# 3 — install FACETpy and dependencies
-poetry install --no-interaction
-```
-
-### Option F (optional): Conda workflow
-
-Unix (macOS/Linux):
-
-```bash
-conda create -n facetpy python=3.13 -y
-conda activate facetpy
-conda install -c conda-forge poetry -y
-poetry install --no-interaction
-```
-
-Windows (PowerShell):
-
-```powershell
-conda create -n facetpy python=3.13 -y
-conda activate facetpy
-conda install -c conda-forge poetry -y
-poetry install --no-interaction
-```
-
-Optional extras:
+Optional contributor extras:
 ```text
 poetry install -E deeplearning   # TensorFlow-based models
 poetry install -E notebooks      # Jupyter notebook support
@@ -173,36 +157,55 @@ poetry install -E docs           # Sphinx documentation toolchain
 poetry install -E all            # everything above
 ```
 
-Run commands with `poetry run ...` (for example, `poetry run python examples/quickstart.py`).
+Run contributor commands with `poetry run ...` (for example, `poetry run pytest`).
 
 
-### Build the C extension (optional)
+### Build the C extension (strongly recommended for ANC)
 
-The fast Adaptive Noise Cancellation (ANC) step uses a compiled C extension.
-Build it once after installing:
+The fast Adaptive Noise Cancellation (ANC) path is significantly faster with
+the compiled FastRANC C extension. Build it once after installing.
+
+Without Poetry:
+
+```bash
+python -m facet.build
+```
+
+With Poetry:
 
 ```bash
 poetry run build-fastranc
 ```
 
-If the extension is absent, ANC is skipped automatically and the rest of the
-toolbox works normally.
+If the extension is not compiled, ANC uses a slower Python fallback and the
+rest of the toolbox still works.
 
 
 ## Running the examples
 
 All examples are in the `examples/` folder and use the bundled
-`NiazyFMRI.edf` dataset.  Run them from the project root:
+`NiazyFMRI.edf` dataset.
+
+To run repository examples, clone the repository and install FACETpy in your
+active Python environment (no Poetry required):
+
+```bash
+git clone https://github.com/H0mire/facetpy.git
+cd facetpy
+pip install facetpy
+```
+
+Then run from the project root:
 
 ```bash
 # Recommended order for new users:
-poetry run python examples/quickstart.py          # minimal pipeline
-poetry run python examples/evaluation.py          # metrics & comparison
-poetry run python examples/advanced_workflows.py  # conditional, parallel, factory
-poetry run python examples/batch_processing.py    # multiple files at once
-poetry run python examples/inline_steps.py        # custom steps & pipe operator
-poetry run python examples/complete_pipeline_example.py  # full clinical pipeline
-poetry run python examples/eeg_generation_visualization_example.py  # synthetic EEG
+python examples/quickstart.py          # minimal pipeline
+python examples/evaluation.py          # metrics & comparison
+python examples/advanced_workflows.py  # conditional, parallel, factory
+python examples/batch_processing.py    # multiple files at once
+python examples/inline_steps.py        # custom steps & pipe operator
+python examples/complete_pipeline_example.py  # full clinical pipeline
+python examples/eeg_generation_visualization_example.py  # synthetic EEG
 ```
 
 
@@ -224,16 +227,8 @@ poetry run pytest --cov=facet --cov-report=html
 
 Open the coverage report:
 
-Unix (macOS/Linux):
-
 ```bash
-open htmlcov/index.html
-```
-
-Windows (PowerShell):
-
-```powershell
-start htmlcov/index.html
+python -m webbrowser htmlcov/index.html
 ```
 
 
@@ -250,22 +245,21 @@ poetry run sphinx-build -b html docs/source docs/build
 
 Open docs locally:
 
-Unix (macOS/Linux):
-
 ```bash
-open docs/build/index.html
-```
-
-Windows (PowerShell):
-
-```powershell
-start docs/build/index.html
+python -m webbrowser docs/build/index.html
 ```
 
 Full online documentation: https://facetpy.readthedocs.io/
 
 For comprehensive build instructions, theme configuration, and contribution guidelines see [`docs/README.md`](docs/README.md).
 For PyPI release steps, see [`RELEASING.md`](RELEASING.md).
+
+
+## Contributing
+
+Contributing uses the source/Poetry workflow. See installation guide above.  
+Use `./scripts/install.sh` on Unix, otherwise run `poetry install --no-interaction`.
+Follow [`docs/source/development/contributing.rst`](docs/source/development/contributing.rst) for the full setup and checks.
 
 
 ## Project structure

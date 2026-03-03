@@ -62,7 +62,7 @@ Next steps:
   1) Run examples:
        poetry run python examples/quickstart.py
        poetry run python examples/evaluation.py
-  2) Build optional ANC extension:
+  2) Build ANC extension (strongly recommended for fast ANC):
        poetry run build-fastranc
   3) Tutorial:
        https://facetpy.readthedocs.io/en/latest/getting_started/tutorial.html

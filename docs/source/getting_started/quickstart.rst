@@ -3,22 +3,22 @@ Quick Start
 
 This guide will get you up and running with FACETpy in 5 minutes.
 
-Before running examples, bootstrap and install FACETpy:
-
-Unix (macOS/Linux):
+Before running the quickstart pipeline, install FACETpy from PyPI:
 
 .. code-block:: bash
 
-   curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
-   cd facetpy
+   pip install facetpy
 
-Windows (PowerShell):
+Strongly recommended (for fast ANC, same command on all platforms):
 
-.. code-block:: powershell
+.. code-block:: bash
 
-   git clone https://github.com/H0mire/facetpy.git
-   Set-Location facetpy
-   poetry install --no-interaction
+   python -m facet.build
+
+To run repository examples, clone the repository and keep using
+``pip install facetpy`` in your active environment (no Poetry required).
+For contribution workflows, use the source/Poetry setup in
+:doc:`../development/contributing`.
 
 Basic Correction Pipeline
 --------------------------

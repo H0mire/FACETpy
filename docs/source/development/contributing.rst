@@ -2,12 +2,12 @@ Contributing to FACETpy
 =======================
 
 Thanks for contributing. This guide documents the current development workflow.
+For package-only usage, see :doc:`../getting_started/quickstart`.
 
 Terminal Conventions
 --------------------
 
 - ``bash`` blocks target Unix shells (macOS/Linux).
-- ``powershell`` blocks target Windows PowerShell.
 - Commands shown as ``text`` are identical on both platforms.
 
 Quick Setup
@@ -16,23 +16,29 @@ Quick Setup
 1. Fork ``https://github.com/H0mire/facetpy``.
 2. Clone your fork.
 
-Unix (macOS/Linux):
-
 .. code-block:: bash
 
    git clone https://github.com/<your-username>/facetpy.git
    cd facetpy
 
-Windows (PowerShell):
+3. Install contributor dependencies (Poetry required).
 
-.. code-block:: powershell
+Unix (macOS/Linux):
 
-   git clone https://github.com/<your-username>/facetpy.git
-   Set-Location facetpy
+.. code-block:: bash
 
-3. Install dependencies with Poetry.
+   ./scripts/install.sh
 
-.. code-block:: text
+Optional one-shot setup (non-fork checkout):
+
+.. code-block:: bash
+
+   curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
+   cd facetpy
+
+Other platforms (including Windows):
+
+.. code-block:: bash
 
    poetry install --no-interaction
 
@@ -42,7 +48,14 @@ Windows (PowerShell):
 
    poetry install -E docs
 
-5. Verify your environment.
+5. Strongly recommended: compile FastRANC for ANC performance.
+
+.. code-block:: text
+
+   python -m facet.build
+   # or: poetry run build-fastranc
+
+6. Verify your environment.
 
 .. code-block:: text
 

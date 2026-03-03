@@ -11,6 +11,12 @@ Version: 2.0.0
 __version__ = "2.0.1"
 __author__ = "FACETpy Team"
 
+# Configure logging as early as possible so import-time registration logs
+# already respect the configured level (default: INFO).
+from .logging_config import configure_logging as _configure_logging
+
+_configure_logging()
+
 # Core architecture
 from .config import get_config, reset_config, set_config
 from .core import (
@@ -69,7 +75,6 @@ from .io import (
     Loader,
     MFFExporter,
 )
-from .logging_config import configure_logging as _configure_logging
 
 # Preprocessing processors
 from .preprocessing import (
@@ -263,8 +268,6 @@ if _has_pca:
 
 # Pipeline factories
 from .pipelines import create_standard_pipeline as create_standard_pipeline
-
-_configure_logging()
 
 
 def load(path: str, **kwargs) -> "ProcessingContext":
