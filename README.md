@@ -36,11 +36,7 @@ Built on [MNE-Python](https://mne.tools), FACETpy provides a modular pipeline ar
 - Rich progress display in the terminal
 
 
-## Use cases & supported artifacts
-
-### Supported artifacts
-
-FACETpy is designed to remove or reduce EEG artifacts that arise from the recording environment or physiological sources. Supported artifact types include:
+## Supported artifacts
 
 | Artifact | Origin | Correction methods |
 |---|---|---|
@@ -52,25 +48,7 @@ FACETpy is designed to remove or reduce EEG artifacts that arise from the record
 | **Muscle (EMG) artifact** | Jaw, neck muscle activity contaminating high-frequency EEG | High-frequency filtering, PCA |
 | **Amplifier saturation / drift** | Slow DC drift or clipping from long recordings | Baseline correction, filtering |
 
-### Use cases
-
-**Simultaneous EEG-fMRI research** *(primary use case)*  
-Remove gradient and BCG artifacts from EEG recorded inside an MRI scanner. FACETpy implements AAS with optional upsampling and volumetric alignment to achieve artifact rejection of > 95 % without distorting the underlying EEG signal.
-
-**Multi-subject / multi-session batch studies**  
-Use `Pipeline.map()` to iterate over a BIDS dataset and apply an identical correction pipeline to every subject and session automatically. Metrics (SNR, RMS) are collected per run and returned as a structured `BatchResult`.
-
-**Algorithm comparison and benchmarking**  
-Run several correction strategies (AAS, PCA, ANC) on the same data and compare them side-by-side with the built-in evaluation module. Useful for methodology papers that need quantitative SNR / RMS tables.
-
-**Synthetic EEG testing and algorithm development**  
-Generate controlled EEG signals with injected artifact profiles using `EEGGenerator`. Benchmark new algorithms without needing access to real scanner hardware.
-
-**Clinical feasibility studies**  
-Evaluate artifact correction for clinical applications such as epilepsy monitoring or sleep staging during MRI, where preserving pathological waveforms (spikes, slow waves) is critical.
-
-**Teaching and reproducible science**  
-Bundle entire processing pipelines into a single `Pipeline` object that can be serialised, shared, and re-run by collaborators, making analyses transparent and reproducible.
+For a detailed description of use cases (EEG-fMRI research, batch studies, benchmarking, clinical pipelines, and more) see the [Use Cases & Supported Artifacts](https://facetpy.readthedocs.io/en/latest/user_guide/use_cases.html) page in the documentation.
 
 
 ## Quick start

@@ -86,3 +86,7 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["facet"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package __init__ uses early logging config, optional imports, and conditional exports
+"src/facet/__init__.py" = ["E402"]

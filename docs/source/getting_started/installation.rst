@@ -23,7 +23,7 @@ your own scripts and the repository examples.
 
 The package name on PyPI is ``facetpy``; import it in Python as ``facet``.
 
-Contributor Setup from Source
+Full Setup from Source (Contributing, Example Datasets/Scripts, Early Access to features)
 -----------------------------
 
 FACETpy is managed with Poetry.
