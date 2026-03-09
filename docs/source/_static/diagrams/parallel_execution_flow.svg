@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="520" viewBox="0 0 1120 520" role="img" aria-labelledby="title desc">
+  <title id="title">Parallel Execution Flow</title>
+  <desc id="desc">Generalized split-process-merge flow across worker chunks.</desc>
+  <defs>
+    <style>
+      .title { font: 700 20px Arial, sans-serif; fill: #1f2933; }
+      .label { font: 600 14px Arial, sans-serif; fill: #102a43; }
+      .small { font: 12px Arial, sans-serif; fill: #486581; }
+      .box { fill: #f0f4f8; stroke: #334e68; stroke-width: 1.8; rx: 8; ry: 8; }
+      .worker { fill: #d9e2ec; stroke: #334e68; stroke-width: 1.6; rx: 8; ry: 8; }
+      .arrow { stroke: #7b8ba1; stroke-width: 2; fill: none; opacity: 0.75; }
+      .dashed { stroke-dasharray: 5 4; }
+      .callout { fill: #fff4bf; stroke: #d9b949; stroke-width: 1; rx: 6; ry: 6; }
+      .callout-text { font: 700 12px Arial, sans-serif; fill: #102a43; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#7b8ba1" />
+    </marker>
+  </defs>
+
+  <text x="40" y="42" class="title">Execution Flow in Parallel Mode</text>
+
+  <g id="arrow-layer">
+    <line class="arrow" x1="560" y1="136" x2="560" y2="188" marker-end="url(#arrow)" />
+    <line class="arrow dashed" x1="560" y1="188" x2="230" y2="220" marker-end="url(#arrow)" />
+    <line class="arrow dashed" x1="560" y1="188" x2="560" y2="220" marker-end="url(#arrow)" />
+    <line class="arrow dashed" x1="560" y1="188" x2="890" y2="220" marker-end="url(#arrow)" />
+    <line class="arrow" x1="230" y1="402" x2="520" y2="458" marker-end="url(#arrow)" />
+    <line class="arrow" x1="560" y1="402" x2="560" y2="458" marker-end="url(#arrow)" />
+    <line class="arrow" x1="890" y1="402" x2="600" y2="458" marker-end="url(#arrow)" />
+  </g>
+
+  <g id="node-layer">
+    <rect class="box" x="360" y="80" width="400" height="56" />
+    <text class="label" x="560" y="112" text-anchor="middle">Original Data [Ch1 | Ch2 | Ch3 | Ch4 | ... | ChN]</text>
+
+    <rect class="worker" x="90" y="220" width="280" height="182" />
+    <text class="label" x="230" y="248" text-anchor="middle">Worker 0</text>
+    <rect class="box" x="125" y="266" width="210" height="40" />
+    <text class="small" x="230" y="291" text-anchor="middle">[Ch1, Ch2]</text>
+    <rect class="box" x="125" y="322" width="210" height="40" />
+    <text class="small" x="230" y="347" text-anchor="middle">processor(...)</text>
+    <rect class="box" x="125" y="378" width="210" height="40" />
+    <text class="small" x="230" y="403" text-anchor="middle">[Ch1', Ch2']</text>
+
+    <rect class="worker" x="420" y="220" width="280" height="182" />
+    <text class="label" x="560" y="248" text-anchor="middle">Worker 1</text>
+    <rect class="box" x="455" y="266" width="210" height="40" />
+    <text class="small" x="560" y="291" text-anchor="middle">[Ch3, Ch4]</text>
+    <rect class="box" x="455" y="322" width="210" height="40" />
+    <text class="small" x="560" y="347" text-anchor="middle">processor(...)</text>
+    <rect class="box" x="455" y="378" width="210" height="40" />
+    <text class="small" x="560" y="403" text-anchor="middle">[Ch3', Ch4']</text>
+
+    <rect class="worker" x="750" y="220" width="280" height="182" />
+    <text class="label" x="890" y="248" text-anchor="middle">Worker k</text>
+    <rect class="box" x="785" y="266" width="210" height="40" />
+    <text class="small" x="890" y="291" text-anchor="middle">[ChN-1, ChN]</text>
+    <rect class="box" x="785" y="322" width="210" height="40" />
+    <text class="small" x="890" y="347" text-anchor="middle">processor(...)</text>
+    <rect class="box" x="785" y="378" width="210" height="40" />
+    <text class="small" x="890" y="403" text-anchor="middle">[ChN-1', ChN']</text>
+
+    <rect class="box" x="320" y="458" width="480" height="50" />
+    <text class="label" x="560" y="487" text-anchor="middle">Corrected Data [Ch1' | Ch2' | ... | ChN']</text>
+  </g>
+
+  <g id="annotation-layer">
+    <rect class="callout" x="475" y="160" width="170" height="22" />
+    <text class="callout-text" x="560" y="175" text-anchor="middle">Split into n_jobs chunks</text>
+
+    <rect class="callout" x="460" y="428" width="200" height="22" />
+    <text class="callout-text" x="560" y="443" text-anchor="middle">Merge back into original order</text>
+  </g>
+</svg>

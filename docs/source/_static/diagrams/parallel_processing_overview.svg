@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="500" viewBox="0 0 980 500" role="img" aria-labelledby="title desc">
+  <title id="title">Parallel Processing Overview</title>
+  <desc id="desc">Channel data split, processed in parallel, and merged back.</desc>
+  <defs>
+    <style>
+      .title { font: 700 20px Arial, sans-serif; fill: #1f2933; }
+      .label { font: 600 14px Arial, sans-serif; fill: #102a43; }
+      .small { font: 12px Arial, sans-serif; fill: #486581; }
+      .box { fill: #f0f4f8; stroke: #334e68; stroke-width: 1.8; rx: 8; ry: 8; }
+      .worker { fill: #d9e2ec; stroke: #334e68; stroke-width: 1.6; rx: 8; ry: 8; }
+      .arrow { stroke: #7b8ba1; stroke-width: 2; fill: none; opacity: 0.75; }
+      .dashed { stroke-dasharray: 5 4; }
+      .callout { fill: #fff4bf; stroke: #d9b949; stroke-width: 1; rx: 6; ry: 6; }
+      .callout-text { font: 700 12px Arial, sans-serif; fill: #102a43; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#7b8ba1" />
+    </marker>
+  </defs>
+
+  <text x="40" y="42" class="title">How Channel-Wise Parallelization Works</text>
+
+  <g id="arrow-layer">
+    <line class="arrow" x1="490" y1="144" x2="490" y2="210" marker-end="url(#arrow)" />
+    <line class="arrow dashed" x1="490" y1="210" x2="310" y2="230" marker-end="url(#arrow)" />
+    <line class="arrow dashed" x1="490" y1="210" x2="670" y2="230" marker-end="url(#arrow)" />
+    <line class="arrow" x1="310" y1="390" x2="460" y2="432" marker-end="url(#arrow)" />
+    <line class="arrow" x1="670" y1="390" x2="520" y2="432" marker-end="url(#arrow)" />
+  </g>
+
+  <g id="node-layer">
+    <rect class="box" x="340" y="80" width="300" height="64" />
+    <text class="label" x="490" y="110" text-anchor="middle">Original Data</text>
+    <text class="small" x="490" y="130" text-anchor="middle">Ch1, Ch2, Ch3, Ch4</text>
+
+    <rect class="worker" x="180" y="230" width="260" height="160" />
+    <text class="label" x="310" y="258" text-anchor="middle">Worker 0</text>
+    <rect class="box" x="220" y="276" width="180" height="42" />
+    <text class="small" x="310" y="301" text-anchor="middle">Input: Ch1, Ch2</text>
+    <rect class="box" x="220" y="336" width="180" height="42" />
+    <text class="small" x="310" y="361" text-anchor="middle">Output: Ch1', Ch2'</text>
+
+    <rect class="worker" x="540" y="230" width="260" height="160" />
+    <text class="label" x="670" y="258" text-anchor="middle">Worker 1</text>
+    <rect class="box" x="580" y="276" width="180" height="42" />
+    <text class="small" x="670" y="301" text-anchor="middle">Input: Ch3, Ch4</text>
+    <rect class="box" x="580" y="336" width="180" height="42" />
+    <text class="small" x="670" y="361" text-anchor="middle">Output: Ch3', Ch4'</text>
+
+    <rect class="box" x="340" y="432" width="300" height="52" />
+    <text class="label" x="490" y="462" text-anchor="middle">Merged Output</text>
+    <text class="small" x="490" y="478" text-anchor="middle">Ch1', Ch2', Ch3', Ch4'</text>
+  </g>
+
+  <g id="annotation-layer">
+    <rect class="callout" x="432" y="164" width="116" height="22" />
+    <text class="callout-text" x="490" y="179" text-anchor="middle">Split by channels</text>
+
+    <rect class="callout" x="442" y="404" width="96" height="22" />
+    <text class="callout-text" x="490" y="419" text-anchor="middle">Merge channels</text>
+  </g>
+</svg>

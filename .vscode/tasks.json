@@ -1,0 +1,267 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ── Testing ──────────────────────────────────────────────
+    {
+      "label": "Test: Run All",
+      "type": "shell",
+      "command": "poetry run pytest",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Test: Run Current File",
+      "type": "shell",
+      "command": "poetry run pytest ${file} -v",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Test: Unit Only",
+      "type": "shell",
+      "command": "poetry run pytest -m unit -v",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Test: Integration Only",
+      "type": "shell",
+      "command": "poetry run pytest -m integration -v",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Test: Skip Slow",
+      "type": "shell",
+      "command": "poetry run pytest -m 'not slow' -v",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Test: Show Coverage Report",
+      "type": "shell",
+      "command": "open htmlcov/index.html",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    // ── Linting & Formatting ─────────────────────────────────
+    {
+      "label": "Lint: Check (Ruff)",
+      "type": "shell",
+      "command": "poetry run ruff check src/ tests/",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Lint: Fix (Ruff)",
+      "type": "shell",
+      "command": "poetry run ruff check --fix src/ tests/ && poetry run ruff format src/ tests/",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Format: Check (Ruff)",
+      "type": "shell",
+      "command": "poetry run ruff format --check src/ tests/",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Format: Apply (Ruff)",
+      "type": "shell",
+      "command": "poetry run ruff format src/ tests/",
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    // ── Build ────────────────────────────────────────────────
+    {
+      "label": "Build: FastRANC C Extension",
+      "type": "shell",
+      "command": "poetry run build-fastranc",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Build: Install Dependencies",
+      "type": "shell",
+      "command": "poetry install",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Build: Install All Extras",
+      "type": "shell",
+      "command": "poetry install -E all",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Build: Update Dependencies",
+      "type": "shell",
+      "command": "poetry update",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    // ── Documentation ────────────────────────────────────────
+    {
+      "label": "Docs: Build HTML",
+      "type": "shell",
+      "command": "poetry run sphinx-build -b html docs/source docs/build/html",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Docs: Open in Browser",
+      "type": "shell",
+      "command": "open docs/build/html/index.html",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "Docs: Build & Open",
+      "type": "shell",
+      "command": "poetry run sphinx-build -b html docs/source docs/build/html && open docs/build/html/index.html",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    // ── Run Examples ─────────────────────────────────────────
+    {
+      "label": "Run: Current Python File",
+      "type": "shell",
+      "command": "poetry run python ${file}",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    // ── Code Review ─────────────────────────────────────────
+    {
+      "label": "Review: Uncommitted Changes (Codex)",
+      "type": "shell",
+      "command": "codex review --uncommitted",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    {
+      "label": "Review: Against Branch (Codex)",
+      "type": "shell",
+      "command": "codex review --base ${input:reviewBaseBranch}",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    },
+    // ── Quality Gate (CI-like) ───────────────────────────────
+    {
+      "label": "QA: Full Check (Lint + Format + Test)",
+      "type": "shell",
+      "command": "poetry run ruff check src/ tests/ && poetry run ruff format --check src/ tests/ && poetry run pytest",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "reviewBaseBranch",
+      "type": "pickString",
+      "description": "Select the base branch to review against",
+      "options": [
+        "main",
+        "development",
+      ],
+      "default": "main"
+    }
+  ]
+}
