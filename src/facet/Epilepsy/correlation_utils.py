@@ -7,9 +7,10 @@ import mne
 from scipy.signal import correlate
 from facet.Epilepsy.shared_utils import build_template
 from mne.filter import filter_data
-from scipy.stats import kurtosis
+from scipy.stats import kurtosis  # used by legacy build_ica_composite
 from facet.Epilepsy.Models.pipeline_results import TemplateICADetection
 from facet.Epilepsy.regressors import generate_hrf_regressors
+from facet.Epilepsy.diagnostic_utils import plot_ica_components_timecourses
 
 # ======================= ICA composite (Ebrahimzadeh) =======================
 def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.),
@@ -33,7 +34,7 @@ def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.)
 
 
 # ======================= Main component selection (Ebrahimzadeh) =======================
-def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3., 25.), th_raw=0.35, match_tol_s=0.1, visualize=False):
+def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3., 25.), th_raw=0.60, match_tol_s=0.1, visualize=False):
     """Select ICA components that correlate with template at annotated IED windows."""
     from loguru import logger
     sf = raw.info['sfreq']
@@ -45,7 +46,7 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
     logger.info(f"Augmented spikes: {len(augmented_spikes)} (original: {len(spike_sec)})")
 
     # Multi-run ICA for stable candidates
-    stable_indices = multi_run_ica(raw)
+    stable_indices, component_counts, component_lambdas = multi_run_ica(raw)
     logger.info(f"Stable candidate components: {stable_indices}")
 
     # Fit ICA once to get sources
@@ -58,18 +59,29 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
     accepted = []
     timecourses = []
     hrf_regs = {}
+    window_corr_map = {}  # {comp_idx: [per-window max|r|]}
 
     for idx in stable_indices:
         comp_tc = S[idx]
         comp_bp = filter_data(comp_tc, sf, band_comp[0], band_comp[1], verbose=False)
         logger.info(f"Checking component {idx}")
-        if check_component_acceptance(comp_bp, template_z, augmented_spikes, sf, min_corr=th_raw):
+        is_accepted, per_window_corr = check_component_acceptance(comp_bp, template_z, augmented_spikes, sf, min_corr=th_raw)
+        if is_accepted:
             logger.info(f"Accepted component {idx}")
             accepted.append(idx)
             timecourses.append(comp_bp)
             hrf_regs[idx] = generate_hrf_regressors(comp_bp, sf)
+            window_corr_map[idx] = per_window_corr
         else:
             logger.info(f"Rejected component {idx}")
+
+    # Optional visualization: plot timecourses + averaged epochs for accepted components
+    if visualize and len(accepted) > 0:
+        try:
+            plot_ica_components_timecourses(raw, ica=ica, S=S, component_indices=accepted,
+                                            template_z=template_z, spike_times=augmented_spikes)
+        except Exception as e:
+            logger.warning(f"Component timecourse plotting failed: {e}")
 
     return TemplateICADetection(
         template_z=template_z,
@@ -78,7 +90,13 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
         accepted_components=accepted,
         component_timecourses=timecourses,
         hrf_regressors=hrf_regs,
-        ica=ica
+        ica=ica,
+        original_spike_sec=list(spike_sec),
+        per_component_window_corr=window_corr_map,
+        ica_selection_stats={
+            'component_counts': component_counts,
+            'component_lambdas': component_lambdas,
+        },
     )
 
 
@@ -121,12 +139,31 @@ def normalize_signal(x, eps=1e-12):
     return (x - x.mean()) / (x.std() + eps)
 
 # ======================= Multi-run ICA for stability =======================
-def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), kurtosis_min=2.0, max_keep=3):
-    """Run ICA multiple times to select stable candidate components."""
+def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3):
+    """Run ICA multiple times to select stable candidate components.
+
+    Ebrahimzadeh 2021: "ICA algorithm was applied 10 times using different
+    arbitrary (random) initialization weights, and the initial candidates
+    selected based on being those seen most often in the 10 repetitions.
+    From these, the three components with the highest average λ (weight of
+    extracted independent components) across all 10 iterations were selected
+    as final candidates."
+
+    λ is interpreted as the L2 norm of each component's column in the ICA
+    mixing matrix (A), which quantifies the component's contribution to the
+    observed EEG signal.
+
+    NOTE – Component identity across runs:  ICA with different random seeds
+    produces different decompositions; component index k in run i is not
+    necessarily the same source as index k in run j.  The current
+    implementation uses index identity as a proxy, which is a known
+    simplification.  A full implementation would match components across
+    runs by correlating their mixing vectors or source timecourses.
+    """
     from loguru import logger
     from collections import Counter
     component_counts = Counter()
-    component_vars = {}  # index - list of explained vars
+    component_lambdas = {}  # index → list of λ values across runs
 
     for run in range(n_runs):
         random_state = run  # different seed each time
@@ -134,23 +171,30 @@ def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), kurtosis_min=2.0, max_kee
         ica = ICA(n_components=min(20, n_eeg),
                   random_state=random_state, method='infomax', max_iter='auto')
         ica.fit(raw.copy())  # Raw is already filtered to 1-100
-        S = ica.get_sources(raw).get_data()
-        k = kurtosis(S, axis=1, fisher=False)
-        keep = np.where(k >= kurtosis_min)[0]
-        if keep.size == 0:
-            keep = np.array([int(np.argmax(k))])
-        for idx in keep:
-            component_counts[idx] += 1
-            if idx not in component_vars:
-                component_vars[idx] = []
-            component_vars[idx].append(ica.explained_var_[idx] if hasattr(ica, 'explained_var_') else 0)
+        n_components = ica.n_components_
 
-    # Select top by frequency, then by average explained var
-    candidates = sorted(component_counts.items(), key=lambda x: (x[1], np.mean(component_vars.get(x[0], [0]))), reverse=True)
+        # Compute λ (mixing weight) for each component: L2 norm of mixing column
+        mixing = ica.mixing_matrix_  # shape (n_channels, n_components)
+        for idx in range(n_components):
+            component_counts[idx] += 1
+            if idx not in component_lambdas:
+                component_lambdas[idx] = []
+            lam = np.linalg.norm(mixing[:, idx])
+            component_lambdas[idx].append(lam)
+
+    # Two-stage selection per paper:
+    # 1. Rank by frequency (most often across runs)
+    # 2. Among those, pick top max_keep by highest average λ
+    candidates = sorted(
+        component_counts.items(),
+        key=lambda x: (x[1], np.mean(component_lambdas.get(x[0], [0]))),
+        reverse=True
+    )
     stable_indices = [idx for idx, _ in candidates[:max_keep]]
     logger.info(f"Component counts: {dict(component_counts)}")
-    logger.info(f"Selected stable: {stable_indices}")
-    return stable_indices
+    logger.info(f"Average λ: { {idx: f'{np.mean(vals):.4f}' for idx, vals in component_lambdas.items()} }")
+    logger.info(f"Selected top-{max_keep} stable: {stable_indices}")
+    return stable_indices, dict(component_counts), {k: list(v) for k, v in component_lambdas.items()}
 
 # ======================= Template augmentation =======================
 def augment_template(raw, spike_sec, template_z, best_ch, high_r_min=0.96, high_r_max=0.98, refractory_s=0.15):
@@ -169,10 +213,21 @@ def augment_template(raw, spike_sec, template_z, best_ch, high_r_min=0.96, high_
     return sorted(augmented)
 
 # ======================= Windowed correlation at IEDs =======================
-def check_component_acceptance(component_tc, template_z, spike_times, sfreq, window_s=1.0, min_corr=0.85):
-    """Check if component correlates >= min_corr with template at all annotated IED windows."""
+def check_component_acceptance(component_tc, template_z, spike_times, sfreq, window_s=1.0, min_corr=0.60):
+    """Check if component correlates >= min_corr with template at annotated IED windows.
+
+    Paper (Ebrahimzadeh 2021): "Components that did not have cross-correlation
+    with the templates at the times of the IED events of at least 0.85 were
+    rejected."  We lower the default to 0.60 because empirical median
+    correlations on the VEPISET dataset are substantially below 0.85
+    (typical range 0.5-0.65).  The paper does not specify whether this means
+    every single window or an aggregate.  We use the **median** of per-window
+    max |r| values so that a single noisy/artefactual window cannot veto an
+    otherwise good component.  This is documented as an interpretation decision.
+    """
     from loguru import logger
     half_win = int(round(window_s / 2 * sfreq))
+    per_window_corr = []
     for t in spike_times:
         samp = int(round(t * sfreq))
         start = max(0, samp - half_win)
@@ -183,8 +238,11 @@ def check_component_acceptance(component_tc, template_z, spike_times, sfreq, win
         r = sliding_template_correlation(normalize_signal(window_sig), template_z)
         max_r = np.max(np.abs(r))
         logger.info(f"Spike at {t:.2f}s: max correlation {max_r:.3f}")
-        if max_r < min_corr:
-            return False
-    return True
+        per_window_corr.append(max_r)
 
+    if len(per_window_corr) == 0:
+        return False, []
+    median_corr = np.median(per_window_corr)
+    logger.info(f"Median correlation across {len(per_window_corr)} windows: {median_corr:.3f} (threshold {min_corr})")
+    return median_corr >= min_corr, per_window_corr
 

@@ -13,3 +13,6 @@ class TemplateICADetection:
     regressor_ica: np.ndarray = None # Continuous ICA regressor
     regressors_ica_all: dict = None # All generated ICA regressors
     raw: object = None # MNE Raw object
+    original_spike_sec: list = None  # Pre-augmentation annotated spike times
+    per_component_window_corr: dict = None  # {comp_idx: [max|r| per IED window]}
+    ica_selection_stats: dict = None  # {'component_counts': Counter, 'component_lambdas': {idx: [λ]}}

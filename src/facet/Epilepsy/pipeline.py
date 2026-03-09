@@ -16,7 +16,7 @@ def run_ebrahimzadeh_pipeline(
     mat_path: str,
     sfreq: float = 500.0,
     half_win_s: float = 0.15,
-    th_raw: float = 0.35,
+    th_raw: float = 0.60,
     match_tol_s: float = 0.1,
     visualize: bool = False,
     tr: float = None,
@@ -85,64 +85,69 @@ def run_ebrahimzadeh_pipeline(
         logger.info(f"Generating continuous ICA regressor (TR={tr}s)")
         detection = compute_and_attach_ica_regressors(detection, sfreq, tr)
 
-    # Attach raw object to result
+    # Attach raw object and original spike annotations to result
     if detection:
         detection.raw = raw
+        if detection.original_spike_sec is None:
+            detection.original_spike_sec = list(spike_sec)
 
     return detection
 
 
 def run_grouiller_pipeline(
-    spike_times_sec: list,  # List of spike times (from annotations)
-    total_duration_sec: float,  # Total EEG duration
+    raw,                        # MNE Raw object (in-scanner EEG)
+    spike_sec: list,            # Spike times in seconds (from long-term EEG annotations)
+    half_win_s: float = 0.15,
     sfreq: float = 500.0,
-    tr: float = 2.5,  # fMRI TR for resampling
-    hrf_model: str = "canonical",
+    tr: float = 2.5,
+    band: tuple = (1., 30.),
 ):
-    """Standalone Grouiller pipeline: Build event-based regressor from spike times.
+    """Grouiller 2011 topography-based regressor pipeline.
+
+    Grouiller 2011: builds an epileptic voltage map from averaged spikes,
+    computes its continuous spatial correlation with in-scanner EEG, squares
+    the result, and convolves with a canonical HRF.
 
     Parameters
     ----------
-    spike_times_sec : list
+    raw : mne.io.Raw
+        In-scanner EEG data.
+    spike_sec : list
         Spike times in seconds.
-    total_duration_sec : float
-        Total recording duration (s).
+    half_win_s : float
+        Half-window for spike epoching (seconds).
     sfreq : float
         EEG sampling frequency (Hz).
     tr : float
         fMRI TR for regressor resampling.
-    hrf_model : str
-        HRF model ('canonical').
+    band : tuple
+        Band-pass filter range (paper: 1–30 Hz).
 
     Returns
     -------
     dict
-        {"regressor_hrf": resampled HRF regressor array}
+        {"regressor_hrf": regressor array, "epileptic_map": voltage map}
     """
-    # For standalone, use provided spike times directly 
-    final_spike_times = spike_times_sec
-    
-    # Build and return the HRF regressor
-    regressor_hrf = build_grouiller_regressor(
-        spike_times_sec=final_spike_times,
-        total_duration_sec=total_duration_sec,
+    regressor, epileptic_map = build_grouiller_regressor(
+        raw=raw,
+        spike_sec=spike_sec,
+        half_win_s=half_win_s,
         tr=tr,
-        hrf_model=hrf_model,
+        band=band,
     )
-    
-    return {"regressor_hrf": regressor_hrf}
+
+    return {"regressor_hrf": regressor, "epileptic_map": epileptic_map}
 
 
 def run_combined_pipeline(
     mat_path: str,
     sfreq: float = 500.0,
     half_win_s: float = 0.15,
-    th_raw: float = 0.35,
+    th_raw: float = 0.60,
     match_tol_s: float = 0.1,
     visualize: bool = False,
     has_fmri: bool = False,
     tr: float = 2.5,
-    hrf_model: str = "canonical",
 ):
     """Run combined Ebrahimzadeh + Grouiller pipeline.
 
@@ -164,8 +169,6 @@ def run_combined_pipeline(
         If True, run Grouiller regressor step.
     tr : float
         fMRI Repetition Time (s).
-    hrf_model : str
-        HRF model.
 
     Returns
     -------
@@ -186,16 +189,17 @@ def run_combined_pipeline(
     results = {"detection": detection_result}
 
     if has_fmri and detection_result is not None:
-        # Run Grouiller regressor
-        # Use refined times if available, else original parsed times
+        # Run Grouiller topography-based regressor
+        # Uses the raw EEG and spike annotations to build a spatial
+        # correlation regressor (Grouiller 2011), NOT a stick-function.
         spikes_to_use = detection_result.refined_times if hasattr(detection_result, 'refined_times') else []
         
         regressor_result = run_grouiller_pipeline(
-            spike_times_sec=spikes_to_use,
-            total_duration_sec=detection_result.raw.n_times / sfreq,
+            raw=detection_result.raw,
+            spike_sec=spikes_to_use,
+            half_win_s=half_win_s,
             sfreq=sfreq,
             tr=tr,
-            hrf_model=hrf_model,
         )
         results["regressor_grouiller"] = regressor_result
         

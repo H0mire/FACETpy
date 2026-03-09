@@ -7,10 +7,12 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
     """
     Load EEG data from a .mat file and create an MNE Raw object.
 
+    Auto-detects whether data is in volts or µV and converts accordingly.
+
     Parameters
     ----------
     mat_path : str
-        Path to the .mat file containing 'eeg_data' array (in µV).
+        Path to the .mat file containing 'eeg_data' array.
     sfreq : float
         Sampling frequency in Hz.
 
@@ -18,10 +20,23 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
     -------
     raw : mne.io.Raw
         MNE Raw object with EEG data (in volts).
+    mat : dict
+        The loaded .mat dictionary (for downstream use, e.g. parse_spike_times).
     """
     # Load the .mat file
     mat = loadmat(mat_path)
-    eeg = mat['eeg_data']  # shape (n_ch, n_samples), in µV
+    eeg = mat['eeg_data']  # shape (n_ch, n_samples)
+
+    # Auto-detect units
+    abs_max = np.abs(eeg).max()
+    if abs_max < 0.1:
+        # Data is already in volts — do NOT divide by 1e6
+        print(f"[load_mat_to_mne] abs-max={abs_max:.6f} => data already in volts, skipping /1e6.")
+        eeg_volts = eeg
+    else:
+        # Assumed µV — convert to volts
+        print(f"[load_mat_to_mne] abs-max={abs_max:.2f} => assumed µV, dividing by 1e6.")
+        eeg_volts = eeg / 1e6
 
     # Try to find channel names
     ch_names = None
@@ -69,7 +84,7 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
 
     # Build an MNE RawArray in volts (MNE expects volts)
     info = mne.create_info(ch_names, sfreq, ch_types=ch_types)
-    raw = mne.io.RawArray(eeg / 1e6, info)
+    raw = mne.io.RawArray(eeg_volts, info)
 
     # Try to set a standard montage if names look standard
     try:
@@ -81,7 +96,7 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
     except Exception as e:
         print(f"Could not set standard montage: {e}")
 
-    return raw
+    return raw, mat
 
 
 def filter_eeg(raw):
@@ -199,11 +214,10 @@ def prepare_eeg_data(mat_path, sfreq=500.0):
     spike_sec : list
         List of spike times in seconds.
     """
-    raw = load_mat_to_mne(mat_path, sfreq=sfreq)
+    raw, mat = load_mat_to_mne(mat_path, sfreq=sfreq)
     raw = filter_eeg(raw)
     raw_ica = raw.copy().filter(1., 100., picks='eeg', verbose=False)
 
-    mat = loadmat(mat_path)
     spike_sec = parse_spike_times(mat, label_marker="!")
 
     return raw, raw_ica, spike_sec
