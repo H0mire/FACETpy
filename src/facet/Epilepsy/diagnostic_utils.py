@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def list_top_spike_channels(raw, spike_sec, half_win_s=0.10, top_n=5):
     """
@@ -83,6 +84,106 @@ def plot_match_with_template(raw, channel, match_times, template, sfreq, window=
         plt.show()
 
 
+def plot_detection_components(detection, component_indices=None, top_k=None, max_plot_seconds=30,
+                              save_figs=False, outdir=None, show_figs=True, manual_spike_times=None):
+    """Plot components from a returned TemplateICADetection without recomputing ICA.
+
+    Parameters
+    ----------
+    detection : TemplateICADetection
+        The object returned by `select_components_template_ica` (contains `ica`,
+        `accepted_components`, `component_timecourses`, `template_z` and `raw`).
+    component_indices : list[int], optional
+        Specific component indices (absolute ICA indices) to plot. Must be a subset of
+        `detection.accepted_components`.
+    top_k : int, optional
+        If provided and `component_indices` is None, plot only the first `top_k`
+        components from `detection.accepted_components` (order as returned).
+    max_plot_seconds : int
+        Seconds of continuous data to plot from the start.
+
+    manual_spike_times : list[float], optional
+        Manual spike annotation times (seconds) to show on the continuous plot and
+        to use for averaging if refined times are unavailable.
+
+    This function uses the stored `detection.ica` and `detection.raw` to obtain the
+    full source matrix, avoiding any need to rerun ICA or the pipeline.
+    """
+    if detection is None:
+        raise ValueError('detection must be provided')
+
+    # Determine which components to show
+    accepted = detection.accepted_components or []
+    if component_indices is not None:
+        # validate
+        sel = [int(i) for i in component_indices if i in accepted]
+    elif top_k is not None:
+        sel = accepted[:top_k]
+    else:
+        sel = accepted
+
+    if not sel:
+        print('No accepted components available to plot.')
+        return
+
+    # Prefer to use the fitted ICA and raw to get full S (n_comp x n_times)
+    if getattr(detection, 'ica', None) is not None and getattr(detection, 'raw', None) is not None:
+        try:
+            S = detection.ica.get_sources(detection.raw).get_data()
+            raw = detection.raw
+            template = detection.template_z if hasattr(detection, 'template_z') else None
+            spikes = detection.refined_times if hasattr(detection, 'refined_times') else None
+            # Use refined times for epochs when available, else fall back to manual
+            spikes_for_epochs = spikes if (spikes is not None and len(spikes) > 0) else manual_spike_times
+            plot_ica_components_timecourses(raw, ica=detection.ica, S=S, component_indices=sel,
+                                            template_z=template, spike_times=spikes_for_epochs,
+                                            max_plot_seconds=max_plot_seconds, save_figs=save_figs, outdir=outdir, show_figs=show_figs,
+                                            manual_spike_times=manual_spike_times)
+            return
+        except Exception:
+            # fallback to using stored timecourses
+            pass
+
+    # Fallback: use stored component_timecourses (these are only accepted components)
+    if getattr(detection, 'component_timecourses', None) is not None:
+        # Build a small S matrix where row order corresponds to accepted_components
+        comp_tcs = detection.component_timecourses
+        # map sel indices to positions inside accepted_components
+        idx_map = {comp: i for i, comp in enumerate(detection.accepted_components)}
+        rows = []
+        for comp in sel:
+            pos = idx_map.get(comp, None)
+            if pos is None:
+                continue
+            rows.append(comp_tcs[pos])
+        if not rows:
+            print('No matching component timecourses found in detection object.')
+            return
+        S_small = np.vstack(rows)
+        # Create a fake raw.times array if raw not present
+        if getattr(detection, 'raw', None) is not None:
+            raw = detection.raw
+        else:
+            # Make a minimal times array
+            n_times = S_small.shape[1]
+            class _FakeRaw:
+                pass
+            raw = _FakeRaw()
+            raw.times = np.arange(n_times) / 500.0
+            raw.info = {'sfreq': 500.0}
+
+        spikes_attr = getattr(detection, 'refined_times', None)
+        spikes_for_epochs = spikes_attr if (spikes_attr is not None and len(spikes_attr) > 0) else manual_spike_times
+        plot_ica_components_timecourses(raw, ica=None, S=S_small, component_indices=list(range(S_small.shape[0])),
+                template_z=getattr(detection, 'template_z', None),
+                spike_times=spikes_for_epochs,
+                max_plot_seconds=max_plot_seconds, save_figs=save_figs, outdir=outdir, show_figs=show_figs,
+                manual_spike_times=manual_spike_times)
+        return
+
+    print('Detection object did not contain ICA or component timecourses to plot.')
+
+
 
 def normalize_signal(sig):
     """Zero-mean, unit-variance normalization."""
@@ -140,5 +241,133 @@ def plot_ica_with_annotations(raw, ica_trace, peaks_ica, spike_sec,
         ax.legend()
         plt.tight_layout()
         plt.show()
+
+
+def plot_ica_components_timecourses(raw, ica=None, S=None, component_indices=None,
+                                     template_z=None, spike_times=None, max_plot_seconds=30,
+                                     save_figs=False, outdir=None, show_figs=True, manual_spike_times=None):
+    """Plot ICA component continuous timecourses and averaged epochs.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Raw EEG object (for sfreq and times).
+    ica : mne.preprocessing.ICA, optional
+        Fitted MNE ICA object. If provided, `S` may be omitted.
+    S : ndarray, shape (n_components, n_times), optional
+        Precomputed ICA source matrix. Used if `ica` is not provided.
+    component_indices : list[int]
+        Indices of components to plot.
+    template_z : ndarray, optional
+        Z-scored spike template to overlay on averaged epochs.
+    spike_times : list[float], optional
+        Spike annotation times (seconds) used to compute average epochs.
+    max_plot_seconds : int
+        Number of seconds from the start to display for continuous plot.
+    manual_spike_times : list[float], optional
+        Manual spike annotation times (seconds) to plot as a reference.
+    """
+    if component_indices is None or len(component_indices) == 0:
+        return
+
+    sf = raw.info['sfreq']
+    times = raw.times
+
+    if S is None:
+        if ica is None:
+            raise ValueError('Either ica or S must be provided')
+        S = ica.get_sources(raw).get_data()
+
+    n_times = S.shape[1]
+    
+    # Determine plot range: if manual spikes exist, center around the first one
+    start_samp = 0
+    if manual_spike_times and len(manual_spike_times) > 0:
+        first_spike = manual_spike_times[0]
+        # Try to center the 30s window around the first spike
+        # e.g. start 10s before it
+        start_sec = max(0, first_spike - 10)
+        start_samp = int(start_sec * sf)
+    
+    end_samp = int(min(n_times, start_samp + max_plot_seconds * sf))
+    
+    # If the window is too short (end of file), shift back
+    if end_samp - start_samp < max_plot_seconds * sf and n_times > max_plot_seconds * sf:
+        start_samp = int(n_times - max_plot_seconds * sf)
+        end_samp = n_times
+
+    for idx in component_indices:
+        comp = S[idx]
+        fig, axes = plt.subplots(2, 1, figsize=(12, 6), constrained_layout=True)
+
+        # Continuous segment
+        t_seg = times[start_samp:end_samp]
+        axes[0].plot(t_seg, comp[start_samp:end_samp], color='C0', linewidth=0.8)
+        axes[0].set_title(f'ICA component {idx} — continuous ({max_plot_seconds}s window)')
+        axes[0].set_xlabel('Time (s)')
+        axes[0].set_ylabel('Amplitude (a.u.)')
+
+        # Mark manual spike times within the segment
+        if manual_spike_times is not None:
+            for s in manual_spike_times:
+                if t_seg[0] <= s <= t_seg[-1]:
+                    axes[0].axvline(s, color='g', linestyle='-', alpha=0.8, label='Manual' if 'Manual' not in [l.get_label() for l in axes[0].lines] else "")
+
+        # Mark refined spike times within the segment
+        if spike_times is not None:
+            for s in spike_times:
+                if t_seg[0] <= s <= t_seg[-1]:
+                    axes[0].axvline(s, color='r', linestyle='--', alpha=0.6, label='Refined' if 'Refined' not in [l.get_label() for l in axes[0].lines] else "")
+        
+        if manual_spike_times is not None or spike_times is not None:
+            axes[0].legend(loc='upper right')
+
+        # Average epoch around spikes
+        if spike_times is not None and template_z is not None:
+            L = len(template_z)
+            half = L // 2
+            epochs = []
+            for s in spike_times:
+                samp = int(round(s * sf))
+                start = samp - half
+                end = start + L
+                if start < 0 or end > len(comp):
+                    continue
+                epochs.append(comp[start:end])
+            if len(epochs) > 0:
+                epochs = np.vstack(epochs)
+                mean_epoch = epochs.mean(axis=0)
+                t_epoch = (np.arange(len(mean_epoch)) - half) / sf
+                axes[1].plot(t_epoch, mean_epoch, label='Component mean', color='C1')
+                # overlay scaled template
+                tpl = template_z.copy()
+                if np.std(tpl) > 0:
+                    tpl = (tpl - tpl.mean()) / (tpl.std() + 1e-12)
+                    tpl = tpl * (np.std(mean_epoch) * 0.8)
+                axes[1].plot(t_epoch, tpl, label='Template (scaled)', color='k', linestyle='--')
+                axes[1].axvline(0, color='r', linestyle=':', label='Spike')
+                axes[1].set_title(f'ICA component {idx} — averaged epoch (n={len(epochs)})')
+                axes[1].set_xlabel('Time (s)')
+                axes[1].legend()
+            else:
+                axes[1].text(0.5, 0.5, 'No full epochs available for averaging', ha='center')
+                axes[1].set_title(f'ICA component {idx} — averaged epoch (n=0)')
+        else:
+            axes[1].text(0.5, 0.5, 'Template or spike times not provided', ha='center')
+            axes[1].set_title(f'ICA component {idx} — averaged epoch')
+
+        # Save or show
+        if save_figs:
+            if outdir is None:
+                outdir = os.path.join(os.getcwd(), 'results', 'figures')
+            os.makedirs(outdir, exist_ok=True)
+            fname = f"ica_component_{idx}.png"
+            path = os.path.join(outdir, fname)
+            fig.savefig(path, dpi=150)
+            plt.close(fig)
+        elif show_figs:
+            plt.show()
+        else:
+            plt.close(fig)
 
 
