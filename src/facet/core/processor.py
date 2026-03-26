@@ -137,6 +137,15 @@ class Processor(ABC):
         if self.requires_triggers and not context.has_triggers():
             raise ProcessorValidationError(f"{self.name} requires triggers, but none are available")
 
+    def validate_execution_mode(self, *, parallel: bool, channel_sequential: bool) -> None:
+        """
+        Validate compatibility with pipeline execution settings.
+
+        Subclasses can override this to reject incompatible execution modes
+        before the pipeline starts processing data.
+        """
+        return None
+
     @abstractmethod
     def process(self, context: ProcessingContext) -> ProcessingContext:
         """

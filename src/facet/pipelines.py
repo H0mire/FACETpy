@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .core import Pipeline
+from .core import Pipeline, Processor
 from .correction import AASCorrection
 from .evaluation import (
     FFTAllenCalculator,
@@ -53,6 +53,7 @@ def create_standard_pipeline(
     upsample_factor: int = 10,
     use_anc: bool = True,
     use_pca: bool = True,
+    additional_corrections: list[Processor] | None = None,
     evaluate: bool = False,
     plot: bool = False,
     plot_kwargs: dict | None = None,
@@ -68,6 +69,10 @@ def create_standard_pipeline(
         upsample_factor: Upsampling factor for alignment
         use_anc: Whether to apply ANC correction
         use_pca: Whether to apply PCA correction
+        additional_corrections: Extra correction processors appended after
+                                AAS/PCA and before downsampling. This is the
+                                main hook for future learned correction
+                                models.
         evaluate: Append all standard evaluation metrics (SNR, RMS, Median, FFT)
                   and a MetricsReport step automatically.
         plot: Append a RawPlotter step after evaluation. Implies *evaluate=True*.
@@ -104,7 +109,6 @@ def create_standard_pipeline(
     processors = [
         Loader(path=input_path, preload=True, artifact_to_trigger_offset=artifact_to_trigger_offset),
         TriggerDetector(regex=trigger_regex),
-        CutAcquisitionWindow(),
         HighPassFilter(freq=1.0),
         UpSample(factor=upsample_factor),
         SliceAligner(ref_trigger_index=0),
@@ -114,10 +118,12 @@ def create_standard_pipeline(
     if use_pca and _has_pca:
         processors.append(PCACorrection(n_components=0.95, hp_freq=1.0))
 
+    if additional_corrections:
+        processors.extend(additional_corrections)
+
     processors.extend(
         [
             DownSample(factor=upsample_factor),
-            PasteAcquisitionWindow(),
             LowPassFilter(freq=70.0),
         ]
     )

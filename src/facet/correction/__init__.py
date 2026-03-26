@@ -8,6 +8,25 @@ Date: 2025-01-12
 """
 
 from .aas import AASCorrection, AveragedArtifactSubtraction
+from .deep_learning import (
+    DeepLearningArchitecture,
+    DeepLearningChannelGroupingStrategy,
+    DeepLearningCorrection,
+    DeepLearningDomain,
+    DeepLearningDualOutputPolicy,
+    DeepLearningExecutionGranularity,
+    DeepLearningLatencyProfile,
+    DeepLearningModelAdapter,
+    DeepLearningModelRegistry,
+    DeepLearningModelSpec,
+    DeepLearningOutputType,
+    DeepLearningPrediction,
+    DeepLearningRuntime,
+    get_deep_learning_model,
+    list_deep_learning_blueprints,
+    list_deep_learning_models,
+    register_deep_learning_model,
+)
 from .farm import FARMArtifactCorrection, FARMCorrection
 from .volume import RemoveVolumeArtifactCorrection, VolumeArtifactCorrection
 from .weighted import (
@@ -25,6 +44,24 @@ __all__ = [
     # AAS
     "AASCorrection",
     "AveragedArtifactSubtraction",
+    # Deep learning integration
+    "DeepLearningArchitecture",
+    "DeepLearningChannelGroupingStrategy",
+    "DeepLearningRuntime",
+    "DeepLearningDomain",
+    "DeepLearningOutputType",
+    "DeepLearningLatencyProfile",
+    "DeepLearningDualOutputPolicy",
+    "DeepLearningExecutionGranularity",
+    "DeepLearningModelSpec",
+    "DeepLearningPrediction",
+    "DeepLearningModelAdapter",
+    "DeepLearningModelRegistry",
+    "register_deep_learning_model",
+    "get_deep_learning_model",
+    "list_deep_learning_models",
+    "list_deep_learning_blueprints",
+    "DeepLearningCorrection",
     # FARM
     "FARMCorrection",
     "FARMArtifactCorrection",

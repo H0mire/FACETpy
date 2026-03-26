@@ -651,6 +651,9 @@ class Pipeline:
         current_processor: tuple[int, Processor] | None = None
 
         try:
+            for processor in self.processors:
+                processor.validate_execution_mode(parallel=parallel, channel_sequential=channel_sequential)
+
             step_offset = 0
             for processors, mode in self._group_processors(parallel, channel_sequential):
                 current_processor = (step_offset, processors[0])
