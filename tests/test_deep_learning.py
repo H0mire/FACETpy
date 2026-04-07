@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -30,7 +31,9 @@ from facet.correction import (
     get_deep_learning_model,
     list_deep_learning_blueprints,
     list_deep_learning_models,
+    load_deep_learning_config,
     register_deep_learning_model,
+    save_deep_learning_config,
     spec_from_dict,
     spec_to_dict,
 )
@@ -1995,3 +1998,340 @@ class TestSpecSerialization:
             d = spec_to_dict(spec)
             restored = spec_from_dict(d)
             assert restored == spec, f"Round-trip failed for blueprint '{key}'"
+
+
+# ---------------------------------------------------------------------------
+# Trigger-aligned Chunking tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestTriggerAlignedChunking:
+    """Tests for DeepLearningCorrection with trigger_aligned_chunking=True."""
+
+    # ------------------------------------------------------------------
+    # _trigger_chunk_ranges unit tests
+    # ------------------------------------------------------------------
+
+    def test_trigger_chunk_ranges_single_trigger_per_chunk(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        triggers = np.array([100, 200, 300, 400])
+        ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=1)
+        assert ranges == [(100, 200), (200, 300), (300, 400), (400, 500)]
+
+    def test_trigger_chunk_ranges_two_triggers_per_chunk(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        triggers = np.array([100, 200, 300, 400])
+        ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=2)
+        assert ranges == [(100, 300), (300, 500)]
+
+    def test_trigger_chunk_ranges_three_triggers_per_chunk_uneven(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        # 4 triggers, 3 per chunk → one full group + one partial
+        triggers = np.array([50, 150, 250, 350])
+        ranges = DLC._trigger_chunk_ranges(triggers, 450, triggers_per_chunk=3)
+        assert ranges == [(50, 350), (350, 450)]
+
+    def test_trigger_chunk_ranges_unsorted_triggers_are_sorted(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        triggers = np.array([400, 100, 300, 200])
+        ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=1)
+        assert ranges == [(100, 200), (200, 300), (300, 400), (400, 500)]
+
+    def test_trigger_chunk_ranges_empty_triggers_returns_full_range(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        ranges = DLC._trigger_chunk_ranges(np.array([]), 500, triggers_per_chunk=1)
+        assert ranges == [(0, 500)]
+
+    def test_trigger_chunk_ranges_pretrigger_data_excluded(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        # First trigger at sample 50 → samples [0,50) are excluded
+        triggers = np.array([50, 150])
+        ranges = DLC._trigger_chunk_ranges(triggers, 200, triggers_per_chunk=1)
+        assert ranges[0][0] == 50
+
+    def test_trigger_chunk_ranges_last_chunk_extends_to_total(self):
+        from facet.correction.deep_learning import DeepLearningCorrection as DLC
+        triggers = np.array([0, 100, 200])
+        total = 350
+        ranges = DLC._trigger_chunk_ranges(triggers, total, triggers_per_chunk=1)
+        assert ranges[-1][1] == total
+
+    # ------------------------------------------------------------------
+    # Validation: requires triggers in context
+    # ------------------------------------------------------------------
+
+    def test_trigger_aligned_chunking_raises_without_triggers(self, sample_context, tmp_path):
+        from facet.core import ProcessorValidationError
+        ckpt = tmp_path / "w.npy"
+        np.save(str(ckpt), np.ones(1))
+        processor = DeepLearningCorrection(
+            NumpyInferenceAdapter(
+                checkpoint_path=str(ckpt),
+                predict_fn=lambda data, w: np.zeros_like(data),
+                spec_overrides={
+                    "execution_granularity": DeepLearningExecutionGranularity.MULTICHANNEL,
+                    "supports_multichannel": True,
+                },
+            ),
+            trigger_aligned_chunking=True,
+        )
+        # sample_context has triggers, so strip them
+        import dataclasses
+        from facet.core.context import ProcessingMetadata
+        no_trigger_ctx = sample_context.with_raw(sample_context.get_raw().copy())
+        no_trigger_ctx.metadata.triggers = None
+
+        with pytest.raises(ProcessorValidationError, match="trigger"):
+            processor.validate(no_trigger_ctx)
+
+    def test_triggers_per_chunk_zero_raises(self, tmp_path):
+        ckpt = tmp_path / "w.npy"
+        np.save(str(ckpt), np.ones(1))
+        with pytest.raises(ValueError, match="triggers_per_chunk"):
+            DeepLearningCorrection(
+                NumpyInferenceAdapter(
+                    checkpoint_path=str(ckpt),
+                    predict_fn=lambda d, w: np.zeros_like(d),
+                ),
+                triggers_per_chunk=0,
+            )
+
+    # ------------------------------------------------------------------
+    # End-to-end: trigger-aligned correction applies to correct windows
+    # ------------------------------------------------------------------
+
+    def test_trigger_aligned_chunking_corrects_only_trigger_windows(
+        self, sample_context, tmp_path
+    ):
+        """Artifact subtraction happens only within [first_trigger, total_samples)."""
+        ckpt = tmp_path / "artifact.npy"
+        artifact_value = 0.1e-6
+        np.save(str(ckpt), np.array([artifact_value]))
+
+        def predict_fn(data, w):
+            return np.full_like(data, w[0])
+
+        original = sample_context.get_raw()._data.copy()
+        triggers = sample_context.metadata.triggers  # e.g. [0, 250, 500, ...]
+        first_trigger = int(np.min(triggers))
+
+        processor = DeepLearningCorrection(
+            NumpyInferenceAdapter(
+                checkpoint_path=str(ckpt),
+                predict_fn=predict_fn,
+                spec_overrides={
+                    "execution_granularity": DeepLearningExecutionGranularity.MULTICHANNEL,
+                    "supports_multichannel": True,
+                },
+            ),
+            trigger_aligned_chunking=True,
+            triggers_per_chunk=1,
+        )
+        result = processor.execute(sample_context)
+
+        # Samples from first_trigger onward should have artifact subtracted
+        np.testing.assert_allclose(
+            result.get_raw()._data[:, first_trigger:],
+            original[:, first_trigger:] - artifact_value,
+            atol=1e-12,
+        )
+        # Samples before first trigger are untouched
+        if first_trigger > 0:
+            np.testing.assert_allclose(
+                result.get_raw()._data[:, :first_trigger],
+                original[:, :first_trigger],
+                atol=1e-12,
+            )
+
+    def test_trigger_aligned_execution_mode_in_metadata(self, sample_context, tmp_path):
+        ckpt = tmp_path / "w.npy"
+        np.save(str(ckpt), np.ones(1))
+        processor = DeepLearningCorrection(
+            NumpyInferenceAdapter(
+                checkpoint_path=str(ckpt),
+                predict_fn=lambda data, w: np.zeros_like(data),
+                spec_overrides={
+                    "execution_granularity": DeepLearningExecutionGranularity.MULTICHANNEL,
+                    "supports_multichannel": True,
+                },
+            ),
+            trigger_aligned_chunking=True,
+            triggers_per_chunk=2,
+            store_run_metadata=True,
+        )
+        result = processor.execute(sample_context)
+        run = result.metadata.custom["deep_learning_runs"][0]
+        assert run["execution_mode"] == "trigger_aligned"
+        assert run["triggers_per_chunk"] == 2
+
+    def test_trigger_aligned_chunk_count_matches_trigger_groups(self, sample_context, tmp_path):
+        ckpt = tmp_path / "w.npy"
+        np.save(str(ckpt), np.ones(1))
+        triggers = sample_context.metadata.triggers
+        n_triggers = len(triggers)
+        triggers_per_chunk = 2
+        expected_chunks = (n_triggers + triggers_per_chunk - 1) // triggers_per_chunk
+
+        processor = DeepLearningCorrection(
+            NumpyInferenceAdapter(
+                checkpoint_path=str(ckpt),
+                predict_fn=lambda data, w: np.zeros_like(data),
+                spec_overrides={
+                    "execution_granularity": DeepLearningExecutionGranularity.MULTICHANNEL,
+                    "supports_multichannel": True,
+                },
+            ),
+            trigger_aligned_chunking=True,
+            triggers_per_chunk=triggers_per_chunk,
+            store_run_metadata=True,
+        )
+        result = processor.execute(sample_context)
+        run = result.metadata.custom["deep_learning_runs"][0]
+        assert run["chunk_count"] == expected_chunks
+
+
+# ---------------------------------------------------------------------------
+# Config-Loader tests
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestDeepLearningConfig:
+    """Tests for to_config_dict / from_config_dict / save / load helpers."""
+
+    def _make_onnx_processor(self, tmp_path, monkeypatch, **correction_kwargs):
+        """Helper: build a patched OnnxInferenceAdapter-backed processor."""
+        checkpoint = tmp_path / "model.onnx"
+        checkpoint.write_bytes(b"placeholder")
+
+        def session_factory(path, *, providers):
+            return _SingleArtifactOnnxSession(path, providers=providers)
+
+        _make_onnx_monkeypatch(monkeypatch, session_factory)
+
+        adapter = OnnxInferenceAdapter(
+            checkpoint_path=str(checkpoint),
+            spec_overrides={
+                "name": "ConfigTestModel",
+                "architecture": DeepLearningArchitecture.AUTOENCODER,
+                "execution_granularity": DeepLearningExecutionGranularity.MULTICHANNEL,
+                "supports_multichannel": True,
+            },
+        )
+        return DeepLearningCorrection(adapter, **correction_kwargs)
+
+    # ------------------------------------------------------------------
+    # to_config_dict
+    # ------------------------------------------------------------------
+
+    def test_to_config_dict_returns_json_serialisable_dict(self, tmp_path, monkeypatch):
+        import json
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        json.dumps(d)  # must not raise
+
+    def test_to_config_dict_contains_required_keys(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        for key in ("version", "processor", "adapter", "spec",
+                    "store_run_metadata", "trigger_aligned_chunking", "triggers_per_chunk"):
+            assert key in d, f"Missing key: {key}"
+
+    def test_to_config_dict_adapter_name_is_onnx_inference(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        assert processor.to_config_dict()["adapter"] == "onnx_inference"
+
+    def test_to_config_dict_spec_round_trips(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        restored_spec = spec_from_dict(d["spec"])
+        assert restored_spec == processor.model.spec
+
+    def test_to_config_dict_preserves_trigger_aligned_params(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(
+            tmp_path, monkeypatch,
+            trigger_aligned_chunking=True,
+            triggers_per_chunk=3,
+        )
+        d = processor.to_config_dict()
+        assert d["trigger_aligned_chunking"] is True
+        assert d["triggers_per_chunk"] == 3
+
+    def test_to_config_dict_raises_for_unregistered_adapter(self, tmp_path):
+        class _UnregisteredAdapter(DeepLearningModelAdapter):
+            spec = DeepLearningModelSpec(
+                name="Unregistered",
+                architecture=DeepLearningArchitecture.CUSTOM,
+                runtime=DeepLearningRuntime.NUMPY,
+            )
+            def predict(self, context):
+                return DeepLearningPrediction(artifact_data=np.zeros((1, 1)))
+
+        processor = DeepLearningCorrection(_UnregisteredAdapter())
+        with pytest.raises(ValueError, match="not registered"):
+            processor.to_config_dict()
+
+    # ------------------------------------------------------------------
+    # from_config_dict
+    # ------------------------------------------------------------------
+
+    def test_from_config_dict_round_trips_onnx_processor(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        restored = DeepLearningCorrection.from_config_dict(d)
+        assert restored.model.spec == processor.model.spec
+        assert restored.store_run_metadata == processor.store_run_metadata
+        assert restored.trigger_aligned_chunking == processor.trigger_aligned_chunking
+        assert restored.triggers_per_chunk == processor.triggers_per_chunk
+
+    def test_from_config_dict_raises_when_checkpoint_path_missing(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        d["spec"]["checkpoint_path"] = None
+        with pytest.raises(ValueError, match="checkpoint_path"):
+            DeepLearningCorrection.from_config_dict(d)
+
+    def test_from_config_dict_raises_for_unknown_adapter(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        d["adapter"] = "nonexistent_adapter_xyz"
+        with pytest.raises(KeyError):
+            DeepLearningCorrection.from_config_dict(d)
+
+    def test_from_config_dict_defaults_trigger_params_when_absent(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        d = processor.to_config_dict()
+        d.pop("trigger_aligned_chunking", None)
+        d.pop("triggers_per_chunk", None)
+        restored = DeepLearningCorrection.from_config_dict(d)
+        assert restored.trigger_aligned_chunking is False
+        assert restored.triggers_per_chunk == 1
+
+    # ------------------------------------------------------------------
+    # save / load JSON round-trip
+    # ------------------------------------------------------------------
+
+    def test_save_and_load_config_json(self, tmp_path, monkeypatch):
+        import json
+        processor = self._make_onnx_processor(
+            tmp_path, monkeypatch,
+            trigger_aligned_chunking=True,
+            triggers_per_chunk=2,
+        )
+        config_path = tmp_path / "config.json"
+        save_deep_learning_config(processor, config_path)
+
+        assert config_path.exists()
+        with config_path.open() as f:
+            raw = json.load(f)
+        assert raw["adapter"] == "onnx_inference"
+
+        restored = load_deep_learning_config(config_path)
+        assert restored.model.spec == processor.model.spec
+        assert restored.trigger_aligned_chunking is True
+        assert restored.triggers_per_chunk == 2
+
+    def test_save_config_creates_parent_dirs(self, tmp_path, monkeypatch):
+        processor = self._make_onnx_processor(tmp_path, monkeypatch)
+        nested = tmp_path / "deep" / "nested" / "config.json"
+        save_deep_learning_config(processor, nested)
+        assert nested.exists()

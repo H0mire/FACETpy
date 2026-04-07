@@ -1618,10 +1618,16 @@ class DeepLearningCorrection(Processor):
         model: str | type[DeepLearningModelAdapter] | DeepLearningModelAdapter,
         model_kwargs: dict[str, Any] | None = None,
         store_run_metadata: bool = True,
+        trigger_aligned_chunking: bool = False,
+        triggers_per_chunk: int = 1,
     ) -> None:
+        if triggers_per_chunk < 1:
+            raise ValueError("triggers_per_chunk must be >= 1")
         self.model = self._coerce_model(model, model_kwargs=model_kwargs)
         self.channel_wise = self.model.spec.execution_granularity == DeepLearningExecutionGranularity.CHANNEL
         self.store_run_metadata = store_run_metadata
+        self.trigger_aligned_chunking = trigger_aligned_chunking
+        self.triggers_per_chunk = triggers_per_chunk
         super().__init__()
 
     def _coerce_model(
@@ -1645,6 +1651,12 @@ class DeepLearningCorrection(Processor):
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
         self.model.validate_context(context)
+        if self.trigger_aligned_chunking and not context.has_triggers():
+            raise ProcessorValidationError(
+                f"Model '{self.model.spec.name}' has trigger_aligned_chunking=True "
+                "but the context contains no trigger positions. "
+                "Run TriggerDetector before this processor."
+            )
 
     def validate_execution_mode(self, *, parallel: bool, channel_sequential: bool) -> None:
         spec = self.model.spec
@@ -1673,6 +1685,8 @@ class DeepLearningCorrection(Processor):
             "chunk_overlap_samples": spec.chunk_overlap_samples,
             "dual_output_policy": spec.dual_output_policy.value,
             "store_run_metadata": self.store_run_metadata,
+            "trigger_aligned_chunking": self.trigger_aligned_chunking,
+            "triggers_per_chunk": self.triggers_per_chunk,
         }
 
     def _validate_prediction_contract(self, prediction: DeepLearningPrediction) -> None:
@@ -1688,6 +1702,49 @@ class DeepLearningCorrection(Processor):
             raise ProcessorValidationError(
                 f"Model '{spec.name}' declared output_type='both' and must return both clean_data and artifact_data"
             )
+
+    @staticmethod
+    def _trigger_chunk_ranges(
+        triggers: np.ndarray,
+        total_samples: int,
+        triggers_per_chunk: int = 1,
+    ) -> list[tuple[int, int]]:
+        """Build chunk ranges aligned to TR (trigger) boundaries.
+
+        Each chunk starts at the first sample of a trigger group and ends at
+        the first sample of the next group.  The final chunk extends to
+        *total_samples*.  Samples before the first trigger are excluded
+        (gradient artifact has not started yet).
+
+        Parameters
+        ----------
+        triggers:
+            Sorted or unsorted array of trigger sample positions.
+        total_samples:
+            Total number of samples in the recording.
+        triggers_per_chunk:
+            Number of consecutive TRs (triggers) to include in each chunk.
+            ``1`` (default) means one TR per chunk.
+
+        Returns
+        -------
+        list[tuple[int, int]]
+            List of ``(start, stop)`` sample pairs, non-overlapping,
+            covering ``[triggers[0], total_samples)``.
+        """
+        if len(triggers) == 0:
+            return [(0, total_samples)]
+
+        sorted_triggers = np.sort(triggers)
+        # Select every triggers_per_chunk-th trigger as a chunk boundary.
+        group_starts = sorted_triggers[::triggers_per_chunk].tolist()
+        ranges: list[tuple[int, int]] = []
+        for i, start in enumerate(group_starts):
+            stop = group_starts[i + 1] if i + 1 < len(group_starts) else total_samples
+            start_i, stop_i = int(start), int(stop)
+            if start_i < stop_i:
+                ranges.append((start_i, stop_i))
+        return ranges
 
     @staticmethod
     def _chunk_ranges(total_samples: int, chunk_size: int, overlap: int) -> list[tuple[int, int]]:
@@ -1948,10 +2005,56 @@ class DeepLearningCorrection(Processor):
 
     def _infer_local_context(self, context: ProcessingContext) -> tuple[mne.io.BaseRaw, np.ndarray, dict[str, Any]]:
         spec = self.model.spec
+        if self.trigger_aligned_chunking and context.has_triggers():
+            return self._process_trigger_aligned(context)
         use_chunking = spec.supports_chunking and spec.chunk_size_samples is not None
         if use_chunking:
             return self._process_chunked(context)
         return self._process_single_pass(context)
+
+    def _process_trigger_aligned(
+        self, context: ProcessingContext
+    ) -> tuple[mne.io.BaseRaw, np.ndarray, dict[str, Any]]:
+        """Run inference with chunks aligned to TR (trigger) boundaries."""
+        raw = context.get_raw().copy()
+        total_samples = raw._data.shape[1]
+        triggers = context.metadata.triggers
+        chunk_ranges = self._trigger_chunk_ranges(triggers, total_samples, self.triggers_per_chunk)
+        estimated_artifacts = np.zeros_like(raw._data)
+        chunk_summaries: list[dict[str, Any]] = []
+
+        for chunk_start, chunk_stop in chunk_ranges:
+            chunk_context = self._build_chunk_context(context, chunk_start, chunk_stop)
+            prediction = self.model.predict(chunk_context)
+            channel_indices, local_start, local_stop, artifact_segment = self._resolve_artifact_prediction(
+                chunk_context.get_raw()._data,
+                prediction,
+            )
+            global_start = chunk_start + local_start
+            global_stop = chunk_start + local_stop
+            estimated_artifacts[channel_indices, global_start:global_stop] = artifact_segment
+            chunk_summaries.append(
+                {
+                    "chunk_start_sample": chunk_start,
+                    "chunk_stop_sample": chunk_stop,
+                    "prediction_start_sample": global_start,
+                    "prediction_stop_sample": global_stop,
+                    "channel_indices": channel_indices.tolist(),
+                    "prediction_metadata": deepcopy(prediction.metadata),
+                }
+            )
+
+        raw._data -= estimated_artifacts
+        execution_metadata = {
+            "start_sample": 0,
+            "stop_sample": total_samples,
+            "channel_indices": list(range(raw._data.shape[0])),
+            "prediction_metadata": {"chunks": chunk_summaries},
+            "execution_mode": "trigger_aligned",
+            "chunk_count": len(chunk_ranges),
+            "triggers_per_chunk": self.triggers_per_chunk,
+        }
+        return raw, estimated_artifacts, execution_metadata
 
     def _process_chunked(self, context: ProcessingContext) -> tuple[mne.io.BaseRaw, np.ndarray, dict[str, Any]]:
         spec = self.model.spec
@@ -2114,3 +2217,165 @@ class DeepLearningCorrection(Processor):
             execution_metadata["execution_mode"],
         )
         return new_ctx
+
+    # ------------------------------------------------------------------
+    # Config serialisation
+    # ------------------------------------------------------------------
+
+    def to_config_dict(self) -> dict[str, Any]:
+        """Serialise this processor to a JSON-compatible configuration dict.
+
+        The returned dict can be saved as a JSON file and later restored via
+        :meth:`from_config_dict`.  Only adapters registered in
+        :class:`DeepLearningModelRegistry` with a serialisable
+        ``checkpoint_path`` are supported (i.e. TensorFlow, PyTorch, ONNX).
+        :class:`NumpyInferenceAdapter` instances that use a runtime callable
+        cannot be round-tripped.
+
+        Returns
+        -------
+        dict
+            JSON-safe dict with keys ``version``, ``processor``,
+            ``adapter``, ``spec``, ``store_run_metadata``,
+            ``trigger_aligned_chunking``, ``triggers_per_chunk``.
+
+        Raises
+        ------
+        ValueError
+            If the adapter is not registered in the model registry.
+        """
+        registry = DeepLearningModelRegistry.get_instance()
+        adapter_name: str | None = next(
+            (name for name, cls in registry.list_all().items() if type(self.model) is cls),
+            None,
+        )
+        if adapter_name is None:
+            raise ValueError(
+                f"Adapter type '{type(self.model).__name__}' is not registered in "
+                "DeepLearningModelRegistry. Register it first via register_deep_learning_model()."
+            )
+        return {
+            "version": "1",
+            "processor": self.name,
+            "adapter": adapter_name,
+            "spec": spec_to_dict(self.model.spec),
+            "store_run_metadata": self.store_run_metadata,
+            "trigger_aligned_chunking": self.trigger_aligned_chunking,
+            "triggers_per_chunk": self.triggers_per_chunk,
+        }
+
+    @classmethod
+    def from_config_dict(cls, data: dict[str, Any]) -> "DeepLearningCorrection":
+        """Reconstruct a :class:`DeepLearningCorrection` from a config dict.
+
+        This is the inverse of :meth:`to_config_dict`.  The adapter is
+        looked up by name in :class:`DeepLearningModelRegistry` and
+        instantiated with the deserialised :class:`DeepLearningModelSpec`.
+
+        Parameters
+        ----------
+        data:
+            Dict as returned by :meth:`to_config_dict` or loaded from a
+            JSON file via :func:`load_deep_learning_config`.
+
+        Returns
+        -------
+        DeepLearningCorrection
+            Fully reconstructed processor ready to be added to a pipeline.
+
+        Raises
+        ------
+        KeyError
+            If the adapter name is not registered.
+        ValueError
+            If ``spec.checkpoint_path`` is ``None``.
+        """
+        import dataclasses
+
+        adapter_name: str = data["adapter"]
+        spec = spec_from_dict(data["spec"])
+
+        if spec.checkpoint_path is None:
+            raise ValueError(
+                "Cannot reconstruct adapter from config: spec.checkpoint_path is None. "
+                "Set checkpoint_path in the config spec."
+            )
+
+        adapter_cls = get_deep_learning_model(adapter_name)
+
+        # Build spec_overrides: all spec fields except checkpoint_path
+        # (which is passed as a positional kwarg to stay compatible with all adapters).
+        spec_fields = {f.name for f in dataclasses.fields(DeepLearningModelSpec)}
+        spec_overrides = {
+            k: getattr(spec, k)
+            for k in spec_fields
+            if k != "checkpoint_path"
+        }
+
+        adapter = adapter_cls(
+            checkpoint_path=spec.checkpoint_path,
+            spec_overrides=spec_overrides,
+        )
+
+        return cls(
+            model=adapter,
+            store_run_metadata=data.get("store_run_metadata", True),
+            trigger_aligned_chunking=data.get("trigger_aligned_chunking", False),
+            triggers_per_chunk=data.get("triggers_per_chunk", 1),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Convenience I/O helpers
+# ---------------------------------------------------------------------------
+
+def save_deep_learning_config(processor: "DeepLearningCorrection", path: "str | Path") -> None:
+    """Save a :class:`DeepLearningCorrection` configuration to a JSON file.
+
+    Parameters
+    ----------
+    processor:
+        The processor to serialise.
+    path:
+        Destination file path.  The ``.json`` suffix is recommended.
+
+    Example
+    -------
+    >>> save_deep_learning_config(my_processor, "onnx_correction.json")
+    """
+    import json
+
+    config = processor.to_config_dict()
+    output_path = Path(path).expanduser()
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as fh:
+        json.dump(config, fh, indent=2)
+    logger.info("Saved DeepLearningCorrection config to {}", output_path)
+
+
+def load_deep_learning_config(path: "str | Path") -> "DeepLearningCorrection":
+    """Load a :class:`DeepLearningCorrection` from a JSON configuration file.
+
+    Parameters
+    ----------
+    path:
+        Path to a JSON file previously created by
+        :func:`save_deep_learning_config`.
+
+    Returns
+    -------
+    DeepLearningCorrection
+        Reconstructed processor ready to be added to a pipeline.
+
+    Example
+    -------
+    >>> processor = load_deep_learning_config("onnx_correction.json")
+    >>> pipeline = Pipeline([processor])
+    """
+    import json
+
+    input_path = Path(path).expanduser()
+    with input_path.open("r", encoding="utf-8") as fh:
+        config = json.load(fh)
+    logger.info("Loaded DeepLearningCorrection config from {}", input_path)
+    return DeepLearningCorrection.from_config_dict(config)

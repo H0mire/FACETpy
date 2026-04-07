@@ -32,7 +32,9 @@ from .deep_learning import (
     get_deep_learning_model,
     list_deep_learning_blueprints,
     list_deep_learning_models,
+    load_deep_learning_config,
     register_deep_learning_model,
+    save_deep_learning_config,
     spec_from_dict,
     spec_to_dict,
 )
@@ -79,6 +81,8 @@ __all__ = [
     "list_deep_learning_blueprints",
     "spec_to_dict",
     "spec_from_dict",
+    "save_deep_learning_config",
+    "load_deep_learning_config",
     "DeepLearningCorrection",
     # FARM
     "FARMCorrection",
