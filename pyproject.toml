@@ -36,12 +36,15 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-deeplearning = ["tensorflow>=2.19.0,<3.0.0"]
+tensorflow = ["tensorflow>=2.19.0,<3.0.0"]
+pytorch = ["torch>=2.11.0,<3.0.0"]
+deeplearning = ["tensorflow>=2.19.0,<3.0.0", "torch>=2.11.0,<3.0.0"]
 gui = ["pyqt6>=6.6.1,<7.0.0"]
 notebooks = ["notebook>=7.1.2,<8.0.0", "ipython>=7.23.1,<9"]
 docs = ["sphinx>=7.2.6,<8.0.0", "sphinx-rtd-theme>=2.0.0,<3.0.0", "myst-parser>=3.0.1,<4.0.0"]
 all = [
     "tensorflow>=2.19.0,<3.0.0",
+    "torch>=2.11.0,<3.0.0",
     "pyqt6>=6.6.1,<7.0.0",
     "notebook>=7.1.2,<8.0.0",
     "ipython>=7.23.1,<9",

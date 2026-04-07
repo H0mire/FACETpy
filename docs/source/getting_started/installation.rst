@@ -83,7 +83,9 @@ Optional extras (Unix and Windows):
 
 .. code-block:: text
 
-   uv sync --extra deeplearning     # TensorFlow-based extras
+   uv sync --extra tensorflow       # TensorFlow runtime
+   uv sync --extra pytorch          # PyTorch runtime
+   uv sync --extra deeplearning     # install both deep-learning runtimes
    uv sync --extra notebooks        # Jupyter notebook support
    uv sync --extra gui              # PyQt6 GUI components
    uv sync --extra docs             # Sphinx + MyST documentation toolchain

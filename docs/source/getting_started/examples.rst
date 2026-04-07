@@ -331,5 +331,6 @@ See the ``examples/`` directory in the repository for more complete examples:
 * ``convert_types.py`` - Convert between file formats (e.g. SET to BDF) using ``load`` and ``export``
 * ``inline_steps.py`` - Inline callable steps and ``ProcessingContext`` pipe operator
 * ``memory_efficient_pipeline.py`` - Streaming-style workflow for large recordings
+* ``pytorch_inference_example.py`` - Minimal TorchScript checkpoint inference with ``DeepLearningCorrection("pytorch_inference")``
 * ``quickstart.py`` - Minimal runnable correction example
 * ``eeg_generation_visualization_example.py`` - Synthetic EEG generation and plotting
