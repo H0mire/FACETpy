@@ -1833,6 +1833,300 @@ class FFTNiazyCalculator(Processor, ReferenceDataMixin):
 
 
 @register_processor
+class SpectralCoherenceCalculator(Processor, ReferenceDataMixin):
+    """Calculate spectral coherence between corrected and reference EEG.
+
+    Measures how well the neural frequency bands (alpha 8–12 Hz, beta
+    12–30 Hz) are preserved after artifact correction.  Coherence close
+    to 1.0 means the correction left the neural signal intact; values
+    below 0.5 suggest over-correction or signal distortion.
+
+    The metric is computed as the mean magnitude-squared coherence
+    (MSC) between the corrected and reference data windows in each band,
+    averaged across all EEG channels.
+
+    Results are stored under ``context.metadata.custom['metrics']['spectral_coherence']``
+    as a dict with keys ``'alpha'``, ``'beta'``, and ``'mean'``.
+
+    Parameters
+    ----------
+    bands : dict, optional
+        Frequency band definitions ``{name: (fmin, fmax)}``.  Defaults to
+        ``{'alpha': (8, 12), 'beta': (12, 30)}``.
+    nperseg : int, optional
+        Welch / coherence segment length in samples (default: 256).
+    verbose : bool, optional
+        Log per-channel details (default: False).
+
+    Examples
+    --------
+    ::
+
+        coh = SpectralCoherenceCalculator()
+        context = coh.execute(context)
+        print(context.metadata.custom['metrics']['spectral_coherence'])
+    """
+
+    name = "spectral_coherence_calculator"
+    description = "Calculate spectral coherence (alpha/beta band preservation)"
+    version = "1.0.0"
+
+    requires_triggers = True
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    _DEFAULT_BANDS = {"alpha": (8.0, 12.0), "beta": (12.0, 30.0)}
+
+    def __init__(
+        self,
+        bands: "dict[str, tuple[float, float]] | None" = None,
+        nperseg: int = 256,
+        verbose: bool = False,
+    ) -> None:
+        self.bands = bands if bands is not None else dict(self._DEFAULT_BANDS)
+        self.nperseg = nperseg
+        self.verbose = verbose
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if context.get_raw_original() is None:
+            raise ProcessorValidationError(
+                "Original raw data not available. SpectralCoherenceCalculator requires "
+                "the uncorrected recording to serve as the coherence reference."
+            )
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        raw = context.get_raw()
+        raw_orig = context.get_raw_original()
+        triggers = context.get_triggers()
+        artifact_len = context.get_artifact_length()
+        sfreq = float(raw.info["sfreq"])
+
+        # --- LOG ---
+        logger.info("Calculating spectral coherence (alpha/beta band preservation)")
+
+        # --- COMPUTE ---
+        eeg_picks = self.get_eeg_channels(raw)
+        if len(eeg_picks) == 0:
+            logger.warning("No EEG channels found for SpectralCoherenceCalculator")
+            return context
+
+        data_corr = self.get_acquisition_data(raw, triggers, artifact_len, context=context)
+        data_orig = self.get_acquisition_data(raw_orig, triggers, artifact_len, context=context)
+
+        if data_corr.size == 0 or data_orig.size == 0:
+            logger.warning("Insufficient data for SpectralCoherenceCalculator")
+            return context
+
+        nperseg = min(self.nperseg, data_corr.shape[1], data_orig.shape[1])
+        n_ch = min(data_corr.shape[0], data_orig.shape[0])
+        data_corr = data_corr[:n_ch]
+        data_orig = data_orig[:n_ch]
+
+        band_results: dict[str, float] = {}
+        for band_name, (fmin, fmax) in self.bands.items():
+            ch_coherences: list[float] = []
+            for ch_corr, ch_orig in zip(data_corr, data_orig):
+                freqs, Cxy = signal.coherence(ch_orig, ch_corr, fs=sfreq, nperseg=nperseg)
+                mask = (freqs >= fmin) & (freqs <= fmax)
+                if mask.any():
+                    ch_coherences.append(float(np.mean(Cxy[mask])))
+            if ch_coherences:
+                band_results[band_name] = float(np.mean(ch_coherences))
+                if self.verbose:
+                    logger.info(
+                        "SpectralCoherence: band={} ({}-{}Hz) mean_coherence={:.4f}",
+                        band_name,
+                        fmin,
+                        fmax,
+                        band_results[band_name],
+                    )
+
+        if not band_results:
+            logger.warning("SpectralCoherenceCalculator: no band results computed")
+            return context
+
+        mean_coherence = float(np.mean(list(band_results.values())))
+        band_results["mean"] = mean_coherence
+
+        report_metric(
+            "spectral_coherence_mean",
+            mean_coherence,
+            label="Spectral Coherence (mean)",
+            display=f"{mean_coherence:.4f}",
+        )
+
+        # --- BUILD RESULT ---
+        new_metadata = context.metadata.copy()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["spectral_coherence"] = band_results
+
+        # --- RETURN ---
+        return context.with_metadata(new_metadata)
+
+
+@register_processor
+class SpikeDetectionRateCalculator(Processor):
+    """Compare spike detection rates before and after artifact correction.
+
+    Detects transient spikes (absolute amplitude exceeding a threshold) in the
+    corrected and the original uncorrected recording, then reports:
+
+    * ``spike_rate_original``  — spikes per second in the uncorrected signal.
+    * ``spike_rate_corrected`` — spikes per second in the corrected signal.
+    * ``spike_suppression_ratio`` — ``original / corrected`` (>1 means fewer
+      spikes after correction, i.e. better artifact removal).
+
+    The detector is intentionally simple: a sample is flagged as a spike when
+    its absolute value exceeds ``threshold_std`` standard deviations above the
+    channel mean.  Only the acquisition window (between first and last trigger)
+    is analysed.
+
+    Results are stored under
+    ``context.metadata.custom['metrics']['spike_detection']``.
+
+    Parameters
+    ----------
+    threshold_std : float
+        Detection threshold in units of standard deviations (default: 5.0).
+    min_distance_ms : float
+        Minimum distance between two spikes in milliseconds (default: 20 ms).
+        Prevents double-counting of a single transient.
+    verbose : bool, optional
+        Log per-channel details (default: False).
+
+    Examples
+    --------
+    ::
+
+        spikes = SpikeDetectionRateCalculator(threshold_std=5.0)
+        context = spikes.execute(context)
+        print(context.metadata.custom['metrics']['spike_detection'])
+    """
+
+    name = "spike_detection_rate_calculator"
+    description = "Compare spike rates before and after correction"
+    version = "1.0.0"
+
+    requires_triggers = True
+    requires_raw = True
+    modifies_raw = False
+    parallel_safe = False
+
+    def __init__(
+        self,
+        threshold_std: float = 5.0,
+        min_distance_ms: float = 20.0,
+        verbose: bool = False,
+    ) -> None:
+        self.threshold_std = threshold_std
+        self.min_distance_ms = min_distance_ms
+        self.verbose = verbose
+        super().__init__()
+
+    def validate(self, context: ProcessingContext) -> None:
+        super().validate(context)
+        if context.get_raw_original() is None:
+            raise ProcessorValidationError(
+                "Original raw data not available. SpikeDetectionRateCalculator requires "
+                "the uncorrected recording for comparison."
+            )
+
+    @staticmethod
+    def _count_spikes(data: np.ndarray, sfreq: float, threshold_std: float, min_distance_ms: float) -> float:
+        """Return mean spike rate (spikes/second) across channels."""
+        min_distance_samples = max(1, int(min_distance_ms * sfreq / 1000.0))
+        n_channels, n_samples = data.shape
+        duration_s = n_samples / sfreq
+        if duration_s <= 0:
+            return 0.0
+
+        total_spikes = 0
+        for ch_data in data:
+            ch_mean = np.mean(ch_data)
+            ch_std = np.std(ch_data)
+            if ch_std < 1e-15:
+                continue
+            threshold = ch_mean + threshold_std * ch_std
+            above = np.abs(ch_data - ch_mean) > (threshold_std * ch_std)
+            spike_indices = np.flatnonzero(above)
+            # Enforce minimum distance between spikes
+            if spike_indices.size > 0:
+                kept = [spike_indices[0]]
+                for idx in spike_indices[1:]:
+                    if idx - kept[-1] >= min_distance_samples:
+                        kept.append(idx)
+                total_spikes += len(kept)
+
+        mean_rate = total_spikes / (n_channels * duration_s) if n_channels > 0 else 0.0
+        return float(mean_rate)
+
+    def process(self, context: ProcessingContext) -> ProcessingContext:
+        # --- EXTRACT ---
+        raw = context.get_raw()
+        raw_orig = context.get_raw_original()
+        triggers = context.get_triggers()
+        sfreq = float(raw.info["sfreq"])
+
+        # --- LOG ---
+        logger.info("Calculating spike detection rate (threshold={}σ)", self.threshold_std)
+
+        # --- COMPUTE ---
+        eeg_picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
+        if len(eeg_picks) == 0:
+            logger.warning("No EEG channels found for SpikeDetectionRateCalculator")
+            return context
+
+        # Restrict to acquisition window
+        acq_start = int(triggers[0])
+        acq_end = min(raw.n_times, int(triggers[-1]) + 1)
+
+        data_corr = raw._data[eeg_picks, acq_start:acq_end].astype(np.float64)
+        data_orig = raw_orig._data[eeg_picks, acq_start:acq_end].astype(np.float64)
+
+        rate_orig = self._count_spikes(data_orig, sfreq, self.threshold_std, self.min_distance_ms)
+        rate_corr = self._count_spikes(data_corr, sfreq, self.threshold_std, self.min_distance_ms)
+
+        if rate_corr > 0:
+            suppression_ratio = rate_orig / rate_corr
+        elif rate_orig == 0:
+            suppression_ratio = 1.0
+        else:
+            suppression_ratio = float("inf")
+
+        if self.verbose:
+            logger.info(
+                "SpikeDetection: rate_original={:.4f}/s, rate_corrected={:.4f}/s, suppression={:.3f}",
+                rate_orig,
+                rate_corr,
+                suppression_ratio if np.isfinite(suppression_ratio) else float("nan"),
+            )
+
+        report_metric(
+            "spike_suppression_ratio",
+            suppression_ratio if np.isfinite(suppression_ratio) else 0.0,
+            label="Spike Suppression Ratio",
+            display=f"{suppression_ratio:.2f}" if np.isfinite(suppression_ratio) else "inf",
+        )
+
+        # --- BUILD RESULT ---
+        new_metadata = context.metadata.copy()
+        metrics = new_metadata.custom.setdefault("metrics", {})
+        metrics["spike_detection"] = {
+            "spike_rate_original": rate_orig,
+            "spike_rate_corrected": rate_corr,
+            "spike_suppression_ratio": suppression_ratio if np.isfinite(suppression_ratio) else None,
+            "threshold_std": self.threshold_std,
+        }
+
+        # --- RETURN ---
+        return context.with_metadata(new_metadata)
+
+
+@register_processor
 class MetricsReport(Processor):
     """Generate a summary report of all calculated metrics.
 
@@ -1964,6 +2258,30 @@ class MetricsReport(Processor):
             if "legacy_snr" in metrics:
                 table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
 
+        # --- Spectral Coherence ---
+        if "spectral_coherence" in metrics:
+            _section("Spectral Coherence (band preservation)")
+            sc = metrics["spectral_coherence"]
+            for band in ("alpha", "beta", "mean"):
+                if band in sc:
+                    val = sc[band]
+                    color = "green" if val > 0.8 else ("yellow" if val > 0.5 else "red")
+                    label = band.capitalize() if band != "mean" else "Mean"
+                    table.add_row(f"{label} coherence", f"[{color}]{val:.4f}[/]", "target: 1.0")
+
+        # --- Spike Detection ---
+        if "spike_detection" in metrics:
+            _section("Spike Detection Rate")
+            sd = metrics["spike_detection"]
+            if "spike_rate_original" in sd:
+                table.add_row("Spike rate (original)", f"{sd['spike_rate_original']:.4f}", "/s")
+            if "spike_rate_corrected" in sd:
+                table.add_row("Spike rate (corrected)", f"{sd['spike_rate_corrected']:.4f}", "/s")
+            if "spike_suppression_ratio" in sd and sd["spike_suppression_ratio"] is not None:
+                r = sd["spike_suppression_ratio"]
+                color = "green" if r > 2.0 else ("yellow" if r > 1.0 else "red")
+                table.add_row("Spike suppression ratio", f"[{color}]{r:.2f}[/]", "higher=better")
+
         # --- FFT Allen ---
         if "fft_allen" in metrics:
             _section("FFT Allen — Spectral Diff to Reference")
@@ -2019,6 +2337,19 @@ class MetricsReport(Processor):
 
         if "legacy_snr" in metrics:
             logger.info("Legacy SNR:                      {:.2f}", metrics["legacy_snr"])
+
+        if "spectral_coherence" in metrics:
+            sc = metrics["spectral_coherence"]
+            for band, val in sc.items():
+                logger.info("Spectral Coherence ({}):          {:.4f}", band.capitalize(), val)
+
+        if "spike_detection" in metrics:
+            sd = metrics["spike_detection"]
+            logger.info("Spike rate (original):           {:.4f}/s", sd.get("spike_rate_original", 0.0))
+            logger.info("Spike rate (corrected):          {:.4f}/s", sd.get("spike_rate_corrected", 0.0))
+            r = sd.get("spike_suppression_ratio")
+            if r is not None:
+                logger.info("Spike suppression ratio:         {:.2f}", r)
 
         if "fft_allen" in metrics:
             logger.info("FFT Allen (Diff to Ref):")

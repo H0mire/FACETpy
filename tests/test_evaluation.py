@@ -2,6 +2,7 @@
 Tests for evaluation processors.
 """
 
+import mne
 import numpy as np
 import pytest
 
@@ -17,6 +18,8 @@ from facet.evaluation import (
     RMSResidualCalculator,
     SignalIntervalSelector,
     SNRCalculator,
+    SpectralCoherenceCalculator,
+    SpikeDetectionRateCalculator,
 )
 
 
@@ -523,3 +526,160 @@ class TestEvaluationPipeline:
         # All metrics should be present
         metrics = result.context.metadata.custom.get("metrics", {})
         assert "snr" in metrics
+
+
+# ---------------------------------------------------------------------------
+# SpectralCoherenceCalculator
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestSpectralCoherenceCalculator:
+    """Tests for SpectralCoherenceCalculator processor."""
+
+    def test_coherence_stored_in_metrics(self, sample_context):
+        """Result should be stored under metrics['spectral_coherence']."""
+        calc = SpectralCoherenceCalculator()
+        result = calc.execute(sample_context)
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "spectral_coherence" in metrics
+
+    def test_coherence_bands_present(self, sample_context):
+        """Default bands 'alpha', 'beta', and 'mean' must be present."""
+        calc = SpectralCoherenceCalculator()
+        result = calc.execute(sample_context)
+        sc = result.metadata.custom["metrics"]["spectral_coherence"]
+        for key in ("alpha", "beta", "mean"):
+            assert key in sc, f"Missing band '{key}'"
+
+    def test_coherence_values_in_range(self, sample_context):
+        """Coherence values must be in [0, 1]."""
+        calc = SpectralCoherenceCalculator()
+        result = calc.execute(sample_context)
+        sc = result.metadata.custom["metrics"]["spectral_coherence"]
+        for key, val in sc.items():
+            assert 0.0 <= val <= 1.0, f"Band '{key}': coherence={val} out of [0,1]"
+
+    def test_identical_signals_yield_coherence_one(self, sample_context):
+        """Identical corrected and original signal should give coherence ≈ 1.0."""
+        calc = SpectralCoherenceCalculator()
+        result = calc.execute(sample_context)
+        # sample_context has raw_original = raw.copy(), so data is identical
+        sc = result.metadata.custom["metrics"]["spectral_coherence"]
+        assert sc["mean"] == pytest.approx(1.0, abs=0.05)
+
+    def test_custom_bands(self, sample_context):
+        """Custom band definitions should produce results for those bands only."""
+        calc = SpectralCoherenceCalculator(bands={"gamma": (30.0, 50.0)})
+        result = calc.execute(sample_context)
+        sc = result.metadata.custom["metrics"]["spectral_coherence"]
+        assert "gamma" in sc
+        assert "alpha" not in sc
+
+    def test_requires_triggers(self, sample_raw):
+        """Missing triggers must raise ProcessorValidationError."""
+        ctx = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy())
+        calc = SpectralCoherenceCalculator()
+        with pytest.raises(ProcessorValidationError):
+            calc.execute(ctx)
+
+    def test_mean_is_average_of_bands(self, sample_context):
+        """'mean' must equal the arithmetic mean of the individual band values."""
+        calc = SpectralCoherenceCalculator()
+        result = calc.execute(sample_context)
+        sc = result.metadata.custom["metrics"]["spectral_coherence"]
+        band_values = [v for k, v in sc.items() if k != "mean"]
+        expected_mean = float(np.mean(band_values))
+        assert sc["mean"] == pytest.approx(expected_mean, abs=1e-9)
+
+    def test_context_unchanged_when_no_eeg_channels(self, sample_context, monkeypatch):
+        """Processor should return context unchanged when there are no EEG channels."""
+        calc = SpectralCoherenceCalculator()
+        monkeypatch.setattr(calc, "get_eeg_channels", lambda raw: [])
+        result = calc.execute(sample_context)
+        assert "spectral_coherence" not in result.metadata.custom.get("metrics", {})
+
+
+# ---------------------------------------------------------------------------
+# SpikeDetectionRateCalculator
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestSpikeDetectionRateCalculator:
+    """Tests for SpikeDetectionRateCalculator processor."""
+
+    def test_spike_detection_stored_in_metrics(self, sample_context):
+        """Result should be stored under metrics['spike_detection']."""
+        calc = SpikeDetectionRateCalculator()
+        result = calc.execute(sample_context)
+        metrics = result.metadata.custom.get("metrics", {})
+        assert "spike_detection" in metrics
+
+    def test_spike_detection_keys_present(self, sample_context):
+        """Result dict must contain the expected keys."""
+        calc = SpikeDetectionRateCalculator()
+        result = calc.execute(sample_context)
+        sd = result.metadata.custom["metrics"]["spike_detection"]
+        for key in ("spike_rate_original", "spike_rate_corrected", "spike_suppression_ratio", "threshold_std"):
+            assert key in sd, f"Missing key '{key}'"
+
+    def test_spike_rates_non_negative(self, sample_context):
+        """Spike rates must be non-negative."""
+        calc = SpikeDetectionRateCalculator()
+        result = calc.execute(sample_context)
+        sd = result.metadata.custom["metrics"]["spike_detection"]
+        assert sd["spike_rate_original"] >= 0.0
+        assert sd["spike_rate_corrected"] >= 0.0
+
+    def test_identical_signals_suppression_ratio_one(self, sample_context):
+        """Identical signals should yield suppression ratio ≈ 1.0."""
+        calc = SpikeDetectionRateCalculator()
+        result = calc.execute(sample_context)
+        sd = result.metadata.custom["metrics"]["spike_detection"]
+        ratio = sd["spike_suppression_ratio"]
+        if ratio is not None:
+            assert ratio == pytest.approx(1.0, abs=0.1)
+
+    def test_corrected_signal_with_fewer_spikes_raises_ratio(self, sample_raw, sample_triggers):
+        """Injecting spikes into original but not corrected should produce ratio > 1."""
+        from facet.core import ProcessingMetadata
+
+        rng = np.random.default_rng(7)
+        n_ch, n_samples = sample_raw._data.shape
+
+        data_corr = rng.standard_normal((n_ch, n_samples)) * 1e-7
+        data_orig = data_corr.copy()
+        for t in sample_triggers:
+            if t < n_samples:
+                data_orig[:, t] += 500e-6   # large spike only in original
+
+        ch_names = [f"EEG{i:02d}" for i in range(n_ch)]
+        info = mne.create_info(ch_names=ch_names, sfreq=250.0, ch_types=["eeg"] * n_ch)
+        raw_corr = mne.io.RawArray(data_corr, info, verbose=False)
+        raw_orig = mne.io.RawArray(data_orig, info, verbose=False)
+
+        metadata = ProcessingMetadata()
+        metadata.triggers = sample_triggers
+        metadata.artifact_length = 50
+        ctx = ProcessingContext(raw=raw_corr, raw_original=raw_orig, metadata=metadata)
+
+        calc = SpikeDetectionRateCalculator(threshold_std=3.0)
+        result = calc.execute(ctx)
+        sd = result.metadata.custom["metrics"]["spike_detection"]
+
+        assert sd["spike_rate_original"] > sd["spike_rate_corrected"]
+        ratio = sd["spike_suppression_ratio"]
+        assert ratio is not None and ratio > 1.0
+
+    def test_requires_triggers(self, sample_raw):
+        """Missing triggers must raise ProcessorValidationError."""
+        ctx = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy())
+        calc = SpikeDetectionRateCalculator()
+        with pytest.raises(ProcessorValidationError):
+            calc.execute(ctx)
+
+    def test_threshold_std_stored(self, sample_context):
+        """threshold_std parameter must be echoed into the result dict."""
+        calc = SpikeDetectionRateCalculator(threshold_std=7.0)
+        result = calc.execute(sample_context)
+        sd = result.metadata.custom["metrics"]["spike_detection"]
+        assert sd["threshold_std"] == pytest.approx(7.0)

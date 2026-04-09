@@ -2335,3 +2335,211 @@ class TestDeepLearningConfig:
         nested = tmp_path / "deep" / "nested" / "config.json"
         save_deep_learning_config(processor, nested)
         assert nested.exists()
+
+
+# ---------------------------------------------------------------------------
+# SpectrogramMixin
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+class TestSpectrogramMixin:
+    """Tests for SpectrogramMixin STFT/iSTFT wrapping."""
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _make_adapter(output_type=None, nperseg=64, noverlap=48, identity=True):
+        """Return a concrete SpectrogramMixin + NumpyInferenceAdapter subclass."""
+        from dataclasses import replace as _replace
+
+        from facet.correction import (
+            DeepLearningOutputType,
+            NumpyInferenceAdapter,
+            SpectrogramMixin,
+        )
+
+        _otype = output_type or DeepLearningOutputType.CLEAN
+
+        class _SpectroAdapter(SpectrogramMixin, NumpyInferenceAdapter):
+            # Override STFT params via class-level attributes
+            pass
+
+        _SpectroAdapter.nperseg = nperseg
+        _SpectroAdapter.noverlap = noverlap
+
+        # track whether _run_spectrogram_model was called
+        _SpectroAdapter._call_count = 0
+
+        def _run(self, magnitude, phase, context):
+            type(self)._call_count += 1
+            return magnitude  # identity
+
+        if identity:
+            _SpectroAdapter._run_spectrogram_model = _run
+
+        adapter = _SpectroAdapter(
+            checkpoint_path="/nonexistent/path.npz",
+            predict_fn=lambda data, w: data,
+            spec_overrides={"output_type": _otype},
+        )
+        return adapter
+
+    @staticmethod
+    def _make_context(n_channels=4, n_samples=512, sfreq=256.0):
+        import mne
+
+        data = np.random.default_rng(42).standard_normal((n_channels, n_samples)) * 1e-6
+        ch_names = [f"EEG{i:02d}" for i in range(n_channels)]
+        info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=["eeg"] * n_channels)
+        raw = mne.io.RawArray(data, info, verbose=False)
+        from facet.core import ProcessingContext
+        return ProcessingContext(raw=raw)
+
+    # ------------------------------------------------------------------
+    # stft_forward
+    # ------------------------------------------------------------------
+
+    def test_stft_forward_output_shapes(self):
+        """stft_forward returns (n_channels, n_freqs, n_frames) for magnitude and phase."""
+        adapter = self._make_adapter()
+        data = np.random.randn(4, 512).astype(np.float64)
+        mag, phase, freqs, times = adapter.stft_forward(data, sfreq=256.0)
+        assert mag.ndim == 3
+        assert mag.shape[0] == 4
+        assert phase.shape == mag.shape
+        assert freqs.ndim == 1
+        assert times.ndim == 1
+        assert mag.shape[1] == freqs.shape[0]
+        assert mag.shape[2] == times.shape[0]
+
+    def test_stft_forward_phase_range(self):
+        """Phase values must lie in [-pi, pi]."""
+        adapter = self._make_adapter()
+        data = np.random.randn(3, 512)
+        _, phase, _, _ = adapter.stft_forward(data, sfreq=256.0)
+        assert float(np.min(phase)) >= -np.pi - 1e-6
+        assert float(np.max(phase)) <= np.pi + 1e-6
+
+    def test_stft_forward_magnitude_non_negative(self):
+        """Magnitude must be non-negative."""
+        adapter = self._make_adapter()
+        data = np.random.randn(2, 512)
+        mag, _, _, _ = adapter.stft_forward(data, sfreq=256.0)
+        assert float(np.min(mag)) >= 0.0
+
+    def test_stft_forward_invalid_noverlap_raises(self):
+        """noverlap >= nperseg must raise ValueError."""
+        adapter = self._make_adapter(nperseg=64, noverlap=64)
+        data = np.random.randn(2, 256)
+        with pytest.raises(ValueError, match="noverlap"):
+            adapter.stft_forward(data, sfreq=256.0)
+
+    # ------------------------------------------------------------------
+    # istft_backward
+    # ------------------------------------------------------------------
+
+    def test_istft_backward_output_shape(self):
+        """istft_backward returns (n_channels, n_samples)."""
+        adapter = self._make_adapter()
+        data = np.random.randn(4, 512)
+        mag, phase, _, _ = adapter.stft_forward(data, sfreq=256.0)
+        out = adapter.istft_backward(mag, phase, sfreq=256.0, n_samples=512)
+        assert out.shape == (4, 512)
+
+    def test_stft_istft_roundtrip(self):
+        """STFT → iSTFT roundtrip reconstructs signal up to numerical noise."""
+        adapter = self._make_adapter(nperseg=128, noverlap=96)
+        rng = np.random.default_rng(0)
+        data = rng.standard_normal((3, 1024)).astype(np.float64)
+        mag, phase, _, _ = adapter.stft_forward(data, sfreq=512.0)
+        reconstructed = adapter.istft_backward(mag, phase, sfreq=512.0, n_samples=1024)
+        np.testing.assert_allclose(reconstructed, data, atol=1e-5)
+
+    def test_istft_backward_trims_to_n_samples(self):
+        """Output is trimmed to the requested n_samples."""
+        adapter = self._make_adapter()
+        data = np.random.randn(2, 256)
+        mag, phase, _, _ = adapter.stft_forward(data, sfreq=256.0)
+        for target_len in (200, 256):
+            out = adapter.istft_backward(mag, phase, sfreq=256.0, n_samples=target_len)
+            assert out.shape == (2, target_len)
+
+    # ------------------------------------------------------------------
+    # predict()
+    # ------------------------------------------------------------------
+
+    def test_predict_returns_clean_prediction(self):
+        """Identity adapter with CLEAN output_type should return clean_data."""
+        from facet.correction import DeepLearningOutputType
+
+        adapter = self._make_adapter(output_type=DeepLearningOutputType.CLEAN)
+        ctx = self._make_context()
+        pred = adapter.predict(ctx)
+        assert pred.clean_data is not None
+        assert pred.artifact_data is None
+        assert pred.clean_data.shape == ctx.get_raw()._data.shape
+
+    def test_predict_returns_artifact_prediction(self):
+        """Identity adapter with ARTIFACT output_type should return artifact_data."""
+        from facet.correction import DeepLearningOutputType
+
+        adapter = self._make_adapter(output_type=DeepLearningOutputType.ARTIFACT)
+        ctx = self._make_context()
+        pred = adapter.predict(ctx)
+        assert pred.artifact_data is not None
+        assert pred.clean_data is None
+
+    def test_predict_includes_stft_metadata(self):
+        """Prediction metadata must carry stft_n_freqs, stft_n_frames, nperseg, noverlap."""
+        adapter = self._make_adapter()
+        ctx = self._make_context()
+        pred = adapter.predict(ctx)
+        for key in ("stft_n_freqs", "stft_n_frames", "nperseg", "noverlap"):
+            assert key in pred.metadata, f"Missing key '{key}' in prediction metadata"
+        assert pred.metadata["nperseg"] == 64
+        assert pred.metadata["noverlap"] == 48
+
+    def test_predict_calls_run_spectrogram_model(self):
+        """predict() must delegate to _run_spectrogram_model."""
+        adapter = self._make_adapter()
+        type(adapter)._call_count = 0
+        ctx = self._make_context()
+        adapter.predict(ctx)
+        assert type(adapter)._call_count == 1
+
+    def test_predict_shape_mismatch_raises(self):
+        """_run_spectrogram_model returning wrong shape must raise ProcessorValidationError."""
+        from facet.correction import NumpyInferenceAdapter, SpectrogramMixin
+
+        class _WrongShapeAdapter(SpectrogramMixin, NumpyInferenceAdapter):
+            nperseg = 64
+            noverlap = 48
+
+            def _run_spectrogram_model(self, magnitude, phase, context):
+                return magnitude[:, :, :1]  # wrong n_frames
+
+        adapter = _WrongShapeAdapter(
+            checkpoint_path="/nonexistent/path.npz",
+            predict_fn=lambda d, w: d,
+        )
+        ctx = self._make_context()
+        with pytest.raises(ProcessorValidationError):
+            adapter.predict(ctx)
+
+    def test_run_spectrogram_model_not_implemented_raises(self):
+        """Concrete subclass that forgets _run_spectrogram_model raises NotImplementedError."""
+        from facet.correction import NumpyInferenceAdapter, SpectrogramMixin
+
+        class _NoImplAdapter(SpectrogramMixin, NumpyInferenceAdapter):
+            nperseg = 64
+            noverlap = 48
+
+        adapter = _NoImplAdapter(
+            checkpoint_path="/nonexistent/path.npz",
+            predict_fn=lambda d, w: d,
+        )
+        ctx = self._make_context()
+        with pytest.raises(NotImplementedError):
+            adapter.predict(ctx)

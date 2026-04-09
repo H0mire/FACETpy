@@ -18,6 +18,8 @@ from .metrics import (
     RMSResidualCalculator,
     SignalIntervalSelector,
     SNRCalculator,
+    SpectralCoherenceCalculator,
+    SpikeDetectionRateCalculator,
 )
 from .visualization import RawPlotter
 
@@ -31,6 +33,8 @@ __all__ = [
     "MedianArtifactCalculator",
     "FFTAllenCalculator",
     "FFTNiazyCalculator",
+    "SpectralCoherenceCalculator",
+    "SpikeDetectionRateCalculator",
     "MetricsReport",
     "RawPlotter",
 ]

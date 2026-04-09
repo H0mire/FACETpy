@@ -1284,6 +1284,237 @@ class NumpyInferenceAdapter(DeepLearningModelAdapter):
         )
 
 
+# ---------------------------------------------------------------------------
+# Spectrogram domain mixin
+# ---------------------------------------------------------------------------
+
+
+class SpectrogramMixin:
+    """Mixin that wraps ``predict()`` with STFT pre- and iSTFT post-processing.
+
+    Enables :attr:`~DeepLearningDomain.TIME_FREQUENCY` domain adapters by
+    converting raw EEG time-series to magnitude spectrograms before calling the
+    model, and reconstructing the time-domain signal from the model's output
+    magnitude using the original phases (phase-preserving reconstruction).
+
+    Usage
+    -----
+    Inherit from this mixin *before* the concrete adapter class so that the
+    MRO places :meth:`predict` from this mixin on top::
+
+        class MyOnnxSpectrogramAdapter(SpectrogramMixin, OnnxInferenceAdapter):
+            \"\"\"ONNX spectrogram model with automatic STFT wrapping.\"\"\"
+
+            def _run_spectrogram_model(self, magnitude, phase, context):
+                session = self._load_session()
+                # magnitude: (n_channels, n_freqs, n_frames) float32
+                inp = magnitude[np.newaxis]          # add batch dim
+                out = session.run(None, {session.get_inputs()[0].name: inp})[0]
+                return out[0]                        # remove batch dim
+
+    Parameters
+    ----------
+    nperseg : int
+        STFT window size in samples (default: 256).
+    noverlap : int
+        Number of overlapping samples between successive windows
+        (default: 192, corresponding to 75 % overlap).
+    window : str
+        SciPy window function identifier passed to
+        :func:`scipy.signal.stft` (default: ``"hann"``).
+    """
+
+    nperseg: int = 256
+    noverlap: int = 192
+    window: str = "hann"
+
+    # ------------------------------------------------------------------
+    # Public STFT helpers
+    # ------------------------------------------------------------------
+
+    def stft_forward(
+        self,
+        data: np.ndarray,
+        sfreq: float,
+    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+        """Compute per-channel STFT and split into magnitude and phase.
+
+        Parameters
+        ----------
+        data : np.ndarray, shape ``(n_channels, n_samples)``
+            Time-domain EEG data.
+        sfreq : float
+            Sampling frequency in Hz.
+
+        Returns
+        -------
+        magnitude : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``, float32
+        phase : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``, float32
+        freqs : np.ndarray, shape ``(n_freqs,)``
+        times : np.ndarray, shape ``(n_frames,)``
+        """
+        from scipy.signal import stft as _scipy_stft
+
+        nperseg = int(getattr(self, "nperseg", 256))
+        noverlap = int(getattr(self, "noverlap", 192))
+        win = getattr(self, "window", "hann")
+
+        if noverlap >= nperseg:
+            raise ValueError(
+                f"SpectrogramMixin: noverlap ({noverlap}) must be less than nperseg ({nperseg})"
+            )
+
+        magnitudes: list[np.ndarray] = []
+        phases: list[np.ndarray] = []
+        freqs_out: np.ndarray | None = None
+        times_out: np.ndarray | None = None
+
+        for ch_data in data:
+            f, t, Zxx = _scipy_stft(ch_data, fs=sfreq, window=win, nperseg=nperseg, noverlap=noverlap)
+            magnitudes.append(np.abs(Zxx).astype(np.float32))
+            phases.append(np.angle(Zxx).astype(np.float32))
+            if freqs_out is None:
+                freqs_out = f
+                times_out = t
+
+        return (
+            np.stack(magnitudes),
+            np.stack(phases),
+            freqs_out,  # type: ignore[return-value]
+            times_out,  # type: ignore[return-value]
+        )
+
+    def istft_backward(
+        self,
+        magnitude: np.ndarray,
+        phase: np.ndarray,
+        sfreq: float,
+        n_samples: int,
+    ) -> np.ndarray:
+        """Reconstruct time-domain EEG from magnitude and original phase.
+
+        Parameters
+        ----------
+        magnitude : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``
+            Cleaned (or predicted) magnitude spectrogram.
+        phase : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``
+            Original phase spectrogram for phase-preserving reconstruction.
+        sfreq : float
+            Sampling frequency in Hz.
+        n_samples : int
+            Target length; output is trimmed or zero-padded to this length.
+
+        Returns
+        -------
+        data : np.ndarray, shape ``(n_channels, n_samples)``
+        """
+        from scipy.signal import istft as _scipy_istft
+
+        nperseg = int(getattr(self, "nperseg", 256))
+        noverlap = int(getattr(self, "noverlap", 192))
+        win = getattr(self, "window", "hann")
+
+        Zxx = magnitude.astype(np.float64) * np.exp(1j * phase.astype(np.float64))
+        results: list[np.ndarray] = []
+        for ch_Zxx in Zxx:
+            _, x = _scipy_istft(ch_Zxx, fs=sfreq, window=win, nperseg=nperseg, noverlap=noverlap)
+            if len(x) >= n_samples:
+                x = x[:n_samples]
+            else:
+                x = np.pad(x, (0, n_samples - len(x)))
+            results.append(x)
+        return np.stack(results)
+
+    # ------------------------------------------------------------------
+    # Hook for subclasses
+    # ------------------------------------------------------------------
+
+    def _run_spectrogram_model(
+        self,
+        magnitude: np.ndarray,
+        phase: np.ndarray,
+        context: "ProcessingContext",
+    ) -> np.ndarray:
+        """Run the model on a magnitude spectrogram.
+
+        Subclasses **must** override this method.
+
+        Parameters
+        ----------
+        magnitude : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``
+            Input magnitude spectrogram.
+        phase : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``
+            Original phases — exposed here so models that work with complex
+            residuals can combine them with the magnitude output.
+        context : ProcessingContext
+            Full processing context for metadata access.
+
+        Returns
+        -------
+        output_magnitude : np.ndarray, shape ``(n_channels, n_freqs, n_frames)``
+            Cleaned (or artifact) magnitude spectrogram.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__} must implement _run_spectrogram_model(magnitude, phase, context)"
+        )
+
+    # ------------------------------------------------------------------
+    # predict() override
+    # ------------------------------------------------------------------
+
+    def predict(self, context: "ProcessingContext") -> "DeepLearningPrediction":
+        """Predict with automatic STFT → model → iSTFT wrapping.
+
+        Processing flow:
+
+        1. Extract raw EEG ``(n_channels, n_samples)``.
+        2. Per-channel STFT → ``(magnitude, phase, freqs, times)``.
+        3. Call :meth:`_run_spectrogram_model` → cleaned/artifact magnitude.
+        4. iSTFT(output_magnitude, original_phase) → time-domain signal.
+        5. Pack result into :class:`DeepLearningPrediction`.
+
+        The output type (clean vs. artifact) is determined by
+        ``self.spec.output_type``.
+
+        Returns
+        -------
+        DeepLearningPrediction
+        """
+        raw = context.get_raw()
+        sfreq = float(raw.info["sfreq"])
+        data = raw._data.astype(np.float64, copy=False)
+        n_samples = data.shape[1]
+
+        # --- STFT ---
+        magnitude, phase, freqs, times = self.stft_forward(data, sfreq)
+
+        # --- MODEL ---
+        out_magnitude = self._run_spectrogram_model(magnitude, phase, context)
+        if np.asarray(out_magnitude).shape != magnitude.shape:
+            raise ProcessorValidationError(
+                f"{type(self).__name__}._run_spectrogram_model must return shape "
+                f"{magnitude.shape}, got {tuple(np.asarray(out_magnitude).shape)}"
+            )
+
+        # --- iSTFT ---
+        out_data = self.istft_backward(out_magnitude, phase, sfreq, n_samples)
+
+        meta: dict[str, Any] = {
+            "stft_n_freqs": int(freqs.shape[0]),
+            "stft_n_frames": int(times.shape[0]),
+            "nperseg": int(getattr(self, "nperseg", 256)),
+            "noverlap": int(getattr(self, "noverlap", 192)),
+        }
+
+        spec = getattr(self, "spec", None)
+        output_type = spec.output_type if spec is not None else DeepLearningOutputType.CLEAN
+
+        if output_type == DeepLearningOutputType.ARTIFACT:
+            return DeepLearningPrediction(artifact_data=out_data, metadata=meta)
+        # CLEAN or BOTH → return as clean signal
+        return DeepLearningPrediction(clean_data=out_data, metadata=meta)
+
+
 register_deep_learning_model(TensorFlowInferenceAdapter, name="tensorflow_inference", force=True)
 register_deep_learning_model(PyTorchInferenceAdapter, name="pytorch_inference", force=True)
 register_deep_learning_model(OnnxInferenceAdapter, name="onnx_inference", force=True)
