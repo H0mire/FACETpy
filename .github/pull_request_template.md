@@ -5,9 +5,9 @@
 
 ## Validation
 
-- [ ] `poetry run ruff check src tests`
-- [ ] `poetry run ruff format --check src tests`
-- [ ] `poetry run pytest`
+- [ ] `uv run ruff check src tests`
+- [ ] `uv run ruff format --check src tests`
+- [ ] `uv run pytest`
 - [ ] Docs updated and built when needed
 
 ## Notes for Reviewer

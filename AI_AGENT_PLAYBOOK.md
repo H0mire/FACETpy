@@ -35,15 +35,15 @@ Always include `docs/PROCESSOR_GUIDELINES.md` in agent context for processor-rel
 Run these before opening a PR:
 
 ```bash
-poetry run ruff check src tests
-poetry run ruff format --check src tests
-poetry run pytest
+uv run ruff check src tests
+uv run ruff format --check src tests
+uv run pytest
 ```
 
 For docs changes:
 
 ```bash
-poetry run sphinx-build -b html docs/source docs/build/html
+uv run sphinx-build -b html docs/source docs/build/html
 ```
 
 ## Optional Team Extensions

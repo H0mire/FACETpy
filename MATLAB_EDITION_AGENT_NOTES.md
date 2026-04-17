@@ -15,11 +15,11 @@ Kurz-Runbook für diese Umgebung (Repo: `facetpy`, Branch-Präfix: `codex/`).
 
 ## Ausführung in dieser Umgebung
 1. Abhängigkeiten installieren:
-   - `poetry install`
+   - `uv sync --locked`
 2. C-Extension bauen (wichtig für ANC-Performance):
-   - `HOME=/tmp MNE_HOME=/tmp poetry run build-fastranc`
+   - `HOME=/tmp MNE_HOME=/tmp uv run build-fastranc`
 3. Parity-Pipeline starten (klassisches Logging + channel-sequential):
-   - `HOME=/tmp MNE_HOME=/tmp poetry run python examples/cleanexjanik_parity_pipeline.py`
+   - `HOME=/tmp MNE_HOME=/tmp uv run python examples/cleanexjanik_parity_pipeline.py`
 
 Erwartete Outputs:
 - `output/cleanexjanik_parity/corrected_cleanexjanik_equivalent.edf`

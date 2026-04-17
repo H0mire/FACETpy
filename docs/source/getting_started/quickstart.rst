@@ -16,8 +16,8 @@ Strongly recommended (for fast ANC, same command on all platforms):
    python -m facet.build
 
 To run repository examples, clone the repository and keep using
-``pip install facetpy`` in your active environment (no Poetry required).
-For contribution workflows, use the source/Poetry setup in
+``pip install facetpy`` in your active environment (no uv required).
+For contribution workflows, use the source/uv setup in
 :doc:`../development/contributing`.
 
 Basic Correction Pipeline

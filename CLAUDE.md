@@ -17,21 +17,21 @@ FACETpy is a Python toolbox for correcting EEG artifacts in simultaneous EEG-fMR
 
 ### Environment Setup
 ```bash
-# Install Poetry 1.4+ if needed
-conda install -c conda-forge poetry=1.4
+# Install uv if needed
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install project dependencies
-poetry install
+uv sync --locked
 
-# Activate virtual environment
-poetry shell
+# Run Python inside the project environment
+uv run python
 ```
 
 ### Building C Extensions
 The project includes a C extension for fast adaptive noise cancellation (ANC):
 ```bash
 # Compile the FastRANC C extension
-poetry run build-fastranc
+uv run build-fastranc
 
 # Or manually via the script defined in pyproject.toml
 python -m facet.build
@@ -283,7 +283,7 @@ Core dependencies (from `pyproject.toml`):
 - neurokit2 ^0.2.7 (BCG detection)
 - rich ^14.2.0 (console output)
 
-Optional extras (`poetry install -E <extra>`):
+Optional extras (`uv sync --extra <extra>`):
 - `deeplearning`: TensorFlow ^2.19.0
 - `gui`: PyQt6 ^6.6.1
 - `notebooks`: notebook ^7.1.2

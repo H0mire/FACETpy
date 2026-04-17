@@ -17,12 +17,12 @@ The first successful trusted publish creates the `facetpy` project on PyPI.
 ## 2) Local preflight checks
 
 ```bash
-poetry install --no-interaction
-poetry run pytest -m "not slow and not requires_data and not requires_c_extension" --tb=short -q
+uv sync --locked
+uv run pytest -m "not slow and not requires_data and not requires_c_extension" --tb=short -q
 rm -f dist/*
-poetry build
-poetry run python -m pip install --upgrade twine
-poetry run python -m twine check dist/facetpy-*
+uv build
+uv run python -m pip install --upgrade twine
+uv run python -m twine check dist/facetpy-*
 ```
 
 ## 3) Create a release tag

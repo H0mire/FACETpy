@@ -21,7 +21,7 @@ Quick Setup
    git clone https://github.com/<your-username>/facetpy.git
    cd facetpy
 
-3. Install contributor dependencies (Poetry required).
+3. Install contributor dependencies (uv required).
 
 Unix (macOS/Linux):
 
@@ -40,26 +40,26 @@ Other platforms (including Windows):
 
 .. code-block:: bash
 
-   poetry install --no-interaction
+   uv sync --locked
 
 4. (Optional) Install docs dependencies when working on documentation.
 
 .. code-block:: text
 
-   poetry install -E docs
+   uv sync --extra docs
 
 5. Strongly recommended: compile FastRANC for ANC performance.
 
 .. code-block:: text
 
    python -m facet.build
-   # or: poetry run build-fastranc
+   # or: uv run build-fastranc
 
 6. Verify your environment.
 
 .. code-block:: text
 
-   poetry run pytest -m "not slow"
+   uv run pytest -m "not slow"
 
 Development Workflow
 --------------------
@@ -77,21 +77,21 @@ Development Workflow
 
 .. code-block:: text
 
-   poetry run ruff check src tests
-   poetry run ruff check --fix src tests
-   poetry run ruff format src tests
+   uv run ruff check src tests
+   uv run ruff check --fix src tests
+   uv run ruff format src tests
 
 6. Run checks locally.
 
 .. code-block:: text
 
-   poetry run pytest
+   uv run pytest
 
 7. Build docs locally when docs changed.
 
 .. code-block:: text
 
-   poetry run sphinx-build -b html docs/source docs/build
+   uv run sphinx-build -b html docs/source docs/build
 
 VS Code users can run these steps via the predefined tasks in
 ``.vscode/tasks.json`` (e.g. ``Lint: Fix (Ruff)``, ``Test: Run All``,
@@ -114,13 +114,13 @@ Ruff is the active linter configuration for this repository.
 
 .. code-block:: text
 
-   poetry run ruff check src tests
+   uv run ruff check src tests
 
 (Optional auto-fix)
 
 .. code-block:: text
 
-   poetry run ruff check --fix src tests
+   uv run ruff check --fix src tests
 
 Testing
 -------
@@ -138,13 +138,13 @@ Run tests:
 
 .. code-block:: text
 
-   poetry run pytest
+   uv run pytest
 
 Run a subset:
 
 .. code-block:: text
 
-   poetry run pytest -m "not slow"
+   uv run pytest -m "not slow"
 
 Documentation Style
 -------------------

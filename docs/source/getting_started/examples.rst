@@ -7,7 +7,7 @@ Running Repository Examples
 ---------------------------
 
 The scripts on this page live in the repository ``examples/`` directory.
-You can run them without Poetry.
+You can run them without uv.
 Install FACETpy with pip, then run the scripts from a repository checkout:
 
 .. code-block:: bash
@@ -18,7 +18,7 @@ Install FACETpy with pip, then run the scripts from a repository checkout:
    python examples/quickstart.py
 
 For full contribution workflows (tests, linting, docs), use
-:doc:`../development/contributing` (Poetry-based).
+:doc:`../development/contributing` (uv-based).
 
 Basic Correction
 ----------------
