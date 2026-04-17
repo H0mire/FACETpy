@@ -33,6 +33,7 @@ dependencies = [
     "neurokit2>=0.2.7,<0.3.0",
     "rich>=14.2.0,<15.0.0",
     "eeglabio>=0.1.3,<0.2.0",
+    "pyyaml>=6.0.2,<7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -75,6 +76,7 @@ module-root = "src"
 
 [project.scripts]
 build-fastranc = "facet.build:compile_fastranc"
+facet-train = "facet.training.cli:main"
 
 [tool.ruff]
 target-version = "py311"

@@ -150,6 +150,8 @@ except ImportError:
     _has_pca = False
 
 # Evaluation processors
+# Training module (framework-agnostic)
+from . import training  # noqa: F401 — exposes facet.training.*
 from .evaluation import (
     FFTAllenCalculator,
     FFTNiazyCalculator,
@@ -296,6 +298,7 @@ __all__ = [
     "ArtifactParams",
     "generate_synthetic_eeg",
     "create_standard_pipeline",
+    "training",
     # Global config
     "get_config",
     "set_config",

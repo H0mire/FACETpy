@@ -1,0 +1,81 @@
+# Minimal end-to-end configuration for:
+#
+#   poetry run facet-train fit --config examples/facet_train_demo.yaml
+#
+# The CLI adds the config directory to ``sys.path`` before importing the
+# referenced factories, so the sibling module ``facet_train_demo.py`` can be
+# imported directly by name.
+
+model:
+  framework: pytorch
+  factory: facet_train_demo:build_model
+  kwargs:
+    hidden_channels: 24
+  loss_factory: facet_train_demo:build_loss
+  loss_kwargs:
+    name: l1
+  device: cpu
+
+data:
+  context_factory: facet_train_demo:build_contexts
+  kwargs:
+    n_recordings: 3
+    n_channels: 4
+    n_samples: 2500
+    sfreq: 250.0
+  eeg_only: true
+
+training:
+  model_name: ArtifactNetDemoCLI
+  chunk_size: 250
+  val_ratio: 0.2
+  trigger_aligned: true
+  overlap: 0.0
+  target_type: artifact
+  max_epochs: 5
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 3
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/artifact_net_demo.ts
+  write_inference_config: true
+
+inference:
+  name: ArtifactNetDemoCLI
+  architecture: autoencoder
+  runtime: pytorch
+  output_type: artifact
+  execution_granularity: channel
+  supports_multichannel: false
+  device_preference: cpu
+  supports_chunking: true
+  chunk_size_samples: 250
+  chunk_overlap_samples: 25
+  description: Demo TorchScript artifact model exported via facet-train.
+  tags:
+    - demo
+    - training-cli
