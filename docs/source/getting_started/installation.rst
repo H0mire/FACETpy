@@ -9,7 +9,7 @@ Requirements
 * NumPy 2.1.3
 * SciPy >= 1.15.3
 * scikit-learn >= 1.4.2
-* `Poetry <https://python-poetry.org>`_ >= 1.8 (contributors only)
+* `uv <https://docs.astral.sh/uv/>`_ (contributors only)
 
 Install from PyPI (Recommended)
 -------------------------------
@@ -26,7 +26,7 @@ The package name on PyPI is ``facetpy``; import it in Python as ``facet``.
 Full Setup from Source (Contributing, Example Datasets/Scripts, Early Access to features)
 -----------------------------------------------------------------------------------------
 
-FACETpy is managed with Poetry.
+FACETpy is managed with uv.
 
 Unix (macOS/Linux)
 ~~~~~~~~~~~~~~~~~~
@@ -47,54 +47,54 @@ You can also run the installer script in an existing clone:
 Other platforms (including Windows)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For contributors outside Unix-like shells, use Poetry directly:
+For contributors outside Unix-like shells, use uv directly:
 
 .. code-block:: bash
 
    git clone https://github.com/H0mire/facetpy.git
    cd facetpy
-   poetry install --no-interaction
+   uv sync --locked
 
 The Unix ``./scripts/install.sh`` script:
 
 * checks for Python 3.11/3.12/3.13
-* checks whether Poetry is installed
-* prompts to install Poetry if missing
-* runs ``poetry install --no-interaction``
+* checks whether uv is installed
+* prompts to install uv if missing
+* runs ``uv sync --locked``
 
 The bootstrap script:
 
 * clones FACETpy into ``./facetpy``
 * runs ``./scripts/install.sh`` inside that clone
 
-Manual Poetry setup (contributors):
+Manual uv setup (contributors):
 
 .. code-block:: text
 
-   poetry install --no-interaction
+   uv sync --locked
 
-Run contributor commands inside the Poetry environment (Unix and Windows):
+Run contributor commands inside the uv environment (Unix and Windows):
 
 .. code-block:: text
 
-   poetry run pytest
+   uv run pytest
 
 Optional extras (Unix and Windows):
 
 .. code-block:: text
 
-   poetry install -E deeplearning   # TensorFlow-based extras
-   poetry install -E notebooks      # Jupyter notebook support
-   poetry install -E gui            # PyQt6 GUI components
-   poetry install -E docs           # Sphinx + MyST documentation toolchain
-   poetry install -E all            # all optional dependencies
+   uv sync --extra deeplearning     # TensorFlow-based extras
+   uv sync --extra notebooks        # Jupyter notebook support
+   uv sync --extra gui              # PyQt6 GUI components
+   uv sync --extra docs             # Sphinx + MyST documentation toolchain
+   uv sync --all-extras             # all optional dependencies
 
 Development Installation
 ------------------------
 
-The standard ``poetry install`` includes development dependencies such as
+The standard ``uv sync`` includes development dependencies such as
 ``pytest`` and ``ruff``. Documentation tooling (``sphinx``, ``myst-parser``)
-is installed via ``-E docs``.
+is installed via ``--extra docs``.
 
 Optional Components
 -------------------
@@ -105,17 +105,17 @@ C Extension for ANC
 Strong recommendation: compile the FastRANC C extension once after installing.
 ANC runs significantly faster with it.
 
-Without Poetry:
+Without uv:
 
 .. code-block:: bash
 
    python -m facet.build
 
-With Poetry:
+With uv:
 
 .. code-block:: bash
 
-   poetry run build-fastranc
+   uv run build-fastranc
 
 This will create:
 
@@ -165,4 +165,4 @@ For contributor/source environments, run:
 
 .. code-block:: bash
 
-   poetry install --no-interaction
+   uv sync --locked

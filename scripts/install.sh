@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MIN_POETRY_VERSION="1.8.0"
 ASSUME_YES=0
 EXTRAS=()
 
@@ -60,10 +59,10 @@ EOF
   cat <<'EOF'
 Next steps:
   1) Run examples:
-       poetry run python examples/quickstart.py
-       poetry run python examples/evaluation.py
+       uv run python examples/quickstart.py
+       uv run python examples/evaluation.py
   2) Build ANC extension (strongly recommended for fast ANC):
-       poetry run build-fastranc
+       uv run build-fastranc
   3) Tutorial:
        https://facetpy.readthedocs.io/en/latest/getting_started/tutorial.html
        (local source: docs/source/getting_started/tutorial.rst)
@@ -83,55 +82,10 @@ usage() {
 Usage: ./scripts/install.sh [options]
 
 Options:
-  -y, --yes             Non-interactive mode (auto-confirm Poetry installation)
+  -y, --yes             Non-interactive mode (auto-confirm uv installation)
   -E, --extras <name>   Install one optional extra (repeatable)
   -h, --help            Show this help message
 EOF
-}
-
-version_gte() {
-  local current="$1"
-  local minimum="$2"
-  local IFS='.'
-  local i
-  local current_parts=()
-  local minimum_parts=()
-  local length=0
-
-  read -r -a current_parts <<< "$current"
-  read -r -a minimum_parts <<< "$minimum"
-
-  if [[ "${#current_parts[@]}" -gt "${#minimum_parts[@]}" ]]; then
-    length="${#current_parts[@]}"
-  else
-    length="${#minimum_parts[@]}"
-  fi
-
-  for ((i=0; i<length; i+=1)); do
-    local c="${current_parts[i]:-0}"
-    local m="${minimum_parts[i]:-0}"
-
-    if ((10#${c} > 10#${m})); then
-      return 0
-    fi
-    if ((10#${c} < 10#${m})); then
-      return 1
-    fi
-  done
-
-  return 0
-}
-
-extract_poetry_version() {
-  local raw="$1"
-  local parsed
-  parsed="$(printf '%s\n' "$raw" | sed -E 's/.*version ([0-9]+(\.[0-9]+){1,2}).*/\1/')"
-
-  if [[ ! "$parsed" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
-    return 1
-  fi
-
-  echo "$parsed"
 }
 
 parse_args() {
@@ -193,51 +147,39 @@ check_python_version() {
   esac
 }
 
-poetry_bin() {
-  if command -v poetry >/dev/null 2>&1; then
-    command -v poetry
+uv_bin() {
+  if command -v uv >/dev/null 2>&1; then
+    command -v uv
     return 0
   fi
 
-  if [[ -x "${HOME}/.local/bin/poetry" ]]; then
+  if [[ -x "${HOME}/.local/bin/uv" ]]; then
     export PATH="${HOME}/.local/bin:${PATH}"
-    echo "${HOME}/.local/bin/poetry"
+    echo "${HOME}/.local/bin/uv"
     return 0
   fi
 
   return 1
 }
 
-install_poetry() {
-  local python_bin="$1"
-  info "Installing Poetry using the official installer..."
+install_uv() {
+  info "Installing uv using the official installer..."
 
   if command -v curl >/dev/null 2>&1; then
-    curl -sSL https://install.python-poetry.org | "$python_bin" -
+    curl -LsSf https://astral.sh/uv/install.sh | sh
   elif command -v wget >/dev/null 2>&1; then
-    wget -qO- https://install.python-poetry.org | "$python_bin" -
+    wget -qO- https://astral.sh/uv/install.sh | sh
   else
-    fail "Need curl or wget to install Poetry automatically."
+    fail "Need curl or wget to install uv automatically."
     exit 1
   fi
 }
 
-ensure_poetry() {
-  local python_bin="$1"
-  local pbin
+ensure_uv() {
+  local uv_path
 
-  if pbin="$(poetry_bin)"; then
-    local pversion
-    if ! pversion="$(extract_poetry_version "$("$pbin" --version)")"; then
-      fail "Could not parse Poetry version from '$("$pbin" --version)'."
-      exit 1
-    fi
-    if ! version_gte "$pversion" "$MIN_POETRY_VERSION"; then
-      fail "Poetry ${pversion} detected, but ${MIN_POETRY_VERSION}+ is required."
-      fail "Please update Poetry and run this script again."
-      exit 1
-    fi
-    ok "Detected Poetry ${pversion}."
+  if uv_path="$(uv_bin)"; then
+    ok "Detected uv at ${uv_path}."
     return 0
   fi
 
@@ -245,30 +187,30 @@ ensure_poetry() {
   if [[ "$ASSUME_YES" -eq 1 ]]; then
     answer="y"
   else
-    local poetry_prompt
-    poetry_prompt="$(cat <<EOF
+    local uv_prompt
+    uv_prompt="$(cat <<EOF
 ${YELLOW}${BOLD}
-Poetry is required to install FACETpy.
+uv is required to install FACETpy.
 ${RESET}${DIM}
 Why this is needed:
-  - Poetry creates and manages the project virtual environment
-  - Poetry installs all pinned dependencies from pyproject.toml/poetry.lock
-  - FACETpy commands in this repo are expected to run via 'poetry run ...'
+  - uv creates and manages the project virtual environment
+  - uv installs all pinned dependencies from pyproject.toml/uv.lock
+  - FACETpy commands in this repo are expected to run via 'uv run ...'
 
-Install Poetry now using the official installer? [y/N]
+Install uv now using the official installer? [y/N]
 ${RESET}
 EOF
 )"
 
     if [[ -t 0 ]]; then
-      printf '%b' "$poetry_prompt"
+      printf '%b' "$uv_prompt"
       read -r answer
     elif [[ -r /dev/tty ]]; then
-      printf '%b' "$poetry_prompt" >/dev/tty
+      printf '%b' "$uv_prompt" >/dev/tty
       read -r answer </dev/tty
     else
-      fail "Poetry is not installed, but no interactive terminal is available for confirmation."
-      fail "Re-run with --yes to auto-install Poetry, or install Poetry manually."
+      fail "uv is not installed, but no interactive terminal is available for confirmation."
+      fail "Re-run with --yes to auto-install uv, or install uv manually."
       exit 1
     fi
   fi
@@ -278,41 +220,40 @@ EOF
 
   case "${answer_lower}" in
     y|yes)
-      install_poetry "$python_bin"
+      install_uv
       ;;
     *)
-      warn "Aborted: Poetry is required to install FACETpy."
+      warn "Aborted: uv is required to install FACETpy."
       exit 1
       ;;
   esac
 
-  if ! pbin="$(poetry_bin)"; then
-    fail "Poetry installation completed, but command not found in PATH."
+  if ! uv_path="$(uv_bin)"; then
+    fail "uv installation completed, but command not found in PATH."
     fail "Try: export PATH=\"\$HOME/.local/bin:\$PATH\""
     exit 1
   fi
-
-  local pversion
-  if ! pversion="$(extract_poetry_version "$("$pbin" --version)")"; then
-    fail "Could not parse Poetry version from '$("$pbin" --version)'."
-    exit 1
-  fi
-  if ! version_gte "$pversion" "$MIN_POETRY_VERSION"; then
-    fail "Poetry ${pversion} detected, but ${MIN_POETRY_VERSION}+ is required."
-    exit 1
-  fi
-  ok "Detected Poetry ${pversion}."
+  ok "Detected uv at ${uv_path}."
 }
 
 install_dependencies() {
-  local args=(install --no-interaction)
+  local args=(sync --locked)
   local extra
+  local use_all_extras=0
 
   for extra in "${EXTRAS[@]+"${EXTRAS[@]}"}"; do
-    args+=(-E "$extra")
+    if [[ "$extra" == "all" ]]; then
+      use_all_extras=1
+    else
+      args+=(--extra "$extra")
+    fi
   done
 
-  poetry "${args[@]}"
+  if [[ "$use_all_extras" -eq 1 ]]; then
+    args+=(--all-extras)
+  fi
+
+  uv "${args[@]}"
 }
 
 main() {
@@ -327,10 +268,10 @@ main() {
     exit 1
   fi
 
-  info "Checking Python and Poetry prerequisites..."
+  info "Checking Python and uv prerequisites..."
   check_python_version "$python_bin"
-  ensure_poetry "$python_bin"
-  info "Installing FACETpy dependencies with Poetry..."
+  ensure_uv
+  info "Installing FACETpy dependencies with uv..."
   install_dependencies
 
   printf '\n'
@@ -340,7 +281,7 @@ main() {
   else
     info "Tip: install optional extras with ./scripts/install.sh -E all"
   fi
-  info "Next step (optional): poetry run build-fastranc"
+  info "Next step (optional): uv run build-fastranc"
   printf '\n'
   farewell
 }

@@ -7,13 +7,13 @@ This directory contains the Sphinx documentation sources for FACETpy.
 Install docs dependencies:
 
 ```text
-poetry install -E docs
+uv sync --extra docs
 ```
 
 Build HTML docs from repository root:
 
 ```text
-poetry run sphinx-build -b html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/build
 ```
 
 Open `docs/build/index.html` in your browser:
@@ -36,14 +36,14 @@ Unix (macOS/Linux):
 
 ```bash
 rm -rf docs/build
-poetry run sphinx-build -b html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/build
 ```
 
 Windows (PowerShell):
 
 ```powershell
 Remove-Item -Recurse -Force docs/build
-poetry run sphinx-build -b html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/build
 ```
 
 ## Documentation Structure
@@ -76,7 +76,7 @@ flowchart TD
 ### Missing `myst_parser`
 
 ```text
-poetry install -E docs
+uv sync --extra docs
 ```
 
 ### Autodoc import errors
@@ -84,13 +84,13 @@ poetry install -E docs
 Run builds from the repository root so `docs/source/conf.py` path setup stays valid:
 
 ```text
-poetry run sphinx-build -b html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/build
 ```
 
 ### Theme issues
 
 ```text
-poetry install -E docs
+uv sync --extra docs
 ```
 
 ## Read the Docs

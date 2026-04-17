@@ -60,7 +60,7 @@ ENV/
 # macOS
 .DS_Store
 
-# Poetry lock file is tracked for reproducible builds
+# uv.lock is tracked for reproducible builds
 
 # Compiled C extensions
 *.so

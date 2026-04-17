@@ -103,7 +103,7 @@ result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 ## Installation
 
 Requires **Python 3.11, 3.12, or 3.13**.
-For normal usage, Poetry is not required.
+For normal usage, `uv` is not required.
 
 ### Normal usage (recommended): install from PyPI
 
@@ -113,65 +113,65 @@ pip install facetpy
 
 The package name on PyPI is `facetpy`; import it in Python as `facet`.
 
-### Contributing setup (source + Poetry)
+### Contributing setup (source + uv)
 
-Poetry is required for contribution workflows (tests, linting, docs).
+uv is required for contribution workflows (tests, linting, docs).
 
-Unix (macOS/Linux) - bootstrap shortcut (installs poetry):
+Unix (macOS/Linux) - bootstrap shortcut (installs uv):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
 ```
 
-Unix (macOS/Linux) - existing clone (installs peotry):
+Unix (macOS/Linux) - existing clone:
 
 ```bash
 ./scripts/install.sh
 ```
 
-Other platforms (including Windows) with Poetry installed:
+Other platforms (including Windows) with uv installed:
 
 ```bash
 git clone https://github.com/H0mire/facetpy.git
 cd facetpy
-poetry install --no-interaction
+uv sync --locked
 ```
 
 The Unix `./scripts/install.sh` script:
 - checks for Python 3.11/3.12/3.13
-- checks whether Poetry is installed
-- asks whether Poetry should be installed if missing
-- runs `poetry install --no-interaction`
+- checks whether uv is installed
+- asks whether uv should be installed if missing
+- runs `uv sync --locked`
 
 The bootstrap script:
 - clones FACETpy into `./facetpy`
 - runs `./scripts/install.sh` inside that clone
 
-Manual Poetry installation (contributors):
+Manual uv setup (contributors):
 
 ```bash
 # 1 — verify Python
 python --version
 
-# 2 — install Poetry (pick one)
-pipx install poetry
-# or: pip install --user poetry
+# 2 — install uv (pick one)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+# or: pip install --user uv
 
 # 3 — install repository dependencies
-poetry install --no-interaction
+uv sync --locked
 ```
 
 Optional contributor extras:
 ```text
-poetry install -E deeplearning   # TensorFlow-based models
-poetry install -E notebooks      # Jupyter notebook support
-poetry install -E gui            # PyQt6 GUI components
-poetry install -E docs           # Sphinx documentation toolchain
-poetry install -E all            # everything above
+uv sync --extra deeplearning     # TensorFlow-based models
+uv sync --extra notebooks        # Jupyter notebook support
+uv sync --extra gui              # PyQt6 GUI components
+uv sync --extra docs             # Sphinx documentation toolchain
+uv sync --all-extras             # everything above
 ```
 
-Run contributor commands with `poetry run ...` (for example, `poetry run pytest`).
+Run contributor commands with `uv run ...` (for example, `uv run pytest`).
 
 
 ### Build the C extension (strongly recommended for ANC)
@@ -179,16 +179,16 @@ Run contributor commands with `poetry run ...` (for example, `poetry run pytest`
 The fast Adaptive Noise Cancellation (ANC) path is significantly faster with
 the compiled FastRANC C extension. Build it once after installing.
 
-Without Poetry:
+Without uv:
 
 ```bash
 python -m facet.build
 ```
 
-With Poetry:
+With uv:
 
 ```bash
-poetry run build-fastranc
+uv run build-fastranc
 ```
 
 If the extension is not compiled, ANC uses a slower Python fallback and the
@@ -201,7 +201,7 @@ All examples are in the `examples/` folder and use the bundled
 `NiazyFMRI.edf` dataset.
 
 To run repository examples, clone the repository and install FACETpy in your
-active Python environment (no Poetry required):
+active Python environment (no uv required):
 
 ```bash
 git clone https://github.com/H0mire/facetpy.git
@@ -227,16 +227,16 @@ python examples/eeg_generation_visualization_example.py  # synthetic EEG
 
 ```bash
 # Run the full test suite
-poetry run pytest
+uv run pytest
 
 # Only fast unit tests (skip slow integration tests)
-poetry run pytest -m "not slow"
+uv run pytest -m "not slow"
 
 # A single test file
-poetry run pytest tests/test_core_pipeline.py -v
+uv run pytest tests/test_core_pipeline.py -v
 
 # With coverage report
-poetry run pytest --cov=facet --cov-report=html
+uv run pytest --cov=facet --cov-report=html
 ```
 
 Open the coverage report:
@@ -250,10 +250,10 @@ python -m webbrowser htmlcov/index.html
 
 ```bash
 # Install docs dependencies
-poetry install -E docs
+uv sync --extra docs
 
 # Build HTML docs
-poetry run sphinx-build -b html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/build
 
 ```
 
@@ -271,8 +271,8 @@ For PyPI release steps, see [`RELEASING.md`](RELEASING.md).
 
 ## Contributing
 
-Contributing uses the source/Poetry workflow. See installation guide above.  
-Use `./scripts/install.sh` on Unix, otherwise run `poetry install --no-interaction`.
+Contributing uses the source/uv workflow. See installation guide above.  
+Use `./scripts/install.sh` on Unix, otherwise run `uv sync --locked`.
 Follow [`docs/source/development/contributing.rst`](docs/source/development/contributing.rst) for the full setup and checks.
 
 
@@ -316,9 +316,9 @@ Tasks are defined in `.vscode/tasks.json` and can be run via **Ctrl+Shift+P** �
 | **Format: Check (Ruff)** | | Verify formatting without changing files |
 | **Format: Apply (Ruff)** | | Apply ruff formatting to `src/` and `tests/` |
 | **Build: FastRANC C Extension** | | Compile the FastRANC C extension |
-| **Build: Install Dependencies** | | `poetry install` |
-| **Build: Install All Extras** | | `poetry install -E all` |
-| **Build: Update Dependencies** | | `poetry update` |
+| **Build: Install Dependencies** | | `uv sync` |
+| **Build: Install All Extras** | | `uv sync --all-extras` |
+| **Build: Update Dependencies** | | `uv lock --upgrade` |
 | **Docs: Build HTML** | | Build Sphinx documentation |
 | **Docs: Open in Browser** | | Open the built docs in the browser |
 | **Docs: Build & Open** | | Build docs and open immediately |

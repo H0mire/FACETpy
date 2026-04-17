@@ -5,12 +5,12 @@ Get started with FACETpy in minutes!
 ## Installation
 
 ```bash
-# Recommended: Poetry bootstrap installer
+# Recommended: uv bootstrap installer
 curl -fsSL https://raw.githubusercontent.com/H0mire/facetpy/main/scripts/bootstrap.sh | sh
 cd facetpy
 ```
 
-The bootstrap script clones the repository and runs the Poetry-based installer.
+The bootstrap script clones the repository and runs the uv-based installer.
 For manual setup details, see `README.md` and `docs/source/getting_started/installation.rst`.
 
 ## Basic Usage

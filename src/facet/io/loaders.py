@@ -53,7 +53,7 @@ def _ensure_mff_runtime_dependencies() -> None:
     except ImportError as exc:
         raise ProcessorValidationError(
             "Missing dependency for .mff loading: defusedxml. "
-            "Install with `poetry install` or `pip install defusedxml`."
+            "Install with `uv sync` or `pip install defusedxml`."
         ) from exc
 
     if getattr(defusedxml, "__version__", None):
