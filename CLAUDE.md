@@ -23,7 +23,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # Install project dependencies
 uv sync --locked
 
-# Activate virtual environment
+# Run Python inside the project environment
 uv run python
 ```
 
