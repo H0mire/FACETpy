@@ -92,9 +92,13 @@ ENV/
 legacy/
 logs/
 output/
+training_output/
 export/
 ai-docs/
 quick-notes/
 facet matlab edition/
 .archiv/
 .claude/
+.mne-home/
+.mplconfig/
+.uv-cache/

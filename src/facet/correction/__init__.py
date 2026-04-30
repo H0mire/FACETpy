@@ -8,6 +8,7 @@ Date: 2025-01-12
 """
 
 from .aas import AASCorrection, AveragedArtifactSubtraction
+from .context_deep_learning import EpochContextDeepLearningCorrection
 from .deep_learning import (
     DeepLearningArchitecture,
     DeepLearningChannelGroupingStrategy,
@@ -86,6 +87,7 @@ __all__ = [
     "save_deep_learning_config",
     "load_deep_learning_config",
     "DeepLearningCorrection",
+    "EpochContextDeepLearningCorrection",
     # FARM
     "FARMCorrection",
     "FARMArtifactCorrection",

@@ -70,6 +70,35 @@ def build_loss(scale=1.0):
     def _loss(prediction, target):
         return scale
     return _loss
+
+
+class ContextDataset:
+    def __init__(self):
+        self.noisy = np.zeros((6, 7, 1, 12), dtype=np.float32)
+        self.target = np.ones((6, 1, 12), dtype=np.float32) * 0.25
+        self.n_channels = 1
+        self.chunk_size = 12
+        self.n_chunks = 6
+        self.context_epochs = 7
+        self.epoch_samples = 12
+        self.input_shape = (7, 1, 12)
+        self.target_shape = (1, 12)
+        self.target_type = "artifact"
+        self.trigger_aligned = True
+        self.sfreq = 2048.0
+
+    def __len__(self):
+        return len(self.noisy)
+
+    def __getitem__(self, idx):
+        return self.noisy[idx], self.target[idx]
+
+    def train_val_split(self, val_ratio=0.2, seed=42):
+        return self, self
+
+
+def build_context_dataset(training_config=None):
+    return ContextDataset()
 """
 
 
@@ -108,11 +137,13 @@ class FakePyTorchWrapper:
 
     def train_step(self, noisy, target):
         self.train_calls += 1
-        return {"loss": float(((noisy - target) ** 2).mean())}
+        prediction = noisy[:, noisy.shape[1] // 2] if noisy.ndim == 4 else noisy
+        return {"loss": float(((prediction - target) ** 2).mean())}
 
     def eval_step(self, noisy, target):
         self.eval_calls += 1
-        return {"loss": float(((noisy - target) ** 2).mean())}
+        prediction = noisy[:, noisy.shape[1] // 2] if noisy.ndim == 4 else noisy
+        return {"loss": float(((prediction - target) ** 2).mean())}
 
     def save_checkpoint(self, path: Path):
         path = Path(path)
@@ -205,6 +236,63 @@ def test_run_fit_command_executes_training_and_writes_summary(tmp_path, monkeypa
     assert wrapper.scheduler_cls.__name__ == "DummyScheduler"
     assert wrapper.train_calls > 0
     assert wrapper.eval_calls > 0
+
+
+@pytest.mark.unit
+def test_run_fit_command_accepts_dataset_factory_for_context_inputs(tmp_path, monkeypatch):
+    module_name = _write_test_module(tmp_path, module_name="cli_training_context_dataset")
+    monkeypatch.setattr(training_cli, "PyTorchModelWrapper", FakePyTorchWrapper)
+
+    config_path = _write_config(
+        tmp_path,
+        {
+            "model": {
+                "framework": "pytorch",
+                "factory": f"{module_name}:build_model",
+                "loss_factory": f"{module_name}:build_loss",
+                "device": "cpu",
+            },
+            "data": {
+                "dataset_factory": f"{module_name}:build_context_dataset",
+            },
+            "training": {
+                "model_name": "CLIContextDatasetModel",
+                "chunk_size": 12,
+                "target_type": "artifact",
+                "trigger_aligned": True,
+                "val_ratio": 0.25,
+                "max_epochs": 1,
+                "batch_size": 2,
+                "output_dir": str(tmp_path / "runs"),
+            },
+            "checkpoint": {
+                "monitor": "loss",
+                "save_top_k": 1,
+                "save_last": False,
+            },
+            "logging": {
+                "rich_live": False,
+                "log_file": None,
+            },
+            "export": {
+                "enabled": False,
+            },
+        },
+    )
+
+    run = training_cli.run_fit_command(config_path)
+
+    assert run.result.success is True
+    assert run.summary_path is not None
+    summary = json.loads(run.summary_path.read_text(encoding="utf-8"))
+    assert summary["n_contexts"] == 0
+    assert summary["dataset_factory"] == f"{module_name}:build_context_dataset"
+    assert summary["dataset"]["input_shape"] == [7, 1, 12]
+    assert summary["dataset"]["target_shape"] == [1, 12]
+
+    wrapper = FakePyTorchWrapper.last_instance
+    assert wrapper is not None
+    assert wrapper.train_calls > 0
 
 
 @pytest.mark.unit

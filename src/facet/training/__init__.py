@@ -58,6 +58,7 @@ from .dataset import (
     ChannelDropout,
     EEGArtifactDataset,
     NoiseScaling,
+    NPZContextArtifactDataset,
     SignFlip,
     TriggerJitter,
 )
@@ -81,6 +82,7 @@ __all__ = [
     "LoggingConfig",
     # Dataset
     "EEGArtifactDataset",
+    "NPZContextArtifactDataset",
     "TriggerJitter",
     "NoiseScaling",
     "ChannelDropout",

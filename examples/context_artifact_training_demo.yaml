@@ -1,0 +1,69 @@
+# Train a first fixed 7-epoch context model on the synthetic spike/artifact bundle.
+#
+# Prerequisites:
+#
+#   uv run python examples/generate_synthetic_spike_source_dataset.py
+#   uv run python examples/build_synthetic_spike_artifact_context_dataset.py \
+#     --clean-file output/synthetic_spike_source/synthetic_spike_source_raw.fif \
+#     --annotation-regex spike_onset \
+#     --output-dir output/synthetic_spike_artifact_context_from_generator
+#
+# Training:
+#
+#   uv run facet-train fit --config examples/context_artifact_training_demo.yaml
+
+model:
+  framework: pytorch
+  factory: context_artifact_training_demo:build_model
+  kwargs:
+    hidden_channels: 32
+  loss_factory: context_artifact_training_demo:build_loss
+  loss_kwargs:
+    name: l1
+  device: cpu
+
+data:
+  dataset_factory: context_artifact_training_demo:build_dataset
+  kwargs:
+    path: ./output/synthetic_spike_artifact_context_from_generator/synthetic_spike_artifact_context_dataset.npz
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: SevenEpochContextArtifactNet
+  chunk_size: 292
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 10
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/seven_epoch_context_artifact_net.ts
+  write_inference_config: false

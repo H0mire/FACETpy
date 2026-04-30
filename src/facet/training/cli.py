@@ -43,7 +43,8 @@ class ModelCLIConfig:
 class DataCLIConfig:
     """Data source configuration for the training CLI."""
 
-    context_factory: str
+    context_factory: str | None = None
+    dataset_factory: str | None = None
     kwargs: dict[str, Any] = field(default_factory=dict)
     eeg_only: bool = True
 
@@ -167,7 +168,7 @@ def run_fit_command(config_path: str | Path) -> CLITrainingRun:
     cli_config = load_training_cli_config(config_path)
     _validate_training_config(cli_config)
 
-    contexts = _load_contexts(cli_config)
+    contexts = _load_contexts(cli_config) if cli_config.data.context_factory else []
     dataset = _build_dataset(contexts, cli_config)
     if len(dataset) == 0:
         raise ProcessorValidationError("Dataset construction produced zero chunks; training cannot proceed")
@@ -180,7 +181,7 @@ def run_fit_command(config_path: str | Path) -> CLITrainingRun:
     else:
         train_dataset, val_dataset = dataset, None
 
-    sfreq = contexts[0].get_sfreq()
+    sfreq = contexts[0].get_sfreq() if contexts else float(getattr(dataset, "sfreq", float("nan")))
     model = _build_model(cli_config, dataset, sfreq)
     wrapper = _build_wrapper(cli_config, model)
 
@@ -271,8 +272,12 @@ def _validate_training_config(cli_config: TrainingCLIConfig) -> None:
         raise ProcessorValidationError("training.val_ratio must be in the range [0, 1)")
     if not cli_config.model.factory.strip():
         raise ProcessorValidationError("model.factory must be a non-empty 'module:function' reference")
-    if not cli_config.data.context_factory.strip():
-        raise ProcessorValidationError("data.context_factory must be a non-empty 'module:function' reference")
+    has_context_factory = bool(cli_config.data.context_factory and cli_config.data.context_factory.strip())
+    has_dataset_factory = bool(cli_config.data.dataset_factory and cli_config.data.dataset_factory.strip())
+    if has_context_factory == has_dataset_factory:
+        raise ProcessorValidationError(
+            "Configure exactly one data source: data.context_factory or data.dataset_factory"
+        )
     if framework == "pytorch" and cli_config.model.loss_factory is None:
         logger.info("No model.loss_factory configured; defaulting to torch.nn.MSELoss")
     _resolve_inference_spec(cli_config)
@@ -347,6 +352,8 @@ def _invoke_factory(factory: Any, explicit_kwargs: dict[str, Any], injected_kwar
 
 
 def _load_contexts(cli_config: TrainingCLIConfig) -> list[ProcessingContext]:
+    if cli_config.data.context_factory is None:
+        return []
     factory = _import_object(cli_config.data.context_factory)
     factory_result = _invoke_factory(
         factory,
@@ -368,7 +375,19 @@ def _load_contexts(cli_config: TrainingCLIConfig) -> list[ProcessingContext]:
 def _build_dataset(
     contexts: list[ProcessingContext],
     cli_config: TrainingCLIConfig,
-) -> EEGArtifactDataset:
+) -> Any:
+    if cli_config.data.dataset_factory is not None:
+        factory = _import_object(cli_config.data.dataset_factory)
+        dataset = _invoke_factory(
+            factory,
+            cli_config.data.kwargs,
+            {"training_config": cli_config.training},
+        )
+        for attr in ("__len__", "__getitem__", "train_val_split"):
+            if not hasattr(dataset, attr):
+                raise ProcessorValidationError(f"data.dataset_factory returned an object without {attr}")
+        return dataset
+
     transforms: list[Any] = []
     augmentation = cli_config.training.augmentation
     if augmentation.enabled:
@@ -414,16 +433,20 @@ def _build_dataset(
 
 def _build_model(
     cli_config: TrainingCLIConfig,
-    dataset: EEGArtifactDataset,
+    dataset: Any,
     sfreq: float,
 ) -> Any:
     factory = _import_object(cli_config.model.factory)
     injected_kwargs = {
-        "n_channels": dataset.n_channels,
+        "n_channels": getattr(dataset, "n_channels", 0),
         "chunk_size": cli_config.training.chunk_size,
         "sfreq": sfreq,
         "target_type": cli_config.training.target_type,
         "training_config": cli_config.training,
+        "input_shape": getattr(dataset, "input_shape", None),
+        "target_shape": getattr(dataset, "target_shape", None),
+        "context_epochs": getattr(dataset, "context_epochs", None),
+        "epoch_samples": getattr(dataset, "epoch_samples", None),
     }
     return _invoke_factory(factory, cli_config.model.kwargs, injected_kwargs)
 
@@ -520,7 +543,7 @@ def _resolved_export_format(cli_config: TrainingCLIConfig) -> str:
 def _export_model_if_requested(
     cli_config: TrainingCLIConfig,
     wrapper: Any,
-    dataset: EEGArtifactDataset,
+    dataset: Any,
     run_dir: Path,
 ) -> Path | None:
     if not cli_config.export.enabled:
@@ -540,8 +563,9 @@ def _export_model_if_requested(
             wrapper=wrapper,
             path=export_path,
             example_input_shape=cli_config.export.example_input_shape,
-            n_channels=dataset.n_channels,
+            n_channels=getattr(dataset, "n_channels", 0),
             chunk_size=cli_config.training.chunk_size,
+            dataset_input_shape=getattr(dataset, "input_shape", None),
         )
 
     if framework == "tensorflow":
@@ -560,6 +584,7 @@ def _export_pytorch_torchscript(
     example_input_shape: list[int] | None,
     n_channels: int,
     chunk_size: int,
+    dataset_input_shape: tuple[int, ...] | None = None,
 ) -> Path:
     model = getattr(wrapper, "model", None)
     if model is None:
@@ -567,9 +592,14 @@ def _export_pytorch_torchscript(
 
     import torch
 
-    shape = example_input_shape or [1, n_channels, chunk_size]
-    if len(shape) != 3:
-        raise ProcessorValidationError("export.example_input_shape must have exactly 3 entries: [batch, channels, time]")
+    if example_input_shape is not None:
+        shape = example_input_shape
+    elif dataset_input_shape is not None:
+        shape = [1, *dataset_input_shape]
+    else:
+        shape = [1, n_channels, chunk_size]
+    if len(shape) < 3:
+        raise ProcessorValidationError("export.example_input_shape must include batch and model input dimensions")
 
     try:
         first_param = next(model.parameters())
@@ -652,17 +682,20 @@ def _write_run_summary(
         "framework": cli_config.model.framework,
         "model_factory": cli_config.model.factory,
         "context_factory": cli_config.data.context_factory,
+        "dataset_factory": cli_config.data.dataset_factory,
         "run_name": run_dir.name,
         "run_dir": str(run_dir),
         "n_contexts": n_contexts,
         "dataset": {
-            "n_channels": dataset.n_channels,
-            "chunk_size": dataset.chunk_size,
-            "n_total_chunks": dataset.n_chunks,
+            "n_channels": getattr(dataset, "n_channels", 0),
+            "chunk_size": getattr(dataset, "chunk_size", cli_config.training.chunk_size),
+            "input_shape": list(getattr(dataset, "input_shape", ())),
+            "target_shape": list(getattr(dataset, "target_shape", ())),
+            "n_total_chunks": getattr(dataset, "n_chunks", len(dataset)),
             "n_train_chunks": train_chunks,
             "n_val_chunks": val_chunks,
-            "target_type": dataset.target_type,
-            "trigger_aligned": dataset.trigger_aligned,
+            "target_type": getattr(dataset, "target_type", cli_config.training.target_type),
+            "trigger_aligned": getattr(dataset, "trigger_aligned", cli_config.training.trigger_aligned),
         },
         "training": {
             "total_epochs": result.total_epochs,

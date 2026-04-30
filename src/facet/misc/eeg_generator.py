@@ -141,6 +141,8 @@ class SpikeParams:
         focal_channels: List of channel names/indices for focal spikes (None = random)
         spatial_spread: How much spikes spread to neighboring channels (0-1)
         gabor_frequency_hz: Central frequency of Gabor wavelet (affects sharpness)
+        annotate: Whether generated spikes should be written to Raw annotations
+        annotation_description: Description used for generated spike annotations
     """
 
     enabled: bool = False
@@ -158,6 +160,8 @@ class SpikeParams:
     focal_channels: list[str | int] | None = None
     spatial_spread: float = 0.5  # 50% spread to neighbors
     gabor_frequency_hz: float = 25.0  # Hz - central frequency
+    annotate: bool = True
+    annotation_description: str = "spike_onset"
 
 
 def generate_pink_noise(n_samples: int, amplitude: float = 1.0) -> np.ndarray:
@@ -677,7 +681,7 @@ def generate_epileptic_spikes(
             continue
 
         # Randomly select focal channel for this spike
-        primary_channel = np.random.choice(focal_indices)
+        primary_channel = int(np.random.choice(focal_indices))
 
         # Add to primary channel
         spike_signals[primary_channel, start_sample:end_sample] += swc
@@ -706,6 +710,9 @@ def generate_epileptic_spikes(
             {
                 "time": spike_time,
                 "sample": int(spike_time * sfreq),
+                "onset_time": start_sample / sfreq,
+                "onset_sample": int(start_sample),
+                "end_sample": int(end_sample),
                 "channel": primary_channel,
                 "channel_name": channel_names[primary_channel] if channel_names else f"CH{primary_channel}",
                 "amplitude": float(np.max(np.abs(swc))),
@@ -1026,6 +1033,15 @@ def generate_synthetic_eeg(
 
     raw = mne.io.RawArray(data, info, verbose=False)
 
+    if spike_events and spike_params.annotate:
+        raw.set_annotations(
+            mne.Annotations(
+                onset=[event["onset_time"] for event in spike_events],
+                duration=[event["duration_ms"] / 1000.0 for event in spike_events],
+                description=[spike_params.annotation_description] * len(spike_events),
+            )
+        )
+
     # Try to set montage for EEG channels
     try:
         montage = mne.channels.make_standard_montage(channel_schema.eeg_montage)
@@ -1055,6 +1071,8 @@ class EEGGenerator(Processor):
         noise_params: NoiseParams or dict for noise parameters
         artifact_params: ArtifactParams or dict for artifact simulation
         spike_params: SpikeParams or dict for epileptic spike simulation
+        Spike annotations are written to the generated Raw object by default
+        when spike generation is enabled.
         random_seed: Random seed for reproducibility
 
     Example:
@@ -1189,6 +1207,8 @@ class EEGGenerator(Processor):
             },
             "random_seed": self.random_seed,
             "spikes_enabled": self.spike_params.enabled,
+            "spike_annotations_enabled": self.spike_params.annotate,
+            "spike_annotation_description": self.spike_params.annotation_description,
             "spike_events": spike_events,
             "n_spikes": len(spike_events),
         }

@@ -65,6 +65,7 @@ from .correction import (
     DeepLearningOutputType,
     DeepLearningPrediction,
     DeepLearningRuntime,
+    EpochContextDeepLearningCorrection,
     FARMArtifactCorrection,
     FARMCorrection,
     MoosmannCorrection,
@@ -175,6 +176,7 @@ from .misc import (
     EEGGenerator,
     NoiseParams,
     OscillationParams,
+    SpikeParams,
     generate_synthetic_eeg,
 )
 
@@ -272,6 +274,7 @@ __all__ = [
     "list_deep_learning_models",
     "list_deep_learning_blueprints",
     "DeepLearningCorrection",
+    "EpochContextDeepLearningCorrection",
     "FARMCorrection",
     "FARMArtifactCorrection",
     "VolumeArtifactCorrection",
@@ -296,6 +299,7 @@ __all__ = [
     "OscillationParams",
     "NoiseParams",
     "ArtifactParams",
+    "SpikeParams",
     "generate_synthetic_eeg",
     "create_standard_pipeline",
     "training",

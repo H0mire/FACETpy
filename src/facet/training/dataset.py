@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import mne
@@ -115,6 +116,98 @@ class _SubsetDataset:
         return self._parent[self._indices[idx]]
 
     # Forward the framework-adapter helpers
+    def to_torch(self) -> Any:
+        return _TorchDatasetAdapter(self)
+
+    def to_tf(self, batch_size: int = 16) -> Any:
+        return _build_tf_dataset(self, batch_size)
+
+
+class NPZContextArtifactDataset:
+    """Dataset for context-based artifact prediction bundles stored as ``.npz``.
+
+    The expected bundle is produced by
+    ``examples/build_synthetic_spike_artifact_context_dataset.py``. Each item
+    returns ``(noisy_context, artifact_center)`` by default, where the noisy
+    input has shape ``(context_epochs, channels, epoch_samples)`` and the target
+    has shape ``(channels, epoch_samples)``.
+    """
+
+    def __init__(
+        self,
+        path: str | Path,
+        input_key: str = "noisy_context",
+        target_key: str = "artifact_center",
+        max_examples: int | None = None,
+        demean_input: bool = False,
+        demean_target: bool = False,
+    ) -> None:
+        self.path = Path(path).expanduser()
+        if not self.path.exists():
+            raise FileNotFoundError(self.path)
+
+        with np.load(self.path, allow_pickle=True) as bundle:
+            self.noisy = bundle[input_key].astype(np.float32, copy=False)
+            self.target = bundle[target_key].astype(np.float32, copy=False)
+            self.sfreq = float(bundle["sfreq"][0]) if "sfreq" in bundle else float("nan")
+
+        if self.noisy.shape[0] != self.target.shape[0]:
+            raise ValueError("Context dataset input and target arrays must contain the same number of examples")
+        if self.noisy.ndim != 4:
+            raise ValueError("Context dataset input must have shape (examples, context_epochs, channels, samples)")
+        if self.target.ndim != 3:
+            raise ValueError("Context dataset target must have shape (examples, channels, samples)")
+
+        if max_examples is not None:
+            limit = max(0, min(int(max_examples), self.noisy.shape[0]))
+            self.noisy = self.noisy[:limit]
+            self.target = self.target[:limit]
+
+        self.context_epochs = int(self.noisy.shape[1])
+        self.n_channels = int(self.noisy.shape[2])
+        self.epoch_samples = int(self.noisy.shape[3])
+        self.chunk_size = self.epoch_samples
+        self.target_type = "artifact" if target_key == "artifact_center" else target_key
+        self.trigger_aligned = True
+        self.demean_input = demean_input
+        self.demean_target = demean_target
+
+    def __len__(self) -> int:
+        return int(self.noisy.shape[0])
+
+    def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+        noisy = self.noisy[idx].copy()
+        target = self.target[idx].copy()
+        if self.demean_input:
+            noisy -= noisy.mean(axis=-1, keepdims=True)
+        if self.demean_target:
+            target -= target.mean(axis=-1, keepdims=True)
+        return noisy, target
+
+    @property
+    def n_chunks(self) -> int:
+        return len(self)
+
+    @property
+    def input_shape(self) -> tuple[int, int, int]:
+        return (self.context_epochs, self.n_channels, self.epoch_samples)
+
+    @property
+    def target_shape(self) -> tuple[int, int]:
+        return (self.n_channels, self.epoch_samples)
+
+    def train_val_split(
+        self, val_ratio: float = 0.2, seed: int = 42
+    ) -> tuple[_SubsetDataset, _SubsetDataset]:
+        n = len(self)
+        rng = np.random.default_rng(seed)
+        indices = rng.permutation(n).tolist()
+        n_val = max(1, int(n * val_ratio))
+        val_idx = set(indices[:n_val])
+        train_idx = [i for i in range(n) if i not in val_idx]
+        val_idx_list = [i for i in range(n) if i in val_idx]
+        return _SubsetDataset(self, train_idx), _SubsetDataset(self, val_idx_list)
+
     def to_torch(self) -> Any:
         return _TorchDatasetAdapter(self)
 
