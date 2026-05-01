@@ -1,0 +1,105 @@
+# FACETpy Model-Specific Implementations
+
+This directory contains model-specific deep-learning implementations. It is intentionally separate from `facet.correction` because experimental model code should not silently become part of the core correction API.
+
+## Guiding Principle
+
+FACETpy core code should define stable processing contracts. Model directories should contain assumptions that belong to one concrete model family or experiment.
+
+Every addition to `src/facet` can affect compatibility, pipeline behavior, import stability, documentation, and future model flexibility. Therefore, code should only move into core when it is demonstrably reusable across model families.
+
+## What Belongs In FACETpy Core
+
+Core implementations belong in `src/facet/correction`, `src/facet/training`, or other stable package modules only when they are model-independent.
+
+Examples of core-level responsibilities:
+
+- `ProcessingContext` handling.
+- Pipeline `Processor` lifecycle and execution modes.
+- Generic deep-learning output semantics: `artifact`, `clean`, `both`.
+- Generic prediction application: subtract artifact, apply clean prediction, store `estimated_noise`.
+- Runtime adapter contracts for PyTorch, TensorFlow, ONNX, NumPy, or custom backends.
+- Generic validation of runtime availability, checkpoints, channel execution mode, and metadata prerequisites.
+- Generic training orchestration, logging, checkpointing, and config loading.
+- Reusable dataset interfaces that do not encode one model architecture.
+
+A core addition should be justified by at least one of the following:
+
+- Multiple model families need the same behavior.
+- The behavior is required for pipeline correctness or execution-mode compatibility.
+- The behavior defines a stable public contract rather than an experimental choice.
+- The behavior prevents duplicated correction semantics across models.
+
+## What Belongs In A Model Folder
+
+Model-specific implementations must live in a dedicated subdirectory under `src/facet/models/<model_id>/`.
+
+Examples of model-specific responsibilities:
+
+- Neural network architecture definitions.
+- Model-specific context construction.
+- Model-specific preprocessing or postprocessing assumptions.
+- Fixed input tensor conventions such as `7 x 1 x 292`.
+- Center-epoch prediction logic.
+- Specific loss choices when they are part of the model recipe.
+- Training factory functions for `facet-train`.
+- Model-specific YAML configs.
+- Model cards and experiment notes.
+- Model-specific evaluation or application scripts when they are not reusable.
+
+A model directory may depend on FACETpy core APIs, but FACETpy core should not depend on a model directory unless a temporary compatibility wrapper is explicitly justified.
+
+## Recommended Model Directory Layout
+
+```text
+src/facet/models/<model_id>/
+├── __init__.py
+├── README.md
+├── model.py              # architecture if separated from training factories
+├── training.py           # facet-train factories
+├── processor.py          # only if a model-specific Processor is unavoidable
+├── adapter.py            # preferred place for model-specific inference logic
+├── training.yaml
+├── inference.yaml
+└── model_card.md
+```
+
+Not every model needs every file. Small models may combine `model.py` and `training.py`.
+
+## Preferred Integration Path
+
+The preferred path for new models is:
+
+```text
+DeepLearningCorrection + model-specific adapter
+```
+
+The adapter receives a `ProcessingContext`, builds whatever input the model requires, runs inference, and returns a `DeepLearningPrediction`.
+
+This preserves model freedom while keeping correction application centralized.
+
+## When A Model-Specific Processor Is Acceptable
+
+A model-specific `Processor` is acceptable only when the generic `DeepLearningCorrection` contract is insufficient.
+
+This should be considered temporary unless the processor introduces a broadly reusable execution mode.
+
+Valid reasons may include:
+
+- The model needs a correction pattern that cannot be represented by one `DeepLearningPrediction`.
+- The model requires custom streaming or memory behavior not covered by existing execution modes.
+- The model requires tight orchestration between context construction, inference, and reassembly.
+
+If a model-specific processor is added, it should still reuse core correction semantics where possible and should be documented as model-specific.
+
+## Compatibility Wrappers
+
+Closed-beta code may keep compatibility wrappers in old locations, for example in `facet.correction`, so existing scripts do not break immediately.
+
+Wrappers should contain no model logic. They should only re-export the relocated implementation and explain why the import path exists.
+
+## Demo 01 Status
+
+`demo01` contains the first seven-epoch context CNN proof-of-concept. It is frozen as a demo model and should not be used as the template for all future models.
+
+The important architectural lesson from Demo 01 is that model-specific context construction should not automatically become a generic FACETpy correction primitive.

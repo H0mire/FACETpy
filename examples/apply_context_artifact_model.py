@@ -1,7 +1,7 @@
 """Apply a trained multi-epoch artifact model to an EEG-fMRI recording.
 
 The model is expected to be a TorchScript export produced by
-``facet-train fit`` from ``examples/context_artifact_training_demo.yaml``.
+``facet-train fit`` from ``src/facet/models/demo01/training.yaml``.
 It consumes seven consecutive trigger-defined epochs and predicts the artifact
 for the center epoch only.
 
