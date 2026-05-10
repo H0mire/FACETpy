@@ -352,16 +352,12 @@ class MultiResolutionSTFTLoss(torch.nn.Module):
         self.fft_sizes = tuple(int(n) for n in fft_sizes)
         self.hop_fraction = float(hop_fraction)
         self.eps = float(eps)
-        for n_fft in self.fft_sizes:
-            self.register_buffer(
-                f"window_{n_fft}",
-                torch.hann_window(n_fft, periodic=True),
-                persistent=False,
-            )
 
     def _log_mag(self, signal: torch.Tensor, n_fft: int) -> torch.Tensor:
         hop = max(1, int(n_fft * self.hop_fraction))
-        window = getattr(self, f"window_{n_fft}")
+        window = torch.hann_window(
+            n_fft, periodic=True, dtype=signal.dtype, device=signal.device
+        )
         spec = torch.stft(
             signal,
             n_fft=n_fft,
