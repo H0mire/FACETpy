@@ -403,7 +403,7 @@ class ViTSpectrogramInpainter(torch.nn.Module):
         return reshaped.reshape(batch, self.freq_bins, self.time_frames)
 
     def _apply_mask(self, tokens: torch.Tensor) -> torch.Tensor:
-        mask = self.patch_mask.to(tokens.device).view(1, -1, 1)
+        mask = self.patch_mask.view(1, -1, 1)
         return torch.where(mask, self.mask_token.expand_as(tokens), tokens)
 
     def _positional_embedding(self) -> torch.Tensor:

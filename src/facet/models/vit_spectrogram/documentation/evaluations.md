@@ -6,9 +6,9 @@ by `src/facet/models/evaluation_standard.md`.
 
 ## Runs
 
-| Run id | Dataset | Notes | Manifest |
-|---|---|---|---|
-| _pending — first full Niazy proof-fit evaluation will be appended after the orchestrator fetches the full-run results._ | — | — | — |
+| Run id | Training run | Dataset | Headline | Manifest |
+|---|---|---|---|---|
+| `20260510_full` | `vitspectrograminpainterniazyprooffit_20260510_211842` | `output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz` | Clean MSE -93.1%, SNR +11.60 dB, artifact corr 0.966, residual RMS ratio 0.263 | `output/model_evaluations/vit_spectrogram/20260510_full/evaluation_manifest.json` |
 
 ## Methodology
 

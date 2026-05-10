@@ -244,6 +244,7 @@ def main() -> None:
         model_name=MODEL_NAME,
         model_description=MODEL_DESCRIPTION,
         run_id=args.run_id,
+        output_root=args.output_root,
     )
     standard_run = writer.write(
         metrics={"synthetic": metrics},
