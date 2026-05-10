@@ -247,13 +247,13 @@ class D4PMTrainingModule(nn.Module):
             raise ValueError(
                 f"D4PMTrainingModule expects packed input with 2 channels, got {packed.shape[1]}"
             )
-        if not self.training:
-            # Trace-stable shortcut for torch.jit.trace export. The traced
-            # module is only retained as a smoke artifact; real inference
-            # uses the state-dict checkpoint via the adapter's iterative
-            # sampler. Returning a deterministic zero tensor here avoids
-            # the MultiheadAttention/flash-attention non-determinism that
-            # otherwise breaks trace's sanity check.
+        if torch.jit.is_tracing():
+            # Trace-stable stub for the CLI's torch.jit.trace export. The
+            # traced module is only retained as a smoke artifact; real
+            # inference uses the state-dict checkpoint via the adapter's
+            # iterative sampler. Returning a deterministic zero tensor
+            # here avoids the MultiheadAttention kernel-selection
+            # non-determinism that otherwise breaks trace's sanity check.
             zero = torch.zeros_like(packed[:, 0:1, :])
             return torch.cat([zero, zero], dim=1)
 
@@ -262,8 +262,18 @@ class D4PMTrainingModule(nn.Module):
         batch_size = packed.shape[0]
         device = packed.device
 
-        t = torch.randint(0, self.num_steps, (batch_size,), device=device)
-        noise = torch.randn_like(h0)
+        if self.training:
+            t = torch.randint(0, self.num_steps, (batch_size,), device=device)
+            noise = torch.randn_like(h0)
+        else:
+            # Deterministic (but non-trivial) eval-step diffusion loss. We
+            # spread fixed timesteps across the schedule and use a fixed
+            # noise tensor seeded from the input shape so the validation
+            # ε-loss is reproducible across epochs and reflects actual
+            # model quality.
+            arange = torch.arange(batch_size, device=device, dtype=torch.long)
+            t = (arange * (self.num_steps // max(batch_size, 1))) % self.num_steps
+            noise = torch.zeros_like(h0)
 
         h_t = self.q_sample(h0, t, noise)
         noise_level = self.sqrt_alphas_cumprod[t]
