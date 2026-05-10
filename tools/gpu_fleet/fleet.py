@@ -323,7 +323,16 @@ def cmd_submit(args: argparse.Namespace) -> int:
     if any(job["session"] == session and job["status"] in {"pending", "running"} for job in state["jobs"]):
         raise SystemExit(f"An active job with session '{session}' already exists")
 
-    config_path = REPO_ROOT / args.training_config
+    # Resolve --worktree using the submit-time cwd so an agent running
+    # `fleet.py submit --worktree .` from inside its own worktree refers to
+    # that worktree (where its model code and config live), not REPO_ROOT.
+    worktree_abs = Path(args.worktree).resolve()
+    if not worktree_abs.is_dir():
+        raise SystemExit(f"Worktree path not found: {worktree_abs}")
+
+    # The training config is interpreted relative to the worktree, since the
+    # worktree is what gets rsync'd to the GPU worker.
+    config_path = worktree_abs / args.training_config
     device = read_training_config_device(config_path)
     if device is not None and device.lower() != "cuda" and not args.allow_cpu:
         raise SystemExit(
@@ -341,12 +350,22 @@ def cmd_submit(args: argparse.Namespace) -> int:
     if preferred_worker and preferred_worker.lower() in {"any", "none", ""}:
         preferred_worker = None
 
+    # Store worktree as a path relative to REPO_ROOT so the dispatcher (which
+    # runs with cwd=REPO_ROOT) can resolve it the same way regardless of
+    # where the submit was invoked from.
+    try:
+        worktree_stored = str(worktree_abs.relative_to(REPO_ROOT))
+    except ValueError:
+        worktree_stored = str(worktree_abs)
+    if worktree_stored == ".":
+        worktree_stored = str(REPO_ROOT)
+
     job = {
         "id": uuid.uuid4().hex[:12],
         "name": args.name,
         "session": session,
         "config": args.training_config,
-        "worktree": args.worktree,
+        "worktree": worktree_stored,
         "prepare_command": args.prepare_command,
         "preferred_worker": preferred_worker,
         "status": "pending",
