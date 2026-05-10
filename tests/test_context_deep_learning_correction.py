@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 from facet.core import Pipeline, ProcessingContext, ProcessingMetadata
-from facet.correction import EpochContextDeepLearningCorrection
+from facet.models.demo01 import EpochContextDeepLearningCorrection
 
 
 def _make_context(data: np.ndarray, triggers: list[int]) -> ProcessingContext:

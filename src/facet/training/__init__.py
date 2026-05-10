@@ -43,6 +43,7 @@ from .callbacks import (
     CallbackList,
     CheckpointCallback,
     EarlyStoppingCallback,
+    LossPlotCallback,
     MetricLoggerCallback,
     WandbCallback,
 )
@@ -103,6 +104,7 @@ __all__ = [
     "CallbackList",
     "CheckpointCallback",
     "EarlyStoppingCallback",
+    "LossPlotCallback",
     "MetricLoggerCallback",
     "WandbCallback",
     # CLI

@@ -55,6 +55,7 @@ early_stopping:
 logging:
   rich_live: true
   log_file: training.jsonl
+  loss_plot_file: loss.png
   val_every_n_epochs: 1
   progress_bar: true
 

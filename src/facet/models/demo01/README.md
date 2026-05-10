@@ -6,7 +6,7 @@ It is intentionally model-specific and frozen. New models should not extend this
 
 ## Contents
 
-- `processor.py`: specialized TorchScript epoch-context correction processor used by Demo 01.
+- `processor.py`: Demo-01 TorchScript adapter plus a compatibility processor that subclasses the generic `DeepLearningCorrection`.
 - `training.py`: `facet-train` factories for the seven-epoch context CNN.
 - `training.yaml`: reference training configuration for the frozen Demo 01 setup.
 
@@ -23,3 +23,20 @@ It is intentionally model-specific and frozen. New models should not extend this
 - TorchScript inference.
 
 These assumptions belong to Demo 01 and should not be treated as global FACETpy requirements.
+
+## Integration Shape
+
+Demo 01 now follows the model-folder guideline:
+
+```text
+Demo01EpochContextTorchScriptAdapter
+  builds the model-specific trigger/epoch context
+  returns DeepLearningPrediction(artifact_data=...)
+
+EpochContextDeepLearningCorrection
+  inherits from DeepLearningCorrection
+  keeps the old processor name for closed-beta compatibility
+  delegates correction application to the generic DL correction path
+```
+
+New models should prefer the same pattern: keep model-specific input construction in an adapter and let `DeepLearningCorrection` apply `artifact`, `clean`, or `both` predictions consistently.

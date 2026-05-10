@@ -147,6 +147,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Run directory: {Path(run.result.run_dir).resolve()}")
         print(f"Best epoch: {run.result.best_epoch}")
         print(f"Best metric: {run.result.best_metric:.6f}")
+        if run.config.training.logging.log_file:
+            print(f"Log file: {(Path(run.result.run_dir) / run.config.training.logging.log_file).resolve()}")
+        if run.config.training.logging.loss_plot_file:
+            print(f"Loss plot: {(Path(run.result.run_dir) / run.config.training.logging.loss_plot_file).resolve()}")
         if run.export_path is not None:
             print(f"Export: {run.export_path.resolve()}")
         if run.inference_config_path is not None:
@@ -702,6 +706,22 @@ def _write_run_summary(
             "best_epoch": result.best_epoch,
             "best_metric": result.best_metric,
             "elapsed_seconds": result.elapsed_seconds,
+        },
+        "results": {
+            "config_path": str(run_dir / "config.json"),
+            "resolved_config_json": str(run_dir / "facet_train_config.resolved.json"),
+            "resolved_config_yaml": str(run_dir / "facet_train_config.resolved.yaml"),
+            "log_file": (
+                str(run_dir / cli_config.training.logging.log_file)
+                if cli_config.training.logging.log_file
+                else None
+            ),
+            "loss_plot_file": (
+                str(run_dir / cli_config.training.logging.loss_plot_file)
+                if cli_config.training.logging.loss_plot_file
+                else None
+            ),
+            "summary_path": str(run_dir / "summary.json"),
         },
         "export": {
             "enabled": cli_config.export.enabled,

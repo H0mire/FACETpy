@@ -1,0 +1,74 @@
+# Train Cascaded DAE: channel-wise cascaded denoising autoencoder.
+#
+# Prerequisite: build the 512-sample synthetic context dataset first.
+#
+#   uv run python examples/generate_synthetic_spike_source_dataset.py
+#   uv run python examples/build_synthetic_spike_artifact_context_dataset.py \
+#     --clean-file output/synthetic_spike_source/synthetic_spike_source_raw.fif \
+#     --annotation-regex spike_onset \
+#     --artifact-library output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --artifact-library output/artifact_libraries/large_mff_aas/large_mff_aas_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --output-dir output/synthetic_spike_artifact_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config src/facet/models/cascaded_dae/training.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.cascaded_dae.training:build_model
+  kwargs:
+    hidden_units: [128, 32, 128]
+    dropout_rate: 0.2
+  loss_factory: facet.models.cascaded_dae.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cpu
+
+data:
+  dataset_factory: facet.models.cascaded_dae.training:build_dataset
+  kwargs:
+    path: ./output/synthetic_spike_artifact_context_512/synthetic_spike_artifact_context_dataset.npz
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: CascadedDenoisingAutoencoder
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: false
+  val_ratio: 0.2
+  max_epochs: 50
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/cascaded_dae.ts
+  write_inference_config: false

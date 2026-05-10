@@ -16,6 +16,7 @@ clean spike EEG windows.
 
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -36,6 +37,7 @@ from facet import (
 
 INPUT_FILE = Path("./examples/datasets/NiazyFMRI.edf")
 OUTPUT_DIR = Path("./output/niazy_artifact_extraction")
+LIBRARY_DIR: Path | None = None
 TRIGGER_REGEX = r"\b1\b"
 UPSAMPLE = 10
 NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
@@ -53,6 +55,49 @@ AAS_DIRECT_METADATA_JSON = OUTPUT_DIR / "niazy_aas_direct_artifact_metadata.json
 AAS_DOWNSAMPLED_FIF = OUTPUT_DIR / "niazy_aas_downsampled_artifact_raw.fif"
 AAS_DOWNSAMPLED_NPZ = OUTPUT_DIR / "niazy_aas_downsampled_artifact.npz"
 AAS_DOWNSAMPLED_METADATA_JSON = OUTPUT_DIR / "niazy_aas_downsampled_artifact_metadata.json"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--input-file", type=Path, default=INPUT_FILE)
+    parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
+    parser.add_argument(
+        "--library-dir",
+        type=Path,
+        default=None,
+        help="Optional directory where the direct AAS artifact bundle is copied as an artifact library.",
+    )
+    parser.add_argument("--upsample-factor", type=int, default=UPSAMPLE)
+    parser.add_argument("--trigger-regex", type=str, default=TRIGGER_REGEX)
+    return parser.parse_args()
+
+
+def _configure_paths(args: argparse.Namespace) -> None:
+    global INPUT_FILE, OUTPUT_DIR, LIBRARY_DIR, TRIGGER_REGEX, UPSAMPLE
+    global CORRECTED_FIF, ARTIFACT_FIF, ARTIFACT_NPZ, METADATA_JSON
+    global RAW_GRADIENT_FIF, RAW_GRADIENT_NPZ, RAW_GRADIENT_METADATA_JSON
+    global AAS_DIRECT_FIF, AAS_DIRECT_NPZ, AAS_DIRECT_METADATA_JSON
+    global AAS_DOWNSAMPLED_FIF, AAS_DOWNSAMPLED_NPZ, AAS_DOWNSAMPLED_METADATA_JSON
+
+    INPUT_FILE = args.input_file
+    OUTPUT_DIR = args.output_dir
+    LIBRARY_DIR = args.library_dir
+    TRIGGER_REGEX = args.trigger_regex
+    UPSAMPLE = int(args.upsample_factor)
+
+    CORRECTED_FIF = OUTPUT_DIR / "niazy_corrected_raw.fif"
+    ARTIFACT_FIF = OUTPUT_DIR / "niazy_estimated_artifact_raw.fif"
+    ARTIFACT_NPZ = OUTPUT_DIR / "niazy_estimated_artifact.npz"
+    METADATA_JSON = OUTPUT_DIR / "niazy_estimated_artifact_metadata.json"
+    RAW_GRADIENT_FIF = OUTPUT_DIR / "niazy_raw_gradient_artifact_raw.fif"
+    RAW_GRADIENT_NPZ = OUTPUT_DIR / "niazy_raw_gradient_artifact.npz"
+    RAW_GRADIENT_METADATA_JSON = OUTPUT_DIR / "niazy_raw_gradient_artifact_metadata.json"
+    AAS_DIRECT_FIF = OUTPUT_DIR / "niazy_aas_direct_artifact_raw.fif"
+    AAS_DIRECT_NPZ = OUTPUT_DIR / "niazy_aas_direct_artifact.npz"
+    AAS_DIRECT_METADATA_JSON = OUTPUT_DIR / "niazy_aas_direct_artifact_metadata.json"
+    AAS_DOWNSAMPLED_FIF = OUTPUT_DIR / "niazy_aas_downsampled_artifact_raw.fif"
+    AAS_DOWNSAMPLED_NPZ = OUTPUT_DIR / "niazy_aas_downsampled_artifact.npz"
+    AAS_DOWNSAMPLED_METADATA_JSON = OUTPUT_DIR / "niazy_aas_downsampled_artifact_metadata.json"
 
 
 def _pick_eeg_raw(raw: mne.io.BaseRaw) -> mne.io.BaseRaw:
@@ -174,6 +219,20 @@ def _write_aas_artifact_bundle(
     metadata_json.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 
 
+def _write_direct_library_copy() -> None:
+    if LIBRARY_DIR is None:
+        return
+    LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
+    library_npz = LIBRARY_DIR / "niazy_aas_direct_artifact.npz"
+    library_metadata = LIBRARY_DIR / "niazy_aas_direct_artifact_metadata.json"
+    library_npz.write_bytes(AAS_DIRECT_NPZ.read_bytes())
+
+    metadata = json.loads(AAS_DIRECT_METADATA_JSON.read_text(encoding="utf-8"))
+    metadata["library_npz"] = str(library_npz)
+    metadata["source_type"] = f"{metadata['source_type']}_factor{UPSAMPLE}"
+    library_metadata.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+
+
 def _write_raw_gradient_bundle(context) -> mne.io.BaseRaw:
     """Persist the EEG-only high-pass raw signal as a gradient-artifact proxy."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -206,6 +265,12 @@ def _write_raw_gradient_bundle(context) -> mne.io.BaseRaw:
 
 
 def main() -> None:
+    args = parse_args()
+    _configure_paths(args)
+
+    if UPSAMPLE < 1:
+        raise ValueError("--upsample-factor must be >= 1")
+
     context = load(str(INPUT_FILE), preload=True, artifact_to_trigger_offset=-0.005)
 
     context = (
@@ -232,6 +297,7 @@ def main() -> None:
         metadata_json=AAS_DIRECT_METADATA_JSON,
         source_type="aas_direct_artifact_eeg_only_upsampled_no_lowpass",
     )
+    _write_direct_library_copy()
 
     context = context | DownSample(factor=UPSAMPLE)
     aas_downsampled_artifact_raw = _artifact_raw_from_context(context)

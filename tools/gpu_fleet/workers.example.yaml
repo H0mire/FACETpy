@@ -1,0 +1,13 @@
+# Copy to tools/gpu_fleet/workers.local.yaml and adjust locally.
+# Do not commit credentials or private hostnames if the repo becomes public.
+workers:
+  gpu1:
+    ssh: root@<runpod-host-1>
+    port: 22
+    remote_repo: /workspace/facetpy
+    gpu: 0
+  gpu2:
+    ssh: root@<runpod-host-2>
+    port: 22
+    remote_repo: /workspace/facetpy
+    gpu: 0

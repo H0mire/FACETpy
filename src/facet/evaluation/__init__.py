@@ -22,8 +22,14 @@ from .metrics import (
     SpikeDetectionRateCalculator,
 )
 from .visualization import RawPlotter
+from .model_evaluation import (
+    EVALUATION_SCHEMA_VERSION,
+    ModelEvaluationRun,
+    ModelEvaluationWriter,
+)
 
 __all__ = [
+    "EVALUATION_SCHEMA_VERSION",
     "ReferenceIntervalSelector",
     "SignalIntervalSelector",
     "SNRCalculator",
@@ -36,5 +42,7 @@ __all__ = [
     "SpectralCoherenceCalculator",
     "SpikeDetectionRateCalculator",
     "MetricsReport",
+    "ModelEvaluationRun",
+    "ModelEvaluationWriter",
     "RawPlotter",
 ]

@@ -20,6 +20,7 @@ from facet.training import (
     EarlyStoppingConfig,
     EEGArtifactDataset,
     LoggingConfig,
+    LossPlotCallback,
     MetricLoggerCallback,
     NoiseScaling,
     SignFlip,
@@ -515,6 +516,32 @@ class TestMetricLoggerCallback:
         assert len(lines) == 3
 
 
+@pytest.mark.unit
+class TestLossPlotCallback:
+    def test_writes_loss_plot(self, tmp_path):
+        cb = LossPlotCallback(filepath=tmp_path / "loss.png")
+        state = TrainingState(run_name="loss_plot", max_epochs=3)
+        state.metric_history = {
+            "loss": [0.3, 0.2, 0.1],
+            "val_loss": [0.35, 0.22, 0.12],
+        }
+
+        cb.on_train_begin(state)
+        cb.on_train_end(state)
+
+        assert (tmp_path / "loss.png").exists()
+        assert (tmp_path / "loss.png").stat().st_size > 0
+
+    def test_skips_when_no_loss_history(self, tmp_path):
+        cb = LossPlotCallback(filepath=tmp_path / "loss.png")
+        state = TrainingState(run_name="loss_plot", max_epochs=1)
+
+        cb.on_train_begin(state)
+        cb.on_train_end(state)
+
+        assert not (tmp_path / "loss.png").exists()
+
+
 # ---------------------------------------------------------------------------
 # Trainer (end-to-end, no real framework)
 # ---------------------------------------------------------------------------
@@ -574,6 +601,14 @@ class TestTrainer:
         with config_file.open() as f:
             d = json.load(f)
         assert d["model_name"] == "UnitTest"
+
+    def test_fit_writes_logs_and_loss_plot_to_run_dir(self, sample_context, tmp_path):
+        trainer, _ = self._make_trainer(sample_context, tmp_path, max_epochs=2)
+        result = trainer.fit()
+
+        assert (result.run_dir / "metrics.jsonl").exists()
+        assert (result.run_dir / "loss.png").exists()
+        assert (result.run_dir / "loss.png").stat().st_size > 0
 
     def test_fit_metric_history_populated(self, sample_context, tmp_path):
         trainer, _ = self._make_trainer(sample_context, tmp_path, max_epochs=2)

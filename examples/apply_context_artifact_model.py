@@ -18,10 +18,11 @@ from pathlib import Path
 import mne
 import numpy as np
 
+from facet.models.demo01 import EpochContextDeepLearningCorrection
+
 from facet import (
     DownSample,
     DropChannels,
-    EpochContextDeepLearningCorrection,
     HighPassFilter,
     LowPassFilter,
     TriggerAligner,

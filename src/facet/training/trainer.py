@@ -33,6 +33,7 @@ from .callbacks import (
     CallbackList,
     CheckpointCallback,
     EarlyStoppingCallback,
+    LossPlotCallback,
     MetricLoggerCallback,
 )
 from .config import TrainingConfig
@@ -519,6 +520,12 @@ class Trainer:
         if not has_logger and self.config.logging.log_file:
             callbacks.append(
                 MetricLoggerCallback(filepath=run_dir / self.config.logging.log_file)
+            )
+
+        has_loss_plot = any(isinstance(cb, LossPlotCallback) for cb in callbacks)
+        if not has_loss_plot and self.config.logging.loss_plot_file:
+            callbacks.append(
+                LossPlotCallback(filepath=run_dir / self.config.logging.loss_plot_file)
             )
 
         has_early_stopping = any(

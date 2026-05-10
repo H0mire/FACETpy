@@ -14,16 +14,21 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+from facet.evaluation import ModelEvaluationWriter
+from facet.models.cascaded_dae import CascadedDenoisingAutoencoderCorrection
+from facet.models.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
+from facet.models.demo01 import EpochContextDeepLearningCorrection
+
 from facet import (
     DownSample,
     DropChannels,
-    EpochContextDeepLearningCorrection,
     HighPassFilter,
     TriggerAligner,
     TriggerDetector,
@@ -38,8 +43,18 @@ DEFAULT_SYNTHETIC_DATASET = Path(
     "./output/synthetic_spike_artifact_context_from_generator/synthetic_spike_artifact_context_dataset.npz"
 )
 DEFAULT_NIAZY_INPUT = Path("./examples/datasets/NiazyFMRI.edf")
-DEFAULT_OUTPUT_DIR = Path("./output/context_artifact_model_evaluation")
+DEFAULT_OUTPUT_ROOT = Path("./output/model_evaluations")
 DEFAULT_NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
+MODEL_NAMES = {
+    "cascaded_dae": "Cascaded DAE",
+    "demo01": "Demo 01 Context CNN",
+    "cascaded_context_dae": "Cascaded Context DAE",
+}
+MODEL_DESCRIPTIONS = {
+    "cascaded_dae": "Channel-wise cascaded denoising autoencoder without trigger context.",
+    "demo01": "Frozen seven-epoch context CNN proof-of-concept.",
+    "cascaded_context_dae": "Seven-epoch channel-wise cascaded denoising autoencoder.",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -47,7 +62,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT, help="TorchScript checkpoint.")
     parser.add_argument("--synthetic-dataset", type=Path, default=DEFAULT_SYNTHETIC_DATASET, help="Synthetic NPZ dataset.")
     parser.add_argument("--niazy-input", type=Path, default=DEFAULT_NIAZY_INPUT, help="Niazy EDF recording.")
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Directory for metrics and plots.")
+    parser.add_argument("--output-dir", type=Path, default=None, help="Directory for metrics and plots.")
+    parser.add_argument("--run-id", default=None, help="Stable evaluation run id. Defaults to a timestamp.")
+    parser.add_argument(
+        "--model-id",
+        choices=sorted(MODEL_NAMES),
+        default="demo01",
+        help="Model package id used for standardized evaluation storage.",
+    )
+    parser.add_argument("--model-name", default=None, help="Human-readable model name for the evaluation report.")
     parser.add_argument("--trigger-regex", default=r"\b1\b", help="Niazy trigger regex.")
     parser.add_argument("--context-epochs", type=int, default=7, help="Odd number of context epochs.")
     parser.add_argument("--epoch-samples", type=int, default=292, help="Fixed model epoch length.")
@@ -66,6 +89,41 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seed", type=int, default=7, help="Plot sampling seed.")
     return parser.parse_args()
+
+
+def _resolve_output_args(args: argparse.Namespace) -> None:
+    if args.run_id is None:
+        args.run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if args.output_dir is None:
+        args.output_dir = DEFAULT_OUTPUT_ROOT / args.model_id / args.run_id
+    if args.model_name is None:
+        args.model_name = MODEL_NAMES[args.model_id]
+
+
+def _build_correction(args: argparse.Namespace):
+    if args.model_id == "cascaded_dae":
+        return CascadedDenoisingAutoencoderCorrection(
+            checkpoint_path=args.checkpoint,
+            chunk_size_samples=args.epoch_samples,
+            chunk_overlap_samples=0,
+            device=args.device,
+            demean_input=not args.keep_input_mean,
+            remove_prediction_mean=not args.keep_prediction_mean,
+        )
+
+    kwargs = {
+        "checkpoint_path": args.checkpoint,
+        "context_epochs": args.context_epochs,
+        "epoch_samples": args.epoch_samples,
+        "device": args.device,
+        "demean_input": not args.keep_input_mean,
+        "remove_prediction_mean": not args.keep_prediction_mean,
+    }
+    if args.model_id == "demo01":
+        return EpochContextDeepLearningCorrection(**kwargs)
+    if args.model_id == "cascaded_context_dae":
+        return CascadedContextDenoisingAutoencoderCorrection(**kwargs)
+    raise ValueError(f"Unsupported context model id: {args.model_id}")
 
 
 def _rms(values: np.ndarray) -> float:
@@ -107,6 +165,16 @@ def _predict_synthetic(checkpoint: Path, noisy_context: np.ndarray, batch_size: 
     return np.concatenate(predictions, axis=0)
 
 
+def _build_synthetic_model_input(args: argparse.Namespace, noisy_context: np.ndarray, noisy_center: np.ndarray) -> np.ndarray:
+    if args.model_id == "cascaded_dae":
+        model_input = noisy_center
+    else:
+        model_input = noisy_context
+    if not args.keep_input_mean:
+        model_input = model_input - model_input.mean(axis=-1, keepdims=True)
+    return model_input
+
+
 def evaluate_synthetic(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
     with np.load(args.synthetic_dataset, allow_pickle=True) as data:
         noisy_context = data["noisy_context"].astype(np.float32, copy=False)
@@ -121,9 +189,7 @@ def evaluate_synthetic(args: argparse.Namespace, output_dir: Path) -> dict[str, 
         clean_center = clean_center[: args.max_synthetic_examples]
         artifact_center = artifact_center[: args.max_synthetic_examples]
 
-    model_input = noisy_context
-    if not args.keep_input_mean:
-        model_input = noisy_context - noisy_context.mean(axis=-1, keepdims=True)
+    model_input = _build_synthetic_model_input(args, noisy_context, noisy_center)
     pred_artifact = _predict_synthetic(args.checkpoint, model_input, args.batch_size, args.device)
     if not args.keep_prediction_mean:
         pred_artifact = pred_artifact - pred_artifact.mean(axis=-1, keepdims=True)
@@ -268,14 +334,7 @@ def evaluate_niazy(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]
         raw_before.n_times,
     )
 
-    corrected_context = context | EpochContextDeepLearningCorrection(
-        checkpoint_path=args.checkpoint,
-        context_epochs=args.context_epochs,
-        epoch_samples=args.epoch_samples,
-        device=args.device,
-        demean_input=not args.keep_input_mean,
-        remove_prediction_mean=not args.keep_prediction_mean,
-    )
+    corrected_context = context | _build_correction(args)
     after = corrected_context.get_raw().get_data().astype(np.float32, copy=False)
     predicted = corrected_context.get_estimated_noise().astype(np.float32, copy=False)
 
@@ -400,11 +459,16 @@ def _plot_niazy_examples(
 
 def main() -> None:
     args = parse_args()
+    _resolve_output_args(args)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     synthetic_metrics = evaluate_synthetic(args, args.output_dir)
     niazy_metrics = evaluate_niazy(args, args.output_dir)
     summary = {
+        "schema": "legacy_context_artifact_model_metrics",
+        "model_id": args.model_id,
+        "model_name": args.model_name,
+        "run_id": args.run_id,
         "checkpoint": str(args.checkpoint),
         "synthetic_dataset": str(args.synthetic_dataset),
         "niazy_input": str(args.niazy_input),
@@ -420,9 +484,47 @@ def main() -> None:
     metrics_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     report_path = args.output_dir / "context_artifact_model_evaluation_report.md"
     report_path.write_text(_format_report(summary), encoding="utf-8")
+    writer = ModelEvaluationWriter(
+        model_id=args.model_id,
+        model_name=args.model_name,
+        model_description=MODEL_DESCRIPTIONS[args.model_id],
+        run_id=args.run_id,
+    )
+    standard_run = writer.write(
+        metrics={
+            "synthetic": synthetic_metrics,
+            "niazy": niazy_metrics,
+        },
+        config={
+            "checkpoint": str(args.checkpoint),
+            "synthetic_dataset": str(args.synthetic_dataset),
+            "niazy_input": str(args.niazy_input),
+            "context_epochs": args.context_epochs,
+            "epoch_samples": args.epoch_samples,
+            "device": args.device,
+            "input_mean_removed": not args.keep_input_mean,
+            "prediction_mean_removed": not args.keep_prediction_mean,
+            "trigger_regex": args.trigger_regex,
+        },
+        artifacts={
+            "legacy_metrics": metrics_path,
+            "legacy_report": report_path,
+            "synthetic_cleaning_examples": args.output_dir / "synthetic_cleaning_examples.png",
+            "synthetic_metric_summary": args.output_dir / "synthetic_metric_summary.png",
+            "niazy_cleaning_examples": args.output_dir / "niazy_cleaning_examples.png",
+            "niazy_trigger_locked_templates": args.output_dir / "niazy_trigger_locked_templates.png",
+        },
+        interpretation=summary["interpretation_note"],
+        limitations=[
+            "Synthetic metrics use generated clean/artifact targets and may not represent real scanner distributions.",
+            "Niazy metrics are trigger-locked proxy metrics without clean EEG ground truth.",
+        ],
+    )
     print("Saved context artifact model evaluation:")
     print(f"  metrics               : {metrics_path}")
     print(f"  report                : {report_path}")
+    print(f"  standard manifest     : {standard_run.manifest_path}")
+    print(f"  standard summary      : {standard_run.summary_path}")
     print(f"  synthetic examples    : {args.output_dir / 'synthetic_cleaning_examples.png'}")
     print(f"  synthetic summary     : {args.output_dir / 'synthetic_metric_summary.png'}")
     print(f"  niazy examples        : {args.output_dir / 'niazy_cleaning_examples.png'}")

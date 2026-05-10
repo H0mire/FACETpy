@@ -1,14 +1,7 @@
-"""Demo 01 epoch-context deep-learning correction.
-
-Demo 01 is intentionally model-specific: it builds trigger-defined multi-epoch
-contexts, runs a TorchScript artifact predictor, and returns a full-length
-artifact estimate. The actual correction application is delegated to the generic
-:class:`facet.correction.DeepLearningCorrection` machinery.
-"""
+"""Inference integration for the 7-epoch cascaded context DAE."""
 
 from __future__ import annotations
 
-from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -29,36 +22,32 @@ from ...correction.deep_learning import (
 
 
 def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
-    """Linearly resample one channel epoch to a fixed number of samples."""
     if values.ndim != 1:
         raise ValueError(f"Expected 1D values, got shape {values.shape}")
     if target_samples <= 0:
-        raise ValueError(f"target_samples must be positive, got {target_samples}")
+        raise ValueError("target_samples must be positive")
     if len(values) == target_samples:
         return values.astype(np.float32, copy=False)
     if len(values) == 0:
         return np.zeros(target_samples, dtype=np.float32)
-    if len(values) == 1:
-        return np.full(target_samples, float(values[0]), dtype=np.float32)
-
     source_x = np.linspace(0.0, 1.0, len(values), dtype=np.float64)
     target_x = np.linspace(0.0, 1.0, target_samples, dtype=np.float64)
     return np.interp(target_x, source_x, values).astype(np.float32)
 
 
-class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
-    """Adapter that builds Demo-01 epoch contexts from a ProcessingContext."""
+class CascadedContextDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
+    """TorchScript adapter that builds 7-epoch channel-wise contexts."""
 
     spec = DeepLearningModelSpec(
-        name="Demo01EpochContextTorchScriptAdapter",
-        architecture=DeepLearningArchitecture.CUSTOM,
+        name="CascadedContextDenoisingAutoencoderAdapter",
+        architecture=DeepLearningArchitecture.AUTOENCODER,
         runtime=DeepLearningRuntime.PYTORCH,
         output_type=DeepLearningOutputType.ARTIFACT,
         execution_granularity=DeepLearningExecutionGranularity.CHANNEL,
         supports_multichannel=False,
         uses_triggers=True,
-        description="Demo 01 seven-epoch context TorchScript artifact predictor.",
-        tags=("demo01", "epoch_context", "torchscript", "artifact_prediction"),
+        description="Seven-epoch channel-wise cascaded denoising autoencoder artifact predictor.",
+        tags=("cascaded_context_dae", "denoising_autoencoder", "context", "torchscript", "artifact_prediction"),
     )
 
     def __init__(
@@ -66,7 +55,7 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
         checkpoint_path: str | Path,
         *,
         context_epochs: int = 7,
-        epoch_samples: int | None = None,
+        epoch_samples: int | None = 512,
         artifact_to_trigger_offset: float | None = None,
         device: str = "cpu",
         channel_indices: list[int] | None = None,
@@ -74,21 +63,20 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
         demean_input: bool = True,
         remove_prediction_mean: bool = True,
     ) -> None:
-        self.checkpoint_path = str(checkpoint_path)
-        self.context_epochs = context_epochs
-        self.epoch_samples = epoch_samples
+        self.checkpoint_path = str(Path(checkpoint_path).expanduser())
+        self.context_epochs = int(context_epochs)
+        self.epoch_samples = None if epoch_samples is None else int(epoch_samples)
         self.artifact_to_trigger_offset = artifact_to_trigger_offset
         self.device = device
         self.channel_indices = channel_indices
-        self.eeg_only = eeg_only
-        self.demean_input = demean_input
-        self.remove_prediction_mean = remove_prediction_mean
+        self.eeg_only = bool(eeg_only)
+        self.demean_input = bool(demean_input)
+        self.remove_prediction_mean = bool(remove_prediction_mean)
         self._model: Any | None = None
         self._torch: Any | None = None
-
         self.spec = DeepLearningModelSpec(
-            name="Demo01EpochContextTorchScriptAdapter",
-            architecture=DeepLearningArchitecture.CUSTOM,
+            name="CascadedContextDenoisingAutoencoderAdapter",
+            architecture=DeepLearningArchitecture.AUTOENCODER,
             runtime=DeepLearningRuntime.PYTORCH,
             output_type=DeepLearningOutputType.ARTIFACT,
             execution_granularity=DeepLearningExecutionGranularity.CHANNEL,
@@ -97,8 +85,8 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
             checkpoint_path=self.checkpoint_path,
             checkpoint_format="torchscript",
             device_preference=device,
-            description="Demo 01 seven-epoch context TorchScript artifact predictor.",
-            tags=("demo01", "epoch_context", "torchscript", "artifact_prediction"),
+            description="Seven-epoch channel-wise cascaded denoising autoencoder artifact predictor.",
+            tags=("cascaded_context_dae", "denoising_autoencoder", "context", "torchscript", "artifact_prediction"),
         )
         super().__init__()
 
@@ -108,7 +96,6 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
             raise ProcessorValidationError("context_epochs must be a positive odd integer")
         if self.epoch_samples is not None and self.epoch_samples <= 0:
             raise ProcessorValidationError("epoch_samples must be positive when provided")
-
         triggers = np.asarray(context.get_triggers(), dtype=int)
         if len(triggers) < self.context_epochs + 1:
             raise ProcessorValidationError(
@@ -122,10 +109,6 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
         triggers = np.asarray(context.get_triggers(), dtype=int)
         starts, stops, target_samples = self._build_epoch_boundaries(context, triggers, raw.n_times)
         channels = self._resolve_channels(raw)
-
-        if len(channels) == 0:
-            raise ProcessorValidationError("No channels selected for Demo 01 epoch-context correction")
-
         model, torch = self._load_model()
         estimated_artifacts = np.zeros_like(data)
         radius = self.context_epochs // 2
@@ -133,13 +116,12 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
 
         with torch.no_grad():
             for center_idx in range(radius, len(starts) - radius):
-                context_indices = range(center_idx - radius, center_idx + radius + 1)
                 center_start = starts[center_idx]
                 center_stop = stops[center_idx]
                 center_len = center_stop - center_start
                 if center_len <= 0:
                     continue
-
+                context_indices = range(center_idx - radius, center_idx + radius + 1)
                 for ch_idx in channels:
                     epoch_stack = np.stack(
                         [
@@ -151,7 +133,6 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
                     prediction = self._predict_center_artifact(model, torch, epoch_stack)
                     artifact_native = _resample_1d(prediction, center_len).astype(data.dtype, copy=False)
                     estimated_artifacts[ch_idx, center_start:center_stop] += artifact_native
-
                 corrected_epochs += 1
 
         lengths = stops - starts
@@ -174,14 +155,12 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
     def _load_model(self) -> tuple[Any, Any]:
         if self._model is not None and self._torch is not None:
             return self._model, self._torch
-
         try:
             import torch
-        except ImportError as exc:  # pragma: no cover - depends on optional extra
+        except ImportError as exc:  # pragma: no cover
             raise ProcessorValidationError(
-                "Demo01EpochContextTorchScriptAdapter requires PyTorch. Install the pytorch extra first."
+                "CascadedContextDenoisingAutoencoder requires PyTorch. Install the pytorch extra first."
             ) from exc
-
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -198,23 +177,19 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
             else self.artifact_to_trigger_offset
         )
         offset_samples = int(round(artifact_offset * sfreq))
-
         starts = triggers[:-1] + offset_samples
         stops = triggers[1:] + offset_samples
         valid = (starts >= 0) & (stops > starts) & (stops <= n_times)
         starts = starts[valid].astype(int)
         stops = stops[valid].astype(int)
-
         if len(starts) < self.context_epochs:
             raise ProcessorValidationError(
                 f"Only {len(starts)} valid trigger epochs remain after clipping; need {self.context_epochs}"
             )
-
         lengths = stops - starts
         target_samples = self.epoch_samples or int(round(float(np.median(lengths))))
         if target_samples <= 0:
             raise ProcessorValidationError("Resolved epoch_samples must be positive")
-
         return starts, stops, target_samples
 
     def _resolve_channels(self, raw: mne.io.BaseRaw) -> list[int]:
@@ -230,7 +205,6 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
         tensor = torch.as_tensor(epoch_stack[None, :, None, :], dtype=torch.float32, device=self.device)
         output = model(tensor)
         prediction = output.detach().cpu().numpy()
-
         if prediction.ndim == 3 and prediction.shape[0] == 1:
             prediction = prediction[0]
         if prediction.ndim == 2 and prediction.shape[0] == 1:
@@ -247,18 +221,12 @@ class Demo01EpochContextTorchScriptAdapter(DeepLearningModelAdapter):
 
 
 @register_processor
-class EpochContextDeepLearningCorrection(DeepLearningCorrection):
-    """Demo-01 convenience processor backed by generic DeepLearningCorrection.
+class CascadedContextDenoisingAutoencoderCorrection(DeepLearningCorrection):
+    """Pipeline processor for 7-epoch cascaded context DAE inference."""
 
-    The class remains available under its previous name for closed-beta
-    pipelines. Internally, model-specific context construction lives in
-    ``Demo01EpochContextTorchScriptAdapter`` and correction application is
-    handled by ``DeepLearningCorrection``.
-    """
-
-    name = "epoch_context_deep_learning_correction"
-    description = "Demo 01 deep learning correction using multi-epoch trigger context"
-    version = "0.2.0"
+    name = "cascaded_context_dae_correction"
+    description = "Seven-epoch channel-wise cascaded denoising-autoencoder artifact correction"
+    version = "0.1.0"
 
     requires_raw = True
     requires_triggers = True
@@ -271,7 +239,7 @@ class EpochContextDeepLearningCorrection(DeepLearningCorrection):
         checkpoint_path: str | Path,
         *,
         context_epochs: int = 7,
-        epoch_samples: int | None = None,
+        epoch_samples: int | None = 512,
         artifact_to_trigger_offset: float | None = None,
         device: str = "cpu",
         channel_indices: list[int] | None = None,
@@ -279,10 +247,8 @@ class EpochContextDeepLearningCorrection(DeepLearningCorrection):
         demean_input: bool = True,
         remove_prediction_mean: bool = True,
         store_run_metadata: bool = True,
-        store_legacy_metadata: bool = True,
     ) -> None:
-        self.store_legacy_metadata = store_legacy_metadata
-        adapter = Demo01EpochContextTorchScriptAdapter(
+        adapter = CascadedContextDenoisingAutoencoderAdapter(
             checkpoint_path=checkpoint_path,
             context_epochs=context_epochs,
             epoch_samples=epoch_samples,
@@ -298,17 +264,6 @@ class EpochContextDeepLearningCorrection(DeepLearningCorrection):
     def validate_execution_mode(self, *, parallel: bool, channel_sequential: bool) -> None:
         if parallel:
             raise ProcessorValidationError(
-                f"{self.name} is stateful during TorchScript inference and must not run in parallel mode"
+                f"{self.name} loads a stateful TorchScript model and must not run in parallel mode"
             )
         super().validate_execution_mode(parallel=parallel, channel_sequential=channel_sequential)
-
-    def process(self, context: ProcessingContext) -> ProcessingContext:
-        new_context = super().process(context)
-        if self.store_legacy_metadata:
-            runs = new_context.metadata.custom.get("deep_learning_runs", [])
-            if runs:
-                prediction_metadata = deepcopy(runs[-1].get("prediction_metadata", {}))
-                new_context.metadata.custom.setdefault("epoch_context_deep_learning_runs", []).append(
-                    prediction_metadata
-                )
-        return new_context

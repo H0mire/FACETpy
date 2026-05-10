@@ -25,10 +25,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from facet.models.demo01 import EpochContextDeepLearningCorrection
+
 from facet import (
     DownSample,
     DropChannels,
-    EpochContextDeepLearningCorrection,
     HighPassFilter,
     LowPassFilter,
     TriggerAligner,

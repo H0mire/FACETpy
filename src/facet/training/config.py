@@ -107,6 +107,10 @@ class LoggingConfig:
     log_file : str or None
         Path to a JSONL file for persistent metric logging.  ``None``
         disables file logging.
+    loss_plot_file : str or None
+        Path to a PNG file for the per-epoch training/validation loss plot.
+        Relative paths are resolved inside the training run directory.
+        ``None`` disables plot generation.
     progress_bar : bool
         Show per-batch progress bar inside the live dashboard.
     """
@@ -115,6 +119,7 @@ class LoggingConfig:
     val_every_n_epochs: int = 1
     rich_live: bool = True
     log_file: str | None = "training.jsonl"
+    loss_plot_file: str | None = "loss.png"
     progress_bar: bool = True
 
 

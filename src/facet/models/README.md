@@ -55,6 +55,9 @@ A model directory may depend on FACETpy core APIs, but FACETpy core should not d
 src/facet/models/<model_id>/
 ├── __init__.py
 ├── README.md
+├── documentation/
+│   ├── model_card.md
+│   └── evaluations.md
 ├── model.py              # architecture if separated from training factories
 ├── training.py           # facet-train factories
 ├── processor.py          # only if a model-specific Processor is unavoidable
@@ -65,6 +68,28 @@ src/facet/models/<model_id>/
 ```
 
 Not every model needs every file. Small models may combine `model.py` and `training.py`.
+
+## Evaluation Documentation
+
+Every model should follow `src/facet/models/evaluation_standard.md`.
+
+Short, versionable documentation belongs in:
+
+```text
+src/facet/models/<model_id>/documentation/
+```
+
+Generated evaluation artifacts belong in:
+
+```text
+output/model_evaluations/<model_id>/<run_id>/
+```
+
+New evaluation scripts should use `facet.evaluation.ModelEvaluationWriter` so every run emits:
+
+- `evaluation_manifest.json`
+- `metrics.json`
+- `evaluation_summary.md`
 
 ## Preferred Integration Path
 
@@ -103,3 +128,15 @@ Wrappers should contain no model logic. They should only re-export the relocated
 `demo01` contains the first seven-epoch context CNN proof-of-concept. It is frozen as a demo model and should not be used as the template for all future models.
 
 The important architectural lesson from Demo 01 is that model-specific context construction should not automatically become a generic FACETpy correction primitive.
+
+## Cascaded DAE Status
+
+`cascaded_dae` contains a channel-wise cascaded denoising autoencoder inspired by the older `feature/deeplearning` PyTorch prototype.
+
+It deliberately trains on single-channel windows. This keeps the checkpoint independent of the number of channels in a target dataset, while still allowing fixed-size windowed inference via a model-specific adapter.
+
+## Cascaded Context DAE Status
+
+`cascaded_context_dae` extends the cascaded autoencoder idea to seven trigger-defined context epochs.
+
+It still trains and infers per channel, so it remains compatible with different channel counts. Unlike `cascaded_dae`, it requires trigger metadata during inference and is coupled to the configured context length.
