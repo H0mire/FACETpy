@@ -63,6 +63,10 @@ fi
   echo '#!/usr/bin/env bash'
   echo 'set -euo pipefail'
   printf "cd %q\n" "$REMOTE_REPO"
+  echo 'echo "== sync deps =="'
+  echo 'UV_LINK_MODE=copy uv sync'
+  echo 'echo "== verify torch =="'
+  echo 'uv run python tools/gpu_fleet/check_torch.py'
   if [[ -n "$PREPARE_COMMAND" ]]; then
     echo 'echo "== prepare =="'
     printf '%s\n' "$PREPARE_COMMAND"
