@@ -1,0 +1,79 @@
+# Train Demucs on the Niazy-only proof-fit context dataset.
+#
+# Build dataset first (already wired into the fleet submit --prepare-command):
+#
+#   uv run python examples/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config src/facet/models/demucs/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.demucs.training:build_model
+  kwargs:
+    depth: 4
+    initial_channels: 64
+    kernel_size: 8
+    stride: 4
+    lstm_layers: 2
+    in_channels: 1
+    out_channels: 1
+    n_sources: 1
+    rescale: 0.1
+  loss_factory: facet.models.demucs.training:build_loss
+  loss_kwargs:
+    name: l1
+  device: cuda
+
+data:
+  dataset_factory: facet.models.demucs.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: DemucsNiazyProofFit
+  chunk_size: 3584
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 60
+  batch_size: 32
+  learning_rate: 0.0003
+  weight_decay: 0.0
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 12
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/demucs.ts
+  write_inference_config: false
