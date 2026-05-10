@@ -30,6 +30,8 @@ Do not build a custom GPU server for two pods. SSH plus `tmux`, `rsync`, `uv`, F
 - Each model must provide `training.py`, `processor.py`, `training.yaml`, `README.md`, and `documentation/model_card.md`.
 - Each training run must produce `training.jsonl`, `loss.png`, `summary.json`, checkpoints, and an exported model.
 - Each evaluation run must produce `evaluation_manifest.json`, `metrics.json`, `evaluation_summary.md`, and plots under `output/model_evaluations/<model_id>/<run_id>/`.
+- If the shared dataset is incompatible with a model architecture, the agent may build a model-specific dataset instead of forcing the architecture to fit the dataset.
+- Model-specific datasets must be deterministic, documented in the model folder, and stored under `output/<model_id_or_experiment>/` on the worker.
 
 ## Recommended Local Worktrees
 
@@ -85,6 +87,18 @@ python tools/gpu_fleet/fleet.py submit \
   --training-config src/facet/models/<model_id>/training_niazy_proof_fit.yaml
 ```
 
+If a model requires its own dataset layout, submit a preparation command with the job:
+
+```bash
+python tools/gpu_fleet/fleet.py submit \
+  --name unet_niazy_1024 \
+  --worktree ../worktrees/model-unet \
+  --training-config src/facet/models/unet/training_niazy_1024.yaml \
+  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --target-epoch-samples 1024 --context-epochs 9 --output-dir output/unet_niazy_1024"
+```
+
+The preparation command runs on the selected RunPod after the worktree is synced and before `facet-train` starts. This keeps architecture-specific dataset decisions inside the model-agent workflow.
+
 Start the dispatcher from the MacBook:
 
 ```bash
@@ -132,6 +146,22 @@ tools/gpu_fleet/sync_worktree_to_runpod.sh ../worktrees/model-unet root@<runpod-
 ```
 
 The script excludes large/generated directories such as `output/`, `training_output/`, `.venv/`, and caches.
+
+## Sync A Generated Dataset To A Pod
+
+Use this when an agent builds a dataset locally and needs to provide it to a worker:
+
+```bash
+tools/gpu_fleet/sync_dataset_to_runpod.sh \
+  output/<dataset_id> \
+  root@<runpod-host> \
+  /workspace/facetpy/output/<dataset_id> \
+  <ssh-port>
+```
+
+Normal worktree sync intentionally excludes `output/`. Dataset sync is explicit so agents do not accidentally overwrite large generated artifacts or mix datasets between experiments.
+
+Prefer remote dataset builds through `--prepare-command` when the source data and builder are available on the pod. Prefer dataset sync when the dataset was generated locally or requires local-only inputs.
 
 ## Start Training On A Pod
 
@@ -196,9 +226,11 @@ For each model:
 1. Create model worktree and branch.
 2. Implement model package under `src/facet/models/<model_id>/`.
 3. Add tests under `tests/models/`.
-4. Submit the training config to the fleet queue.
-5. Let the dispatcher sync and train on the next idle RunPod.
-6. Evaluate via the standard evaluation scripts.
-7. Fetch results.
-8. Compare `metrics.json` and plots.
-9. Merge only if tests pass and documentation is complete.
+4. Decide whether the shared dataset is compatible with the model's input contract.
+5. If needed, add a deterministic dataset builder or preparation command for the model.
+6. Submit the training config to the fleet queue.
+7. Let the dispatcher sync, prepare data if requested, and train on the next idle RunPod.
+8. Evaluate via the standard evaluation scripts.
+9. Fetch results.
+10. Compare `metrics.json` and plots.
+11. Merge only if tests pass and documentation is complete.

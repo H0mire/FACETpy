@@ -217,6 +217,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
         "session": session,
         "config": args.training_config,
         "worktree": args.worktree,
+        "prepare_command": args.prepare_command,
         "preferred_worker": args.worker,
         "status": "pending",
         "created_at": utc_now(),
@@ -247,6 +248,7 @@ def dispatch_one_job(job: dict[str, Any], worker_name: str, worker: Worker) -> N
             job["session"],
             str(worker.port),
             str(worker.gpu),
+            job.get("prepare_command") or "",
         ],
         env=worker.script_env(),
     )
@@ -301,7 +303,8 @@ def cmd_status(args: argparse.Namespace) -> int:
     print("\njobs")
     for job in state["jobs"]:
         worker = job.get("worker") or job.get("preferred_worker") or "any"
-        print(f"  {job['id']} {job['status']:16} {worker:8} {job['session']}")
+        prepare = " prepare" if job.get("prepare_command") else ""
+        print(f"  {job['id']} {job['status']:16} {worker:8} {job['session']}{prepare}")
     return 0
 
 
@@ -348,6 +351,10 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument("--name", required=True)
     submit.add_argument("--worktree", required=True)
     submit.add_argument("--training-config", required=True)
+    submit.add_argument(
+        "--prepare-command",
+        help="Optional command executed on the RunPod after sync and before facet-train.",
+    )
     submit.add_argument("--session")
     submit.add_argument("--worker", help="Optional preferred worker name")
     submit.set_defaults(func=cmd_submit)
