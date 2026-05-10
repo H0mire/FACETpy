@@ -19,8 +19,13 @@ fi
 SSH_TARGET="$1"
 REMOTE_REPO="${2:-/workspace/facetpy}"
 SSH_PORT="${3:-22}"
+SSH_KEY="${FACET_GPU_FLEET_SSH_KEY:-}"
+SSH_ARGS=(-p "$SSH_PORT" -o StrictHostKeyChecking=accept-new)
+if [[ -n "$SSH_KEY" ]]; then
+  SSH_ARGS+=(-i "$SSH_KEY" -o IdentitiesOnly=yes)
+fi
 
-ssh -p "$SSH_PORT" "$SSH_TARGET" bash -s -- "$REMOTE_REPO" <<'REMOTE'
+ssh "${SSH_ARGS[@]}" "$SSH_TARGET" bash -s -- "$REMOTE_REPO" <<'REMOTE'
 set -euo pipefail
 REMOTE_REPO="$1"
 echo "== nvidia-smi =="

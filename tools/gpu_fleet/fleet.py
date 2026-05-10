@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -31,7 +32,15 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
-def run(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(
+    args: list[str],
+    *,
+    check: bool = True,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
     return subprocess.run(
         args,
         cwd=REPO_ROOT,
@@ -39,6 +48,7 @@ def run(args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[s
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=full_env,
     )
 
 
@@ -120,6 +130,7 @@ class Worker:
     port: int
     remote_repo: str
     gpu: int
+    identity_file: str | None = None
 
     @classmethod
     def from_config(cls, name: str, raw: dict[str, Any]) -> "Worker":
@@ -129,7 +140,20 @@ class Worker:
             port=int(raw.get("port", 22)),
             remote_repo=str(raw.get("remote_repo", "/workspace/facetpy")),
             gpu=int(raw.get("gpu", 0)),
+            identity_file=str(raw["identity_file"]) if raw.get("identity_file") else None,
         )
+
+    def ssh_args(self) -> list[str]:
+        args = ["ssh", "-p", str(self.port), "-o", "StrictHostKeyChecking=accept-new"]
+        if self.identity_file:
+            args.extend(["-i", self.identity_file, "-o", "IdentitiesOnly=yes"])
+        args.append(self.ssh)
+        return args
+
+    def script_env(self) -> dict[str, str]:
+        if not self.identity_file:
+            return {}
+        return {"FACET_GPU_FLEET_SSH_KEY": self.identity_file}
 
 
 def workers_from_config(path: Path) -> dict[str, Worker]:
@@ -143,10 +167,7 @@ def workers_from_config(path: Path) -> dict[str, Worker]:
 def tmux_sessions(worker: Worker) -> set[str]:
     result = run(
         [
-            "ssh",
-            "-p",
-            str(worker.port),
-            worker.ssh,
+            *worker.ssh_args(),
             "tmux",
             "ls",
             "-F",
@@ -214,7 +235,8 @@ def dispatch_one_job(job: dict[str, Any], worker_name: str, worker: Worker) -> N
             worker.ssh,
             worker.remote_repo,
             str(worker.port),
-        ]
+        ],
+        env=worker.script_env(),
     )
     run(
         [
@@ -225,7 +247,8 @@ def dispatch_one_job(job: dict[str, Any], worker_name: str, worker: Worker) -> N
             job["session"],
             str(worker.port),
             str(worker.gpu),
-        ]
+        ],
+        env=worker.script_env(),
     )
     job["status"] = "running"
     job["worker"] = worker_name
@@ -295,7 +318,8 @@ def cmd_fetch(args: argparse.Namespace) -> int:
                 worker.remote_repo,
                 ".",
                 str(worker.port),
-            ]
+            ],
+            env=worker.script_env(),
         )
     return 0
 

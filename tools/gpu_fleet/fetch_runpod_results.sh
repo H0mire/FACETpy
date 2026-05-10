@@ -23,8 +23,13 @@ SSH_TARGET="$1"
 REMOTE_REPO="${2:-/workspace/facetpy}"
 LOCAL_ROOT="${3:-.}"
 SSH_PORT="${4:-22}"
+SSH_KEY="${FACET_GPU_FLEET_SSH_KEY:-}"
+RSYNC_SSH="ssh -p $SSH_PORT -o StrictHostKeyChecking=accept-new"
+if [[ -n "$SSH_KEY" ]]; then
+  RSYNC_SSH="ssh -p $SSH_PORT -o StrictHostKeyChecking=accept-new -i $SSH_KEY -o IdentitiesOnly=yes"
+fi
 
 mkdir -p "$LOCAL_ROOT/training_output" "$LOCAL_ROOT/output/model_evaluations" "$LOCAL_ROOT/remote_logs"
-rsync -az -e "ssh -p $SSH_PORT" "$SSH_TARGET:$REMOTE_REPO/training_output/" "$LOCAL_ROOT/training_output/" || true
-rsync -az -e "ssh -p $SSH_PORT" "$SSH_TARGET:$REMOTE_REPO/output/model_evaluations/" "$LOCAL_ROOT/output/model_evaluations/" || true
-rsync -az -e "ssh -p $SSH_PORT" "$SSH_TARGET:$REMOTE_REPO/remote_logs/" "$LOCAL_ROOT/remote_logs/" || true
+rsync -az -e "$RSYNC_SSH" "$SSH_TARGET:$REMOTE_REPO/training_output/" "$LOCAL_ROOT/training_output/" || true
+rsync -az -e "$RSYNC_SSH" "$SSH_TARGET:$REMOTE_REPO/output/model_evaluations/" "$LOCAL_ROOT/output/model_evaluations/" || true
+rsync -az -e "$RSYNC_SSH" "$SSH_TARGET:$REMOTE_REPO/remote_logs/" "$LOCAL_ROOT/remote_logs/" || true

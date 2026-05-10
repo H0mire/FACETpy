@@ -23,8 +23,13 @@ SSH_TARGET="$1"
 REPO_URL="$2"
 REMOTE_REPO="${3:-/workspace/facetpy}"
 SSH_PORT="${4:-22}"
+SSH_KEY="${FACET_GPU_FLEET_SSH_KEY:-}"
+SSH_ARGS=(-p "$SSH_PORT" -o StrictHostKeyChecking=accept-new)
+if [[ -n "$SSH_KEY" ]]; then
+  SSH_ARGS+=(-i "$SSH_KEY" -o IdentitiesOnly=yes)
+fi
 
-ssh -p "$SSH_PORT" "$SSH_TARGET" bash -s -- "$REPO_URL" "$REMOTE_REPO" <<'REMOTE'
+ssh "${SSH_ARGS[@]}" "$SSH_TARGET" bash -s -- "$REPO_URL" "$REMOTE_REPO" <<'REMOTE'
 set -euo pipefail
 REPO_URL="$1"
 REMOTE_REPO="$2"

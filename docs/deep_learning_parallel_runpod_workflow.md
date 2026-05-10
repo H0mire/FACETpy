@@ -60,11 +60,13 @@ workers:
     port: 22
     remote_repo: /workspace/facetpy
     gpu: 0
+    identity_file: /path/to/private/key
   gpu2:
     ssh: root@<runpod-host-2>
     port: 22
     remote_repo: /workspace/facetpy
     gpu: 0
+    identity_file: /path/to/private/key
 ```
 
 ## Queue-Based Scheduling
