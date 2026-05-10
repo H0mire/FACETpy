@@ -69,6 +69,7 @@ def test_two_epoch_smoke_loop(tmp_path: Path) -> None:
     config.logging.log_file = None
     config.logging.loss_plot_file = None
     config.early_stopping = None
+    config.checkpoint.monitor = "loss"
 
     trainer = Trainer(
         wrapper=wrapper,

@@ -35,6 +35,33 @@ class CNNBlock(nn.Module):
         return x
 
 
+class MultiHeadSelfAttention(nn.Module):
+    """Trace-friendly multi-head self-attention via separate q/k/v linears."""
+
+    def __init__(self, channels: int, num_heads: int) -> None:
+        super().__init__()
+        if channels % num_heads != 0:
+            raise ValueError(f"channels ({channels}) must be divisible by num_heads ({num_heads})")
+        self.num_heads = int(num_heads)
+        self.head_dim = channels // num_heads
+        self.q_proj = nn.Linear(channels, channels)
+        self.k_proj = nn.Linear(channels, channels)
+        self.v_proj = nn.Linear(channels, channels)
+        self.out_proj = nn.Linear(channels, channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, T, C)
+        b = x.shape[0]
+        t = x.shape[1]
+        c = x.shape[2]
+        q = self.q_proj(x).view(b, t, self.num_heads, self.head_dim).transpose(1, 2)
+        k = self.k_proj(x).view(b, t, self.num_heads, self.head_dim).transpose(1, 2)
+        v = self.v_proj(x).view(b, t, self.num_heads, self.head_dim).transpose(1, 2)
+        attn = F.scaled_dot_product_attention(q, k, v)
+        attn = attn.transpose(1, 2).contiguous().view(b, t, c)
+        return self.out_proj(attn)
+
+
 class LocalGlobalTransformerBlock(nn.Module):
     """Combined local-window + global self-attention transformer block."""
 
@@ -50,19 +77,9 @@ class LocalGlobalTransformerBlock(nn.Module):
         self.channels = int(channels)
         self.window_size = int(window_size)
         self.local_norm = nn.LayerNorm(channels)
-        self.local_attn = nn.MultiheadAttention(
-            embed_dim=channels,
-            num_heads=num_heads,
-            dropout=dropout,
-            batch_first=True,
-        )
+        self.local_attn = MultiHeadSelfAttention(channels=channels, num_heads=num_heads)
         self.global_norm = nn.LayerNorm(channels)
-        self.global_attn = nn.MultiheadAttention(
-            embed_dim=channels,
-            num_heads=num_heads,
-            dropout=dropout,
-            batch_first=True,
-        )
+        self.global_attn = MultiHeadSelfAttention(channels=channels, num_heads=num_heads)
         self.ff_norm = nn.LayerNorm(channels)
         self.feedforward = nn.Sequential(
             nn.Linear(channels, channels * ff_mult),
@@ -71,27 +88,29 @@ class LocalGlobalTransformerBlock(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, C, T) -> (B, T, C)
-        b, c, t = x.shape
+        # x: (B, C, T) -> (B, T, C). Trace-friendly: no Python if-branches on
+        # tensor-valued shape entries.
         h = x.transpose(1, 2)
+        b = h.shape[0]
+        t = h.shape[1]
+        c = h.shape[2]
 
-        # Local windowed attention
+        # Local windowed attention (unconditional zero-pad to a window multiple)
         local = self.local_norm(h)
-        win = max(1, min(self.window_size, t))
+        win = self.window_size
         pad = (win - t % win) % win
-        if pad > 0:
-            local = F.pad(local, (0, 0, 0, pad))
-        n_win = local.shape[1] // win
+        local = F.pad(local, (0, 0, 0, pad))
+        padded_t = local.shape[1]
+        n_win = padded_t // win
         local_in = local.reshape(b * n_win, win, c)
-        local_out, _ = self.local_attn(local_in, local_in, local_in, need_weights=False)
-        local_out = local_out.reshape(b, n_win * win, c)
-        if pad > 0:
-            local_out = local_out[:, :t, :]
+        local_out = self.local_attn(local_in)
+        local_out = local_out.reshape(b, padded_t, c)
+        local_out = local_out[:, :t, :]
         h = h + local_out
 
         # Global attention
         g = self.global_norm(h)
-        g_out, _ = self.global_attn(g, g, g, need_weights=False)
+        g_out = self.global_attn(g)
         h = h + g_out
 
         # Feedforward
@@ -137,9 +156,10 @@ class DecoderStage(nn.Module):
         self.cnn = CNNBlock(out_ch, out_ch)
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
+        # Unconditional interpolation to skip's length. When upsample(scale=2)
+        # already produces the right size this is a no-op but is trace-safe.
         x = self.upsample(x)
-        if x.shape[-1] != skip.shape[-1]:
-            x = F.interpolate(x, size=skip.shape[-1], mode="linear", align_corners=False)
+        x = F.interpolate(x, size=skip.shape[-1], mode="linear", align_corners=False)
         x = torch.cat([x, skip], dim=1)
         x = self.reduce(x)
         return self.cnn(x)
@@ -271,10 +291,9 @@ class DHCTGanGenerator(nn.Module):
             clean_feat = clean_dec(clean_feat, skip)
             artifact_feat = artifact_dec(artifact_feat, skip)
 
-        # Match output length to input length if needed (rounding)
-        if clean_feat.shape[-1] != x.shape[-1]:
-            clean_feat = F.interpolate(clean_feat, size=x.shape[-1], mode="linear", align_corners=False)
-            artifact_feat = F.interpolate(artifact_feat, size=x.shape[-1], mode="linear", align_corners=False)
+        # Match output length to input length (no-op when sizes already agree).
+        clean_feat = F.interpolate(clean_feat, size=x.shape[-1], mode="linear", align_corners=False)
+        artifact_feat = F.interpolate(artifact_feat, size=x.shape[-1], mode="linear", align_corners=False)
 
         clean_pred = self.clean_head(clean_feat)
         artifact_pred = self.artifact_head(artifact_feat)
