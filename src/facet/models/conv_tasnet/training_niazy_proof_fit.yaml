@@ -1,0 +1,79 @@
+# Train Conv-TasNet on the Niazy-only proof-fit dataset.
+#
+# Build dataset first:
+#
+#   uv run python examples/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config src/facet/models/conv_tasnet/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.conv_tasnet.training:build_model
+  kwargs:
+    n_sources: 2
+    encoder_filters: 256
+    encoder_kernel: 16
+    bottleneck_channels: 128
+    hidden_channels: 256
+    block_kernel: 3
+    n_blocks: 8
+    n_repeats: 2
+    mask_activation: sigmoid
+  loss_factory: facet.models.conv_tasnet.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+
+data:
+  dataset_factory: facet.models.conv_tasnet.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: ConvTasNetNiazyProofFit
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 80
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.00001
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 12
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/conv_tasnet.ts
+  example_input_shape: [1, 1, 512]
+  write_inference_config: false
