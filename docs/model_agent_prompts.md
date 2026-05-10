@@ -1,168 +1,269 @@
 # Model Agent Prompts
 
-This document contains the reusable prompt template that you give to a freshly
-spawned coding agent so it can implement, train, and evaluate one new
-deep-learning correction model in parallel with other agents on the FACETpy GPU
-fleet. The end of the document holds three concrete example prompts.
+This document contains the reusable prompt template that the orchestrator
+gives to a freshly spawned coding agent so it can research, implement, train,
+and evaluate one new deep-learning correction model in parallel with other
+agents on the FACETpy GPU fleet.
 
 ## How To Use
 
-1. Pick the model identifier and architecture you want to delegate.
-2. Fill the placeholders in the template with concrete values.
-3. Spawn one fresh agent per model. Each agent owns one Git worktree.
-4. Watch the local fleet queue from your MacBook.
-5. Fetch results, compare evaluations, merge only what passes.
+1. The orchestrator picks one architecture from
+   `docs/research/architecture_catalog.md`.
+2. The orchestrator fills the placeholders in the template with concrete
+   values and spawns one fresh agent per model.
+3. The orchestrator runs the GPU dispatcher centrally on the MacBook:
+   `uv run python tools/gpu_fleet/fleet.py dispatch --loop --interval 60`.
+   Agents only `submit`. They never run `dispatch`.
+4. The orchestrator periodically checks status and fetches results.
+5. Agents hand off when their model is trained and evaluated. The
+   orchestrator does the merge.
 
-Spawn one agent per model, not one agent for many models. Parallelism is
-achieved by running several spawned agents at the same time, each writing to
-its own worktree under `../worktrees/`.
-
-## Required Background The Spawned Agent Must Read First
-
-The agent prompt below tells the agent to read these before it edits anything:
-
-- `CLAUDE.md`
-- `AGENTS.md`
-- `docs/deep_learning_parallel_runpod_workflow.md`
-- `src/facet/models/evaluation_standard.md`
-- `src/facet/models/cascaded_context_dae/` as a reference implementation
+Spawn one agent per model. Parallelism comes from running several agents at
+the same time, each in its own worktree.
 
 ## Placeholders
 
 When using the template, replace every `{{...}}` value:
 
-- `{{MODEL_ID}}` — short snake_case id, e.g. `transformer_dae`
-- `{{MODEL_NAME}}` — human-readable name, e.g. `Transformer Denoising Autoencoder`
-- `{{MODEL_FAMILY}}` — short family description, e.g. `attention-based`
-- `{{ARCHITECTURE_DESCRIPTION}}` — one-paragraph description of the architecture you want
-- `{{INPUT_CONTRACT}}` — what the model expects as input. Default: same as
-  cascaded_context_dae (7 context epochs, 30 channels, 512 samples per epoch,
-  channel-wise). Override only if the architecture forces it.
-- `{{DATASET_STRATEGY}}` — either:
-  - `shared` (use existing Niazy proof-fit context dataset)
-  - `model_specific:<short reason>` (build a model-specific dataset; describe its shape)
-- `{{PREFERRED_WORKER}}` — `gpu1`, `gpu2`, or `any`
-- `{{HYPERPARAMS_HINT}}` — short hint about hyperparameters or leave empty for default
+- `{{MODEL_ID}}` — short snake_case id matching `architecture_catalog.md`,
+  e.g. `denoise_mamba`, `conv_tasnet`, `d4pm`.
+- `{{MODEL_NAME}}` — human-readable name, e.g. `DenoiseMamba`.
+- `{{ARCHITECTURE_FAMILY}}` — one of the families from the catalog, e.g.
+  `Sequence Modeling (State Space / Mamba)`.
+- `{{REPORT_REFERENCE}}` — pointer into the report, e.g.
+  `Section 6.2 (DenoiseMamba: The ConvSSD Module)`.
+- `{{PRIMARY_PAPER_HINT}}` — the paper or repo to start research from. Empty
+  is fine; the agent will search.
+- `{{PREFERRED_WORKER}}` — `gpu1`, `gpu2`, or `any`.
+
+## Hardware Envelope The Agent Must Respect
+
+The GPU fleet has two RunPod workers, each with one **NVIDIA RTX 5090** (24
+GB VRAM) and roughly 64 GB system RAM. Models, batch sizes, and context
+lengths must fit. The agent is otherwise free to choose hyperparameters,
+optimizer, schedule, and any architectural detail consistent with its chosen
+paper.
 
 ## Template
 
-Copy from below until the next `---` line.
+Copy from below until the next `---` line. Substitute every `{{...}}`.
 
 ---
 
 ```text
-You are a model-agent for the FACETpy thesis project. You implement, train,
-and evaluate one deep-learning model that corrects fMRI gradient artifacts in
-EEG signals. You work in parallel with other agents on the same repository.
+You are a model-agent for the FACETpy thesis project. You research,
+implement, train, and evaluate one deep-learning model that corrects fMRI
+gradient artifacts in EEG signals. You work in parallel with other agents on
+the same repository.
 
-# Your model
+# Your assignment
 
 - Model id: {{MODEL_ID}}
 - Model name: {{MODEL_NAME}}
-- Family: {{MODEL_FAMILY}}
-- Architecture: {{ARCHITECTURE_DESCRIPTION}}
-- Input contract: {{INPUT_CONTRACT}}
-- Dataset strategy: {{DATASET_STRATEGY}}
+- Architecture family: {{ARCHITECTURE_FAMILY}}
+- Report section: {{REPORT_REFERENCE}}
+- Primary paper hint: {{PRIMARY_PAPER_HINT}}
 - Preferred GPU worker: {{PREFERRED_WORKER}}
-- Hyperparameter hints: {{HYPERPARAMS_HINT}}
 
-# Mandatory reading before you edit anything
+You are not constrained to a fixed architecture template. Research the model,
+decide how to implement it for our dataset, document your reasoning, then
+implement.
 
-Read these files first. Do not assume; read.
+# Phase 1: Mandatory reading (do not skip)
 
-1. CLAUDE.md
-2. AGENTS.md
-3. docs/deep_learning_parallel_runpod_workflow.md
-4. src/facet/models/evaluation_standard.md
-5. src/facet/models/cascaded_context_dae/ as a reference implementation
-   (training.py, processor.py, training_niazy_proof_fit.yaml, README.md,
-   documentation/model_card.md)
-6. tools/gpu_fleet/fleet.py and the wrapper scripts in tools/gpu_fleet/
+Read these in this order before you write or edit any code:
 
-# Worktree setup
+1. CLAUDE.md — repo overview and pipeline architecture.
+2. AGENTS.md — repo guidelines including the commit marker rule.
+3. docs/PROCESSOR_GUIDELINES.md — binding processor design rules
+   (anatomy, validation, context immutability, registration, testing
+   contract, anti-patterns). Apply these to your correction processor.
+4. src/facet/models/README.md — canonical model author guide. Read the
+   "Preferred Integration Path" section: `DeepLearningCorrection +
+   model-specific adapter`. Read the "What Belongs In FACETpy Core" and
+   "What Belongs In A Model Folder" sections so you know where your code
+   goes.
+5. docs/source/development/training_cli_architecture.md — rationale for
+   the wrapper-vs-adapter split and the `facet-train` data flow.
+6. docs/research/dl_eeg_gradient_artifacts.pdf — the report describing the
+   model family this assignment belongs to. Focus on {{REPORT_REFERENCE}}.
+7. docs/research/architecture_catalog.md — the catalog you were picked from.
+8. docs/deep_learning_parallel_runpod_workflow.md — how the GPU fleet works.
+9. src/facet/models/evaluation_standard.md — required evaluation outputs.
+10. src/facet/models/cascaded_dae/processor.py — canonical concrete example
+    of the two-layer pattern (adapter + correction processor).
+11. src/facet/models/cascaded_context_dae/ — full reference implementation
+    (training.py, processor.py, training_niazy_proof_fit.yaml, README.md,
+    documentation/model_card.md).
 
-Create your own worktree off the deep-learning branch and stay there.
+# Phase 2: Independent research (required before implementation)
+
+Use WebSearch and WebFetch to read primary sources:
+
+- The original paper(s) for {{MODEL_NAME}}.
+- Any reference implementation linked from the paper.
+- Closely related follow-ups if the original paper is unclear.
+
+Capture the result in:
+
+  src/facet/models/{{MODEL_ID}}/documentation/research_notes.md
+
+The research notes must contain:
+
+- Source paper(s) with full citation and link.
+- One-paragraph plain-language description of the architecture.
+- Key architectural components and what each one is responsible for.
+- Inputs the original paper expects (sampling rate, segment length, channel
+  layout) and how that maps to our Niazy proof-fit dataset
+  (see examples/build_niazy_proof_fit_context_dataset.py).
+- The loss function(s) used in the original paper.
+- Any non-obvious training tricks.
+- A short hardware feasibility note: rough parameter count, expected memory
+  with our dataset shape, expected wall-clock for a single epoch on an RTX
+  5090. If the model as published does not fit 24 GB VRAM, document the
+  reduction you will apply.
+- Open questions you could not resolve from public sources.
+
+Do not implement before this file exists and is reviewable.
+
+# Phase 3: Reuse existing FACETpy helpers
+
+Before writing your own infrastructure, scan the codebase. Use what is
+already there. The major helpers you should reuse:
+
+- Training CLI: invoke training via `uv run facet-train fit --config <yaml>`
+  (entry point in src/facet/training/cli.py). Do not roll your own training
+  loop unless your architecture genuinely cannot be expressed through this
+  CLI plus a custom wrapper.
+- Trainer loop: src/facet/training/trainer.py::Trainer with callbacks for
+  checkpoints, early stopping, loss plots, and metric logging.
+- Trainable wrappers: extend
+  src/facet/training/wrapper.py::TrainableModelWrapper or use
+  PyTorchModelWrapper as a base. Implement train_step, eval_step,
+  save_checkpoint as documented.
+- Datasets:
+    - src/facet/training/dataset.py::EEGArtifactDataset for chunked context
+      pairs from ProcessingContext.
+    - src/facet/training/dataset.py::NPZContextArtifactDataset for the Niazy
+      proof-fit .npz bundle.
+- Augmentation transforms: TriggerJitter, NoiseScaling, ChannelDropout,
+  SignFlip in the same module.
+- Loss helpers: src/facet/training/losses.py (mse, mae, spectral) plus
+  TorchLossWrapper / TFLossWrapper for custom losses.
+- Evaluation writer: facet.evaluation.ModelEvaluationWriter. Use it. Do not
+  invent your own evaluation file format.
+- Console: facet.console.processor_progress and facet.console.report_metric
+  for any custom progress reporting.
+- Niazy dataset: examples/build_niazy_proof_fit_context_dataset.py builds
+  the .npz with arrays:
+    noisy_context, artifact_context, clean_context, noisy_center,
+    artifact_center, clean_center, artifact_epoch_lengths_samples,
+    trigger_phase_linear, trigger_phase_sincos, sfreq, ch_names
+
+If your architecture genuinely needs a different dataset shape, write a
+deterministic builder under examples/build_{{MODEL_ID}}_dataset.py and
+document its arrays in your model_card.md.
+
+# Phase 4: Worktree setup
+
+Create your worktree off the deep-learning branch and stay there.
 
   cd /Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy
-  git worktree add ../worktrees/model-{{MODEL_ID}} -b feature/model-{{MODEL_ID}} feature/add-deeplearning
-  cd ../worktrees/model-{{MODEL_ID}}
+  git worktree add worktrees/model-{{MODEL_ID}} \
+    -b feature/model-{{MODEL_ID}} feature/add-deeplearning
+  cd worktrees/model-{{MODEL_ID}}
 
-Do not push, do not merge, do not modify other worktrees, do not modify the
-main checkout. Treat your worktree as a sandbox until tests pass and you
-explicitly hand off.
+All your work happens here. Do not push, do not merge, do not modify other
+worktrees, do not modify the main checkout.
 
-# Files you must produce
+# Phase 5: Implementation
 
-Under your worktree, create:
+Required files under your worktree:
 
   src/facet/models/{{MODEL_ID}}/
     __init__.py
     README.md
     documentation/model_card.md
+    documentation/research_notes.md       # already created in Phase 2
     documentation/evaluations.md
-    processor.py
-    training.py
-    training_niazy_proof_fit.yaml         # device: cuda required
-    training_niazy_proof_fit_smoke.yaml   # device: cuda, max_epochs: 1, tiny
+    processor.py                          # Adapter + Correction processor (two-layer pattern)
+    training.py                           # build_model, build_loss, build_dataset factories
+    training_niazy_proof_fit.yaml         # full training config, device: cuda
+    training_niazy_proof_fit_smoke.yaml   # smoke config: device: cuda, max_epochs: 1, tiny
 
   tests/models/{{MODEL_ID}}/
     test_processor.py
     test_training_smoke.py
 
-Use cascaded_context_dae as a structural reference. Match its file layout, its
-factory function naming convention (build_model, build_loss, build_dataset),
-and its training config schema.
+Mirror the file structure of src/facet/models/cascaded_context_dae/. Match
+its factory naming (build_model, build_loss, build_dataset). The training
+YAML schema is parsed by src/facet/training/cli.py — do not invent fields.
 
-# Dataset rules
+The processor.py file must follow the Preferred Integration Path defined in
+src/facet/models/README.md:
 
-- If the dataset strategy is `shared`, reuse the Niazy proof-fit context
-  dataset built by examples/build_niazy_proof_fit_context_dataset.py with the
-  same target-epoch-samples (512) and context-epochs (7) defaults.
-- If the dataset strategy is `model_specific`, write a deterministic builder
-  under examples/build_{{MODEL_ID}}_dataset.py. The builder must accept
-  --artifact-bundle and --output-dir, must be reproducible from a fixed seed,
-  must print a short summary, and must produce an .npz file with documented
-  arrays.
-- Document the dataset shape and assumptions in
-  src/facet/models/{{MODEL_ID}}/documentation/model_card.md.
+- An adapter class subclassing
+  facet.correction.deep_learning.DeepLearningModelAdapter, declaring a
+  DeepLearningModelSpec, loading the trained checkpoint, and returning a
+  DeepLearningPrediction from the context.
+- A correction processor class subclassing
+  facet.correction.deep_learning.DeepLearningCorrection (NOT the bare
+  facet.core.Processor) and decorated with @register_processor. Its
+  __init__ should construct the adapter and call super().__init__(...).
 
-# Training config rules
+A model-specific Processor subclass is only acceptable when
+DeepLearningCorrection cannot represent the correction pattern. See the
+"When A Model-Specific Processor Is Acceptable" section in
+src/facet/models/README.md before deviating.
 
-- model.device must be `cuda` for any config submitted to the GPU fleet. The
-  fleet refuses CPU configs unless --allow-cpu is passed explicitly.
-- The smoke config must have max_epochs: 1 and a tiny batch size sufficient
-  to verify the forward and backward pass.
-- The full config must export a TorchScript checkpoint to
-  exports/{{MODEL_ID}}.ts.
-- Default to seed: 42 unless your architecture documents otherwise.
+src/facet/models/cascaded_dae/processor.py is the canonical concrete
+example.
 
-# Smoke before full
+Hyperparameters and training length are your choice. Pick what your source
+paper uses for similar dataset sizes; adjust after the smoke run. The smoke
+YAML must use max_epochs: 1; the full YAML must use a value high enough to
+actually converge on this dataset. A non-converging full run is a wasted
+GPU-hour. The hardware envelope is one RTX 5090 with 24 GB VRAM and roughly
+64 GB system RAM. If you reduce the published model to fit, record the
+reduction and the reasoning in research_notes.md.
 
-Before requesting a full training run, you must successfully submit and fetch
-a smoke run.
+# Phase 6: Smoke before full
+
+Before requesting a full training run you must successfully submit and fetch
+a smoke run. Submit only — do not run dispatch. The orchestrator runs the
+dispatcher centrally.
 
   uv run python tools/gpu_fleet/fleet.py submit \
     --name {{MODEL_ID}}_niazy_smoke \
     --worktree . \
     --training-config src/facet/models/{{MODEL_ID}}/training_niazy_proof_fit_smoke.yaml \
     --worker {{PREFERRED_WORKER}} \
-    --prepare-command "<dataset prepare command if needed, see template body>"
+    --prepare-command "<dataset prepare command if needed>"
 
-  uv run python tools/gpu_fleet/fleet.py dispatch
+Wait for the orchestrator's dispatcher to pick up the job and for it to
+finish. Poll status:
+
+  uv run python tools/gpu_fleet/fleet.py status
+
+When status is `finished`, fetch:
+
   uv run python tools/gpu_fleet/fleet.py fetch --worker {{PREFERRED_WORKER}}
-
-If --prepare-command is not needed because the dataset already exists on the
-worker, omit it.
 
 Confirm:
 
 - training_output/<run>/summary.json exists
 - training_output/<run>/loss.png exists
-- training_output/<run>/exports/{{MODEL_ID}}.ts exists
+- training_output/<run>/exports/{{MODEL_ID}}.ts exists (or another exported
+  checkpoint format documented in your model_card.md)
+- The exit code in .facet_gpu_fleet/queue.json says `finished`, not `failed`
 
-# Full training
+If the smoke run fails, debug with the local Mac if possible, or read
+remote_logs/<session>.log via SSH. Do not iterate against the GPU fleet
+blindly.
 
-Only after the smoke run is green:
+# Phase 7: Full training
+
+Only after the smoke run is green, submit the full run:
 
   uv run python tools/gpu_fleet/fleet.py submit \
     --name {{MODEL_ID}}_niazy_full \
@@ -171,13 +272,12 @@ Only after the smoke run is green:
     --worker {{PREFERRED_WORKER}} \
     --prepare-command "<dataset prepare command if needed>"
 
-  uv run python tools/gpu_fleet/fleet.py dispatch --loop --interval 60
+Then poll status and fetch when finished.
 
-Stop the loop when status shows the job as `finished` or `failed`.
-
-# Evaluation
+# Phase 8: Evaluation
 
 Write evaluation outputs that match src/facet/models/evaluation_standard.md.
+
 Use facet.evaluation.ModelEvaluationWriter. Required artifacts under
 output/model_evaluations/{{MODEL_ID}}/<run_id>/:
 
@@ -187,24 +287,59 @@ output/model_evaluations/{{MODEL_ID}}/<run_id>/:
   plots/
 
 Required minimum metric groups for the Niazy proof-fit dataset are listed in
-the standard. Compare against cascaded_context_dae and cascaded_dae results
-where available.
+the evaluation standard. Compare against cascaded_context_dae and
+cascaded_dae results where available.
 
-# Tests
+# Phase 9: Tests
 
   uv run pytest tests/models/{{MODEL_ID}} -v
 
 Tests must cover:
 
-- Model factory returns a torch.nn.Module with expected input shape.
+- Model factory returns a torch.nn.Module (or analogous) with expected input
+  shape.
 - Forward pass produces expected output shape.
 - One-batch backward pass updates gradients.
-- The processor produces the documented context shape from a small fake Raw.
+- The processor produces the documented context shape from a small synthetic
+  Raw using fixtures from tests/conftest.py.
+
+# Phase 10: Hand-off (always, even on bad metrics)
+
+When training and evaluation are complete, write a hand-off note in your
+worktree at HANDOFF.md and stop. Do not retry hyperparameter sweeps on your
+own. Do not merge. Do not push.
+
+If metrics are good:
+
+  HANDOFF.md must include:
+    - Branch name
+    - Worktree path
+    - Smoke run id and results path
+    - Full run id and results path
+    - Path to evaluation_manifest.json
+    - Brief comparison vs cascaded_context_dae and cascaded_dae
+    - Any caveats discovered during evaluation
+    - Confirmation that model_card.md, research_notes.md, evaluations.md,
+      README.md, and tests are complete
+
+If metrics are bad or the model fails to learn:
+
+  HANDOFF.md must additionally include:
+    - The numeric metric(s) that came out poor
+    - At least three hypotheses for why, ranked by likelihood
+    - Suggested next experiments the orchestrator could run (different
+      hyperparameters, different loss, different dataset preprocessing,
+      architectural change, etc.)
+    - Whether you believe the model is fundamentally unsuitable for this
+      problem versus salvageable
+
+The orchestrator decides whether to spawn a follow-up agent or change
+direction. You do not iterate autonomously.
 
 # Commit rules
 
-- Read AGENTS.md. Every commit message must include `made by <git-user>` using
-  `git config user.name` (fallback `git config user.email`).
+- Read AGENTS.md. Every commit message must include `made by <git-user>`
+  using `git config user.name` (fallback `git config user.email`).
 - Commit small, scoped changes. Do not bundle unrelated edits.
 - Do not commit:
     tools/gpu_fleet/workers.local.yaml
@@ -212,73 +347,60 @@ Tests must cover:
     training_output/
     remote_logs/
     .facet_gpu_fleet/
-- Do not run destructive git operations (reset --hard, force push, branch -D)
-  on shared branches.
 
 # Hard prohibitions
 
-- Do not edit src/facet/core/* unless an explicit core change is the only way
-  to land your model. Justify it in a short note in your model_card.md.
+- Do not edit src/facet/core/* unless it is the only way to land your model.
+  If you must, justify it in research_notes.md and keep the diff minimal.
 - Do not modify other models in src/facet/models/<other>/.
 - Do not modify other agents' worktrees or the main checkout.
+- Do not run `tools/gpu_fleet/fleet.py dispatch`. The orchestrator owns the
+  dispatcher.
 - Do not run training configs with `device: cpu` on the GPU fleet. The fleet
   guard rejects them.
-- Do not skip the smoke run.
+- Do not skip the research notes, the smoke run, or the hand-off note.
 - Do not push to remote without an explicit instruction.
+- Do not run hyperparameter sweeps autonomously after a bad full run. Hand
+  off with hypotheses instead.
+- Do not invent your own evaluation format. Use ModelEvaluationWriter.
 
-# Hand-off
+# Output style
 
-When everything is green, summarize:
-
-- Branch name
-- Worktree path
-- Smoke run id and results path
-- Full run id and results path
-- Evaluation summary path
-- Open issues, if any
-- Whether the model_card.md and evaluations.md are complete
-
-Do not merge to feature/add-deeplearning. The orchestrator (the user or a
-reviewer) does the merge.
+Be terse. Stop and wait when blocked. Ask the orchestrator instead of
+guessing if a question affects the architecture or the training contract.
 ```
 
 ---
 
-## Example Prompt 1: Transformer DAE
+## Example Prompt 1: DenoiseMamba
 
-Use the template above with these substitutions:
+Substitute into the template above:
 
-- `{{MODEL_ID}}`: `transformer_dae`
-- `{{MODEL_NAME}}`: `Transformer Denoising Autoencoder`
-- `{{MODEL_FAMILY}}`: `attention-based`
-- `{{ARCHITECTURE_DESCRIPTION}}`: `Multi-head self-attention encoder-decoder over context epochs. Each input is the channel-wise stack of 7 context epochs of 512 samples for 30 channels. Use sinusoidal positional encoding along the temporal axis and learnable epoch-position embeddings along the context axis. Encoder has 4 transformer blocks with model dimension 128 and 4 attention heads. Decoder has 2 blocks. Output predicts the artifact tensor of the central epoch.`
-- `{{INPUT_CONTRACT}}`: `default (7 context epochs, 30 channels, 512 samples)`
-- `{{DATASET_STRATEGY}}`: `shared`
+- `{{MODEL_ID}}`: `denoise_mamba`
+- `{{MODEL_NAME}}`: `DenoiseMamba`
+- `{{ARCHITECTURE_FAMILY}}`: `Sequence Modeling (State Space / Mamba)`
+- `{{REPORT_REFERENCE}}`: `Section 6.2 (DenoiseMamba: The ConvSSD Module)`
+- `{{PRIMARY_PAPER_HINT}}`: `IEEE Xplore document 11012652 — DenoiseMamba: An Innovative Approach for EEG Artifact Removal Leveraging Mamba and CNN. Also relevant: HiPPO (NeurIPS 2020) and Mamba/SSD (arXiv 2405.21060).`
 - `{{PREFERRED_WORKER}}`: `gpu1`
-- `{{HYPERPARAMS_HINT}}`: `start with model_dim=128, heads=4, encoder_blocks=4, decoder_blocks=2, dropout=0.1, learning_rate=3e-4, weight_decay=1e-4, batch_size=32, max_epochs=50`
 
-## Example Prompt 2: 1D U-Net DAE
+## Example Prompt 2: Conv-TasNet
 
-Use the template above with these substitutions:
+Substitute into the template above:
 
-- `{{MODEL_ID}}`: `unet_dae`
-- `{{MODEL_NAME}}`: `1D U-Net Denoising Autoencoder`
-- `{{MODEL_FAMILY}}`: `convolutional encoder-decoder with skip connections`
-- `{{ARCHITECTURE_DESCRIPTION}}`: `Channel-wise 1D U-Net. Treat each EEG channel of the central epoch as a 512-sample sequence. Encoder downsamples 4 times by stride-2 1D convolutions with kernel 7, channels 32 -> 64 -> 128 -> 256. Bottleneck has two residual conv blocks. Decoder upsamples symmetrically with skip connections concatenated from the encoder. Final 1x1 conv predicts the artifact for the central epoch. Context epochs are concatenated as additional input channels (7 context positions x 1 = 7 input channels per channel-wise sample).`
-- `{{INPUT_CONTRACT}}`: `default (7 context epochs, 30 channels, 512 samples), but reshape to channel-wise (sample, 7, 512) inside the dataset adapter`
-- `{{DATASET_STRATEGY}}`: `shared`
+- `{{MODEL_ID}}`: `conv_tasnet`
+- `{{MODEL_NAME}}`: `Conv-TasNet`
+- `{{ARCHITECTURE_FAMILY}}`: `Audio-Inspired Source Separation`
+- `{{REPORT_REFERENCE}}`: `Section 7.1.1 (Conv-TasNet: Time-Domain Audio Separation Network)`
+- `{{PRIMARY_PAPER_HINT}}`: `Luo and Mesgarani 2019 — Conv-TasNet: Surpassing Ideal Time-Frequency Magnitude Masking for Speech Separation. Adapt for EEG: source 1 is clean EEG, source 2 is gradient artifact.`
 - `{{PREFERRED_WORKER}}`: `gpu2`
-- `{{HYPERPARAMS_HINT}}`: `Adam, learning_rate=1e-3, weight_decay=1e-4, batch_size=128, max_epochs=50, grad_clip_norm=1.0`
 
-## Example Prompt 3: WaveNet-Style Dilated CNN
+## Example Prompt 3: D4PM
 
-Use the template above with these substitutions:
+Substitute into the template above:
 
-- `{{MODEL_ID}}`: `wavenet_dae`
-- `{{MODEL_NAME}}`: `WaveNet-Style Dilated CNN Denoiser`
-- `{{MODEL_FAMILY}}`: `dilated causal convolutions`
-- `{{ARCHITECTURE_DESCRIPTION}}`: `Stack of dilated 1D convolutional blocks. Use 8 blocks with dilation rates [1,2,4,8,16,32,64,128], kernel size 3, gated activation (tanh * sigmoid) and residual + skip connections in the WaveNet style. Receptive field roughly covers the central epoch length. Final 1x1 conv mixes skip connections and predicts the artifact for the central epoch. Channel-wise.`
-- `{{INPUT_CONTRACT}}`: `default (7 context epochs, 30 channels, 512 samples), reshape per channel to (sample, 7, 512) and let the network read along the temporal axis`
-- `{{DATASET_STRATEGY}}`: `shared`
+- `{{MODEL_ID}}`: `d4pm`
+- `{{MODEL_NAME}}`: `D4PM`
+- `{{ARCHITECTURE_FAMILY}}`: `Probabilistic (Diffusion)`
+- `{{REPORT_REFERENCE}}`: `Section 5.1 (D4PM Architecture: Dual-Branch Diffusion)`
+- `{{PRIMARY_PAPER_HINT}}`: `arXiv 2509.14302 — D4PM: A Dual-branch Driven Denoising Diffusion Probabilistic Model with Joint Posterior Diffusion Sampling for EEG Artifacts Removal. Note: iterative sampling makes inference slow; the smoke run must still finish in well under a minute, so consider a small sample step count for smoke.`
 - `{{PREFERRED_WORKER}}`: `any`
-- `{{HYPERPARAMS_HINT}}`: `Adam, learning_rate=5e-4, weight_decay=1e-4, batch_size=64, max_epochs=50, residual_channels=64, skip_channels=128`

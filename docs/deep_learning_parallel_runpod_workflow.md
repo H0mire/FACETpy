@@ -35,12 +35,13 @@ Do not build a custom GPU server for two pods. SSH plus `tmux`, `rsync`, `uv`, F
 
 ## Recommended Local Worktrees
 
-```bash
-mkdir -p ../worktrees
+Worktrees live inside the repo at `worktrees/`. The directory is gitignored
+so worktree state never appears as untracked files in the parent checkout.
 
-git worktree add ../worktrees/model-unet -b feature/model-unet
-git worktree add ../worktrees/model-tcn -b feature/model-tcn
-git worktree add ../worktrees/model-transformer -b feature/model-transformer
+```bash
+git worktree add worktrees/model-unet -b feature/model-unet feature/add-deeplearning
+git worktree add worktrees/model-tcn -b feature/model-tcn feature/add-deeplearning
+git worktree add worktrees/model-transformer -b feature/model-transformer feature/add-deeplearning
 ```
 
 Before parallelizing, commit or intentionally snapshot the current baseline. Dirty local state makes worker results hard to reproduce.
@@ -78,12 +79,12 @@ For more model agents than GPUs, use the local fleet queue:
 ```bash
 python tools/gpu_fleet/fleet.py submit \
   --name context_dae_niazy \
-  --worktree ../worktrees/model-context-dae \
+  --worktree worktrees/model-context-dae \
   --training-config src/facet/models/cascaded_context_dae/training_niazy_proof_fit.yaml
 
 python tools/gpu_fleet/fleet.py submit \
   --name next_architecture_niazy \
-  --worktree ../worktrees/model-next-architecture \
+  --worktree worktrees/model-next-architecture \
   --training-config src/facet/models/<model_id>/training_niazy_proof_fit.yaml
 ```
 
@@ -92,7 +93,7 @@ If a model requires its own dataset layout, submit a preparation command with th
 ```bash
 python tools/gpu_fleet/fleet.py submit \
   --name unet_niazy_1024 \
-  --worktree ../worktrees/model-unet \
+  --worktree worktrees/model-unet \
   --training-config src/facet/models/unet/training_niazy_1024.yaml \
   --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --target-epoch-samples 1024 --context-epochs 9 --output-dir output/unet_niazy_1024"
 ```
@@ -144,7 +145,7 @@ When the RunPod base image already provides a CUDA-enabled PyTorch installation,
 Use this when the model agent has uncommitted changes in its worktree:
 
 ```bash
-tools/gpu_fleet/sync_worktree_to_runpod.sh ../worktrees/model-unet root@<runpod-host> /workspace/facetpy <ssh-port>
+tools/gpu_fleet/sync_worktree_to_runpod.sh worktrees/model-unet root@<runpod-host> /workspace/facetpy <ssh-port>
 ```
 
 The script excludes large/generated directories such as `output/`, `training_output/`, `.venv/`, and caches.

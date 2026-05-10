@@ -140,3 +140,13 @@ It deliberately trains on single-channel windows. This keeps the checkpoint inde
 `cascaded_context_dae` extends the cascaded autoencoder idea to seven trigger-defined context epochs.
 
 It still trains and infers per channel, so it remains compatible with different channel counts. Unlike `cascaded_dae`, it requires trigger metadata during inference and is coupled to the configured context length.
+
+## Related Documents
+
+- [`docs/PROCESSOR_GUIDELINES.md`](../../../docs/PROCESSOR_GUIDELINES.md) — binding rules for any FACETpy processor (anatomy, validation, registration, testing).
+- [`docs/source/development/training_cli_architecture.md`](../../../docs/source/development/training_cli_architecture.md) — wrapper-vs-adapter rationale and the `facet-train` data flow.
+- [`evaluation_standard.md`](evaluation_standard.md) — required evaluation outputs and metric groups.
+- [`docs/deep_learning_parallel_runpod_workflow.md`](../../../docs/deep_learning_parallel_runpod_workflow.md) — GPU fleet operation guide for parallel model training.
+- [`docs/research/architecture_catalog.md`](../../../docs/research/architecture_catalog.md) — menu of deep-learning architectures available for new model agents.
+- [`docs/research/dl_eeg_gradient_artifacts.pdf`](../../../docs/research/dl_eeg_gradient_artifacts.pdf) — comprehensive technical report on deep-learning architectures for gradient artifact removal.
+- [`docs/model_agent_prompts.md`](../../../docs/model_agent_prompts.md) — reusable prompt template for spawning parallel model-development agents.
