@@ -1,0 +1,77 @@
+# Smoke training config for DHCT-GAN on the Niazy proof-fit dataset.
+#
+# Dataset preparation (one-shot per worker):
+#
+#   uv run python examples/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config src/facet/models/dhct_gan/training_niazy_proof_fit_smoke.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.dhct_gan.training:build_model
+  kwargs:
+    base_channels: 16
+    depth: 4
+    num_heads: 4
+    window_size: 16
+  loss_factory: facet.models.dhct_gan.training:build_loss
+  loss_kwargs:
+    alpha_consistency: 0.5
+    beta_adv: 0.1
+    disc_channels: 16
+    disc_depth: 4
+    disc_lr: 0.0001
+  device: cuda
+
+data:
+  dataset_factory: facet.models.dhct_gan.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean: true
+    max_examples: 1024
+  eeg_only: true
+
+training:
+  model_name: DHCTGanNiazySmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dhct_gan.ts
+  write_inference_config: false
