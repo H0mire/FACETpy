@@ -32,6 +32,12 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def log(message: str) -> None:
+    """Print a timestamped console log line, flushed for live tailing."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] {message}", flush=True)
+
+
 def run(
     args: list[str],
     *,
@@ -227,8 +233,9 @@ def remote_exit_code(worker: Worker, session: str) -> int | None:
         return None
 
 
-def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> bool:
-    changed = False
+def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> list[str]:
+    """Reconcile job statuses with worker reality. Returns transition log lines."""
+    transitions: list[str] = []
     sessions_by_worker: dict[str, set[str]] = {}
     for job in state["jobs"]:
         if job["status"] not in {"running", "finished_unknown"}:
@@ -242,17 +249,20 @@ def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> bool:
         if session_exists and job["status"] == "finished_unknown":
             job["status"] = "running"
             job.pop("finished_at", None)
-            changed = True
+            transitions.append(f"reattached {job['id']} ({job['session']}) on {worker_name}")
             continue
         if session_exists:
             continue
 
         exit_code = remote_exit_code(workers[worker_name], job["session"])
         if exit_code is not None:
-            job["status"] = "finished" if exit_code == 0 else "failed"
+            new_status = "finished" if exit_code == 0 else "failed"
+            job["status"] = new_status
             job["exit_code"] = exit_code
             job["finished_at"] = utc_now()
-            changed = True
+            transitions.append(
+                f"{worker_name} {new_status} {job['id']} ({job['session']}) exit={exit_code}"
+            )
             continue
 
         started_at = job.get("started_at")
@@ -264,8 +274,11 @@ def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> bool:
         if job["status"] == "running":
             job["status"] = "finished_unknown"
             job["finished_at"] = utc_now()
-            changed = True
-    return changed
+            transitions.append(
+                f"{worker_name} session vanished without exit code: {job['id']} "
+                f"({job['session']}) -> finished_unknown"
+            )
+    return transitions
 
 
 def worker_is_available(worker_name: str, worker: Worker, state: dict[str, Any]) -> bool:
@@ -343,9 +356,23 @@ def dispatch_one_job(job: dict[str, Any], worker_name: str, worker: Worker) -> N
 
 def cmd_dispatch(args: argparse.Namespace) -> int:
     workers = workers_from_config(args.config)
+
+    log(f"fleet dispatcher starting ({'loop' if args.loop else 'single shot'})")
+    log(f"  state file: {args.state}")
+    for worker_name, worker in workers.items():
+        log(
+            f"  worker {worker_name}: {worker.ssh}:{worker.port} "
+            f"gpu={worker.gpu} repo={worker.remote_repo}"
+        )
+    if args.loop:
+        log(f"listening for pending jobs (interval={args.interval}s, Ctrl+C to stop)")
+
     while True:
         state = load_state(args.state)
-        changed = refresh_state(state, workers)
+        transitions = refresh_state(state, workers)
+        for line in transitions:
+            log(line)
+        any_change = bool(transitions)
 
         for job in state["jobs"]:
             if job["status"] != "pending":
@@ -357,25 +384,54 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
                 worker = workers[worker_name]
                 if not worker_is_available(worker_name, worker, state):
                     continue
-                print(f"dispatch {job['id']} -> {worker_name}")
+                log(f"dispatch {job['id']} ({job['session']}) -> {worker_name}")
                 dispatch_one_job(job, worker_name, worker)
-                changed = True
+                any_change = True
                 break
 
-        if changed:
+        if any_change:
             save_state(args.state, state)
+
         if not args.loop:
             return 0
+
+        if not any_change:
+            pending = sum(1 for j in state["jobs"] if j["status"] == "pending")
+            running = sum(1 for j in state["jobs"] if j["status"] == "running")
+            idle_workers = [
+                name for name in workers
+                if worker_is_available(name, workers[name], state)
+            ]
+            busy_workers = [name for name in workers if name not in idle_workers]
+            log(
+                f"idle — pending={pending} running={running} "
+                f"idle={','.join(idle_workers) or 'none'} "
+                f"busy={','.join(busy_workers) or 'none'}"
+            )
+
         time.sleep(args.interval)
 
 
 def cmd_status(args: argparse.Namespace) -> int:
     workers = workers_from_config(args.config)
     state = load_state(args.state)
-    if refresh_state(state, workers):
+    transitions = refresh_state(state, workers)
+    if transitions:
         save_state(args.state, state)
 
-    print("workers")
+    counts: dict[str, int] = {}
+    for job in state["jobs"]:
+        counts[job["status"]] = counts.get(job["status"], 0) + 1
+    summary = (
+        ", ".join(f"{n} {s}" for s, n in sorted(counts.items()))
+        if counts else "empty queue"
+    )
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] queue: {summary}")
+    for line in transitions:
+        print(f"  transition: {line}")
+
+    print("\nworkers")
     for worker_name, worker in workers.items():
         running = [
             job for job in state["jobs"]
