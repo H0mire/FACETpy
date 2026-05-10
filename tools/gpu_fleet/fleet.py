@@ -201,13 +201,12 @@ def workers_from_config(path: Path) -> dict[str, Worker]:
 
 
 def tmux_sessions(worker: Worker) -> set[str]:
+    # Pass the remote command as a single quoted string so the remote shell
+    # does not treat '#' in the tmux format spec as a comment.
     result = run(
         [
             *worker.ssh_args(),
-            "tmux",
-            "ls",
-            "-F",
-            "#{session_name}",
+            "tmux ls -F '#{session_name}'",
         ],
         check=False,
     )
