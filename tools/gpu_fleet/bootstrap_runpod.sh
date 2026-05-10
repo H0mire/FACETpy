@@ -45,7 +45,20 @@ if [[ ! -d "$REMOTE_REPO/.git" ]]; then
 fi
 
 cd "$REMOTE_REPO"
-uv sync
+if python - <<'PY'
+import torch
+print(torch.__version__)
+PY
+then
+  if [[ ! -x .venv/bin/python ]] || ! .venv/bin/python - <<'PY'
+import torch
+PY
+  then
+    rm -rf .venv
+    uv venv --system-site-packages
+  fi
+fi
+UV_LINK_MODE=copy uv sync
 python - <<'PY'
 try:
     import torch

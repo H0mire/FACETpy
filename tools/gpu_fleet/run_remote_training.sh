@@ -26,23 +26,31 @@ REMOTE_REPO="${3:-/workspace/facetpy}"
 SESSION_NAME="${4:-facet_train}"
 SSH_PORT="${5:-22}"
 GPU_ID="${6:-0}"
-PREPARE_COMMAND="${7:-}"
+PREPARE_COMMAND=""
+if [[ $# -gt 6 ]]; then
+  shift 6
+  PREPARE_COMMAND="$*"
+fi
+PREPARE_COMMAND_B64="$(printf '%s' "$PREPARE_COMMAND" | base64 | tr -d '\n')"
 SSH_KEY="${FACET_GPU_FLEET_SSH_KEY:-}"
 SSH_ARGS=(-p "$SSH_PORT" -o StrictHostKeyChecking=accept-new)
 if [[ -n "$SSH_KEY" ]]; then
   SSH_ARGS+=(-i "$SSH_KEY" -o IdentitiesOnly=yes)
 fi
 
-ssh "${SSH_ARGS[@]}" "$SSH_TARGET" bash -s -- "$REMOTE_REPO" "$CONFIG_PATH" "$SESSION_NAME" "$GPU_ID" "$PREPARE_COMMAND" <<'REMOTE'
+ssh "${SSH_ARGS[@]}" "$SSH_TARGET" bash -s -- "$REMOTE_REPO" "$CONFIG_PATH" "$SESSION_NAME" "$GPU_ID" "$PREPARE_COMMAND_B64" <<'REMOTE'
 set -euo pipefail
 REMOTE_REPO="$1"
 CONFIG_PATH="$2"
 SESSION_NAME="$3"
 GPU_ID="$4"
-PREPARE_COMMAND="$5"
+PREPARE_COMMAND_B64="$5"
+PREPARE_COMMAND="$(printf '%s' "$PREPARE_COMMAND_B64" | base64 -d)"
 LOCK_FILE="/tmp/facetpy_gpu_${GPU_ID}.lock"
 LOG_DIR="$REMOTE_REPO/remote_logs"
 RUN_SCRIPT="$LOG_DIR/${SESSION_NAME}.sh"
+RUNNER_SCRIPT="$LOG_DIR/${SESSION_NAME}.runner.sh"
+EXITCODE_FILE="$LOG_DIR/${SESSION_NAME}.exitcode"
 mkdir -p "$LOG_DIR"
 
 cd "$REMOTE_REPO"
@@ -64,11 +72,24 @@ fi
 } > "$RUN_SCRIPT"
 chmod +x "$RUN_SCRIPT"
 
+{
+  echo '#!/usr/bin/env bash'
+  echo 'set -o pipefail'
+  printf "cd %q\n" "$REMOTE_REPO"
+  printf "flock -n %q bash %q 2>&1 | tee %q\n" "$LOCK_FILE" "$RUN_SCRIPT" "$LOG_DIR/${SESSION_NAME}.log"
+  echo 'code=${PIPESTATUS[0]}'
+  printf 'echo "$code" > %q\n' "$EXITCODE_FILE"
+  echo 'exit "$code"'
+} > "$RUNNER_SCRIPT"
+chmod +x "$RUNNER_SCRIPT"
+rm -f "$EXITCODE_FILE"
+
 tmux new-session -d -s "$SESSION_NAME" \
-  "cd '$REMOTE_REPO' && flock -n '$LOCK_FILE' bash '$RUN_SCRIPT' 2>&1 | tee '$LOG_DIR/${SESSION_NAME}.log'"
+  "bash '$RUNNER_SCRIPT'"
 
 echo "Started tmux session: $SESSION_NAME"
 echo "Attach with: tmux attach -t $SESSION_NAME"
 echo "Log: $LOG_DIR/${SESSION_NAME}.log"
 echo "Run script: $RUN_SCRIPT"
+echo "Exit code: $EXITCODE_FILE"
 REMOTE

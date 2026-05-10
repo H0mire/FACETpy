@@ -137,6 +137,8 @@ tools/gpu_fleet/bootstrap_runpod.sh root@<runpod-host> <repo-url> /workspace/fac
 
 If the pod already has the repo mounted at `/workspace/facetpy`, the script reuses it.
 
+When the RunPod base image already provides a CUDA-enabled PyTorch installation, the worker scripts create the project `.venv` with `uv venv --system-site-packages`. This keeps the project dependencies isolated while still allowing `uv run` to import the image-provided `torch` build.
+
 ## Sync A Local Worktree To A Pod
 
 Use this when the model agent has uncommitted changes in its worktree:
@@ -182,6 +184,24 @@ This starts a detached `tmux` session and uses a GPU lock file:
 ```
 
 That prevents accidentally launching two training jobs on the same GPU from these scripts.
+
+## Smoke Run
+
+Use a short smoke config before starting longer experiments:
+
+```bash
+python tools/gpu_fleet/fleet.py submit \
+  --name context_dae_niazy_smoke_cuda \
+  --worktree . \
+  --training-config src/facet/models/cascaded_context_dae/training_niazy_proof_fit_smoke.yaml \
+  --worker gpu1 \
+  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
+
+python tools/gpu_fleet/fleet.py dispatch
+python tools/gpu_fleet/fleet.py fetch --worker gpu1
+```
+
+The smoke run verifies worktree sync, optional dataset preparation, CUDA-enabled `uv run`, checkpoint writing, `training.jsonl`, `loss.png`, and TorchScript export.
 
 ## Check Remote Status
 

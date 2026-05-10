@@ -38,16 +38,48 @@ if [[ ! -d "$LOCAL_WORKTREE" ]]; then
 fi
 
 ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "mkdir -p '$REMOTE_REPO'"
-rsync -az --delete \
+rsync -az --delete --no-owner --no-group \
   -e "$RSYNC_SSH" \
   --exclude '.git/' \
   --exclude '.venv/' \
+  --exclude '.coverage*' \
+  --exclude '.facet_gpu_fleet/' \
+  --exclude '.mne-home/' \
+  --exclude '.mplconfig/' \
   --exclude '.pytest_cache/' \
+  --exclude '.ruff_cache/' \
+  --exclude '.uv-cache/' \
+  --exclude '.claude/' \
+  --exclude '.archiv/' \
+  --exclude '.vscode/' \
   --exclude '__pycache__/' \
+  --exclude 'build/' \
+  --exclude 'dist/' \
+  --exclude 'docs/build/' \
   --exclude 'htmlcov/' \
+  --exclude 'logs/' \
   --exclude 'output/' \
+  --exclude 'remote_logs/' \
   --exclude 'training_output/' \
+  --exclude 'export/' \
+  --exclude 'ai-docs/' \
+  --exclude 'quick-notes/' \
+  --exclude 'facet matlab edition/' \
+  --exclude 'tools/gpu_fleet/workers.local.yaml' \
   --exclude '.DS_Store' \
   "$LOCAL_WORKTREE/" "$SSH_TARGET:$REMOTE_REPO/"
 
-ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "cd '$REMOTE_REPO' && uv sync"
+ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "cd '$REMOTE_REPO' && if python - <<'PY'
+import torch
+print(torch.__version__)
+PY
+then
+  if [[ ! -x .venv/bin/python ]] || ! .venv/bin/python - <<'PY'
+import torch
+PY
+  then
+    rm -rf .venv
+    uv venv --system-site-packages
+  fi
+fi
+UV_LINK_MODE=copy uv sync"

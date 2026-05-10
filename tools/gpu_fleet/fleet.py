@@ -180,18 +180,58 @@ def tmux_sessions(worker: Worker) -> set[str]:
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
 
 
+def remote_exit_code(worker: Worker, session: str) -> int | None:
+    result = run(
+        [
+            *worker.ssh_args(),
+            "cat",
+            f"{worker.remote_repo}/remote_logs/{session}.exitcode",
+        ],
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    try:
+        return int(result.stdout.strip())
+    except ValueError:
+        return None
+
+
 def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> bool:
     changed = False
     sessions_by_worker: dict[str, set[str]] = {}
     for job in state["jobs"]:
-        if job["status"] != "running":
+        if job["status"] not in {"running", "finished_unknown"}:
             continue
         worker_name = job.get("worker")
         if worker_name not in workers:
             continue
         if worker_name not in sessions_by_worker:
             sessions_by_worker[worker_name] = tmux_sessions(workers[worker_name])
-        if job["session"] not in sessions_by_worker[worker_name]:
+        session_exists = job["session"] in sessions_by_worker[worker_name]
+        if session_exists and job["status"] == "finished_unknown":
+            job["status"] = "running"
+            job.pop("finished_at", None)
+            changed = True
+            continue
+        if session_exists:
+            continue
+
+        exit_code = remote_exit_code(workers[worker_name], job["session"])
+        if exit_code is not None:
+            job["status"] = "finished" if exit_code == 0 else "failed"
+            job["exit_code"] = exit_code
+            job["finished_at"] = utc_now()
+            changed = True
+            continue
+
+        started_at = job.get("started_at")
+        if started_at:
+            started = datetime.fromisoformat(started_at)
+            elapsed_seconds = (datetime.now(timezone.utc) - started).total_seconds()
+            if elapsed_seconds < 60:
+                continue
+        if job["status"] == "running":
             job["status"] = "finished_unknown"
             job["finished_at"] = utc_now()
             changed = True

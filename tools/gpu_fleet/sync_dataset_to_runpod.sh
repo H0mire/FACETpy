@@ -46,8 +46,8 @@ ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "mkdir -p '$(dirname "$REMOTE_PATH")'"
 
 if [[ -d "$LOCAL_PATH" ]]; then
   ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "mkdir -p '$REMOTE_PATH'"
-  rsync -az --delete -e "$RSYNC_SSH" "$LOCAL_PATH/" "$SSH_TARGET:$REMOTE_PATH/"
+  rsync -az --delete --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_PATH/" "$SSH_TARGET:$REMOTE_PATH/"
 else
   ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "mkdir -p '$(dirname "$REMOTE_PATH")'"
-  rsync -az -e "$RSYNC_SSH" "$LOCAL_PATH" "$SSH_TARGET:$REMOTE_PATH"
+  rsync -az --no-owner --no-group -e "$RSYNC_SSH" "$LOCAL_PATH" "$SSH_TARGET:$REMOTE_PATH"
 fi
