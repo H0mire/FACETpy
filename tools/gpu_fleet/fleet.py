@@ -22,7 +22,37 @@ except ModuleNotFoundError:  # pragma: no cover - depends on caller environment.
     yaml = None
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+def _resolve_main_worktree() -> Path:
+    """Return the main repo worktree path so all linked worktrees share state.
+
+    Without this, Path(__file__).parents[2] would point at whichever worktree
+    fleet.py was invoked from, causing each agent worktree to keep its own
+    .facet_gpu_fleet/queue.json that the central dispatcher never sees.
+    """
+    here = Path(__file__).resolve()
+    fallback = here.parents[2]
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=here.parent,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return fallback
+    git_common = Path(result.stdout.strip())
+    # git_common typically points at <main>/.git (or .git/worktrees/... for
+    # linked worktrees that have ever been bare). Walk up until we find the
+    # parent directory that contains a tools/gpu_fleet directory.
+    candidate = git_common.parent
+    if (candidate / "tools" / "gpu_fleet").exists():
+        return candidate
+    return fallback
+
+
+REPO_ROOT = _resolve_main_worktree()
 DEFAULT_CONFIG = REPO_ROOT / "tools" / "gpu_fleet" / "workers.local.yaml"
 DEFAULT_STATE = REPO_ROOT / ".facet_gpu_fleet" / "queue.json"
 SESSION_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]+$")
@@ -307,6 +337,10 @@ def cmd_submit(args: argparse.Namespace) -> int:
             "trusting the model factory to default to cuda on GPU workers"
         )
 
+    preferred_worker = args.worker
+    if preferred_worker and preferred_worker.lower() in {"any", "none", ""}:
+        preferred_worker = None
+
     job = {
         "id": uuid.uuid4().hex[:12],
         "name": args.name,
@@ -314,7 +348,7 @@ def cmd_submit(args: argparse.Namespace) -> int:
         "config": args.training_config,
         "worktree": args.worktree,
         "prepare_command": args.prepare_command,
-        "preferred_worker": args.worker,
+        "preferred_worker": preferred_worker,
         "status": "pending",
         "created_at": utc_now(),
     }
@@ -376,10 +410,17 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         for job in state["jobs"]:
             if job["status"] != "pending":
                 continue
-            candidate_names = [job["preferred_worker"]] if job.get("preferred_worker") else list(workers)
+            preferred = job.get("preferred_worker")
+            if preferred and str(preferred).lower() in {"any", "none", ""}:
+                preferred = None
+            candidate_names = [preferred] if preferred else list(workers)
             for worker_name in candidate_names:
                 if worker_name not in workers:
-                    raise SystemExit(f"Unknown preferred worker '{worker_name}' for job {job['id']}")
+                    log(
+                        f"warning: job {job['id']} has unknown preferred_worker "
+                        f"'{worker_name}' — skipping (fix the job or cancel it)"
+                    )
+                    continue
                 worker = workers[worker_name]
                 if not worker_is_available(worker_name, worker, state):
                     continue

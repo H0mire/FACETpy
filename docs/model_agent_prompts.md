@@ -34,7 +34,10 @@ When using the template, replace every `{{...}}` value:
   `Section 6.2 (DenoiseMamba: The ConvSSD Module)`.
 - `{{PRIMARY_PAPER_HINT}}` — the paper or repo to start research from. Empty
   is fine; the agent will search.
-- `{{PREFERRED_WORKER}}` — `gpu1`, `gpu2`, or `any`.
+- `{{PREFERRED_WORKER}}` — `gpu1`, `gpu2`, or `any`. If `any`, omit the
+  `--worker` flag from submit/fetch commands and skip that argument
+  rather than literally passing `--worker any`. The fleet treats no
+  preference as "first idle worker".
 
 ## Hardware Envelope The Agent Must Respect
 
