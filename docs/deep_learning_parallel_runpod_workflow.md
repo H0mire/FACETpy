@@ -1,6 +1,6 @@
 # Parallel Deep-Learning Workflow With RunPod GPUs
 
-This workflow uses the MacBook as the orchestrator and each RunPod instance as a single-GPU worker.
+This workflow uses the MacBook as the orchestrator and each RunPod instance as a single-GPU worker. Many model agents can submit jobs; the two GPUs process those jobs through a local queue.
 
 ## Architecture
 
@@ -18,13 +18,15 @@ RunPod GPU 2
 └── /workspace/facetpy
 ```
 
-Do not build a custom GPU server for two pods. SSH plus `tmux`, `rsync`, `uv`, and FACETpy's training/evaluation output conventions are enough.
+Do not build a custom GPU server for two pods. SSH plus `tmux`, `rsync`, `uv`, FACETpy's training/evaluation output conventions, and a small local queue are enough.
 
 ## Rules For Agents
 
 - One model agent gets one Git worktree.
 - One model agent writes mostly under `src/facet/models/<model_id>/` and `tests/models/`.
 - Avoid simultaneous edits to core files such as `src/facet/training`, `src/facet/correction/deep_learning.py`, and dataset builders.
+- Many agents may submit jobs, but each RunPod worker executes only one job at a time.
+- A worker repo must not be overwritten while a job is running; sync only happens when the dispatcher assigns a pending job to an idle worker.
 - Each model must provide `training.py`, `processor.py`, `training.yaml`, `README.md`, and `documentation/model_card.md`.
 - Each training run must produce `training.jsonl`, `loss.png`, `summary.json`, checkpoints, and an exported model.
 - Each evaluation run must produce `evaluation_manifest.json`, `metrics.json`, `evaluation_summary.md`, and plots under `output/model_evaluations/<model_id>/<run_id>/`.
@@ -40,6 +42,74 @@ git worktree add ../worktrees/model-transformer -b feature/model-transformer
 ```
 
 Before parallelizing, commit or intentionally snapshot the current baseline. Dirty local state makes worker results hard to reproduce.
+
+## Worker Configuration
+
+Create a local worker config and do not commit it:
+
+```bash
+cp tools/gpu_fleet/workers.example.yaml tools/gpu_fleet/workers.local.yaml
+```
+
+Example:
+
+```yaml
+workers:
+  gpu1:
+    ssh: root@<runpod-host-1>
+    port: 22
+    remote_repo: /workspace/facetpy
+    gpu: 0
+  gpu2:
+    ssh: root@<runpod-host-2>
+    port: 22
+    remote_repo: /workspace/facetpy
+    gpu: 0
+```
+
+## Queue-Based Scheduling
+
+For more model agents than GPUs, use the local fleet queue:
+
+```bash
+python tools/gpu_fleet/fleet.py submit \
+  --name context_dae_niazy \
+  --worktree ../worktrees/model-context-dae \
+  --training-config src/facet/models/cascaded_context_dae/training_niazy_proof_fit.yaml
+
+python tools/gpu_fleet/fleet.py submit \
+  --name next_architecture_niazy \
+  --worktree ../worktrees/model-next-architecture \
+  --training-config src/facet/models/<model_id>/training_niazy_proof_fit.yaml
+```
+
+Start the dispatcher from the MacBook:
+
+```bash
+python tools/gpu_fleet/fleet.py dispatch --loop --interval 60
+```
+
+The dispatcher checks the local queue, picks idle workers, syncs the assigned worktree to the selected RunPod, and starts the remote training in a detached `tmux` session. Jobs remain pending until one of the two GPUs is free.
+
+Check status:
+
+```bash
+python tools/gpu_fleet/fleet.py status
+```
+
+Fetch results from all workers:
+
+```bash
+python tools/gpu_fleet/fleet.py fetch
+```
+
+The queue state is local and intentionally ignored by Git:
+
+```text
+.facet_gpu_fleet/queue.json
+```
+
+This design allows many agents to develop and submit model experiments without requiring every agent to own a dedicated GPU. The MacBook remains the scheduler and integration point.
 
 ## Bootstrap A RunPod
 
@@ -111,19 +181,10 @@ This fetches:
 Suggested split:
 
 ```text
-gpu1: heavier architecture experiments
-  - U-Net / Wave-U-Net
-  - transformer / conformer style models
-
-gpu2: medium architecture experiments
-  - TCN / WaveNet
-  - improved residual context DAE
-
-MacBook:
-  - dataset inspection
-  - evaluation aggregation
-  - thesis documentation
-  - code review / merge integration
+gpu1: current queued training job
+gpu2: current queued training job
+pending queue: all other model-agent jobs
+MacBook: dispatcher, dataset inspection, evaluation aggregation, thesis documentation, code review, merge integration
 ```
 
 ## Minimal Experiment Checklist
@@ -133,8 +194,8 @@ For each model:
 1. Create model worktree and branch.
 2. Implement model package under `src/facet/models/<model_id>/`.
 3. Add tests under `tests/models/`.
-4. Sync to one RunPod.
-5. Train via `facet-train`.
+4. Submit the training config to the fleet queue.
+5. Let the dispatcher sync and train on the next idle RunPod.
 6. Evaluate via the standard evaluation scripts.
 7. Fetch results.
 8. Compare `metrics.json` and plots.

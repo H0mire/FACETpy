@@ -93,6 +93,9 @@ legacy/
 logs/
 output/
 training_output/
+remote_logs/
+.facet_gpu_fleet/
+tools/gpu_fleet/workers.local.yaml
 export/
 ai-docs/
 quick-notes/
