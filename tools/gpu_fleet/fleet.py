@@ -66,6 +66,36 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
+def read_training_config_device(config_path: Path) -> str | None:
+    """Return the model.device value from a training YAML, or None if absent."""
+    if not config_path.exists():
+        raise SystemExit(f"Training config not found: {config_path}")
+    if yaml is None:
+        # Fallback: line-grep for `device:` under `model:` block.
+        in_model = False
+        for raw_line in config_path.read_text(encoding="utf-8").splitlines():
+            stripped = raw_line.split("#", 1)[0].rstrip()
+            if not stripped.strip():
+                continue
+            if stripped == "model:":
+                in_model = True
+                continue
+            if in_model and stripped and not stripped.startswith(" "):
+                in_model = False
+            if in_model and stripped.lstrip().startswith("device:"):
+                return stripped.split(":", 1)[1].strip().strip("'\"") or None
+        return None
+    with config_path.open("r", encoding="utf-8") as handle:
+        data = yaml.safe_load(handle) or {}
+    model = data.get("model") if isinstance(data, dict) else None
+    if isinstance(model, dict):
+        device = model.get("device")
+        if device is None:
+            return None
+        return str(device).strip()
+    return None
+
+
 def parse_simple_workers_yaml(text: str) -> dict[str, Any]:
     """Parse the simple workers.local.yaml format without requiring PyYAML."""
     data: dict[str, Any] = {"workers": {}}
@@ -251,6 +281,20 @@ def cmd_submit(args: argparse.Namespace) -> int:
     if any(job["session"] == session and job["status"] in {"pending", "running"} for job in state["jobs"]):
         raise SystemExit(f"An active job with session '{session}' already exists")
 
+    config_path = REPO_ROOT / args.training_config
+    device = read_training_config_device(config_path)
+    if device is not None and device.lower() != "cuda" and not args.allow_cpu:
+        raise SystemExit(
+            f"Refusing to submit: training config '{args.training_config}' has model.device='{device}'. "
+            "GPU workers run CUDA only. Either set 'device: cuda' in the config or pass --allow-cpu "
+            "to override (intended for debugging on CPU-only workers)."
+        )
+    if device is None:
+        print(
+            f"warning: training config '{args.training_config}' has no model.device set; "
+            "trusting the model factory to default to cuda on GPU workers"
+        )
+
     job = {
         "id": uuid.uuid4().hex[:12],
         "name": args.name,
@@ -397,6 +441,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     submit.add_argument("--session")
     submit.add_argument("--worker", help="Optional preferred worker name")
+    submit.add_argument(
+        "--allow-cpu",
+        action="store_true",
+        help="Override the GPU-only guard. Use only when intentionally running CPU jobs.",
+    )
     submit.set_defaults(func=cmd_submit)
 
     dispatch = sub.add_parser("dispatch", help="Start pending jobs on idle workers")

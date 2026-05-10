@@ -21,7 +21,7 @@ model:
   loss_factory: facet.models.cascaded_dae.training:build_loss
   loss_kwargs:
     name: mse
-  device: cpu
+  device: cuda
 
 data:
   dataset_factory: facet.models.cascaded_dae.training:build_dataset
