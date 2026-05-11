@@ -91,7 +91,8 @@ ENV/
 # Project specific
 legacy/
 logs/
-output/
+output/*
+!output/model_evaluations
 training_output/
 remote_logs/
 .facet_gpu_fleet/

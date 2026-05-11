@@ -1,0 +1,52 @@
+{
+  "metrics": {
+    "n_examples": 833,
+    "sfreq_hz": 4096.0,
+    "input_mean_removed": true,
+    "prediction_mean_removed": true,
+    "synthetic": {
+      "clean_mse_before": 3.5392604331718758e-06,
+      "clean_mse_after": 2.4401248310823576e-07,
+      "clean_mae_before": 0.0009189959382638335,
+      "clean_mae_after": 0.00021678890334442258,
+      "clean_snr_db_before": -11.593130111694336,
+      "clean_snr_db_after": 0.02187540754675865,
+      "artifact_mse": 2.4401248310823576e-07,
+      "artifact_mae": 0.00021678890334442258,
+      "artifact_corr": 0.9660219640109989,
+      "artifact_snr_db": 11.615004539489746,
+      "residual_error_rms_ratio": 0.2625728047409382,
+      "clean_snr_improvement_db": 11.615005519241095,
+      "clean_mse_reduction_pct": 93.10555163386066
+    },
+    "real_proxy": {
+      "trigger_locked_rms_before_uv": 1910.1252546533942,
+      "trigger_locked_rms_after_uv": 30.40160663658753,
+      "predicted_artifact_rms_uv": 1904.4422078877687,
+      "trigger_locked_rms_reduction_pct": 98.40839722094015
+    }
+  },
+  "flat_metrics": {
+    "n_examples": 833,
+    "sfreq_hz": 4096.0,
+    "input_mean_removed": true,
+    "prediction_mean_removed": true,
+    "synthetic.clean_mse_before": 3.5392604331718758e-06,
+    "synthetic.clean_mse_after": 2.4401248310823576e-07,
+    "synthetic.clean_mae_before": 0.0009189959382638335,
+    "synthetic.clean_mae_after": 0.00021678890334442258,
+    "synthetic.clean_snr_db_before": -11.593130111694336,
+    "synthetic.clean_snr_db_after": 0.02187540754675865,
+    "synthetic.artifact_mse": 2.4401248310823576e-07,
+    "synthetic.artifact_mae": 0.00021678890334442258,
+    "synthetic.artifact_corr": 0.9660219640109989,
+    "synthetic.artifact_snr_db": 11.615004539489746,
+    "synthetic.residual_error_rms_ratio": 0.2625728047409382,
+    "synthetic.clean_snr_improvement_db": 11.615005519241095,
+    "synthetic.clean_mse_reduction_pct": 93.10555163386066,
+    "real_proxy.trigger_locked_rms_before_uv": 1910.1252546533942,
+    "real_proxy.trigger_locked_rms_after_uv": 30.40160663658753,
+    "real_proxy.predicted_artifact_rms_uv": 1904.4422078877687,
+    "real_proxy.trigger_locked_rms_reduction_pct": 98.40839722094015
+  }
+}

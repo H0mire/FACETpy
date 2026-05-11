@@ -1,0 +1,42 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "st_gnn",
+  "model_name": "Spatiotemporal Graph Neural Network",
+  "model_description": "Two ST-Conv blocks (TGLU + Chebyshev spatial conv) operating on a fixed 30-electrode k-NN graph derived from MNE standard_1005.",
+  "run_id": "niazy_proof_fit_20260510_211512",
+  "created_at": "2026-05-10T23:20:22",
+  "run_dir": "output/model_evaluations/st_gnn/niazy_proof_fit_20260510_211512",
+  "docs_dir": "src/facet/models/st_gnn/documentation",
+  "metrics_path": "output/model_evaluations/st_gnn/niazy_proof_fit_20260510_211512/metrics.json",
+  "summary_path": "output/model_evaluations/st_gnn/niazy_proof_fit_20260510_211512/evaluation_summary.md",
+  "artifacts": {
+    "validation_examples": "plots/validation_examples.png",
+    "per_channel_rmse": "plots/per_channel_rmse.png",
+    "loss_log": "plots/loss_log.png"
+  },
+  "config": {
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/spatiotemporalgnnniazyprooffit_20260510_211512/exports/st_gnn.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "split": {
+      "val_ratio": 0.2,
+      "seed": 42,
+      "n_train": 667,
+      "n_val": 166
+    },
+    "device": "cpu",
+    "architecture": {
+      "context_epochs": 7,
+      "n_channels": 30,
+      "samples": 512,
+      "hidden_channels": 16,
+      "k_order": 3,
+      "time_kernel": 3,
+      "knn_k": 4
+    }
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

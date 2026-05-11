@@ -1,0 +1,33 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "conv_tasnet",
+  "model_name": "Conv-TasNet",
+  "model_description": "Channel-wise time-domain source separator (Luo & Mesgarani 2019) adapted to gradient-artifact removal: source 0 is clean EEG, source 1 is the gradient artifact.",
+  "run_id": "20260510_224113",
+  "created_at": "2026-05-10T22:51:53",
+  "run_dir": "output/model_evaluations/conv_tasnet/20260510_224113",
+  "docs_dir": "src/facet/models/conv_tasnet/documentation",
+  "metrics_path": "output/model_evaluations/conv_tasnet/20260510_224113/metrics.json",
+  "summary_path": "output/model_evaluations/conv_tasnet/20260510_224113/evaluation_summary.md",
+  "artifacts": {
+    "examples_plot": "output/model_evaluations/conv_tasnet/20260510_224113/plots/conv_tasnet_examples.png",
+    "summary_plot": "output/model_evaluations/conv_tasnet/20260510_224113/plots/conv_tasnet_metric_summary.png"
+  },
+  "config": {
+    "model_id": "conv_tasnet",
+    "model_name": "Conv-TasNet",
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/convtasnetniazyprooffit_20260510_202818/exports/conv_tasnet.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "batch_size": 256,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "keep_input_mean": false,
+    "keep_prediction_mean": false
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

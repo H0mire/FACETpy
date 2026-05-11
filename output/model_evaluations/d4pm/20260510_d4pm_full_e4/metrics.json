@@ -1,0 +1,45 @@
+{
+  "metrics": {
+    "synthetic_supervised": {
+      "clean_rms_before": 0.0010492284782230854,
+      "clean_rms_after": 0.0007119073998183012,
+      "clean_snr_db_before": -16.35538101196289,
+      "clean_snr_db_after": -13.148385047912598,
+      "artifact_rms": 0.0010491814464330673,
+      "artifact_pred_rms_error": 0.0007118406356312335,
+      "artifact_corr": 0.7251355051994324,
+      "residual_rms_ratio": 0.6986104249954224
+    },
+    "runtime": {
+      "inference_seconds_total": 19.62385082244873,
+      "inference_seconds_per_segment": 0.1533113345503807,
+      "sample_steps": 30,
+      "num_steps_train": 200,
+      "device": "cpu"
+    },
+    "shape": {
+      "n_examples": 32,
+      "n_channels": 4,
+      "n_samples": 512,
+      "sfreq_hz": 4096.0
+    }
+  },
+  "flat_metrics": {
+    "synthetic_supervised.clean_rms_before": 0.0010492284782230854,
+    "synthetic_supervised.clean_rms_after": 0.0007119073998183012,
+    "synthetic_supervised.clean_snr_db_before": -16.35538101196289,
+    "synthetic_supervised.clean_snr_db_after": -13.148385047912598,
+    "synthetic_supervised.artifact_rms": 0.0010491814464330673,
+    "synthetic_supervised.artifact_pred_rms_error": 0.0007118406356312335,
+    "synthetic_supervised.artifact_corr": 0.7251355051994324,
+    "synthetic_supervised.residual_rms_ratio": 0.6986104249954224,
+    "runtime.inference_seconds_total": 19.62385082244873,
+    "runtime.inference_seconds_per_segment": 0.1533113345503807,
+    "runtime.sample_steps": 30,
+    "runtime.num_steps_train": 200,
+    "shape.n_examples": 32,
+    "shape.n_channels": 4,
+    "shape.n_samples": 512,
+    "shape.sfreq_hz": 4096.0
+  }
+}

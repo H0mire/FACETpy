@@ -1,0 +1,36 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "cascaded_dae",
+  "model_name": "Cascaded DAE",
+  "model_description": "Channel-wise cascaded denoising autoencoder without trigger context.",
+  "run_id": "20260502_114910",
+  "created_at": "2026-05-02T11:50:43",
+  "run_dir": "output/model_evaluations/cascaded_dae/20260502_114910",
+  "docs_dir": "src/facet/models/cascaded_dae/documentation",
+  "metrics_path": "output/model_evaluations/cascaded_dae/20260502_114910/metrics.json",
+  "summary_path": "output/model_evaluations/cascaded_dae/20260502_114910/evaluation_summary.md",
+  "artifacts": {
+    "legacy_metrics": "output/model_evaluations/cascaded_dae/20260502_114910/context_artifact_model_metrics.json",
+    "legacy_report": "output/model_evaluations/cascaded_dae/20260502_114910/context_artifact_model_evaluation_report.md",
+    "synthetic_cleaning_examples": "output/model_evaluations/cascaded_dae/20260502_114910/synthetic_cleaning_examples.png",
+    "synthetic_metric_summary": "output/model_evaluations/cascaded_dae/20260502_114910/synthetic_metric_summary.png",
+    "niazy_cleaning_examples": "output/model_evaluations/cascaded_dae/20260502_114910/niazy_cleaning_examples.png",
+    "niazy_trigger_locked_templates": "output/model_evaluations/cascaded_dae/20260502_114910/niazy_trigger_locked_templates.png"
+  },
+  "config": {
+    "checkpoint": "training_output/cascadeddenoisingautoencoder_20260502_114910/exports/cascaded_dae.ts",
+    "synthetic_dataset": "output/synthetic_spike_artifact_context_512/synthetic_spike_artifact_context_dataset.npz",
+    "niazy_input": "examples/datasets/NiazyFMRI.edf",
+    "context_epochs": 7,
+    "epoch_samples": 512,
+    "device": "cpu",
+    "input_mean_removed": true,
+    "prediction_mean_removed": true,
+    "trigger_regex": "\\b1\\b"
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "metrics": {
+    "niazy_proof_fit": {
+      "n_examples": 24990,
+      "n_samples": 512,
+      "clean_mse_before": 3.539259926067049e-06,
+      "clean_mse_after": 6.329422834387846e-07,
+      "clean_mae_before": 0.000918995427675437,
+      "clean_mae_after": 0.0006671008315511795,
+      "clean_snr_db_before": -11.593111589814162,
+      "clean_snr_db_after": -4.117633731846274,
+      "artifact_mse": 6.329422834163196e-07,
+      "artifact_mae": 0.0006671008315538655,
+      "artifact_corr": 0.9132380912255171,
+      "artifact_snr_db": 7.475477857865061,
+      "residual_error_rms_ratio": 0.4228884518592859,
+      "predicted_artifact_edge_abs_mean": 0.0010006424967346197,
+      "predicted_artifact_center_abs_mean": 0.0013419433335763583,
+      "predicted_artifact_edge_to_center_abs_ratio": 0.7456667295092471,
+      "clean_mse_reduction_pct": 82.11653575435098,
+      "clean_snr_improvement_db": 7.475477857967888,
+      "sfreq_hz": 4096.0,
+      "inference_seconds": 100.39124894142151,
+      "device": "cpu"
+    }
+  },
+  "flat_metrics": {
+    "niazy_proof_fit.n_examples": 24990,
+    "niazy_proof_fit.n_samples": 512,
+    "niazy_proof_fit.clean_mse_before": 3.539259926067049e-06,
+    "niazy_proof_fit.clean_mse_after": 6.329422834387846e-07,
+    "niazy_proof_fit.clean_mae_before": 0.000918995427675437,
+    "niazy_proof_fit.clean_mae_after": 0.0006671008315511795,
+    "niazy_proof_fit.clean_snr_db_before": -11.593111589814162,
+    "niazy_proof_fit.clean_snr_db_after": -4.117633731846274,
+    "niazy_proof_fit.artifact_mse": 6.329422834163196e-07,
+    "niazy_proof_fit.artifact_mae": 0.0006671008315538655,
+    "niazy_proof_fit.artifact_corr": 0.9132380912255171,
+    "niazy_proof_fit.artifact_snr_db": 7.475477857865061,
+    "niazy_proof_fit.residual_error_rms_ratio": 0.4228884518592859,
+    "niazy_proof_fit.predicted_artifact_edge_abs_mean": 0.0010006424967346197,
+    "niazy_proof_fit.predicted_artifact_center_abs_mean": 0.0013419433335763583,
+    "niazy_proof_fit.predicted_artifact_edge_to_center_abs_ratio": 0.7456667295092471,
+    "niazy_proof_fit.clean_mse_reduction_pct": 82.11653575435098,
+    "niazy_proof_fit.clean_snr_improvement_db": 7.475477857967888,
+    "niazy_proof_fit.sfreq_hz": 4096.0,
+    "niazy_proof_fit.inference_seconds": 100.39124894142151
+  }
+}

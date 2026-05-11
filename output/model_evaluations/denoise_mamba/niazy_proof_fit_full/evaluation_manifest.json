@@ -1,0 +1,29 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "denoise_mamba",
+  "model_name": "DenoiseMamba",
+  "model_description": "ConvSSD state-space gradient artifact denoiser (Section 6.2, Mamba-1 selective scan in pure PyTorch).",
+  "run_id": "niazy_proof_fit_full",
+  "created_at": "2026-05-11T03:10:36",
+  "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/worktrees/model-denoise_mamba/output/model_evaluations/denoise_mamba/niazy_proof_fit_full",
+  "docs_dir": "src/facet/models/denoise_mamba/documentation",
+  "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/worktrees/model-denoise_mamba/output/model_evaluations/denoise_mamba/niazy_proof_fit_full/metrics.json",
+  "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/worktrees/model-denoise_mamba/output/model_evaluations/denoise_mamba/niazy_proof_fit_full/evaluation_summary.md",
+  "artifacts": {
+    "niazy_proof_fit_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/worktrees/model-denoise_mamba/output/model_evaluations/denoise_mamba/niazy_proof_fit_full/plots/niazy_proof_fit_examples.png"
+  },
+  "config": {
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/worktrees/model-denoise_mamba/training_output/denoisemambaniazyprooffit_20260510_193847/exports/denoise_mamba_cpu.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "batch_size": 128,
+    "demean_input": true,
+    "remove_prediction_mean": true,
+    "max_examples": null
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "dhct_gan_v2",
+  "model_name": "DHCT-GAN v2",
+  "model_description": "Multi-epoch context dual-branch hybrid CNN-Transformer GAN (v2 of Cai et al., MDPI Sensors 25/1/231, 2025; 7-epoch context input).",
+  "run_id": "20260511_proof_fit",
+  "created_at": "2026-05-11T00:18:48",
+  "run_dir": "output/model_evaluations/dhct_gan_v2/20260511_proof_fit",
+  "docs_dir": "src/facet/models/dhct_gan_v2/documentation",
+  "metrics_path": "output/model_evaluations/dhct_gan_v2/20260511_proof_fit/metrics.json",
+  "summary_path": "output/model_evaluations/dhct_gan_v2/20260511_proof_fit/evaluation_summary.md",
+  "artifacts": {
+    "supervised_examples": "plots/supervised_examples.png"
+  },
+  "config": {
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/dhctganv2niazyprooffit_20260510_220534/exports/dhct_gan_v2.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "batch_size": 64,
+    "context_epochs": 7,
+    "demean_input": true,
+    "remove_prediction_mean": true
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "metrics": {
+    "synthetic_niazy_proof_fit_val_split": {
+      "n_examples": 4998,
+      "samples_per_epoch": 512,
+      "input_mean_removed": true,
+      "prediction_mean_removed": true,
+      "clean_mse_before": 3.4587285426823655e-06,
+      "clean_mse_after": 2.1664249061359442e-08,
+      "clean_mae_before": 0.0009077009162865579,
+      "clean_mae_after": 7.35555004212074e-05,
+      "clean_snr_db_before": -11.60905647277832,
+      "clean_snr_db_after": 10.422672271728516,
+      "artifact_mse": 2.1664249061359442e-08,
+      "artifact_mae": 7.35555004212074e-05,
+      "artifact_corr": 0.9968637383731933,
+      "artifact_snr_db": 22.031728744506836,
+      "predicted_clean_mse": 2.083745975767215e-08,
+      "predicted_clean_corr": 0.9553737684031675,
+      "predicted_source_sum_mse": 5.519127377340283e-09,
+      "residual_error_rms_ratio": 0.07914319705224314,
+      "clean_mse_reduction_pct": 99.37363546187531,
+      "clean_snr_improvement_db": 22.031728744506836
+    },
+    "dataset": {
+      "n_pairs_evaluated": 4998,
+      "n_channels_per_example": 30,
+      "samples_per_epoch": 512,
+      "sfreq_hz": 4096.0
+    },
+    "baseline_reference": {
+      "cascaded_dae__synthetic_spike_20260502_115914": {
+        "clean_snr_improvement_db": -0.0463,
+        "artifact_corr": 0.0862,
+        "residual_error_rms_ratio": 1.0053
+      },
+      "cascaded_context_dae__synthetic_spike_20260502_115926": {
+        "clean_snr_improvement_db": 3.1585,
+        "artifact_corr": 0.7318,
+        "residual_error_rms_ratio": 0.6951
+      }
+    }
+  },
+  "flat_metrics": {
+    "synthetic_niazy_proof_fit_val_split.n_examples": 4998,
+    "synthetic_niazy_proof_fit_val_split.samples_per_epoch": 512,
+    "synthetic_niazy_proof_fit_val_split.input_mean_removed": true,
+    "synthetic_niazy_proof_fit_val_split.prediction_mean_removed": true,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_before": 3.4587285426823655e-06,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_after": 2.1664249061359442e-08,
+    "synthetic_niazy_proof_fit_val_split.clean_mae_before": 0.0009077009162865579,
+    "synthetic_niazy_proof_fit_val_split.clean_mae_after": 7.35555004212074e-05,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_db_before": -11.60905647277832,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_db_after": 10.422672271728516,
+    "synthetic_niazy_proof_fit_val_split.artifact_mse": 2.1664249061359442e-08,
+    "synthetic_niazy_proof_fit_val_split.artifact_mae": 7.35555004212074e-05,
+    "synthetic_niazy_proof_fit_val_split.artifact_corr": 0.9968637383731933,
+    "synthetic_niazy_proof_fit_val_split.artifact_snr_db": 22.031728744506836,
+    "synthetic_niazy_proof_fit_val_split.predicted_clean_mse": 2.083745975767215e-08,
+    "synthetic_niazy_proof_fit_val_split.predicted_clean_corr": 0.9553737684031675,
+    "synthetic_niazy_proof_fit_val_split.predicted_source_sum_mse": 5.519127377340283e-09,
+    "synthetic_niazy_proof_fit_val_split.residual_error_rms_ratio": 0.07914319705224314,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_reduction_pct": 99.37363546187531,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_improvement_db": 22.031728744506836,
+    "dataset.n_pairs_evaluated": 4998,
+    "dataset.n_channels_per_example": 30,
+    "dataset.samples_per_epoch": 512,
+    "dataset.sfreq_hz": 4096.0,
+    "baseline_reference.cascaded_dae__synthetic_spike_20260502_115914.clean_snr_improvement_db": -0.0463,
+    "baseline_reference.cascaded_dae__synthetic_spike_20260502_115914.artifact_corr": 0.0862,
+    "baseline_reference.cascaded_dae__synthetic_spike_20260502_115914.residual_error_rms_ratio": 1.0053,
+    "baseline_reference.cascaded_context_dae__synthetic_spike_20260502_115926.clean_snr_improvement_db": 3.1585,
+    "baseline_reference.cascaded_context_dae__synthetic_spike_20260502_115926.artifact_corr": 0.7318,
+    "baseline_reference.cascaded_context_dae__synthetic_spike_20260502_115926.residual_error_rms_ratio": 0.6951
+  }
+}
