@@ -1,0 +1,82 @@
+# Train ViT Spectrogram Inpainter on the Niazy proof-fit context dataset.
+#
+# Build dataset first (handled by the fleet job's --prepare-command):
+#
+#   uv run python examples/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config src/facet/models/vit_spectrogram/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.vit_spectrogram.training:build_model
+  kwargs:
+    n_fft: 64
+    hop_length: 16
+    freq_bins: 32
+    time_frames: 224
+    patch_freq: 4
+    patch_time: 16
+    embed_dim: 192
+    depth: 6
+    n_heads: 6
+    mlp_ratio: 4.0
+    dropout: 0.0
+    mask_margin_patches: 1
+  loss_factory: facet.models.vit_spectrogram.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+
+data:
+  dataset_factory: facet.models.vit_spectrogram.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: ViTSpectrogramInpainterNiazyProofFit
+  chunk_size: 512
+  target_type: clean
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 60
+  batch_size: 64
+  learning_rate: 0.0003
+  weight_decay: 0.05
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 12
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/vit_spectrogram.ts
+  write_inference_config: false
