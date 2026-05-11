@@ -1,0 +1,48 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.st_gnn.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.st_gnn.training:build_dataset",
+  "run_name": "spatiotemporalgnnniazyprooffit_20260510_211512",
+  "run_dir": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      30,
+      512
+    ],
+    "target_shape": [
+      30,
+      512
+    ],
+    "n_total_chunks": 833,
+    "n_train_chunks": 667,
+    "n_val_chunks": 166,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 13,
+    "best_epoch": 13,
+    "best_metric": 2.700255734566781e-07,
+    "elapsed_seconds": 84.43577231099334
+  },
+  "results": {
+    "config_path": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/config.json",
+    "resolved_config_json": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/facet_train_config.resolved.yaml",
+    "log_file": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/training.jsonl",
+    "loss_plot_file": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/loss.png",
+    "summary_path": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/exports/st_gnn.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

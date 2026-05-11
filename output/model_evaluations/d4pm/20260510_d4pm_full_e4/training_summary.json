@@ -1,0 +1,47 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.d4pm.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.d4pm.training:build_dataset",
+  "run_name": "d4pmartifactdiffusionniazyprooffit_20260510_201242",
+  "run_dir": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      2,
+      512
+    ],
+    "target_shape": [
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 19992,
+    "n_val_chunks": 4998,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 14,
+    "best_epoch": 4,
+    "best_metric": 0.10685707336362404,
+    "elapsed_seconds": 104.91608173300483
+  },
+  "results": {
+    "config_path": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/config.json",
+    "resolved_config_json": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/facet_train_config.resolved.yaml",
+    "log_file": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/training.jsonl",
+    "loss_plot_file": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/loss.png",
+    "summary_path": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/exports/d4pm.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

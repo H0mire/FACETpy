@@ -20,12 +20,18 @@ output/model_evaluations/<model_id>/<run_id>/
 ├── evaluation_manifest.json    # identity, schema version, file paths
 ├── metrics.json                # nested + flat_metrics
 ├── evaluation_summary.md       # human-readable per-run summary
-└── plots/                      # PNGs and other figures
+├── training_summary.json       # copy of training_output/<run>/summary.json
+├── training.jsonl              # per-epoch training metrics log
+└── plots/
+    ├── training_loss.png       # training/validation loss curve
+    └── <model>_*.png           # evaluation result plots (examples, summary, etc.)
 ```
 
 This layout is defined in
 [`src/facet/models/evaluation_standard.md`](../../src/facet/models/evaluation_standard.md)
-and produced by `facet.evaluation.ModelEvaluationWriter`.
+and produced by `facet.evaluation.ModelEvaluationWriter` plus a
+post-evaluation copy step from `training_output/<run>/` (which is
+gitignored).
 
 ## Cross-Model Ranking (Niazy Proof-Fit Validation)
 
