@@ -1,0 +1,85 @@
+# Smoke run for Nested-GAN on the Niazy proof-fit context dataset.
+#
+# Build dataset first (run once on the GPU worker via --prepare-command):
+#
+#   uv run python examples/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Then submit (no --worker; let the dispatcher pick the first idle worker):
+#
+#   uv run python tools/gpu_fleet/fleet.py submit \
+#     --name nested_gan_niazy_smoke \
+#     --worktree . \
+#     --training-config src/facet/models/nested_gan/training_niazy_proof_fit_smoke.yaml \
+#     --prepare-command "<dataset build command above>"
+
+model:
+  framework: pytorch
+  factory: facet.models.nested_gan.training:build_model
+  kwargs:
+    inner_channels: 32
+    inner_blocks: 2
+    inner_heads: 4
+    inner_expansion: 2.0
+    outer_base_channels: 16
+    n_fft: 64
+    hop_length: 16
+    win_length: 64
+  loss_factory: facet.models.nested_gan.training:build_loss
+  loss_kwargs:
+    lambda_time: 1.0
+    lambda_mrstft: 0.5
+    fft_sizes: [32, 64, 128, 256]
+    hop_fraction: 0.25
+  device: cuda
+
+data:
+  dataset_factory: facet.models.nested_gan.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: NestedGANNiazySmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/nested_gan.ts
+  write_inference_config: false
