@@ -1,0 +1,32 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "vit_spectrogram",
+  "model_name": "ViT Spectrogram Inpainter",
+  "model_description": "Vision Transformer spectrogram inpainter (per-channel 7-epoch context)",
+  "run_id": "holdout_v1",
+  "created_at": "2026-05-12T13:53:39",
+  "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/vit_spectrogram/holdout_v1",
+  "docs_dir": "src/facet/models/vit_spectrogram/documentation",
+  "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/vit_spectrogram/holdout_v1/metrics.json",
+  "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/vit_spectrogram/holdout_v1/evaluation_summary.md",
+  "artifacts": {
+    "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/vit_spectrogram/holdout_v1/plots/holdout_examples.png"
+  },
+  "config": {
+    "model_id": "vit_spectrogram",
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/vitspectrograminpainterniazyprooffit_20260510_211842/exports/vit_spectrogram.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "holdout_split_hash": "sha256:ddaa64a504e062fd",
+    "holdout_seed": 42,
+    "holdout_val_ratio": 0.2,
+    "holdout_n_windows": 166,
+    "family": "Vision (MAE)",
+    "notes": "(1,7,1,512) in \u2192 (1,1,512) CLEAN out (not artifact). artifact = noisy_demeaned - pred_clean."
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

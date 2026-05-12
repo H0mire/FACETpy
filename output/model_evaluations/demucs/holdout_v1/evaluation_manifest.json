@@ -1,0 +1,32 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "demucs",
+  "model_name": "Demucs",
+  "model_description": "U-Net+LSTM source separation (per-channel 7-epoch concatenated)",
+  "run_id": "holdout_v1",
+  "created_at": "2026-05-12T13:53:30",
+  "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/demucs/holdout_v1",
+  "docs_dir": "src/facet/models/demucs/documentation",
+  "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/demucs/holdout_v1/metrics.json",
+  "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/demucs/holdout_v1/evaluation_summary.md",
+  "artifacts": {
+    "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/demucs/holdout_v1/plots/holdout_examples.png"
+  },
+  "config": {
+    "model_id": "demucs",
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/demucsniazyprooffit_20260510_224653/exports/demucs.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "holdout_split_hash": "sha256:ddaa64a504e062fd",
+    "holdout_seed": 42,
+    "holdout_val_ratio": 0.2,
+    "holdout_n_windows": 166,
+    "family": "Audio (U-Net+LSTM)",
+    "notes": "(1,1,7*512=3584) in \u2192 (1,1,3584) artifact out. Center [3*512:4*512] sliced. Single-mean demean across all 7 epochs."
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

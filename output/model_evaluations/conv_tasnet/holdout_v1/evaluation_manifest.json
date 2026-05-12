@@ -1,0 +1,32 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "conv_tasnet",
+  "model_name": "Conv-TasNet",
+  "model_description": "Audio source separation TCN (per-channel single-epoch)",
+  "run_id": "holdout_v1",
+  "created_at": "2026-05-12T13:49:58",
+  "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1",
+  "docs_dir": "src/facet/models/conv_tasnet/documentation",
+  "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/metrics.json",
+  "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/evaluation_summary.md",
+  "artifacts": {
+    "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/plots/holdout_examples.png"
+  },
+  "config": {
+    "model_id": "conv_tasnet",
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/convtasnetniazyprooffit_20260510_202818/exports/conv_tasnet.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "holdout_split_hash": "sha256:ddaa64a504e062fd",
+    "holdout_seed": 42,
+    "holdout_val_ratio": 0.2,
+    "holdout_n_windows": 166,
+    "family": "Audio (TCN)",
+    "notes": "(1,1,512) in \u2192 (1,2,512) sources out. source[1] = artifact."
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}

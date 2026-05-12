@@ -118,3 +118,24 @@ publishing absolute numbers:
 
 See [`docs/research/thesis_results_report.md`](../../docs/research/thesis_results_report.md#5-critical-caveats)
 for the full discussion.
+
+## Unified Holdout Re-Evaluation (Run 2 §5.1)
+
+Common test split: 166 windows × 30 channels = 4980 channel-windows, seed=42.
+Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
+Full report: [`UNIFIED_HOLDOUT.md`](UNIFIED_HOLDOUT.md).
+
+| Rank | Model | SNR↑ dB | art.corr | res.RMS | Run 1 SNR↑ | Δ |
+|---:|---|---:|---:|---:|---:|---:|
+| 1 | demucs | +31.30 | +0.9996 | 0.027 | +31.28 | +0.02 |
+| 2 | conv_tasnet | +22.74 | +0.9973 | 0.073 | +22.03 | +0.71 |
+| 3 | sepformer | +18.71 | +0.9933 | 0.116 | +19.05 | -0.34 |
+| 4 | nested_gan | +11.71 | +0.9746 | 0.260 | +13.54 | -1.83 |
+| 5 | denoise_mamba | +11.20 | +0.9614 | 0.275 | +11.80 | -0.60 |
+| 6 | ic_unet | +11.11 | +0.9613 | 0.278 | +11.77 | -0.66 |
+| 7 | st_gnn | +11.00 | +0.9595 | 0.282 | +11.00 | +0.00 |
+| 8 | vit_spectrogram | +10.95 | +0.9605 | 0.284 | +11.60 | -0.65 |
+| 9 | dpae | +7.28 | +0.9092 | 0.432 | +7.48 | -0.20 |
+| 10 | d4pm | +4.81 | +0.9265 | 0.575 | +3.21 | +1.60 |
+| 11 | dhct_gan_v2 | -1.17 | +0.5644 | 1.145 | +1.69 | -2.86 |
+| 12 | dhct_gan | -7.12 | +0.1573 | 2.269 | -7.13 | +0.01 |

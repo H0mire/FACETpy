@@ -1,0 +1,32 @@
+{
+  "schema_version": "facetpy.model_evaluation.v1",
+  "model_id": "dhct_gan_v2",
+  "model_name": "DHCT-GAN v2",
+  "model_description": "Hybrid CNN+Transformer GAN with multi-epoch context (input-contract fixed)",
+  "run_id": "holdout_v1",
+  "created_at": "2026-05-12T13:54:32",
+  "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1",
+  "docs_dir": "src/facet/models/dhct_gan_v2/documentation",
+  "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1/metrics.json",
+  "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1/evaluation_summary.md",
+  "artifacts": {
+    "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1/plots/holdout_examples.png"
+  },
+  "config": {
+    "model_id": "dhct_gan_v2",
+    "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/dhctganv2niazyprooffit_20260510_220534/exports/dhct_gan_v2.ts",
+    "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+    "device": "cpu",
+    "holdout_split_hash": "sha256:ddaa64a504e062fd",
+    "holdout_seed": 42,
+    "holdout_val_ratio": 0.2,
+    "holdout_n_windows": 166,
+    "family": "GAN (hybrid CNN+Transformer, ctx fix)",
+    "notes": "(1,7,512) in \u2014 note flat 7-epoch packing, not (1,7,1,512). Per-epoch demean."
+  },
+  "primary_comparison_contract": {
+    "metrics_json": "metrics.json",
+    "flat_metrics_key": "flat_metrics",
+    "summary_markdown": "evaluation_summary.md"
+  }
+}
