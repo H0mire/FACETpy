@@ -4,7 +4,7 @@
   "model_name": "Conv-TasNet",
   "model_description": "Audio source separation TCN (per-channel single-epoch)",
   "run_id": "holdout_v1",
-  "created_at": "2026-05-12T13:49:58",
+  "created_at": "2026-05-12T17:29:02",
   "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1",
   "docs_dir": "src/facet/models/conv_tasnet/documentation",
   "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/metrics.json",

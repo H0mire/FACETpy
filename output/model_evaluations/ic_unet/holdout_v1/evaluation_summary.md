@@ -22,10 +22,13 @@
 | `unified_holdout.clean_snr_db_after` | 0.164534 |
 | `unified_holdout.clean_snr_db_before` | -10.944946 |
 | `unified_holdout.clean_snr_improvement_db` | 11.109480 |
-| `unified_holdout.inference_seconds` | 1.691554 |
+| `unified_holdout.inference_seconds` | 1.722702 |
 | `unified_holdout.n_channels` | 30 |
 | `unified_holdout.n_examples` | 166 |
 | `unified_holdout.residual_error_rms_ratio` | 0.278308 |
+| `unified_holdout.rms_baseline_noisy_ratio` | 7.254694 |
+| `unified_holdout.rms_recovery_distance` | 0.792680 |
+| `unified_holdout.rms_recovery_ratio` | 0.213189 |
 | `unified_holdout.samples_per_epoch` | 512 |
 | `unified_holdout.sfreq_hz` | 4096.000000 |
 
@@ -80,9 +83,12 @@ ic_unet on the unified holdout split: SNR improvement = +11.11 dB (before=-10.94
     "artifact_corr": 0.9612539275588182,
     "artifact_snr_db": 11.109479904174805,
     "residual_error_rms_ratio": 0.27830819849681765,
+    "rms_recovery_ratio": 0.213189035654068,
+    "rms_recovery_distance": 0.7926802635192871,
+    "rms_baseline_noisy_ratio": 7.25469446182251,
     "clean_mse_reduction_pct": 92.2544545592596,
     "clean_snr_improvement_db": 11.109480172395706,
-    "inference_seconds": 1.691554,
+    "inference_seconds": 1.722702,
     "device": "cpu"
   }
 }

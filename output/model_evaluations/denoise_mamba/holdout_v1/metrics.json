@@ -16,9 +16,12 @@
       "artifact_corr": 0.9613709163272423,
       "artifact_snr_db": 11.20394515991211,
       "residual_error_rms_ratio": 0.27529780875061355,
+      "rms_recovery_ratio": 0.40369847416877747,
+      "rms_recovery_distance": 0.6849888563156128,
+      "rms_baseline_noisy_ratio": 7.25469446182251,
       "clean_mse_reduction_pct": 92.4211111022307,
       "clean_snr_improvement_db": 11.203944653272629,
-      "inference_seconds": 83.326378,
+      "inference_seconds": 101.119253,
       "device": "cpu"
     }
   },
@@ -38,8 +41,11 @@
     "unified_holdout.artifact_corr": 0.9613709163272423,
     "unified_holdout.artifact_snr_db": 11.20394515991211,
     "unified_holdout.residual_error_rms_ratio": 0.27529780875061355,
+    "unified_holdout.rms_recovery_ratio": 0.40369847416877747,
+    "unified_holdout.rms_recovery_distance": 0.6849888563156128,
+    "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
     "unified_holdout.clean_mse_reduction_pct": 92.4211111022307,
     "unified_holdout.clean_snr_improvement_db": 11.203944653272629,
-    "unified_holdout.inference_seconds": 83.326378
+    "unified_holdout.inference_seconds": 101.119253
   }
 }

@@ -4,7 +4,7 @@
   "model_name": "DHCT-GAN v2",
   "model_description": "Hybrid CNN+Transformer GAN with multi-epoch context (input-contract fixed)",
   "run_id": "holdout_v1",
-  "created_at": "2026-05-12T13:54:32",
+  "created_at": "2026-05-12T17:23:11",
   "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1",
   "docs_dir": "src/facet/models/dhct_gan_v2/documentation",
   "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan_v2/holdout_v1/metrics.json",

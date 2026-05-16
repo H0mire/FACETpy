@@ -21,18 +21,18 @@ Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
 
 | Rank | Model | Family | SNR↑ dB (holdout) | SNR before | SNR after | art.corr | res.RMS ratio | Δ vs Run 1 | t [s] |
 |---:|---|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | demucs | Audio (U-Net+LSTM) | +31.30 | -10.94 | +20.35 | +0.9996 | 0.027 | +0.02 | 110.9 |
-| 2 | conv_tasnet | Audio (TCN) | +22.74 | -10.94 | +11.79 | +0.9973 | 0.073 | +0.71 | 675.6 |
-| 3 | sepformer | Audio (Transformer) | +18.71 | -10.94 | +7.76 | +0.9933 | 0.116 | -0.34 | 100.9 |
-| 4 | nested_gan | GAN (TF+Time) | +11.71 | -10.94 | +0.77 | +0.9746 | 0.260 | -1.83 | 128.2 |
-| 5 | denoise_mamba | SSM | +11.20 | -10.94 | +0.26 | +0.9614 | 0.275 | -0.60 | 83.3 |
+| 1 | demucs | Audio (U-Net+LSTM) | +31.30 | -10.94 | +20.35 | +0.9996 | 0.027 | +0.02 | 147.7 |
+| 2 | conv_tasnet | Audio (TCN) | +22.74 | -10.94 | +11.79 | +0.9973 | 0.073 | +0.71 | 923.0 |
+| 3 | sepformer | Audio (Transformer) | +18.71 | -10.94 | +7.76 | +0.9933 | 0.116 | -0.34 | 135.6 |
+| 4 | nested_gan | GAN (TF+Time) | +11.71 | -10.94 | +0.77 | +0.9746 | 0.260 | -1.83 | 167.9 |
+| 5 | denoise_mamba | SSM | +11.20 | -10.94 | +0.26 | +0.9614 | 0.275 | -0.60 | 101.1 |
 | 6 | ic_unet | Discriminative + ICA | +11.11 | -10.94 | +0.16 | +0.9613 | 0.278 | -0.66 | 1.7 |
-| 7 | st_gnn | Graph (GNN) | +11.00 | -10.94 | +0.06 | +0.9595 | 0.282 | +0.00 | 4.1 |
-| 8 | vit_spectrogram | Vision (MAE) | +10.95 | -10.94 | +0.00 | +0.9605 | 0.284 | -0.65 | 8.6 |
-| 9 | dpae | Discriminative | +7.28 | -10.94 | -3.66 | +0.9092 | 0.432 | -0.20 | 22.8 |
-| 10 | d4pm | Diffusion | +4.81 | -10.94 | -6.14 | +0.9265 | 0.575 | +1.60 | 1218.6 |
-| 11 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | -1.17 | -10.94 | -12.12 | +0.5644 | 1.145 | -2.86 | 25.6 |
-| 12 | dhct_gan | GAN (single-epoch input, failed) | -7.12 | -10.94 | -18.06 | +0.1573 | 2.269 | +0.01 | 21.7 |
+| 7 | st_gnn | Graph (GNN) | +11.00 | -10.94 | +0.06 | +0.9595 | 0.282 | +0.00 | 5.3 |
+| 8 | vit_spectrogram | Vision (MAE) | +10.95 | -10.94 | +0.00 | +0.9605 | 0.284 | -0.65 | 12.4 |
+| 9 | dpae | Discriminative | +7.28 | -10.94 | -3.66 | +0.9092 | 0.432 | -0.20 | 29.8 |
+| 10 | d4pm | Diffusion | +4.81 | -10.94 | -6.14 | +0.9265 | 0.575 | +1.60 | 1332.8 |
+| 11 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | -1.17 | -10.94 | -12.12 | +0.5644 | 1.145 | -2.86 | 32.0 |
+| 12 | dhct_gan | GAN (single-epoch input, failed) | -7.12 | -10.94 | -18.06 | +0.1573 | 2.269 | +0.01 | 27.1 |
 
 **Reading the table:**
 - `SNR↑ dB` is the primary thesis metric. Higher is better.
