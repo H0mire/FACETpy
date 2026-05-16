@@ -16,13 +16,14 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_context_dae.training:build_model
   kwargs:
-    # Hidden bumped from [512,128,512] (~4.5M params) to [768,192,768] (~7M)
-    # for the Run-1 retrofill. Rationale: input dim is 3584 (7*512), so a
-    # 512→128 bottleneck is a 28x compression on a high-frequency signal —
-    # likely an information bottleneck. ~7M params sits between Conv-TasNet
-    # (~5M) and Demucs (16.6M) in the Run-1 lineup; still safe vs overfit
-    # on 19992 training pairs (~350 params/sample) given dropout=0.2.
-    hidden_units: [768, 192, 768]
+    # Hidden kept at [512,128,512] (~4.46M params), the original Run-1
+    # baseline value. Matched to cascaded_dae so the two models share the
+    # same encoder/decoder/bottleneck dimensions and the only difference
+    # is the input dimension (7*1*512 = 3584 here vs 1*512 for the
+    # non-context variant). This makes "what does the 7-epoch context
+    # buy us?" a clean controlled ablation. ~220 params/training-sample
+    # is comfortably below overfit territory given dropout=0.2.
+    hidden_units: [512, 128, 512]
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_context_dae.training:build_loss
   loss_kwargs:

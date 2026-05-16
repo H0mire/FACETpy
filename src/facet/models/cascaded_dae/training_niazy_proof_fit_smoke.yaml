@@ -17,7 +17,7 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_dae.training:build_model
   kwargs:
-    hidden_units: [256, 64, 256]  # must match training_niazy_proof_fit.yaml
+    hidden_units: [512, 128, 512]  # must match training_niazy_proof_fit.yaml
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_dae.training:build_loss
   loss_kwargs:

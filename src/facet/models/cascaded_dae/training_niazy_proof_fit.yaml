@@ -16,13 +16,14 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_dae.training:build_model
   kwargs:
-    # Hidden bumped from [128,32,128] (~280k params) to [256,64,256] (~600k)
-    # for the Run-1 retrofill. Rationale: 19992 training pairs were starving
-    # the prototype config (~14 params/sample). Doubling both encoder/decoder
-    # width and the bottleneck keeps the model well below overfit territory
-    # (~30 params/sample) and gives the MLP a fair shot at the artifact
-    # structure without losing the "vanilla MLP baseline" role of the family.
-    hidden_units: [256, 64, 256]
+    # Hidden bumped from [128,32,128] (~280k params) to [512,128,512] (~1.31M)
+    # for the Run-1 retrofill. Matched to cascaded_context_dae so the two
+    # models share the same encoder/decoder/bottleneck dimensions and the
+    # only difference is the input dimension (1*512 here vs 7*1*512 = 3584
+    # for the context variant). This makes "what does the 7-epoch context
+    # buy us?" a clean controlled ablation. At ~65 params/training-sample
+    # the model is well below overfit territory.
+    hidden_units: [512, 128, 512]
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_dae.training:build_loss
   loss_kwargs:
