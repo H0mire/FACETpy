@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demucs Explorer — FACETpy Thesis</title>
+<style>
+  :root {
+    --primary: #1a3a5c;
+    --primary-light: #2c5282;
+    --accent: #d97706;
+    --accent-light: #fbbf24;
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --border: #d0d7de;
+    --text: #1a202c;
+    --text-muted: #64748b;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: var(--font-sans); color: var(--text); background: var(--bg); line-height: 1.55; }
+
+  /* Layout */
+  .app { display: flex; min-height: 100vh; }
+  aside {
+    width: 240px; background: var(--primary); color: white;
+    padding: 24px 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    flex-shrink: 0;
+  }
+  aside h1 { padding: 0 20px 8px; margin: 0; font-size: 17px; font-weight: 600; }
+  aside .subtitle { padding: 0 20px 20px; margin: 0; font-size: 11.5px; color: #a3bffa; line-height: 1.4; }
+  aside nav { display: flex; flex-direction: column; }
+  aside nav button {
+    background: none; border: none; color: rgba(255,255,255,0.75);
+    text-align: left; padding: 10px 20px; cursor: pointer; font-size: 13.5px;
+    border-left: 3px solid transparent; transition: all 0.15s;
+    font-family: inherit;
+  }
+  aside nav button:hover { background: rgba(255,255,255,0.06); color: white; }
+  aside nav button.active {
+    background: rgba(255,255,255,0.1); color: white;
+    border-left-color: var(--accent-light); font-weight: 500;
+  }
+  aside .footer {
+    margin-top: auto; padding: 20px; font-size: 11px; color: #94a3b8;
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  main { flex: 1; padding: 40px 56px; max-width: 1200px; }
+  section { display: none; animation: fadeIn 0.25s ease; }
+  section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  h2 { font-size: 28px; margin: 0 0 4px; color: var(--primary); font-weight: 600; letter-spacing: -0.01em; }
+  h2 + .lead { font-size: 14.5px; color: var(--text-muted); margin: 0 0 28px; max-width: 720px; }
+  h3 { font-size: 17px; margin: 28px 0 10px; color: var(--primary); font-weight: 600; }
+  h4 { font-size: 14px; margin: 20px 0 8px; color: var(--primary-light); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  p { margin: 8px 0; }
+  code { background: #eef2f6; padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono); font-size: 0.9em; color: #b3204b; }
+  pre {
+    background: #1e293b; color: #e2e8f0; padding: 14px 18px; border-radius: 6px;
+    overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55;
+  }
+  pre code { background: transparent; color: inherit; padding: 0; }
+
+  /* Panels */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; margin: 16px 0; }
+  .panel-accent { background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #fbbf24; color: #78350f; }
+  .panel-accent strong { color: #92400e; }
+
+  /* Grids */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0; }
+  @media (max-width: 900px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+  /* KPI cards */
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .kpi .label { font-size: 11.5px; text-transform: uppercase; color: var(--text-muted); font-weight: 500; letter-spacing: 0.04em; }
+  .kpi .value { font-size: 24px; font-weight: 700; color: var(--primary); margin-top: 4px; line-height: 1.1; }
+  .kpi .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { background: #eef2f6; font-weight: 600; color: var(--primary); }
+  tr:hover td { background: #f8fafc; }
+
+  /* Controls */
+  .control-row { display: flex; align-items: center; gap: 16px; margin: 8px 0; flex-wrap: wrap; }
+  .control-row label { font-size: 13px; color: var(--text-muted); min-width: 120px; }
+  .control-row input[type="range"] { flex: 1; max-width: 240px; }
+  .control-row .v { font-family: var(--font-mono); font-weight: 600; color: var(--primary); min-width: 50px; }
+  .toggle-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 13px; }
+  .toggle-btn.off { background: var(--text-muted); }
+  .toggle-btn:hover { opacity: 0.9; }
+
+  /* SVG */
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .arch-block { fill: #3b82f6; stroke: #1e40af; stroke-width: 1.5; transition: all 0.2s; }
+  .arch-block.encoder { fill: #3b82f6; stroke: #1e40af; }
+  .arch-block.decoder { fill: #10b981; stroke: #047857; }
+  .arch-block.bottleneck { fill: #f59e0b; stroke: #92400e; }
+  .arch-block.io { fill: #94a3b8; stroke: #475569; }
+  .arch-block:hover { filter: brightness(1.1); cursor: pointer; }
+  .arch-skip { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: 6,4; fill: none; opacity: 0.85; }
+  .arch-skip.hidden { display: none; }
+  .arch-flow { stroke: #475569; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+  .arch-label { font-family: var(--font-mono); font-size: 11px; fill: white; pointer-events: none; }
+  .arch-label-sub { font-family: var(--font-mono); font-size: 9.5px; fill: rgba(255,255,255,0.85); pointer-events: none; }
+  .arch-shape-label { font-family: var(--font-mono); font-size: 10.5px; fill: var(--text-muted); }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute; background: rgba(15, 23, 42, 0.96); color: white;
+    padding: 8px 12px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono);
+    pointer-events: none; opacity: 0; transition: opacity 0.15s; max-width: 280px;
+    z-index: 100;
+  }
+  .tooltip.visible { opacity: 1; }
+
+  /* Comparison bars */
+  .bar-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+  .bar-row .name { width: 130px; font-weight: 500; }
+  .bar-row .track { flex: 1; height: 22px; background: #f1f5f9; border-radius: 4px; position: relative; }
+  .bar-row .fill { height: 100%; background: var(--primary-light); border-radius: 4px; transition: width 0.4s; display: flex; align-items: center; padding-left: 8px; color: white; font-size: 11px; font-weight: 500; }
+  .bar-row.highlight .fill { background: var(--accent); }
+
+  /* Music analogy */
+  .source-strip { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+  .source-strip .icon { width: 32px; height: 32px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; flex-shrink: 0; }
+  .source-strip .text { flex: 1; font-size: 13.5px; }
+  .source-strip .text strong { display: block; color: var(--primary); }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 11px; font-size: 11px; font-weight: 500; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+  .badge-ok { background: #d1fae5; color: #065f46; }
+  .badge-bad { background: #fee2e2; color: #991b1b; }
+
+  .citation { background: #eef2f6; padding: 12px 16px; border-radius: 6px; font-size: 13px; border-left: 3px solid var(--primary); margin: 12px 0; }
+  .citation a { color: var(--primary-light); }
+
+  /* Block detail */
+  .block-stack {
+    display: flex; flex-direction: column; gap: 4px; padding: 16px;
+    background: #f1f5f9; border-radius: 8px; align-items: center;
+  }
+  .layer-box {
+    width: 100%; max-width: 320px; padding: 10px 14px;
+    background: var(--panel); border: 1.5px solid var(--border); border-radius: 6px;
+    text-align: center; font-family: var(--font-mono); font-size: 12px;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .layer-box:hover { border-color: var(--accent); background: #fffbeb; }
+  .layer-box .type { font-weight: 600; color: var(--primary); }
+  .layer-box .shape { color: var(--text-muted); font-size: 10.5px; margin-top: 2px; }
+  .arrow-down { font-size: 18px; color: var(--text-muted); }
+
+  /* LSTM viz */
+  .lstm-cell {
+    width: 38px; height: 30px; border-radius: 4px; display: inline-flex;
+    align-items: center; justify-content: center; font-family: var(--font-mono);
+    font-size: 11px; color: white; margin: 0 2px;
+  }
+  .lstm-cell.fwd { background: var(--primary); }
+  .lstm-cell.bwd { background: var(--accent); }
+  .lstm-row { display: flex; align-items: center; gap: 4px; padding: 4px 0; flex-wrap: wrap; }
+  .lstm-row .label { font-size: 12px; color: var(--text-muted); min-width: 80px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside>
+  <h1>Demucs Explorer</h1>
+  <p class="subtitle">Time-Domain U-Net + BiLSTM für<br>EEG-Gradienten-Artefakt-Korrektur</p>
+  <nav>
+    <button class="active" data-tab="intro">1 · Überblick</button>
+    <button data-tab="concept">2 · Konzept &amp; Analogie</button>
+    <button data-tab="architecture">3 · Architektur · live</button>
+    <button data-tab="encoder">4 · Encoder-Block</button>
+    <button data-tab="decoder">5 · Decoder-Block</button>
+    <button data-tab="bottleneck">6 · BiLSTM-Bottleneck</button>
+    <button data-tab="skip">7 · Skip-Connections</button>
+    <button data-tab="eeg">8 · EEG-Adaption</button>
+    <button data-tab="results">9 · Resultate</button>
+    <button data-tab="refs">10 · Referenzen</button>
+  </nav>
+  <div class="footer">
+    Janik M. Müller · Masterthesis FACETpy v2<br>
+    Branch: <code style="color:#fbbf24;background:transparent;">feature/proof_fit_consolidated</code>
+  </div>
+</aside>
+
+<main>
+  <!-- ================== INTRO ================== -->
+  <section id="intro" class="active">
+    <h2>Demucs Explorer</h2>
+    <p class="lead">Eine interaktive Tour durch die Architektur, die in unserer Thesis Top-1 wurde — <strong>+31.30 dB SNR-Verbesserung</strong> auf dem Niazy-Proof-Fit-Datensatz.</p>
+
+    <div class="panel panel-accent">
+      <strong>Was du in dieser App lernst:</strong>
+      <ul>
+        <li>Warum Demucs (ein Modell für <strong>Musikquellen-Trennung</strong>) das Problem der <strong>fMRT-Gradient-Artefakt-Korrektur</strong> besser löst als spezifisch dafür entworfene Architekturen.</li>
+        <li>Wie der <em>U-Net + BiLSTM</em>-Aufbau im Detail funktioniert — Tab für Tab, Block für Block.</li>
+        <li>Welche Hyperparameter (depth, channels) was bewirken — mit Live-Sliders auf die Tensor-Shapes.</li>
+        <li>Was Demucs <em>nicht</em> macht (und warum das gut ist).</li>
+      </ul>
+    </div>
+
+    <h3>Paper im Schnellüberblick</h3>
+    <div class="citation">
+      <strong>Défossez, A., Usunier, N., Bottou, L., &amp; Bach, F.</strong> (2019).<br>
+      <em>Music Source Separation in the Waveform Domain.</em><br>
+      arXiv:<a href="https://arxiv.org/abs/1911.13254" target="_blank">1911.13254</a> ·
+      Code: <a href="https://github.com/facebookresearch/demucs" target="_blank">facebookresearch/demucs</a> · Facebook AI Research
+    </div>
+
+    <h3>Headline-Zahlen aus unserem Run</h3>
+    <div class="grid-3">
+      <div class="kpi">
+        <div class="label">SNR-Verbesserung</div>
+        <div class="value">+31.30 dB</div>
+        <div class="sub">Unified Holdout · 4980 ch-w</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Artefakt-Korrelation</div>
+        <div class="value">0.9996</div>
+        <div class="sub">Pearson r mit Ground-Truth</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Residual-RMS-Ratio</div>
+        <div class="value">0.027</div>
+        <div class="sub">2.7 % Restfehler vs. Input</div>
+      </div>
+      <div class="kpi">
+        <div class="label">RMS-Recovery (FACETpy)</div>
+        <div class="value">1.018</div>
+        <div class="sub">Ziel = 1.0 — nahezu perfekt</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Parameter</div>
+        <div class="value">16.6 M</div>
+        <div class="sub">L=4, C₁=64</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Inferenz</div>
+        <div class="value">110 s</div>
+        <div class="sub">CPU · 4980 Channel-Windows</div>
+      </div>
+    </div>
+
+    <h3>Demucs vs. die anderen 11 Modelle in der Thesis</h3>
+    <div id="intro-bars"></div>
+  </section>
+
+  <!-- ================== CONCEPT ================== -->
+  <section id="concept">
+    <h2>Konzept &amp; Analogie</h2>
+    <p class="lead">Demucs wurde gebaut, um aus einem Musik-Mix vier Stems zu trennen. Wir nutzen exakt dieselbe Architektur, um aus einer EEG-Aufnahme das fMRT-Artefakt herauszuschneiden. Hier die Analogie.</p>
+
+    <h3>Originales Szenario · Musikquellen-Trennung (MusDB)</h3>
+    <div class="panel">
+      <p style="margin-top:0;"><strong>Input:</strong> 11 Sekunden Stereo-Audio bei 44.1 kHz (≈ 485 000 Samples × 2 Kanäle)</p>
+
+      <div class="grid-2" style="margin-top:14px;">
+        <div>
+          <h4 style="margin-top:0;">Mix-Spur (was reingeht)</h4>
+          <div class="source-strip"><div class="icon">🎵</div><div class="text"><strong>Mixed Audio</strong>Drums + Bass + Vocals + Other — alles übereinander</div></div>
+        </div>
+        <div>
+          <h4 style="margin-top:0;">4 Stems (was rauskommt)</h4>
+          <div class="source-strip"><div class="icon">🥁</div><div class="text"><strong>Drums</strong>periodisch, breitbandig, perkussiv</div></div>
+          <div class="source-strip"><div class="icon">🎸</div><div class="text"><strong>Bass</strong>tieffrequent, harmonisch</div></div>
+          <div class="source-strip"><div class="icon">🎤</div><div class="text"><strong>Vocals</strong>stimmhaft, formantenreich</div></div>
+          <div class="source-strip"><div class="icon">🎹</div><div class="text"><strong>Other</strong>alles Übrige</div></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Unser Szenario · EEG-Gradient-Artefakt</h3>
+    <div class="panel">
+      <p style="margin-top:0;"><strong>Input:</strong> 3584 Samples bei 4096 Hz (= 7 × 512 ms Epochen, konkateniert pro Kanal)</p>
+
+      <div class="grid-2" style="margin-top:14px;">
+        <div>
+          <h4 style="margin-top:0;">Mix-Spur (was reingeht)</h4>
+          <div class="source-strip"><div class="icon">🧠</div><div class="text"><strong>Noisy EEG</strong>echtes EEG + fMRT-Gradient-Artefakt</div></div>
+        </div>
+        <div>
+          <h4 style="margin-top:0;">"Stems" (was rauskommt)</h4>
+          <div class="source-strip"><div class="icon">⚡</div><div class="text"><strong>Gradient-Artefakt</strong><span class="badge badge-warn">≈ "Drums"</span> periodisch (Slice-TR), harmonisch, breitbandig</div></div>
+          <div class="source-strip"><div class="icon">🧠</div><div class="text"><strong>Clean EEG</strong><span class="badge badge-ok">≈ "Vocals/Other"</span> stochastisch, broadband, nicht-stationär</div></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Warum diese Analogie tatsächlich funktioniert</h3>
+
+    <table>
+      <thead>
+        <tr><th>Eigenschaft</th><th>Drum-Spur</th><th>Gradient-Artefakt</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Zeitliche Struktur</td><td>repetitiv bei Tempo</td><td>repetitiv bei TR (Slice-Repetition)</td></tr>
+        <tr><td>Spektrum</td><td>breitbandig, transient</td><td>breitbandig, transient (Slope-Edges)</td></tr>
+        <tr><td>Phasenkohärenz</td><td>im Takt</td><td>trigger-locked</td></tr>
+        <tr><td>Verhalten</td><td>überlagert das Mix-Signal</td><td>überlagert das EEG-Signal</td></tr>
+      </tbody>
+    </table>
+
+    <p>Die <strong>induktive Verzerrung</strong> von Demucs (U-Net für lokale Detail-Erhaltung + BiLSTM für periodische Langzeit-Struktur) passt zufällig perfekt auf <em>beide</em> Probleme. Das ist der Kern der Beobachtung in dieser Thesis.</p>
+
+    <div class="panel panel-accent" style="margin-top:24px;">
+      <strong>Konsequenz:</strong> Demucs ist <em>nicht</em> für EEG entwickelt worden — aber es schlägt alle 7 für EEG-spezifische Modelle (IC-U-Net, DPAE, ST-GNN, Denoise-Mamba, ViT, DHCT-GAN, D4PM) um <strong>17 bis 38 dB</strong>. Das ist eine Lektion über induktive Verzerrungen.
+    </div>
+  </section>
+
+  <!-- ================== ARCHITECTURE ================== -->
+  <section id="architecture">
+    <h2>Architektur · live anpassbar</h2>
+    <p class="lead">Spiele mit Tiefe und Kanal-Anzahl. Beobachte, wie Tensor-Shapes durch das Netz propagieren — und wann der Bottleneck unter 1 Sample kollabiert.</p>
+
+    <div class="panel">
+      <div class="control-row">
+        <label>Eingangs-Länge T</label>
+        <input id="ctl-T" type="range" min="512" max="8192" step="64" value="3584">
+        <span class="v" id="v-T">3584</span>
+        <span style="font-size:12px;color:var(--text-muted);">samples</span>
+      </div>
+      <div class="control-row">
+        <label>Tiefe L</label>
+        <input id="ctl-L" type="range" min="1" max="8" step="1" value="4">
+        <span class="v" id="v-L">4</span>
+        <span style="font-size:12px;color:var(--text-muted);">Encoder/Decoder-Blöcke</span>
+      </div>
+      <div class="control-row">
+        <label>Start-Kanäle C₁</label>
+        <input id="ctl-C" type="range" min="8" max="128" step="8" value="64">
+        <span class="v" id="v-C">64</span>
+        <span style="font-size:12px;color:var(--text-muted);">verdoppelt pro Stufe</span>
+      </div>
+      <div class="control-row">
+        <label>Kernel K</label>
+        <input id="ctl-K" type="range" min="3" max="16" step="1" value="8">
+        <span class="v" id="v-K">8</span>
+        <span style="font-size:12px;color:var(--text-muted);">samples</span>
+      </div>
+      <div class="control-row">
+        <label>Stride S</label>
+        <input id="ctl-S" type="range" min="2" max="8" step="1" value="4">
+        <span class="v" id="v-S">4</span>
+      </div>
+      <div class="control-row">
+        <label>Skip-Connections</label>
+        <button id="ctl-skip" class="toggle-btn">an</button>
+      </div>
+    </div>
+
+    <div id="arch-status" style="margin: 12px 0; font-size: 13px;"></div>
+
+    <svg id="arch-svg" class="diagram" viewBox="0 0 900 480">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+        </marker>
+      </defs>
+    </svg>
+
+    <div id="tooltip-arch" class="tooltip"></div>
+
+    <h3>Parameter-Aufschlüsselung</h3>
+    <table id="param-table">
+      <thead><tr><th>Layer</th><th>Shape (B, C, T)</th><th>Parameter</th><th>% des Gesamtmodells</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Mathematisch passiert pro Encoder-Stufe</h3>
+    <p>Tensor-Shape vorher: <code>(B, C<sub>i-1</sub>, T<sub>i-1</sub>)</code> → nachher: <code>(B, C<sub>i</sub>, T<sub>i</sub>)</code> mit:</p>
+    <pre><code>T_i = floor((T_{i-1} + 2*P - K) / S) + 1     # mit Padding P = K-1 (Demucs-Konvention)
+C_i = 2 * C_{i-1}
+Parameter im Conv1d:  C_i * C_{i-1} * K  +  C_i
+Parameter im 1×1:     2 * C_i * C_i  +  2 * C_i</code></pre>
+  </section>
+
+  <!-- ================== ENCODER ================== -->
+  <section id="encoder">
+    <h2>Encoder-Block · Schritt für Schritt</h2>
+    <p class="lead">Ein einzelner Encoder-Block packt vier Operationen in eine Sequenz. Hover über jeden Layer für Details.</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="block-stack" id="encoder-stack"></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">Was hier passiert</h3>
+        <div id="encoder-detail" class="panel">
+          <p style="color:var(--text-muted);font-style:italic;">Hover über einen Layer links für Details.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Warum GLU statt ReLU?</h3>
+    <p>Demucs nutzt nach dem 1×1-Conv eine <strong>Gated Linear Unit (GLU)</strong> statt einer normalen ReLU. Mathematisch:</p>
+    <pre><code>GLU(x) = a ⊙ sigmoid(b)    wobei x = [a; b] entlang Kanalachse aufgeteilt wird</code></pre>
+    <p>Der 1×1-Conv erzeugt also <em>doppelt</em> so viele Kanäle (2C), GLU halbiert sie wieder. Vorteil: die <code>sigmoid</code>-Gate-Komponente lernt, welche Features durchgelassen werden — flexibler als eine harte ReLU-Schwelle. Wird auch in Tasks wie Convolutional Sequence-to-Sequence (Gehring et al. 2017) verwendet.</p>
+
+    <h3>Verdopplung der Kanäle</h3>
+    <p>Jeder Encoder-Block verdoppelt die Kanal-Anzahl: <code>C_i = 2 · C_{i-1}</code>. Das kompensiert die Längen-Reduktion durch das Striding (Faktor 4 in der Standard-Konfiguration). Insgesamt geht der "Informationsfluss" pro Block also nur um Faktor 2 nach unten (von <code>4·T</code> auf <code>T/4 · 2C</code>).</p>
+
+    <h3>Initialisierungs-Rescaling</h3>
+    <p>Ein Kerndetail aus dem Paper (Section 3.2): Ohne spezielle Initialisierung divergieren die Output-Magnituden über die Tiefe um <strong>~20×</strong>. Demucs skaliert daher pro Layer:</p>
+    <pre><code>weight *= sqrt(reference_scale / current_scale)</code></pre>
+    <p>… sodass die Ausgangs-Magnitude bei Initialisierung über alle Schichten konstant bleibt. Im Code: <code>rescale_module(model, reference=0.1)</code>.</p>
+  </section>
+
+  <!-- ================== DECODER ================== -->
+  <section id="decoder">
+    <h2>Decoder-Block · der gespiegelte Encoder</h2>
+    <p class="lead">Spiegelt den Encoder, mit zwei Unterschieden: <code>ConvTranspose1d</code> für Upsampling und Skip-Connection-Addition am Eingang.</p>
+
+    <div class="grid-2">
+      <div>
+        <div class="block-stack" id="decoder-stack"></div>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">Was hier passiert</h3>
+        <div id="decoder-detail" class="panel">
+          <p style="color:var(--text-muted);font-style:italic;">Hover über einen Layer links für Details.</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Skip-Connection-Eingang</h3>
+    <p>Bevor das Decoder-Signal den Block durchläuft, wird die <em>passende Encoder-Aktivierung</em> hinzu-addiert (nicht konkateniert wie in vanilla-U-Net, sondern summiert — spart Kanäle, weniger Parameter):</p>
+    <pre><code>x_in = decoder_input + encoder_output_at_same_level   # Skip-add</code></pre>
+    <p>Mehr dazu in <a href="#" onclick="showTab('skip');return false;">Tab 7 · Skip-Connections</a>.</p>
+
+    <h3>ConvTranspose1d statt Unpooling</h3>
+    <p>Im Gegensatz zu einfachem Interpolations-Upsampling lernt <code>ConvTranspose1d</code> seine eigenen Upsampling-Filter. Das ist wichtig, weil ein gelerntes Upsampling pre-existierende Details rekonstruieren kann, die durch das strided Downsampling im Encoder "weichgespült" wurden.</p>
+  </section>
+
+  <!-- ================== BOTTLENECK ================== -->
+  <section id="bottleneck">
+    <h2>BiLSTM-Bottleneck · im Detail</h2>
+    <p class="lead">Zwischen Encoder und Decoder sitzt eine 2-Layer-Bidirektionale-LSTM. Das ist mit hoher Wahrscheinlichkeit der Grund, warum Demucs Conv-TasNet um 8.5 dB schlägt. Hier zeigen wir Schritt für Schritt, wie sie funktioniert.</p>
+
+    <h3>1 · Anatomie einer LSTM-Zelle</h3>
+    <p>Eine LSTM-Zelle hat <strong>drei Tore</strong> (Gates) und eine <strong>Memory-Spur</strong> (Cell State). Klick auf ein Gate, um seine Funktion zu sehen:</p>
+
+    <div class="panel" style="padding: 16px;">
+      <svg id="lstm-anatomy" class="diagram" viewBox="0 0 900 380">
+        <defs>
+          <marker id="arrow-lstm" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+          </marker>
+          <marker id="arrow-lstm-thick" markerWidth="12" markerHeight="12" refX="11" refY="4" orient="auto">
+            <path d="M0,0 L0,8 L11,4 z" fill="#1a3a5c"/>
+          </marker>
+        </defs>
+      </svg>
+      <div id="lstm-anatomy-detail" style="background:#f1f5f9;padding:14px 18px;border-radius:6px;margin-top:10px;min-height:80px;">
+        <p style="margin:0;color:var(--text-muted);font-style:italic;">Klick oder hover über ein Gate / eine Operation in der Zelle oben für Details.</p>
+      </div>
+    </div>
+
+    <h3>2 · Live: Gate-Aktivierungen mit konkreten Werten</h3>
+    <p>Spiel mit den Eingängen, sieh wie sich die Gates und der Cell-State verändern. Werte zwischen -1 und 1 für besseres Verständnis.</p>
+
+    <div class="panel">
+      <div class="grid-2" style="gap: 24px;">
+        <div>
+          <h4 style="margin-top:0;">Eingänge</h4>
+          <div class="control-row">
+            <label>Input x<sub>t</sub></label>
+            <input id="lstm-x" type="range" min="-1" max="1" step="0.05" value="0.5">
+            <span class="v" id="lstm-x-v">0.50</span>
+          </div>
+          <div class="control-row">
+            <label>Prev hidden h<sub>t-1</sub></label>
+            <input id="lstm-h" type="range" min="-1" max="1" step="0.05" value="0.2">
+            <span class="v" id="lstm-h-v">0.20</span>
+          </div>
+          <div class="control-row">
+            <label>Prev cell c<sub>t-1</sub></label>
+            <input id="lstm-c" type="range" min="-2" max="2" step="0.05" value="0.8">
+            <span class="v" id="lstm-c-v">0.80</span>
+          </div>
+
+          <h4>Gewichts-Biases (vereinfacht)</h4>
+          <div class="control-row">
+            <label>Forget bias b<sub>f</sub></label>
+            <input id="lstm-bf" type="range" min="-2" max="2" step="0.1" value="1.0">
+            <span class="v" id="lstm-bf-v">1.0</span>
+          </div>
+          <div class="control-row">
+            <label>Input bias b<sub>i</sub></label>
+            <input id="lstm-bi" type="range" min="-2" max="2" step="0.1" value="0.0">
+            <span class="v" id="lstm-bi-v">0.0</span>
+          </div>
+          <div class="control-row">
+            <label>Output bias b<sub>o</sub></label>
+            <input id="lstm-bo" type="range" min="-2" max="2" step="0.1" value="0.0">
+            <span class="v" id="lstm-bo-v">0.0</span>
+          </div>
+        </div>
+
+        <div>
+          <h4 style="margin-top:0;">Berechnete Werte</h4>
+          <table style="font-size:13px;">
+            <tbody id="lstm-values"></tbody>
+          </table>
+          <div style="margin-top:14px;padding:12px;background:#eef2f6;border-radius:6px;font-size:12px;">
+            <strong>Tipp:</strong> Setz <code>b<sub>f</sub> = 2.0</code> und beobachte, wie das Forget-Gate gegen 1 geht — der Cell-State wird fast vollständig erinnert. Im Original-Paper wird <code>b<sub>f</sub></code> bewusst auf 1 initialisiert, damit das Netz "by default" Information bewahrt.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>3 · Cell-State über die Zeit · "Conveyor Belt"</h3>
+    <p>Die wahre Magie der LSTM: der Cell-State <code>c<sub>t</sub></code> bildet eine fast-lineare "Förderband"-Verbindung von Anfang zu Ende der Sequenz. Information kann <strong>über sehr lange Distanzen</strong> erhalten bleiben, weil sie nur multiplicative Gates passiert (kein wiederholtes Tanh wie in einer Vanilla-RNN).</p>
+
+    <div class="panel">
+      <div class="control-row">
+        <label>Eingangs-Signal</label>
+        <select id="lstm-signal" style="padding:6px 10px;border-radius:4px;border:1px solid var(--border);font-family:inherit;">
+          <option value="step">Step (Konstante mit Sprung)</option>
+          <option value="periodic" selected>Periodisches Signal (Demo-Gradient-Artefakt)</option>
+          <option value="impulse">Einzelner Impuls (Persistence-Test)</option>
+          <option value="noise">Rauschen (Filtering-Test)</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <label>Forget-Stärke</label>
+        <input id="lstm-forget-strength" type="range" min="0" max="1" step="0.02" value="0.9">
+        <span class="v" id="lstm-forget-strength-v">0.90</span>
+        <span style="font-size:12px;color:var(--text-muted);">→ wie viel Memory bleibt erhalten</span>
+      </div>
+      <svg id="lstm-timeline" class="diagram" viewBox="0 0 900 320"></svg>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">
+        <strong>Was du siehst:</strong> oben das Eingangs-Signal, in der Mitte der Cell-State (das "Gedächtnis"), unten die Hidden-Output-Sequenz. Probier die verschiedenen Signal-Typen — der Cell-State verhält sich jeweils anders.
+      </div>
+    </div>
+
+    <h3>4 · Warum "Bi"? Forward-only vs Bidirektional</h3>
+    <p>Eine reguläre LSTM kennt zum Zeitpunkt <code>t</code> nur die Vergangenheit. Aber für viele Tasks (z.B. EEG-Denoising) hilft es <em>auch zu wissen, was als nächstes kommt</em>. Eine BiLSTM löst das, indem sie die Sequenz <strong>einmal vorwärts und einmal rückwärts</strong> verarbeitet und beide Hidden-States konkateniert.</p>
+
+    <div class="panel">
+      <div class="control-row">
+        <label>Cursor-Position</label>
+        <input id="bilstm-pos" type="range" min="0" max="19" step="1" value="9">
+        <span class="v" id="bilstm-pos-v">9</span>
+        <span style="font-size:12px;color:var(--text-muted);">→ welcher Token gerade ausgegeben wird</span>
+      </div>
+      <svg id="bilstm-flow" class="diagram" viewBox="0 0 900 240"></svg>
+      <div style="font-size:12.5px;color:var(--text-muted);margin-top:8px;">
+        <strong>Blau</strong> = Forward-LSTM (von links nach rechts gelaufen, "kennt" Tokens 0…t). <strong>Orange</strong> = Backward-LSTM (von rechts nach links, "kennt" Tokens N…t). Die Konkatenation am Cursor enthält den Kontext <em>beider Richtungen</em>.
+      </div>
+    </div>
+
+    <h3>5 · Demucs: 2 LSTM-Layer übereinander gestapelt</h3>
+    <p>Demucs nutzt nicht eine einzelne BiLSTM, sondern <strong>zwei Layer übereinander</strong>. Das bedeutet: der Output der ersten BiLSTM-Schicht (Sequenz von Hidden-States) wird zum Input der zweiten Schicht. Vorteil: höhere Abstraktion — Layer 1 lernt lokale temporale Muster, Layer 2 lernt Muster <em>von Mustern</em>.</p>
+
+    <pre><code>x_bottleneck   shape: (B, C, T_bottleneck)         # nach allen Encodern
+↓ transpose                                          # PyTorch LSTM erwartet (B, T, C)
+x_bilstm_in    shape: (B, T_bottleneck, C)
+↓ BiLSTM Layer 1 (forward + backward, hidden = C)
+h1             shape: (B, T_bottleneck, 2C)         # 2C wegen bidirektional
+↓ BiLSTM Layer 2 (forward + backward, hidden = C)
+h2             shape: (B, T_bottleneck, 2C)
+↓ Linear(2C → C)                                    # zurück auf Bottleneck-Channels
+out            shape: (B, T_bottleneck, C)
+↓ transpose
+x_bilstm_out   shape: (B, C, T_bottleneck)          # zurück in Conv-Notation</code></pre>
+
+    <h3>6 · Parameter-Budget</h3>
+    <p>Mit Bottleneck-Channels <code>C = 1024</code> (Standard-Demucs bei L=4 und C₁=64 → C₂=128 → C₃=256 → C₄=512 → BiLSTM-hidden = 1024):</p>
+
+    <table>
+      <thead><tr><th>Komponente</th><th>Berechnung</th><th>Parameter</th></tr></thead>
+      <tbody>
+        <tr><td>BiLSTM Layer 1 (4 Gates × 2 Richtungen)</td><td>4 × 2 × (C·C + C·C + C)</td><td>≈ 16.8 M</td></tr>
+        <tr><td>BiLSTM Layer 2 (input ist 2C)</td><td>4 × 2 × (2C·C + C·C + C)</td><td>≈ 25.2 M</td></tr>
+        <tr><td>Linear(2C → C)</td><td>2C·C + C</td><td>≈ 2.1 M</td></tr>
+        <tr style="background:#fef3c7;"><td><strong>Total Bottleneck</strong></td><td></td><td><strong>≈ 44 M</strong></td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:13px;color:var(--text-muted);">In unserer FACETpy-Adaption mit kleinerem C (256 statt 1024 nach 4 Encodern bei C₁=64) reduziert sich das proportional auf ~2.8 M Parameter für den Bottleneck — etwa 17 % des Gesamtmodells (16.6 M).</p>
+
+    <h3>7 · Warum gerade BiLSTM gewinnt bei EEG-Artefakten</h3>
+
+    <table>
+      <thead><tr><th>Bottleneck-Variante</th><th>Modell in der Thesis</th><th>SNR-Verbesserung</th><th>Inductive Bias für Periodizität</th></tr></thead>
+      <tbody>
+        <tr style="background:#fef3c7;"><td><strong>BiLSTM × 2</strong></td><td><strong>Demucs</strong></td><td><strong>+31.30 dB</strong></td><td>★★★★★ Hidden-State kann eine ganze Periode "im Gedächtnis" halten</td></tr>
+        <tr><td>Dilated TCN</td><td>Conv-TasNet</td><td>+22.74 dB</td><td>★★★☆☆ Rezeptiv-Feld muss explizit groß genug sein</td></tr>
+        <tr><td>Multi-Head Transformer</td><td>SepFormer</td><td>+18.71 dB</td><td>★★☆☆☆ Position-Encoding muss Periodizität explizit kodieren</td></tr>
+      </tbody>
+    </table>
+
+    <p>Der entscheidende Punkt: ein <strong>Gradient-Artefakt ist deterministisch periodisch mit der Slice-Repetition</strong>. Eine LSTM lernt das mit minimalem Aufwand — ihr Cell-State kann den Zustand "eine Periode zuvor" direkt enthalten und durch das Forget-Gate gezielt anzapfen. TCNs und Transformer müssen diese Struktur indirekt entdecken (über sehr große Rezeptivfelder bzw. erlernte Positions-Embeddings).</p>
+
+    <div class="panel panel-accent">
+      <strong>Anekdote aus dem Original-Paper:</strong> Démucs-Autoren testeten den BiLSTM-Bottleneck gegen eine Variante mit dilated Convolutions (genau das Architektur-Element, das Conv-TasNet nutzt). Die BiLSTM-Variante war auf MusDB um <strong>0.6 dB SDR besser</strong> (Tabelle 4). Bei EEG-Gradienten-Artefakten — wo die Periodizität noch viel strenger ist als bei Musik — fällt der Unterschied entsprechend stärker aus.
+    </div>
+
+    <h3>8 · Mathematische Definition · vollständig</h3>
+    <pre><code># Eingaben: x_t (jetzt), h_{t-1} (prev hidden), c_{t-1} (prev cell)
+# Lernbare Parameter: W_i*, W_h*, b_*
+
+# Drei Gates (alle σ-aktiviert, Output ∈ [0,1])
+i_t = σ(W_ii · x_t + W_hi · h_{t-1} + b_i)        # Input-Gate · "wieviel des Neuen lasse ich rein?"
+f_t = σ(W_if · x_t + W_hf · h_{t-1} + b_f)        # Forget-Gate · "wieviel des Alten behalte ich?"
+o_t = σ(W_io · x_t + W_ho · h_{t-1} + b_o)        # Output-Gate · "wieviel zeige ich nach außen?"
+
+# Kandidat fürs neue Cell-State (tanh-aktiviert, Output ∈ [-1,1])
+g_t = tanh(W_ig · x_t + W_hg · h_{t-1} + b_g)
+
+# Cell-State-Update: forget altes UND add neues, element-wise multipliziert
+c_t = f_t ⊙ c_{t-1}  +  i_t ⊙ g_t
+#     └─── alte Erinnerung ───┘    └── neue Information ──┘
+
+# Hidden-Output: gefilterte Sicht auf den Cell-State
+h_t = o_t ⊙ tanh(c_t)</code></pre>
+
+    <p>Bei der bidirektionalen Variante läuft genau dieser Algorithmus zweimal — einmal vorwärts (t = 1..N) und einmal rückwärts (t = N..1) — und die Hidden-States werden konkateniert: <code>[h<sub>t</sub><sup>fwd</sup>; h<sub>t</sub><sup>bwd</sup>] ∈ ℝ<sup>2C</sup></code>.</p>
+  </section>
+
+  <!-- ================== SKIP CONNECTIONS ================== -->
+  <section id="skip">
+    <h2>Skip-Connections · was wäre ohne?</h2>
+    <p class="lead">Ohne Skip-Connections würde Demucs hochfrequente Details verlieren. Probier es aus.</p>
+
+    <div class="panel">
+      <div class="control-row">
+        <label>Skip-Connections</label>
+        <button id="skip-toggle" class="toggle-btn">eingeschaltet</button>
+      </div>
+      <div class="control-row">
+        <label>Signal-Frequenz</label>
+        <input id="skip-freq" type="range" min="0.5" max="6" step="0.1" value="2">
+        <span class="v" id="skip-freq-v">2.0</span>
+        <span style="font-size:12px;color:var(--text-muted);">Hz</span>
+      </div>
+      <div class="control-row">
+        <label>Hochfreq-Anteil</label>
+        <input id="skip-hf" type="range" min="0" max="1" step="0.05" value="0.6">
+        <span class="v" id="skip-hf-v">0.6</span>
+      </div>
+    </div>
+
+    <svg id="skip-svg" class="diagram" viewBox="0 0 900 280"></svg>
+
+    <h3>Was du gerade gesehen hast</h3>
+    <ul>
+      <li><strong>Original</strong> (oben): das Eingangs-Signal mit Niederfreq-Träger + Hochfreq-Detail.</li>
+      <li><strong>Bottleneck-Rekonstruktion</strong> (Mitte): was das Modell aus dem komprimierten Bottleneck allein rekonstruieren könnte — der Hochfreq-Anteil ist weichgespült, weil das Striding (Faktor 4 pro Stufe) die Sample-Rate effektiv reduziert.</li>
+      <li><strong>Mit Skip-Connections</strong> (unten): durch die Encoder-Aktivierungen "zurück-injiziert" → Details bleiben erhalten.</li>
+    </ul>
+
+    <h3>Bei EEG konkret: warum das so wichtig ist</h3>
+    <p>Gradient-Artefakte enthalten <strong>steile Slope-Edges</strong> (Frequenz-Komponenten weit über die Slice-Repetition hinaus). Ohne Skip-Connections würde das Modell die Hauptperiode lernen, aber die scharfen Edges verpassen — was sich als <em>Residual-Klingeln</em> im Output äußern würde. Mit Skip-Connections bleiben diese Edges erhalten.</p>
+
+    <div class="panel panel-accent">
+      <strong>Anekdote:</strong> Das vanilla-U-Net (Ronneberger et al. 2015) <em>konkateniert</em> die Encoder-Outputs in den Decoder. Demucs dagegen <em>addiert</em> sie (Element-wise Sum). Das halbiert die Decoder-Eingangskanäle und spart ca. 20% Parameter, ohne messbaren Qualitätsverlust laut Original-Paper.
+    </div>
+  </section>
+
+  <!-- ================== EEG ================== -->
+  <section id="eeg">
+    <h2>EEG-Adaption · Domain Transfer</h2>
+    <p class="lead">Demucs original wurde für Musik gebaut. Hier die fünf konkreten Anpassungen, die nötig waren — und die ein, die <em>nicht</em> nötig war.</p>
+
+    <h3>Mapping-Tabelle</h3>
+    <table>
+      <thead><tr><th>Aspekt</th><th>Demucs original (MusDB)</th><th>FACETpy-Adaption (Niazy)</th><th>Begründung</th></tr></thead>
+      <tbody>
+        <tr><td>Eingangs-Kanäle</td><td>2 (Stereo)</td><td>1 (Mono pro EEG-Kanal)</td><td>per-Kanal-Verarbeitung; spart Parameter</td></tr>
+        <tr><td>Sample-Rate</td><td>44.1 kHz</td><td>4096 Hz</td><td>EEG-Bandbreite reicht bis ~500 Hz</td></tr>
+        <tr><td>Segment-Länge</td><td>11 s ≈ 485k Samples</td><td>3584 Samples (= 7 × 512 ms)</td><td>7-Epochen-Trigger-Kontext fürs Modell</td></tr>
+        <tr><td>Tiefe L</td><td>6</td><td>4</td><td>Bottleneck-Collapse bei L=6 (3584/4⁶ &lt; 1)</td></tr>
+        <tr><td>Start-Kanäle C₁</td><td>64</td><td>64</td><td>unverändert übernommen</td></tr>
+        <tr><td>Ausgangs-Stems</td><td>4 (Drums/Bass/Vocals/Other)</td><td>1 (nur Artefakt)</td><td>Korrektur = noisy − artifact</td></tr>
+        <tr><td>Loss</td><td>L1 über alle 4 Stems</td><td>L1 über vorhergesagten Artefakt</td><td>identische Formel, kleinere Skala</td></tr>
+        <tr><td>Optimizer</td><td>Adam, lr=3e-4</td><td>Adam, lr=3e-4</td><td>unverändert</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Was <em>nicht</em> angepasst werden musste</h3>
+    <p>Die Kern-Architektur — <strong>U-Net-Topologie, BiLSTM-Bottleneck, GLU-Aktivierung, Skip-add-Connections, Weight-Rescaling</strong> — wurde komplett unverändert übernommen. Auch der L1-Loss und die Adam-Optimizer-Defaults blieben. Das ist die Schlagzeile dieser Thesis-Sektion: trotz Domain-Wechsel von Musik zu EEG funktioniert die Architektur "out-of-the-box".</p>
+
+    <h3>Trigger-Kontext: das einzige nicht-triviale Detail</h3>
+    <p>Statt willkürlich Audio-Slices zu nehmen, konkateniert FACETpy <strong>7 zeitlich aufeinanderfolgende, trigger-locked EEG-Epochen</strong> zu einem 3584-sample-Eingang. Vorteil: das Modell sieht <em>vor</em> und <em>nach</em> der zu korrigierenden Mittel-Epoche jeweils 3 Nachbar-Epochen, kann also die Periodizität des Gradient-Artefakts direkt lernen.</p>
+
+    <p>Bei der Inferenz schneidet der <code>DemucsAdapter</code> dann nur die mittlere Epoche aus dem 3584-Sample-Output heraus (samples <code>[3·512 : 4·512]</code>) und subtrahiert sie vom Eingangs-Signal. Die randständigen Epochen werden implizit durch den Trainings-Loss mitoptimiert, aber nur für Kontext verwendet.</p>
+
+    <h3>Per-Channel-Verarbeitung</h3>
+    <p>Demucs läuft <strong>pro EEG-Kanal separat</strong> (Execution-Granularity = CHANNEL in der FACETpy-Notation). Das hat zwei Folgen:</p>
+    <ul>
+      <li><strong>Plus:</strong> identische Architektur für 30, 64 oder 128 EEG-Kanäle — keine Anpassung nötig, kein Re-Training für andere Setups.</li>
+      <li><strong>Minus:</strong> das Modell sieht keine räumliche Information. Spatial-aware-Modelle wie ST-GNN könnten theoretisch besser sein — sind es aber empirisch <em>nicht</em> (ST-GNN: +11.0 dB vs Demucs: +31.3 dB).</li>
+    </ul>
+  </section>
+
+  <!-- ================== RESULTS ================== -->
+  <section id="results">
+    <h2>Resultate aus dem Run</h2>
+    <p class="lead">Was Demucs in unserem Setup tatsächlich erreicht hat, mit Vergleich zu allen anderen 11 Modellen.</p>
+
+    <h3>Headline-Metriken (Unified Holdout, 166 Windows × 30 Kanäle)</h3>
+    <div class="grid-3">
+      <div class="kpi">
+        <div class="label">SNR-Verbesserung</div>
+        <div class="value">+31.30 dB</div>
+        <div class="sub">Rank 1 von 12</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Artefakt-Korrelation</div>
+        <div class="value">0.9996</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Clean-MSE-Reduktion</div>
+        <div class="value">+99.93 %</div>
+      </div>
+      <div class="kpi">
+        <div class="label">RMS-Recovery</div>
+        <div class="value">1.018</div>
+        <div class="sub">FACETpy-Style, Ziel = 1.0</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Residual-RMS-Ratio</div>
+        <div class="value">0.027</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Inferenz-Zeit</div>
+        <div class="value">110 s</div>
+        <div class="sub">CPU · 4980 ch-w</div>
+      </div>
+    </div>
+
+    <h3>SNR-Verbesserung im Familien-Vergleich</h3>
+    <div id="results-bars"></div>
+
+    <h3>Trainings-Verlauf</h3>
+    <p>Demucs konvergiert sauber und monoton:</p>
+    <ul>
+      <li>52 Epochen Training auf RTX 5090, ca. 406 s Wall-Clock</li>
+      <li>Best Epoch = 49 (Early-Stopping mit Patience 12)</li>
+      <li>Best Val L1 = <code>2.78 × 10⁻⁵</code></li>
+      <li>Keine Loss-Spikes, keine Diskriminator-Tug-Of-War wie bei DHCT-GAN</li>
+    </ul>
+    <p style="text-align:center; margin-top:14px;">
+      <img src="../../output/model_evaluations/demucs/20260511_005636/plots/training_loss.png"
+           alt="Demucs Training Loss" style="max-width:680px; width:100%; border:1px solid var(--border); border-radius:6px;">
+    </p>
+
+    <h3>Korrektur-Beispiele aus dem Holdout</h3>
+    <p style="text-align:center; margin-top:14px;">
+      <img src="../../output/model_evaluations/demucs/holdout_v1/plots/holdout_examples.png"
+           alt="Demucs Holdout Examples" style="max-width:680px; width:100%; border:1px solid var(--border); border-radius:6px;">
+    </p>
+
+    <h3>Caveat: Demucs hat einen TorchScript-Bug</h3>
+    <div class="panel panel-accent">
+      Bei der TorchScript-Export-Trace bakt PyTorch die CUDA-Tensor-Metadaten der LSTM-Hidden-State-Initialisierung in den Graph. Heißt: das exportierte Modell läuft <strong>nur auf CUDA</strong>, nicht auf CPU — selbst mit <code>map_location="cpu"</code>. Workaround: ein zweites <code>demucs_cpu.ts</code> wurde manuell von CPU aus re-traced. Saubere Fix-Optionen wären <code>torch.jit.script</code> statt <code>trace</code>, oder ein "retrace_on_cpu"-Post-Step im <code>_export_pytorch_torchscript</code>-CLI.
+    </div>
+  </section>
+
+  <!-- ================== REFERENCES ================== -->
+  <section id="refs">
+    <h2>Referenzen &amp; weiterführende Lektüre</h2>
+
+    <h3>Primärliteratur</h3>
+    <div class="citation">
+      <strong>[1]</strong> Défossez, A., Usunier, N., Bottou, L., &amp; Bach, F. (2019).
+      <em>Music Source Separation in the Waveform Domain.</em> arXiv:1911.13254.<br>
+      <a href="https://arxiv.org/abs/1911.13254" target="_blank">https://arxiv.org/abs/1911.13254</a>
+    </div>
+
+    <h3>Verwandt &amp; vergleichend</h3>
+    <div class="citation">
+      <strong>[2]</strong> Luo, Y., &amp; Mesgarani, N. (2019).
+      <em>Conv-TasNet: Surpassing Ideal Time-Frequency Magnitude Masking for Speech Separation.</em>
+      IEEE/ACM TASLP. — Audio-Source-Separation mit dilated TCN statt LSTM. In dieser Thesis Platz 2 mit +22.74 dB.
+    </div>
+    <div class="citation">
+      <strong>[3]</strong> Subakan, C., et al. (2021).
+      <em>Attention Is All You Need In Speech Separation.</em> ICASSP. — SepFormer, Transformer-basierte Source-Separation. In dieser Thesis Platz 3 mit +18.71 dB.
+    </div>
+    <div class="citation">
+      <strong>[4]</strong> Ronneberger, O., Fischer, P., &amp; Brox, T. (2015).
+      <em>U-Net: Convolutional Networks for Biomedical Image Segmentation.</em> MICCAI. — Die ursprüngliche U-Net-Topologie, die Demucs in 1D übersetzt.
+    </div>
+
+    <h3>FACETpy-spezifisch</h3>
+    <div class="citation">
+      <strong>[5]</strong> Niazy, R. K., et al. (2005). <em>Removal of FMRI environment artifacts from EEG data using optimal basis sets.</em>
+      NeuroImage. — Die AAS-Methode, deren Ausgabe als "Clean"-Ground-Truth in diesem Datensatz dient.
+    </div>
+
+    <h3>Im Repo</h3>
+    <ul>
+      <li><code>src/facet/models/demucs/training.py</code> — Modell-Definition</li>
+      <li><code>src/facet/models/demucs/processor.py</code> — FACETpy-Adapter</li>
+      <li><code>src/facet/models/demucs/HANDOFF.md</code> — Implementations-Notizen</li>
+      <li><code>src/facet/models/demucs/documentation/research_notes.md</code> — Paper-Mapping, Hyperparameter-Begründungen, offene Fragen</li>
+      <li><code>src/facet/models/demucs/documentation/model_card.md</code> — Modell-Karte</li>
+      <li><code>output/model_evaluations/demucs/holdout_v1/</code> — Unified-Holdout-Resultate</li>
+      <li><code>docs/research/run_2_plan.md</code> — Run-2-Plan (Demucs braucht keine Änderungen)</li>
+    </ul>
+
+    <p style="margin-top:32px; color:var(--text-muted); font-size:12.5px;">
+      Diese App wurde am 2026-05-12 generiert aus den Repo-Daten und ist als statische HTML-Datei portierbar. Lokal öffnen via <code>open docs/interactive/demucs_explorer.html</code>.
+    </p>
+  </section>
+</main>
+
+</div>
+
+<script>
+// =============================================================
+//  Tab navigation
+// =============================================================
+const tabs = document.querySelectorAll('aside nav button');
+const sections = document.querySelectorAll('main section');
+function showTab(id) {
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+  sections.forEach(s => s.classList.toggle('active', s.id === id));
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+tabs.forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
+window.showTab = showTab;
+
+// =============================================================
+//  Intro: family comparison bars
+// =============================================================
+const allModels = [
+  { id: 'demucs',          name: 'Demucs',          fam: 'Audio',          snr: 31.30, highlight: true },
+  { id: 'conv_tasnet',     name: 'Conv-TasNet',     fam: 'Audio',          snr: 22.74 },
+  { id: 'sepformer',       name: 'SepFormer',       fam: 'Audio',          snr: 18.71 },
+  { id: 'nested_gan',      name: 'Nested-GAN',      fam: 'GAN',            snr: 11.71 },
+  { id: 'denoise_mamba',   name: 'Denoise-Mamba',   fam: 'SSM',            snr: 11.20 },
+  { id: 'ic_unet',         name: 'IC-U-Net',        fam: 'Discriminative', snr: 11.11 },
+  { id: 'st_gnn',          name: 'ST-GNN',          fam: 'Graph',          snr: 11.00 },
+  { id: 'vit_spectrogram', name: 'ViT Spectrogram', fam: 'Vision',         snr: 10.95 },
+  { id: 'dpae',            name: 'DPAE',            fam: 'Discriminative', snr:  7.28 },
+  { id: 'd4pm',            name: 'D4PM',            fam: 'Diffusion',      snr:  4.81 },
+  { id: 'dhct_gan_v2',     name: 'DHCT-GAN v2',     fam: 'GAN',            snr: -1.17 },
+  { id: 'dhct_gan',        name: 'DHCT-GAN v1',     fam: 'GAN',            snr: -7.12 },
+];
+
+function renderBars(containerId) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  const maxAbs = Math.max(...allModels.map(m => Math.abs(m.snr)));
+  c.innerHTML = '';
+  allModels.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'bar-row' + (m.highlight ? ' highlight' : '');
+    const w = (Math.abs(m.snr) / maxAbs) * 100;
+    row.innerHTML = `
+      <div class="name">${m.name}</div>
+      <div class="track">
+        <div class="fill" style="width: ${w}%; ${m.snr < 0 ? 'background:#dc2626;' : ''}">
+          ${m.snr >= 0 ? '+' : ''}${m.snr.toFixed(2)} dB
+        </div>
+      </div>
+    `;
+    c.appendChild(row);
+  });
+}
+renderBars('intro-bars');
+renderBars('results-bars');
+
+// =============================================================
+//  Architecture diagram (live)
+// =============================================================
+const archSvg = document.getElementById('arch-svg');
+const tooltip = document.getElementById('tooltip-arch');
+const archStatus = document.getElementById('arch-status');
+const paramTbody = document.querySelector('#param-table tbody');
+
+let skipOn = true;
+const skipBtn = document.getElementById('ctl-skip');
+skipBtn.addEventListener('click', () => {
+  skipOn = !skipOn;
+  skipBtn.textContent = skipOn ? 'an' : 'aus';
+  skipBtn.classList.toggle('off', !skipOn);
+  renderArch();
+});
+
+['ctl-T','ctl-L','ctl-C','ctl-K','ctl-S'].forEach(id => {
+  const el = document.getElementById(id);
+  const v = document.getElementById('v-' + id.slice(-1));
+  el.addEventListener('input', () => {
+    v.textContent = el.value;
+    renderArch();
+  });
+});
+
+function computeShapes(T, L, C, K, S) {
+  // Demucs encoder: T_i = (T_{i-1} - K) / S + 1, with padding K-1 -> T_i = ceil(T_{i-1}/S)
+  // Channels: C_i = 2 * C_{i-1}, C_0 = 1, C_1 = C
+  const shapes = [];
+  let curT = T, curC = 1;
+  shapes.push({ stage: 'input', T: curT, C: curC });
+  for (let i = 1; i <= L; i++) {
+    curT = Math.ceil(curT / S);  // approximation matching Demucs padding convention
+    curC = (i === 1) ? C : 2 * shapes[shapes.length - 1].C;
+    shapes.push({ stage: 'enc_' + i, T: curT, C: curC });
+  }
+  // BiLSTM keeps same shape
+  shapes.push({ stage: 'bilstm', T: curT, C: curC });
+  // Decoder: mirror
+  for (let i = L; i >= 1; i--) {
+    const prev = shapes[shapes.length - 1];
+    const newC = (i === 1) ? 1 : prev.C / 2;
+    const newT = prev.T * S;
+    shapes.push({ stage: 'dec_' + i, T: newT, C: newC });
+  }
+  return shapes;
+}
+
+function countParams(shapes, K) {
+  // For each encoder/decoder block, sum the conv parameters
+  const items = [];
+  let total = 0;
+  for (const s of shapes) {
+    let p = 0, descr = '';
+    if (s.stage.startsWith('enc_')) {
+      const idx = parseInt(s.stage.slice(4));
+      const c_in = (idx === 1) ? 1 : shapes.find(x => x.stage === 'enc_' + (idx - 1)).C;
+      const c_out = s.C;
+      // Conv1d(c_in, c_out, K, stride S) + bias
+      p += c_in * c_out * K + c_out;
+      // 1x1 Conv(c_out, 2*c_out) + bias  (for GLU)
+      p += c_out * (2 * c_out) + 2 * c_out;
+      descr = `Conv1d(${c_in},${c_out},K=${K}) + 1×1(${c_out},${2*c_out})`;
+    } else if (s.stage.startsWith('dec_')) {
+      const idx = parseInt(s.stage.slice(4));
+      const next = shapes[shapes.indexOf(s) - 1];
+      const c_in = next.C;
+      const c_out = s.C;
+      // 1x1 Conv(c_in, 2*c_in) for GLU
+      p += c_in * (2 * c_in) + 2 * c_in;
+      // ConvTranspose1d(c_in, c_out, K, stride S)
+      p += c_in * c_out * K + c_out;
+      descr = `1×1(${c_in},${2*c_in}) + ConvT1d(${c_in},${c_out},K=${K})`;
+    } else if (s.stage === 'bilstm') {
+      // BiLSTM params: 2 layers, hidden = C, 4 gates each
+      // per direction per layer: 4 * (C * C + C * C + C) ~ 8C² + 4C
+      // 2 layers, 2 directions: total ~ 4 * (8C² + 4C) = 32C² + 16C
+      // Plus the final Linear(2C, C) = 2C*C + C
+      p = 32 * s.C * s.C + 16 * s.C + 2 * s.C * s.C + s.C;
+      descr = `BiLSTM(2-layer) + Linear(${2*s.C},${s.C})`;
+    } else if (s.stage === 'input') {
+      descr = 'Eingangs-Waveform';
+    }
+    total += p;
+    items.push({ ...s, p, descr });
+  }
+  return { items, total };
+}
+
+function fmtParams(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(2) + ' M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + ' K';
+  return n.toString();
+}
+
+function renderArch() {
+  const T = parseInt(document.getElementById('ctl-T').value);
+  const L = parseInt(document.getElementById('ctl-L').value);
+  const C = parseInt(document.getElementById('ctl-C').value);
+  const K = parseInt(document.getElementById('ctl-K').value);
+  const S = parseInt(document.getElementById('ctl-S').value);
+
+  const shapes = computeShapes(T, L, C, K, S);
+  const { items, total } = countParams(shapes, K);
+
+  // Detect collapse
+  const bottleneck = shapes.find(s => s.stage === 'bilstm');
+  const collapsed = bottleneck.T < 1;
+  archStatus.innerHTML = collapsed
+    ? `<span class="badge badge-bad">⚠️ Bottleneck-Collapse · Länge nach Encoder = ${bottleneck.T} Sample</span> &nbsp;&nbsp; Total Params: <strong>${fmtParams(total)}</strong>`
+    : `<span class="badge badge-ok">✓ Architektur ist gültig</span> &nbsp;&nbsp; Bottleneck-Länge: <code>${bottleneck.T}</code> Samples · Bottleneck-Channels: <code>${bottleneck.C}</code> · Total Params: <strong>${fmtParams(total)}</strong>`;
+
+  // SVG
+  const w = 900, h = 480;
+  const cx = w / 2;
+  const levels = L + 2; // input + L encoder + bilstm + L decoder + output (but symmetric, so just use levels)
+  archSvg.innerHTML = `<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker></defs>`;
+
+  // Position: input at top-left, encoder going down-left, bilstm bottom, decoder going up-right
+  const xLeft = 200, xRight = 700;
+  const blockHeight = 30;
+  const yTop = 30;
+  const yBottom = h - 30;
+  const yLevels = L + 1; // bilstm sits in middle
+  const dy = (yBottom - yTop) / (yLevels);
+
+  const positions = {};
+  // Encoder column (left)
+  positions['input'] = { x: xLeft, y: yTop };
+  for (let i = 1; i <= L; i++) positions['enc_' + i] = { x: xLeft, y: yTop + i * dy };
+  positions['bilstm'] = { x: cx, y: yTop + (L + 0.5) * dy };
+  for (let i = L; i >= 1; i--) positions['dec_' + i] = { x: xRight, y: yTop + i * dy };
+  // The output is at the right top
+  positions['output'] = { x: xRight, y: yTop };
+
+  // Draw skip lines first (so they're behind)
+  if (skipOn) {
+    for (let i = 1; i <= L; i++) {
+      const a = positions['enc_' + i];
+      const b = positions['dec_' + i];
+      const path = `M ${a.x + 75} ${a.y + blockHeight/2} C ${cx} ${a.y}, ${cx} ${b.y}, ${b.x - 75} ${b.y + blockHeight/2}`;
+      archSvg.insertAdjacentHTML('beforeend', `<path d="${path}" class="arch-skip" />`);
+    }
+  }
+
+  // Helper to draw a block
+  function block(item, label, kind, sublabel) {
+    const { x, y } = positions[item.stage];
+    const bw = 150;
+    archSvg.insertAdjacentHTML('beforeend', `
+      <g data-stage="${item.stage}" style="cursor:pointer;">
+        <rect class="arch-block ${kind}" x="${x - bw/2}" y="${y}" width="${bw}" height="${blockHeight}" rx="4"></rect>
+        <text class="arch-label" x="${x}" y="${y + blockHeight/2 + 1}" text-anchor="middle" dominant-baseline="middle">${label}</text>
+        <text class="arch-label-sub" x="${x}" y="${y + blockHeight - 5}" text-anchor="middle">${sublabel}</text>
+        <text class="arch-shape-label" x="${x + bw/2 + 8}" y="${y + blockHeight/2 + 3}">(C=${item.C}, T=${item.T})</text>
+      </g>
+    `);
+  }
+
+  // Draw blocks
+  block(shapes[0], 'Input', 'io', `Waveform`);
+  for (let i = 1; i <= L; i++) {
+    const item = shapes.find(s => s.stage === 'enc_' + i);
+    block(item, `Encoder ${i}`, 'encoder', `↓${S}, ×2 ch`);
+  }
+  block(bottleneck, 'BiLSTM × 2', 'bottleneck', `bidirektional`);
+  for (let i = L; i >= 1; i--) {
+    const item = shapes.find(s => s.stage === 'dec_' + i);
+    block(item, `Decoder ${i}`, 'decoder', `↑${S}, ÷2 ch`);
+  }
+  block({ stage: 'output', T: T, C: 1 }, 'Output', 'io', `Artefakt-Vorhersage`);
+
+  // Draw flow arrows
+  function arrow(fromStage, toStage) {
+    const a = positions[fromStage], b = positions[toStage];
+    if (!a || !b) return;
+    const bw = 75;
+    const aSide = a.x === xLeft ? (a.y < b.y ? 'bottom' : 'right')
+                : a.x === xRight ? (a.y > b.y ? 'top' : 'left')
+                : 'right';
+    const x1 = a.x, y1 = a.y + blockHeight;
+    const x2 = b.x, y2 = b.y;
+    // Just draw a simple L-shape arrow
+    archSvg.insertAdjacentHTML('beforeend', `<path d="M ${x1} ${y1} L ${x2} ${y2}" class="arch-flow" />`);
+  }
+  let prev = 'input';
+  for (let i = 1; i <= L; i++) { arrow(prev, 'enc_' + i); prev = 'enc_' + i; }
+  // enc_L -> bilstm
+  {
+    const a = positions['enc_' + L], b = positions['bilstm'];
+    archSvg.insertAdjacentHTML('beforeend', `<path d="M ${a.x + 75} ${a.y + blockHeight/2} L ${b.x - 75} ${b.y + blockHeight/2}" class="arch-flow" />`);
+  }
+  // bilstm -> dec_L
+  {
+    const a = positions['bilstm'], b = positions['dec_' + L];
+    archSvg.insertAdjacentHTML('beforeend', `<path d="M ${a.x + 75} ${a.y + blockHeight/2} L ${b.x - 75} ${b.y + blockHeight/2}" class="arch-flow" />`);
+  }
+  prev = 'dec_' + L;
+  for (let i = L - 1; i >= 1; i--) {
+    const a = positions[prev], b = positions['dec_' + i];
+    archSvg.insertAdjacentHTML('beforeend', `<path d="M ${a.x} ${a.y} L ${b.x} ${b.y + blockHeight}" class="arch-flow" />`);
+    prev = 'dec_' + i;
+  }
+  // dec_1 -> output
+  {
+    const a = positions['dec_1'], b = positions['output'];
+    archSvg.insertAdjacentHTML('beforeend', `<path d="M ${a.x} ${a.y} L ${b.x} ${b.y + blockHeight}" class="arch-flow" />`);
+  }
+
+  // Tooltip
+  archSvg.querySelectorAll('g[data-stage]').forEach(g => {
+    g.addEventListener('mouseenter', (e) => {
+      const stage = g.dataset.stage;
+      const it = items.find(x => x.stage === stage);
+      if (!it) return;
+      tooltip.innerHTML = `<strong>${stage}</strong><br>${it.descr || ''}<br>Shape: (B, ${it.C}, ${it.T})<br>Parameter: ${fmtParams(it.p || 0)}`;
+      tooltip.classList.add('visible');
+    });
+    g.addEventListener('mousemove', (e) => {
+      tooltip.style.left = (e.pageX + 14) + 'px';
+      tooltip.style.top = (e.pageY + 14) + 'px';
+    });
+    g.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+  });
+
+  // Param table
+  paramTbody.innerHTML = '';
+  items.forEach(it => {
+    if (it.stage === 'input') return;
+    const pct = total > 0 ? (100 * it.p / total).toFixed(1) : '0';
+    paramTbody.insertAdjacentHTML('beforeend', `
+      <tr>
+        <td><code>${it.stage}</code></td>
+        <td><code>(${it.C}, ${it.T})</code></td>
+        <td>${fmtParams(it.p || 0)}</td>
+        <td>${pct} %</td>
+      </tr>
+    `);
+  });
+  paramTbody.insertAdjacentHTML('beforeend', `
+    <tr style="background:#fef3c7;">
+      <td><strong>Total</strong></td><td>—</td><td><strong>${fmtParams(total)}</strong></td><td>100 %</td>
+    </tr>
+  `);
+}
+renderArch();
+
+// =============================================================
+//  Encoder/Decoder layer stack
+// =============================================================
+const encoderLayers = [
+  { type: 'Conv1d(C_in, C_out, K=8, stride=4)', shape: '(B, 2C, T/4)',
+    detail: '<strong>Strided 1D-Convolution.</strong> Reduziert die Sample-Länge um Faktor 4 (Stride) und verdoppelt die Kanal-Anzahl. Der Kernel ist 8 Samples breit, padding = K-1, sodass die Output-Länge ungefähr <code>ceil(T_in / S)</code> ist.<br><br>Im Demucs-Paper Section 3.1 ist das die "Down-Stage" — sie ist der einzige Block, der die zeitliche Auflösung reduziert.' },
+  { type: 'ReLU', shape: '(B, 2C, T/4)',
+    detail: '<strong>Standard-ReLU-Aktivierung.</strong> Bringt Nonlinearität ein; die negativen Komponenten werden auf 0 gesetzt. Demucs nutzt ReLU nach der Conv1d, aber nicht nach dem 1×1-Conv (dort kommt GLU stattdessen).' },
+  { type: 'Conv1d(C_out, 2·C_out, K=1)', shape: '(B, 4C, T/4)',
+    detail: '<strong>1×1-Convolution.</strong> Ein "Channel-Mixer": kein zeitlicher Kontext, sondern lineare Kombination der Channel-Dimensionen. Verdoppelt die Channel-Anzahl noch einmal — diese Verdopplung wird durch GLU im nächsten Schritt wieder halbiert.' },
+  { type: 'GLU(dim=1)', shape: '(B, 2C, T/4)',
+    detail: '<strong>Gated Linear Unit.</strong> Spaltet die Channel-Dimension in zwei Hälften <code>(a, b)</code>, dann gilt: <code>GLU(x) = a ⊙ sigmoid(b)</code>. Die <code>sigmoid(b)</code>-Komponente fungiert als <em>Gate</em> — sie lernt selbst, welche Channels durchgelassen werden. Vorteil gegenüber ReLU: glatter, lernbar, nicht "tot" bei negativen Inputs.<br><br>Aus Dauphin et al. 2016 (Language Modeling with Gated Convolutional Networks); Gehring et al. 2017 (Convolutional Seq2Seq).' },
+];
+const decoderLayers = [
+  { type: '+ Encoder-Skip', shape: '(B, 2C, T/4)',
+    detail: '<strong>Skip-Connection-Eingang.</strong> Bevor die Decoder-Operationen starten, wird die korrespondierende Encoder-Aktivierung <em>element-wise</em> auf das Decoder-Signal addiert. Demucs nutzt <code>+</code> statt <code>concat</code>, was Decoder-Channels halbiert und Parameter spart.<br><br>Diese Skip-Connection ist der Grund, warum hochfrequente Details (z.B. Slope-Edges des Gradient-Artefakts) durch das Bottleneck erhalten bleiben — siehe Tab "Skip-Connections".' },
+  { type: 'Conv1d(2C, 4C, K=3)', shape: '(B, 4C, T/4)',
+    detail: '<strong>Channel-Mixer mit kleinem Kernel.</strong> Im Decoder hat dieser Conv-Layer nicht Kernel=1 sondern Kernel=3 — er nimmt also auch lokale zeitliche Information mit auf, bevor das Upsampling beginnt.' },
+  { type: 'GLU(dim=1)', shape: '(B, 2C, T/4)',
+    detail: 'Gleiche GLU-Operation wie im Encoder. Halbiert die Channel-Anzahl von 4C auf 2C.' },
+  { type: 'ConvTranspose1d(2C, C, K=8, stride=4)', shape: '(B, C, T)',
+    detail: '<strong>Transposed-Convolution.</strong> Lernbares Upsampling — die Inverse-Operation der strided Conv im Encoder. Multipliziert die Sample-Länge mit Faktor 4 (Stride) und halbiert die Kanal-Anzahl. Lernbare Filter rekonstruieren Details, die durch das Striding "weichgespült" wurden.' },
+  { type: 'ReLU (außer auf letztem Block)', shape: '(B, C, T)',
+    detail: 'Standard-ReLU am Ende jedes Decoder-Blocks (außer dem allerletzten, der den Output erzeugt und linear bleibt).' },
+];
+function renderBlockStack(containerId, layers, detailId) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = '';
+  layers.forEach((l, i) => {
+    if (i > 0) c.insertAdjacentHTML('beforeend', '<div class="arrow-down">↓</div>');
+    const box = document.createElement('div');
+    box.className = 'layer-box';
+    box.innerHTML = `<div class="type">${l.type}</div><div class="shape">${l.shape}</div>`;
+    box.addEventListener('mouseenter', () => {
+      document.getElementById(detailId).innerHTML = `<h4 style="margin-top:0;color:var(--accent);">${l.type}</h4>${l.detail}`;
+    });
+    c.appendChild(box);
+  });
+}
+renderBlockStack('encoder-stack', encoderLayers, 'encoder-detail');
+renderBlockStack('decoder-stack', decoderLayers, 'decoder-detail');
+
+// =============================================================
+//  Skip-connection demo
+// =============================================================
+const skipSvg = document.getElementById('skip-svg');
+let skipDemoOn = true;
+const skipDemoBtn = document.getElementById('skip-toggle');
+skipDemoBtn.addEventListener('click', () => {
+  skipDemoOn = !skipDemoOn;
+  skipDemoBtn.textContent = skipDemoOn ? 'eingeschaltet' : 'ausgeschaltet';
+  skipDemoBtn.classList.toggle('off', !skipDemoOn);
+  renderSkipDemo();
+});
+['skip-freq', 'skip-hf'].forEach(id => {
+  const el = document.getElementById(id);
+  const v = document.getElementById(id + '-v');
+  el.addEventListener('input', () => {
+    v.textContent = parseFloat(el.value).toFixed(1);
+    renderSkipDemo();
+  });
+});
+
+function renderSkipDemo() {
+  const freq = parseFloat(document.getElementById('skip-freq').value);
+  const hf = parseFloat(document.getElementById('skip-hf').value);
+  const w = 900, h = 280;
+  const margin = 70;
+  const rowH = (h - 2 * margin) / 3;
+  const cx = w - margin;
+  const sx = margin + 80;
+  const N = 200;
+  const xs = Array.from({length: N}, (_, i) => sx + (cx - sx) * i / (N - 1));
+  function signal(includeHF) {
+    return xs.map((x, i) => {
+      const t = i / (N - 1);
+      let v = Math.sin(2 * Math.PI * freq * t);
+      if (includeHF) v += hf * 0.6 * Math.sin(2 * Math.PI * freq * 8 * t + 0.3);
+      return v;
+    });
+  }
+  const sigOriginal = signal(true);
+  const sigBottleneck = signal(false); // bottleneck loses HF
+  const sigSkip = skipDemoOn ? sigOriginal : sigBottleneck;
+
+  function path(ys, y0) {
+    const max = 1.6;
+    return 'M ' + xs.map((x, i) => `${x} ${y0 + rowH/2 - ys[i] / max * (rowH/2 - 4)}`).join(' L ');
+  }
+  skipSvg.innerHTML = '';
+  function row(label, ys, y0, color) {
+    skipSvg.insertAdjacentHTML('beforeend', `<text x="${margin/2 + 20}" y="${y0 + rowH/2}" font-size="11.5" fill="var(--text-muted)" text-anchor="end" dominant-baseline="middle">${label}</text>`);
+    skipSvg.insertAdjacentHTML('beforeend', `<line x1="${sx}" y1="${y0 + rowH/2}" x2="${cx}" y2="${y0 + rowH/2}" stroke="#e2e8f0" stroke-width="0.5" stroke-dasharray="2,2"/>`);
+    skipSvg.insertAdjacentHTML('beforeend', `<path d="${path(ys, y0)}" stroke="${color}" stroke-width="1.8" fill="none"/>`);
+  }
+  row('Original', sigOriginal, margin, '#1a3a5c');
+  row('nach Bottleneck', sigBottleneck, margin + rowH, '#94a3b8');
+  row(skipDemoOn ? 'mit Skip' : 'ohne Skip', sigSkip, margin + 2*rowH, skipDemoOn ? '#10b981' : '#dc2626');
+}
+renderSkipDemo();
+
+// =============================================================
+//  LSTM cell anatomy diagram (interactive)
+// =============================================================
+const lstmAnatomy = document.getElementById('lstm-anatomy');
+const lstmDetailBox = document.getElementById('lstm-anatomy-detail');
+
+const lstmComponents = {
+  'forget': {
+    name: 'Forget-Gate fₜ',
+    color: '#dc2626',
+    desc: '<strong>f<sub>t</sub> = σ(W<sub>if</sub> · x<sub>t</sub> + W<sub>hf</sub> · h<sub>t-1</sub> + b<sub>f</sub>)</strong><br><br>Sigmoid-Output zwischen 0 und 1 für jeden Cell-State-Eintrag. <strong>0 = vergessen</strong>, <strong>1 = behalten</strong>. Wird elementweise mit dem alten Cell-State multipliziert: <code>f<sub>t</sub> ⊙ c<sub>t-1</sub></code>.<br><br><em>Im Original-LSTM-Paper (Hochreiter & Schmidhuber 1997) gab es das Forget-Gate noch nicht — es wurde 2000 von Gers et al. nachträglich hinzugefügt. Heute gilt es als wichtigster Beitrag zur LSTM-Effektivität.</em>'
+  },
+  'input': {
+    name: 'Input-Gate iₜ',
+    color: '#16a34a',
+    desc: '<strong>i<sub>t</sub> = σ(W<sub>ii</sub> · x<sub>t</sub> + W<sub>hi</sub> · h<sub>t-1</sub> + b<sub>i</sub>)</strong><br><br>Sigmoid zwischen 0 und 1. Entscheidet, <strong>wieviel der neuen Kandidaten-Information g<sub>t</sub> in den Cell-State geschrieben wird</strong>. Wird elementweise mit g<sub>t</sub> multipliziert: <code>i<sub>t</sub> ⊙ g<sub>t</sub></code>.<br><br>Zusammen mit dem Forget-Gate steuern sie die zwei zentralen Fragen: "vergessen oder behalten?" (f) und "aufnehmen oder ignorieren?" (i).'
+  },
+  'candidate': {
+    name: 'Candidate gₜ',
+    color: '#0891b2',
+    desc: '<strong>g<sub>t</sub> = tanh(W<sub>ig</sub> · x<sub>t</sub> + W<sub>hg</sub> · h<sub>t-1</sub> + b<sub>g</sub>)</strong><br><br>Tanh-aktivierter Kandidat zwischen -1 und 1. Das ist die <strong>"neue Information"</strong>, die in den Cell-State geschrieben werden soll — bevor das Input-Gate sie filtert.<br><br>Tanh statt Sigmoid weil g<sub>t</sub> die Cell-State-Werte sowohl <em>erhöhen als auch verringern</em> können soll. Eine Sigmoid könnte nur positive Updates leisten.'
+  },
+  'output': {
+    name: 'Output-Gate oₜ',
+    color: '#9333ea',
+    desc: '<strong>o<sub>t</sub> = σ(W<sub>io</sub> · x<sub>t</sub> + W<sub>ho</sub> · h<sub>t-1</sub> + b<sub>o</sub>)</strong><br><br>Sigmoid zwischen 0 und 1. Filtert, <strong>wieviel des aktuellen Cell-States h<sub>t</sub> nach außen sichtbar wird</strong>: <code>h<sub>t</sub> = o<sub>t</sub> ⊙ tanh(c<sub>t</sub>)</code>.<br><br>Wichtig: der Cell-State kann sehr groß werden (z.B. wenn sich Information über viele Schritte aufsummiert). Tanh am Output-Pfad bringt h<sub>t</sub> immer zurück auf [-1, 1], damit der nächste Layer / die nächste Operation stabil bleibt.'
+  },
+  'cell_update': {
+    name: 'Cell-State Update',
+    color: '#1a3a5c',
+    desc: '<strong>c<sub>t</sub> = f<sub>t</sub> ⊙ c<sub>t-1</sub> + i<sub>t</sub> ⊙ g<sub>t</sub></strong><br><br>Das ist die <strong>"Förderband"-Operation</strong>: der alte Cell-State wird teilweise behalten (Forget-Gate filtert), und es wird neuer Inhalt addiert (Input-Gate × Kandidat).<br><br>Entscheidend: das ist <strong>kein wiederholtes Tanh</strong>! Die Information fließt fast linear durch die Zeit. Genau deshalb können LSTMs Long-Range-Dependencies lernen, die Vanilla-RNNs nicht können — das Vanishing-Gradient-Problem ist hier entschärft.'
+  },
+  'hidden_out': {
+    name: 'Hidden-Output hₜ',
+    color: '#1a3a5c',
+    desc: '<strong>h<sub>t</sub> = o<sub>t</sub> ⊙ tanh(c<sub>t</sub>)</strong><br><br>Was die Zelle nach außen ausgibt. Wird zum Eingangs-Hidden-State der nächsten Zeitschritt-Berechnung (rekursive Verbindung) UND zum Output an die nächste Layer.<br><br>Bei Demucs: dieser Output wird sequenzweise an Layer 2 weitergegeben, dann durch die finale Linear-Projection und schließlich an den Decoder.'
+  }
+};
+
+function renderLstmAnatomy() {
+  const w = 900, h = 380;
+  let svg = `<defs>
+    <marker id="arrow-lstm" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <marker id="arrow-thick" markerWidth="14" markerHeight="14" refX="13" refY="5" orient="auto"><path d="M0,0 L0,10 L13,5 z" fill="#1a3a5c"/></marker>
+  </defs>`;
+
+  // Outer cell rectangle
+  svg += `<rect x="60" y="80" width="780" height="220" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6,4"/>`;
+  svg += `<text x="450" y="68" text-anchor="middle" font-size="13" font-weight="600" fill="#475569">LSTM-Zelle bei Zeitschritt t</text>`;
+
+  // Cell-state "conveyor belt" - top horizontal line through the cell
+  svg += `<line x1="60" y1="120" x2="840" y2="120" stroke="#1a3a5c" stroke-width="3" marker-end="url(#arrow-thick)"/>`;
+  svg += `<text x="40" y="125" text-anchor="end" font-size="12" fill="#1a3a5c" font-weight="600">c<tspan baseline-shift="sub" font-size="9">t-1</tspan></text>`;
+  svg += `<text x="860" y="125" text-anchor="start" font-size="12" fill="#1a3a5c" font-weight="600">c<tspan baseline-shift="sub" font-size="9">t</tspan></text>`;
+  svg += `<text x="450" y="108" text-anchor="middle" font-size="11" fill="#1a3a5c" font-style="italic">Cell-State · "Förderband"</text>`;
+
+  // Hidden state line - bottom horizontal
+  svg += `<line x1="60" y1="280" x2="840" y2="280" stroke="#475569" stroke-width="2" marker-end="url(#arrow-lstm)"/>`;
+  svg += `<text x="40" y="285" text-anchor="end" font-size="12" fill="#475569" font-weight="600">h<tspan baseline-shift="sub" font-size="9">t-1</tspan></text>`;
+  svg += `<text x="860" y="285" text-anchor="start" font-size="12" fill="#475569" font-weight="600">h<tspan baseline-shift="sub" font-size="9">t</tspan></text>`;
+
+  // Input x_t arrow
+  svg += `<line x1="450" y1="345" x2="450" y2="290" stroke="#475569" stroke-width="2" marker-end="url(#arrow-lstm)"/>`;
+  svg += `<text x="450" y="360" text-anchor="middle" font-size="12" fill="#475569" font-weight="600">x<tspan baseline-shift="sub" font-size="9">t</tspan> · Input</text>`;
+
+  // The 4 gates as colored circles
+  function gate(cx, cy, label, color, id, symbol) {
+    return `
+      <g data-comp="${id}" style="cursor:pointer;">
+        <circle cx="${cx}" cy="${cy}" r="22" fill="${color}" stroke="white" stroke-width="2"/>
+        <text x="${cx}" y="${cy + 1}" text-anchor="middle" font-size="14" fill="white" font-weight="700" dominant-baseline="middle">${symbol}</text>
+        <text x="${cx}" y="${cy + 40}" text-anchor="middle" font-size="11" fill="${color}" font-weight="600">${label}</text>
+      </g>
+    `;
+  }
+
+  // Forget gate (left)
+  svg += gate(180, 220, 'fₜ · Forget', '#dc2626', 'forget', 'σ');
+  // Input gate
+  svg += gate(330, 220, 'iₜ · Input', '#16a34a', 'input', 'σ');
+  // Candidate (tanh)
+  svg += gate(440, 220, 'gₜ · Candidate', '#0891b2', 'candidate', 'tanh');
+  // Output gate
+  svg += gate(680, 220, 'oₜ · Output', '#9333ea', 'output', 'σ');
+
+  // Connecting lines from h_{t-1} and x_t to each gate
+  function gateInput(cx) {
+    return `<path d="M ${cx} 245 L ${cx} 280" stroke="#94a3b8" stroke-width="1" fill="none"/>`;
+  }
+  svg += gateInput(180) + gateInput(330) + gateInput(440) + gateInput(680);
+
+  // Multiplication symbol for Forget gate -> cell state
+  svg += `<g data-comp="cell_update" style="cursor:pointer;">
+    <circle cx="180" cy="120" r="14" fill="white" stroke="#1a3a5c" stroke-width="2"/>
+    <text x="180" y="121" text-anchor="middle" font-size="16" fill="#1a3a5c" font-weight="700" dominant-baseline="middle">×</text>
+  </g>`;
+  svg += `<path d="M 180 195 L 180 135" stroke="#dc2626" stroke-width="1.5" fill="none" marker-end="url(#arrow-lstm)"/>`;
+
+  // Addition for new cell state
+  svg += `<g data-comp="cell_update" style="cursor:pointer;">
+    <circle cx="385" cy="120" r="14" fill="white" stroke="#1a3a5c" stroke-width="2"/>
+    <text x="385" y="121" text-anchor="middle" font-size="16" fill="#1a3a5c" font-weight="700" dominant-baseline="middle">+</text>
+  </g>`;
+  // Multiplication for i × g
+  svg += `<circle cx="385" cy="170" r="10" fill="white" stroke="#1a3a5c" stroke-width="1.5"/>`;
+  svg += `<text x="385" y="171" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="700" dominant-baseline="middle">×</text>`;
+  svg += `<path d="M 330 195 Q 330 170, 372 170" stroke="#16a34a" stroke-width="1.5" fill="none"/>`;
+  svg += `<path d="M 440 195 Q 440 170, 398 170" stroke="#0891b2" stroke-width="1.5" fill="none"/>`;
+  svg += `<path d="M 385 160 L 385 135" stroke="#1a3a5c" stroke-width="1.5" fill="none" marker-end="url(#arrow-lstm)"/>`;
+
+  // Output path: o_t × tanh(c_t)
+  svg += `<g data-comp="hidden_out" style="cursor:pointer;">
+    <circle cx="600" cy="160" r="14" fill="white" stroke="#1a3a5c" stroke-width="2"/>
+    <text x="600" y="161" text-anchor="middle" font-size="11" fill="#1a3a5c" font-weight="600" dominant-baseline="middle">tanh</text>
+  </g>`;
+  svg += `<path d="M 600 120 L 600 146" stroke="#1a3a5c" stroke-width="1.5" fill="none" marker-end="url(#arrow-lstm)"/>`;
+  svg += `<circle cx="680" cy="160" r="10" fill="white" stroke="#1a3a5c" stroke-width="1.5"/>`;
+  svg += `<text x="680" y="161" text-anchor="middle" font-size="12" fill="#1a3a5c" font-weight="700" dominant-baseline="middle">×</text>`;
+  svg += `<path d="M 614 160 L 670 160" stroke="#1a3a5c" stroke-width="1.5" fill="none"/>`;
+  svg += `<path d="M 680 195 L 680 170" stroke="#9333ea" stroke-width="1.5" fill="none" marker-end="url(#arrow-lstm)"/>`;
+  svg += `<path d="M 680 150 Q 680 130, 720 130 L 720 280" stroke="#475569" stroke-width="1.5" fill="none"/>`;
+
+  lstmAnatomy.innerHTML = svg;
+
+  // Hover/click handlers
+  lstmAnatomy.querySelectorAll('g[data-comp]').forEach(g => {
+    g.addEventListener('mouseenter', () => {
+      const id = g.dataset.comp;
+      const comp = lstmComponents[id];
+      if (comp) {
+        lstmDetailBox.innerHTML = `<h4 style="margin-top:0;color:${comp.color};">${comp.name}</h4>${comp.desc}`;
+      }
+    });
+  });
+}
+renderLstmAnatomy();
+
+// =============================================================
+//  Live gate-value calculator
+// =============================================================
+const lstmCtls = ['lstm-x','lstm-h','lstm-c','lstm-bf','lstm-bi','lstm-bo'];
+lstmCtls.forEach(id => {
+  const el = document.getElementById(id);
+  const v = document.getElementById(id + '-v');
+  el.addEventListener('input', () => {
+    v.textContent = parseFloat(el.value).toFixed(parseFloat(el.value) % 1 !== 0 ? 2 : 1);
+    updateLstmValues();
+  });
+});
+
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
+
+function updateLstmValues() {
+  const x = parseFloat(document.getElementById('lstm-x').value);
+  const h = parseFloat(document.getElementById('lstm-h').value);
+  const c = parseFloat(document.getElementById('lstm-c').value);
+  const bf = parseFloat(document.getElementById('lstm-bf').value);
+  const bi = parseFloat(document.getElementById('lstm-bi').value);
+  const bo = parseFloat(document.getElementById('lstm-bo').value);
+
+  // Simplified scalar LSTM with W_i = W_h = 1 for clarity
+  // Real LSTM has matrix weights — we use scalars to make the math visible
+  const f_t = sigmoid(x + h + bf);
+  const i_t = sigmoid(x + h + bi);
+  const o_t = sigmoid(x + h + bo);
+  const g_t = Math.tanh(x + h + 0);  // candidate has its own bias, fixed to 0 here
+  const c_t = f_t * c + i_t * g_t;
+  const h_t = o_t * Math.tanh(c_t);
+
+  function bar(label, val, color, range) {
+    const max = range || 1.0;
+    const pct = Math.max(0, Math.min(100, (val / max) * 100));
+    const neg = val < 0;
+    const negPct = neg ? Math.min(100, (-val / max) * 100) : 0;
+    return `<tr>
+      <td style="font-family:var(--font-mono);font-size:12px;width:90px;">${label}</td>
+      <td style="font-family:var(--font-mono);text-align:right;color:${color};width:60px;"><strong>${val.toFixed(3)}</strong></td>
+      <td style="width:auto;">
+        <div style="height:14px;background:#f1f5f9;border-radius:3px;position:relative;overflow:hidden;">
+          <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#94a3b8;"></div>
+          ${neg
+            ? `<div style="position:absolute;right:50%;top:0;bottom:0;width:${negPct/2}%;background:${color};opacity:0.7;"></div>`
+            : `<div style="position:absolute;left:50%;top:0;bottom:0;width:${pct/2}%;background:${color};opacity:0.7;"></div>`}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  document.getElementById('lstm-values').innerHTML = [
+    bar('fₜ (forget)',   f_t, '#dc2626'),
+    bar('iₜ (input)',    i_t, '#16a34a'),
+    bar('gₜ (cand.)',    g_t, '#0891b2'),
+    bar('oₜ (output)',   o_t, '#9333ea'),
+    `<tr><td colspan="3" style="border-top:2px solid #cbd5e1;padding-top:8px;font-size:11px;color:var(--text-muted);">→ Cell-Update: <code>cₜ = ${f_t.toFixed(2)} × ${c.toFixed(2)} + ${i_t.toFixed(2)} × ${g_t.toFixed(2)}</code></td></tr>`,
+    bar('cₜ (cell)',     c_t, '#1a3a5c', 2.0),
+    `<tr><td colspan="3" style="font-size:11px;color:var(--text-muted);">→ Hidden-Out: <code>hₜ = ${o_t.toFixed(2)} × tanh(${c_t.toFixed(2)})</code></td></tr>`,
+    bar('hₜ (hidden)',   h_t, '#1a3a5c'),
+  ].join('');
+}
+updateLstmValues();
+
+// =============================================================
+//  Cell-state timeline (sequence processing)
+// =============================================================
+const lstmTimeline = document.getElementById('lstm-timeline');
+document.getElementById('lstm-signal').addEventListener('change', renderLstmTimeline);
+{
+  const el = document.getElementById('lstm-forget-strength');
+  const v = document.getElementById('lstm-forget-strength-v');
+  el.addEventListener('input', () => {
+    v.textContent = parseFloat(el.value).toFixed(2);
+    renderLstmTimeline();
+  });
+}
+
+function renderLstmTimeline() {
+  const T = 80;
+  const sigType = document.getElementById('lstm-signal').value;
+  const forgetStrength = parseFloat(document.getElementById('lstm-forget-strength').value);
+
+  // Build input signal
+  const x = new Array(T);
+  for (let t = 0; t < T; t++) {
+    if (sigType === 'step') {
+      x[t] = t < 20 ? 0 : (t < 50 ? 1 : 0.3);
+    } else if (sigType === 'periodic') {
+      x[t] = 0.6 * Math.sin(2 * Math.PI * t / 10) + 0.3 * (t % 20 < 2 ? 1 : 0);
+    } else if (sigType === 'impulse') {
+      x[t] = t === 10 ? 1.0 : 0.0;
+    } else if (sigType === 'noise') {
+      x[t] = 0.6 * (Math.sin(t * 0.5) + 0.4 * Math.cos(t * 1.3) + 0.3 * Math.sin(t * 2.7));
+    }
+  }
+
+  // Simulate a tiny LSTM: scalar form
+  // f = forgetStrength (constant for demo simplicity)
+  // i = sigmoid(x_t * 2)   - depends on input
+  // g = tanh(x_t * 1.5)    - the candidate
+  // c_t = f * c_{t-1} + i * g
+  // h_t = tanh(c_t)
+  const c = new Array(T);
+  const h = new Array(T);
+  let c_prev = 0;
+  for (let t = 0; t < T; t++) {
+    const i = sigmoid(x[t] * 2);
+    const g = Math.tanh(x[t] * 1.5);
+    c[t] = forgetStrength * c_prev + i * g;
+    h[t] = Math.tanh(c[t]);
+    c_prev = c[t];
+  }
+
+  const w = 900, hh = 320;
+  const margin = 80;
+  const rowH = (hh - margin - 40) / 3;
+  const sx = margin + 60, ex = w - margin;
+  const xpos = (t) => sx + (ex - sx) * t / (T - 1);
+
+  function path(arr, y0, maxAbs) {
+    return 'M ' + Array.from({length: T}, (_, t) => `${xpos(t)} ${y0 + rowH/2 - arr[t]/maxAbs * (rowH/2 - 4)}`).join(' L ');
+  }
+
+  let svg = '';
+  function row(label, arr, y0, color, maxAbs, sub) {
+    svg += `<text x="${margin - 5}" y="${y0 + rowH/2 - 6}" font-size="11.5" fill="${color}" text-anchor="end" dominant-baseline="middle" font-weight="600">${label}</text>`;
+    svg += `<text x="${margin - 5}" y="${y0 + rowH/2 + 8}" font-size="9.5" fill="var(--text-muted)" text-anchor="end" dominant-baseline="middle">${sub}</text>`;
+    svg += `<line x1="${sx}" y1="${y0 + rowH/2}" x2="${ex}" y2="${y0 + rowH/2}" stroke="#e2e8f0" stroke-width="0.5" stroke-dasharray="2,2"/>`;
+    svg += `<line x1="${sx}" y1="${y0}" x2="${sx}" y2="${y0 + rowH}" stroke="#cbd5e1" stroke-width="0.5"/>`;
+    svg += `<path d="${path(arr, y0, maxAbs)}" stroke="${color}" stroke-width="1.8" fill="none"/>`;
+  }
+  row('xₜ', x, 30, '#475569', 1.5, 'Eingangssignal');
+  row('cₜ', c, 30 + rowH + 10, '#1a3a5c', Math.max(1.5, Math.max(...c.map(Math.abs)) * 1.1), 'Cell-State');
+  row('hₜ', h, 30 + 2*(rowH + 10), '#9333ea', 1.2, 'Hidden-Output');
+
+  // X-axis ticks
+  for (let t = 0; t < T; t += 10) {
+    svg += `<line x1="${xpos(t)}" y1="${hh - 35}" x2="${xpos(t)}" y2="${hh - 30}" stroke="#cbd5e1"/>`;
+    svg += `<text x="${xpos(t)}" y="${hh - 18}" font-size="9.5" fill="var(--text-muted)" text-anchor="middle">${t}</text>`;
+  }
+  svg += `<text x="${(sx+ex)/2}" y="${hh - 4}" font-size="11" fill="var(--text-muted)" text-anchor="middle">Zeitschritt t</text>`;
+
+  lstmTimeline.innerHTML = svg;
+}
+renderLstmTimeline();
+
+// =============================================================
+//  BiLSTM flow visualization
+// =============================================================
+const bilstmFlow = document.getElementById('bilstm-flow');
+{
+  const el = document.getElementById('bilstm-pos');
+  const v = document.getElementById('bilstm-pos-v');
+  el.addEventListener('input', () => {
+    v.textContent = el.value;
+    renderBilstmFlow();
+  });
+}
+
+function renderBilstmFlow() {
+  const N = 20;
+  const cursor = parseInt(document.getElementById('bilstm-pos').value);
+
+  const w = 900, h = 240;
+  const margin = 60;
+  const xstep = (w - 2*margin) / (N - 1);
+  const xpos = (i) => margin + i * xstep;
+  const yFwd = 80;
+  const yBwd = 170;
+
+  let svg = '';
+  // Title labels
+  svg += `<text x="${margin - 10}" y="${yFwd + 5}" font-size="12" fill="#1a3a5c" text-anchor="end" font-weight="600">Forward →</text>`;
+  svg += `<text x="${margin - 10}" y="${yBwd + 5}" font-size="12" fill="#d97706" text-anchor="end" font-weight="600">Backward ←</text>`;
+
+  // Forward arrows + cells
+  for (let i = 0; i < N; i++) {
+    const known = i <= cursor;
+    const c = known ? '#1a3a5c' : '#cbd5e1';
+    const fill = known ? '#3b82f6' : 'white';
+    svg += `<rect x="${xpos(i) - 14}" y="${yFwd - 14}" width="28" height="28" rx="4" fill="${fill}" stroke="${c}" stroke-width="1.5"/>`;
+    svg += `<text x="${xpos(i)}" y="${yFwd + 4}" font-size="11" fill="${known ? 'white' : '#94a3b8'}" text-anchor="middle" font-family="var(--font-mono)">${i}</text>`;
+    if (i < N - 1 && known && i < cursor) {
+      svg += `<path d="M ${xpos(i) + 14} ${yFwd} L ${xpos(i+1) - 14} ${yFwd}" stroke="#1a3a5c" stroke-width="2"/>`;
+    } else if (i < N - 1) {
+      svg += `<path d="M ${xpos(i) + 14} ${yFwd} L ${xpos(i+1) - 14} ${yFwd}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+    }
+  }
+
+  // Backward arrows + cells
+  for (let i = 0; i < N; i++) {
+    const known = i >= cursor;
+    const c = known ? '#d97706' : '#cbd5e1';
+    const fill = known ? '#f59e0b' : 'white';
+    svg += `<rect x="${xpos(i) - 14}" y="${yBwd - 14}" width="28" height="28" rx="4" fill="${fill}" stroke="${c}" stroke-width="1.5"/>`;
+    svg += `<text x="${xpos(i)}" y="${yBwd + 4}" font-size="11" fill="${known ? 'white' : '#94a3b8'}" text-anchor="middle" font-family="var(--font-mono)">${i}</text>`;
+    if (i > 0 && known && i > cursor) {
+      svg += `<path d="M ${xpos(i) - 14} ${yBwd} L ${xpos(i-1) + 14} ${yBwd}" stroke="#d97706" stroke-width="2"/>`;
+    } else if (i > 0) {
+      svg += `<path d="M ${xpos(i) - 14} ${yBwd} L ${xpos(i-1) + 14} ${yBwd}" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="3,3"/>`;
+    }
+  }
+
+  // Cursor highlight
+  svg += `<rect x="${xpos(cursor) - 18}" y="${yFwd - 22}" width="36" height="${yBwd - yFwd + 44}" rx="6" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-dasharray="4,3"/>`;
+  svg += `<text x="${xpos(cursor)}" y="${yFwd - 28}" font-size="10.5" fill="#16a34a" text-anchor="middle" font-weight="600">Cursor</text>`;
+
+  // Concatenation indicator
+  svg += `<path d="M ${xpos(cursor) - 10} ${yFwd + 20} L ${xpos(cursor) - 10} ${(yFwd + yBwd)/2}" stroke="#16a34a" stroke-width="1.5" fill="none"/>`;
+  svg += `<path d="M ${xpos(cursor) + 10} ${yBwd - 20} L ${xpos(cursor) + 10} ${(yFwd + yBwd)/2}" stroke="#16a34a" stroke-width="1.5" fill="none"/>`;
+
+  // Concatenated output box (right)
+  const boxX = w - 90, boxY = (yFwd + yBwd) / 2 - 22;
+  svg += `<path d="M ${xpos(cursor) + 14} ${(yFwd + yBwd)/2} L ${boxX} ${(yFwd + yBwd)/2}" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#arrow-lstm)"/>`;
+  svg += `<rect x="${boxX}" y="${boxY}" width="64" height="44" rx="4" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>`;
+  svg += `<text x="${boxX + 32}" y="${boxY + 17}" font-size="10" fill="#166534" text-anchor="middle" font-weight="600">Concat</text>`;
+  svg += `<text x="${boxX + 32}" y="${boxY + 33}" font-size="10" fill="#166534" text-anchor="middle" font-family="var(--font-mono)">[h${cursor}; h̃${cursor}]</text>`;
+
+  // Bottom legend with knowledge sets
+  svg += `<text x="${(w)/2}" y="${h - 18}" font-size="11.5" fill="var(--text-muted)" text-anchor="middle">Forward "kennt": Tokens <tspan fill="#1a3a5c" font-weight="600">0..${cursor}</tspan> &nbsp; · &nbsp; Backward "kennt": Tokens <tspan fill="#d97706" font-weight="600">${cursor}..${N-1}</tspan> &nbsp; · &nbsp; <tspan fill="#16a34a" font-weight="600">Konkatenation kennt alle ${N} Tokens</tspan></text>`;
+
+  bilstmFlow.innerHTML = svg;
+}
+renderBilstmFlow();
+</script>
+
+</body>
+</html>
