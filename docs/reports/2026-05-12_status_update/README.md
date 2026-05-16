@@ -89,7 +89,7 @@ Nachdem alle 12 Modelle trainiert waren, wurde ein **deterministischer
 window-level Holdout-Split** definiert (seed=42, val_ratio=0.2 → 166
 Windows, Hash `sha256:ddaa64a504e062fd`). Alle 12 Modelle wurden auf diesem
 identischen Split re-evaluiert mit den kanonischen Metriken aus
-`examples/evaluate_conv_tasnet.py` (`clean_snr_db_before/after`,
+`examples/model_evaluation/evaluate_conv_tasnet.py` (`clean_snr_db_before/after`,
 `artifact_corr`, `residual_error_rms_ratio`).
 
 ---

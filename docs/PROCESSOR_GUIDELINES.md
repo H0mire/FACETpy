@@ -1288,7 +1288,7 @@ class MyChannelProcessor(Processor):
         return context.with_raw(raw)
 ```
 
-See `examples/channelwise_execution.py` for a complete runnable demonstration including flag inspection, backend comparison, and a benchmark helper.
+See `examples/pipelines/channelwise_execution.py` for a complete runnable demonstration including flag inspection, backend comparison, and a benchmark helper.
 
 ---
 

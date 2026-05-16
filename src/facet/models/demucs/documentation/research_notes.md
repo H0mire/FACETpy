@@ -70,7 +70,7 @@ Original block shapes (paper, MusDB):
 ## Mapping To The Niazy Proof-Fit Dataset
 
 The shared NPZ bundle produced by
-`examples/build_niazy_proof_fit_context_dataset.py` provides:
+`examples/dataset_building/build_niazy_proof_fit_context_dataset.py` provides:
 
 | Key | Shape | Meaning |
 |---|---|---|

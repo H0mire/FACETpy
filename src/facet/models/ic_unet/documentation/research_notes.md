@@ -82,7 +82,7 @@ temporal difference, and FFT magnitude.
 | ICA decomposition | offline, EEGLAB | offline, `sklearn.decomposition.FastICA` (see "ICA choice" below) |
 
 The Niazy proof-fit dataset NPZ provides (see
-`examples/build_niazy_proof_fit_context_dataset.py`):
+`examples/dataset_building/build_niazy_proof_fit_context_dataset.py`):
 
 - `noisy_context` — `(N, 7, 30, 512)`
 - `artifact_center` — `(N, 30, 512)` (training target)

@@ -1,5 +1,5 @@
 """
-Demo factories for ``facet-train fit --config examples/facet_train_demo.yaml``.
+Demo factories for ``facet-train fit --config examples/model_training/facet_train_demo.yaml``.
 
 This module provides the minimum pieces required by the training CLI:
 
@@ -9,7 +9,7 @@ This module provides the minimum pieces required by the training CLI:
 
 Run from the repository root:
 
-    poetry run facet-train fit --config examples/facet_train_demo.yaml
+    poetry run facet-train fit --config examples/model_training/facet_train_demo.yaml
 
 Requires the PyTorch extra:
 

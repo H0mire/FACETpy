@@ -32,7 +32,7 @@ DPAE is a discriminative supervised denoising autoencoder. Its core idea is that
 
 ## Mapping to the Niazy proof-fit dataset
 
-The bundle built by `examples/build_niazy_proof_fit_context_dataset.py` produces:
+The bundle built by `examples/dataset_building/build_niazy_proof_fit_context_dataset.py` produces:
 
 - `noisy_context`: `(n_examples, 7, n_channels, 512)`
 - `noisy_center`:  `(n_examples, n_channels, 512)`

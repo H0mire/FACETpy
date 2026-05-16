@@ -18,11 +18,11 @@ Val split (matches both training_niazy_proof_fit.yaml configs):
 
 Example:
 
-    uv run python examples/evaluate_cascaded_daes_niazy_proof_fit.py \\
+    uv run python examples/model_evaluation/evaluate_cascaded_daes_niazy_proof_fit.py \\
         --variant cascaded_dae \\
         --checkpoint training_output/cascadeddenoisingautoencoderniazyprooffit_<TS>/exports/cascaded_dae.ts
 
-    uv run python examples/evaluate_cascaded_daes_niazy_proof_fit.py \\
+    uv run python examples/model_evaluation/evaluate_cascaded_daes_niazy_proof_fit.py \\
         --variant cascaded_context_dae \\
         --checkpoint training_output/cascadedcontextdenoisingautoencoderniazyprooffit_<TS>/exports/cascaded_context_dae.ts
 """

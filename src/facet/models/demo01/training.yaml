@@ -2,8 +2,8 @@
 #
 # Prerequisites:
 #
-#   uv run python examples/generate_synthetic_spike_source_dataset.py
-#   uv run python examples/build_synthetic_spike_artifact_context_dataset.py \
+#   uv run python examples/dataset_building/generate_synthetic_spike_source_dataset.py
+#   uv run python examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py \
 #     --clean-file output/synthetic_spike_source/synthetic_spike_source_raw.fif \
 #     --annotation-regex spike_onset \
 #     --output-dir output/synthetic_spike_artifact_context_from_generator

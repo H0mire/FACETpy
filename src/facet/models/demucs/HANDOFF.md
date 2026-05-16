@@ -61,7 +61,7 @@
 7. **Phase 7 full training**: submitted as `a097d80ea0e1` on gpu2,
    `finished` (exit 0) in 406 s of training (52 epochs, early-stopped at
    patience 12, best epoch 49, best val L1 = 2.78e-05).
-8. **Phase 8 evaluation**: `examples/evaluate_demucs.py` slices the
+8. **Phase 8 evaluation**: `examples/model_evaluation/evaluate_demucs.py` slices the
    center-epoch artifact from the 3584-sample prediction and compares
    against `clean_center` / `artifact_center` on the held-out 20 % val split
    (same RNG seed as training). Standard manifest/metrics/summary/plots
@@ -168,6 +168,6 @@ correlation on the same dataset.
 - Pipeline integration via `DeepLearningCorrection` (no
   `facet.core` changes; no edits outside
   `src/facet/models/demucs/`, `tests/models/demucs/`, and the new
-  `examples/evaluate_demucs.py`).
+  `examples/model_evaluation/evaluate_demucs.py`).
 
 The branch is ready for orchestrator review. Not pushed, not merged.

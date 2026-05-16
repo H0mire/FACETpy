@@ -43,7 +43,7 @@ every supervised metric. All deliverables are present.
 - Metrics: `output/model_evaluations/sepformer/20260511_012740/metrics.json`
 - Summary: `output/model_evaluations/sepformer/20260511_012740/evaluation_summary.md`
 - Plots: `output/model_evaluations/sepformer/20260511_012740/plots/sepformer_examples.png` and `sepformer_metric_summary.png`
-- Script: `examples/evaluate_sepformer_niazy_proof_fit.py`
+- Script: `examples/model_evaluation/evaluate_sepformer_niazy_proof_fit.py`
 - Evaluation dataset: deterministic val split of the Niazy proof-fit
   context dataset (val_ratio = 0.2, seed = 42), identical to the
   facet-train split.
@@ -135,7 +135,7 @@ keys for direct cross-model comparison.
       backward, dataset, TorchScript round-trip, processor pipeline)
 - [x] `tests/models/sepformer/test_training_smoke.py` (loss factory,
       TorchScript export round-trip)
-- [x] `examples/evaluate_sepformer_niazy_proof_fit.py`
+- [x] `examples/model_evaluation/evaluate_sepformer_niazy_proof_fit.py`
 
 All 9 tests pass:
 
@@ -153,7 +153,7 @@ tests/models/sepformer/test_training_smoke.py::test_sepformer_torchscript_export
 
 ## Files Outside the Model Folder
 
-- `examples/evaluate_sepformer_niazy_proof_fit.py` — model-specific
+- `examples/model_evaluation/evaluate_sepformer_niazy_proof_fit.py` — model-specific
   evaluation script that uses `ModelEvaluationWriter`. No FACETpy core
   edits were required.
 

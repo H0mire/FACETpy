@@ -1,7 +1,7 @@
 """Generate a synthetic fMRI gradient-artifact source bundle.
 
 This creates an artifact-only source compatible with
-``examples/build_synthetic_spike_artifact_context_dataset.py``. The generated
+``examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py``. The generated
 signal approximates the properties that matter for the training data:
 
 * deterministic and trigger-locked morphology,
@@ -15,7 +15,7 @@ is a plausible domain-randomization source, not a replacement for measured
 AAS-derived artifact templates.
 
 Example:
-    uv run python examples/generate_synthetic_fmri_artifact_source.py
+    uv run python examples/dataset_building/generate_synthetic_fmri_artifact_source.py
 """
 
 from __future__ import annotations

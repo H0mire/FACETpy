@@ -1,6 +1,6 @@
 """Build a reusable artifact-window library from the extracted Niazy artifact bundle.
 
-This is the next step after ``examples/extract_niazy_artifact_signal.py``:
+This is the next step after ``examples/dataset_building/extract_niazy_artifact_signal.py``:
 
 1. load the saved artifact ``.npz`` bundle,
 2. extract trigger-centered artifact windows,
@@ -26,7 +26,7 @@ METADATA_JSON = OUTPUT_DIR / "niazy_artifact_windows_metadata.json"
 def _load_bundle(path: Path) -> dict[str, np.ndarray]:
     if not path.exists():
         raise FileNotFoundError(
-            f"Artifact bundle not found at {path}. Run examples/extract_niazy_artifact_signal.py first."
+            f"Artifact bundle not found at {path}. Run examples/dataset_building/extract_niazy_artifact_signal.py first."
         )
     with np.load(path, allow_pickle=True) as bundle:
         return {key: bundle[key] for key in bundle.files}

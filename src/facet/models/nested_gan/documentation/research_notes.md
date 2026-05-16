@@ -82,7 +82,7 @@ defaults.
 ## Mapping to the Niazy proof-fit dataset
 
 The dataset bundle produced by
-`examples/build_niazy_proof_fit_context_dataset.py` (already validated in
+`examples/dataset_building/build_niazy_proof_fit_context_dataset.py` (already validated in
 the cascaded_context_dae pipeline) contains:
 
 ```text

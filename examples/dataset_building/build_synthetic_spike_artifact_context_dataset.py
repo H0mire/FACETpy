@@ -11,7 +11,7 @@ The output dataset is single-channel by default so that clean spike EEG and the
 artifact source do not need to share the same montage.
 
 Example:
-    uv run python examples/build_synthetic_spike_artifact_context_dataset.py \
+    uv run python examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py \
         --clean-file /path/to/clean_spike_recording.fif \
         --annotation-regex "spike|Spike|SPIKE" \
         --output-dir ./output/synthetic_spike_artifact_context_dataset

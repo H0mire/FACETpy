@@ -135,7 +135,7 @@ def build_unified_md() -> str:
         "## Methodology Notes",
         "",
         "- **Holdout split** is at the **window level** (n=833 → 166), not channel-window level. This means all 30 channels of each holdout window go through every model, and per-channel models see them as 4980 channel-windows. The split is deterministic given `seed=42`.",
-        "- **Metric formulas** are reused verbatim from `examples/evaluate_conv_tasnet.py` so the absolute numbers stay backwards-compatible with Run 1 per-model evaluations.",
+        "- **Metric formulas** are reused verbatim from `examples/model_evaluation/evaluate_conv_tasnet.py` so the absolute numbers stay backwards-compatible with Run 1 per-model evaluations.",
         "- **Inference paths**:",
         "  - 10 models: TorchScript export (`.ts` file) from `training_output/<run>/exports/`.",
         "  - `denoise_mamba`: Source module + `last.pt` checkpoint, because the TorchScript bakes `device='cuda:0'` into the SSM scan (`run_2_plan §3.5` device-baking anti-pattern).",

@@ -127,7 +127,7 @@ class NPZContextArtifactDataset:
     """Dataset for context-based artifact prediction bundles stored as ``.npz``.
 
     The expected bundle is produced by
-    ``examples/build_synthetic_spike_artifact_context_dataset.py``. Each item
+    ``examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py``. Each item
     returns ``(noisy_context, artifact_center)`` by default, where the noisy
     input has shape ``(context_epochs, channels, epoch_samples)`` and the target
     has shape ``(channels, epoch_samples)``.

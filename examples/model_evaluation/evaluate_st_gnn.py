@@ -7,7 +7,7 @@ with the cascaded-DAE baselines.
 
 Usage::
 
-    uv run python examples/evaluate_st_gnn.py \
+    uv run python examples/model_evaluation/evaluate_st_gnn.py \
         --checkpoint training_output/spatiotemporalgnnniazyprooffit_<ts>/exports/st_gnn.ts \
         --dataset output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz \
         --run-id niazy_proof_fit_<ts>

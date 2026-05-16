@@ -95,7 +95,7 @@ python tools/gpu_fleet/fleet.py submit \
   --name unet_niazy_1024 \
   --worktree worktrees/model-unet \
   --training-config src/facet/models/unet/training_niazy_1024.yaml \
-  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --target-epoch-samples 1024 --context-epochs 9 --output-dir output/unet_niazy_1024"
+  --prepare-command "uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py --target-epoch-samples 1024 --context-epochs 9 --output-dir output/unet_niazy_1024"
 ```
 
 The preparation command runs on the selected RunPod after the worktree is synced and before `facet-train` starts. This keeps architecture-specific dataset decisions inside the model-agent workflow.
@@ -196,7 +196,7 @@ python tools/gpu_fleet/fleet.py submit \
   --worktree . \
   --training-config src/facet/models/cascaded_context_dae/training_niazy_proof_fit_smoke.yaml \
   --worker gpu1 \
-  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
+  --prepare-command "uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
 
 python tools/gpu_fleet/fleet.py dispatch
 python tools/gpu_fleet/fleet.py fetch --worker gpu1

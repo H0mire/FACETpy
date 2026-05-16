@@ -11,7 +11,7 @@ runs so flat-metric keys can be compared directly.
 
 Example::
 
-    uv run python examples/evaluate_sepformer_niazy_proof_fit.py \\
+    uv run python examples/model_evaluation/evaluate_sepformer_niazy_proof_fit.py \\
         --checkpoint training_output/sepformerniazyprooffit_20260510_230104/exports/sepformer.ts \\
         --dataset output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
 """

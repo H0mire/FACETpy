@@ -12,7 +12,7 @@ Holdout split:
     The same indices are used for every model. Per-channel models see
     167 * 30 = 5010 channel-windows; window-level models see 167 windows.
 
-Metrics — replicated verbatim from examples/evaluate_conv_tasnet.py:
+Metrics — replicated verbatim from examples/model_evaluation/evaluate_conv_tasnet.py:
     clean_mse_before / after, clean_mae_before / after,
     clean_snr_db_before / after, clean_snr_improvement_db,
     artifact_mse / mae / corr / snr_db,
@@ -233,7 +233,7 @@ def holdout_split_hash(indices: np.ndarray) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Metrics — verbatim from examples/evaluate_conv_tasnet.py (canonical formulas)
+# Metrics — verbatim from examples/model_evaluation/evaluate_conv_tasnet.py (canonical formulas)
 # ---------------------------------------------------------------------------
 
 EPS = 1e-20
@@ -935,7 +935,7 @@ def run_model(
         limitations=[
             "Unified holdout split: window-level seed=42 val_ratio=0.2 → "
             f"{len(holdout_indices)} windows ({metrics['n_examples'] * metrics['n_channels']} channel-windows).",
-            "Metrics use canonical formulas from examples/evaluate_conv_tasnet.py.",
+            "Metrics use canonical formulas from examples/model_evaluation/evaluate_conv_tasnet.py.",
             "Target is AAS-corrected 'clean' — fidelity to AAS, not absolute ground truth.",
         ],
     )

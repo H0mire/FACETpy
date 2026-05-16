@@ -6,7 +6,7 @@ It consumes seven consecutive trigger-defined epochs and predicts the artifact
 for the center epoch only.
 
 Example:
-    uv run python examples/apply_context_artifact_model.py \
+    uv run python examples/model_training/apply_context_artifact_model.py \
         --checkpoint training_output/sevenepochcontextartifactnet_20260429_204945/exports/seven_epoch_context_artifact_net.ts
 """
 

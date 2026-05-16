@@ -2,10 +2,10 @@
 
 The generated recording contains synthetic EEG with epileptiform spike activity.
 Spike onsets are written as MNE annotations, so the file can be used directly
-with ``examples/build_synthetic_spike_artifact_context_dataset.py``.
+with ``examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py``.
 
 Example:
-    uv run python examples/generate_synthetic_spike_source_dataset.py
+    uv run python examples/dataset_building/generate_synthetic_spike_source_dataset.py
 """
 
 from __future__ import annotations

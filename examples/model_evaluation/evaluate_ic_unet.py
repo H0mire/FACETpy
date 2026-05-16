@@ -5,7 +5,7 @@ the same NPZ used for training, and writes the standardised
 ``ModelEvaluationWriter`` outputs.
 
 Example:
-    uv run python examples/evaluate_ic_unet.py \\
+    uv run python examples/model_evaluation/evaluate_ic_unet.py \\
         --checkpoint training_output/icunetniazyprooffit_<run>/exports/ic_unet.ts
 """
 

@@ -81,7 +81,7 @@ not directly comparable to the full-set evaluations.
 ### Dataset
 
 All models were trained on the proof-fit context dataset produced by
-[`examples/build_niazy_proof_fit_context_dataset.py`](../../examples/build_niazy_proof_fit_context_dataset.py)
+[`examples/dataset_building/build_niazy_proof_fit_context_dataset.py`](../../examples/dataset_building/build_niazy_proof_fit_context_dataset.py)
 with default parameters:
 
 - `--target-epoch-samples 512`
@@ -476,7 +476,7 @@ uv run python tools/gpu_fleet/fleet.py submit \
   --name <id>_niazy_full \
   --worktree . \
   --training-config src/facet/models/<id>/training_niazy_proof_fit.yaml \
-  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
+  --prepare-command "uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
 ```
 
 with the central dispatcher running on the MacBook

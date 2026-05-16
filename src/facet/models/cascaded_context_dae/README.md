@@ -19,7 +19,7 @@ This model is the 7-epoch context variant of `cascaded_dae`.
 Build the default 7-epoch, 512-sample context dataset first:
 
 ```bash
-uv run python examples/build_epoch_context_dataset.py \
+uv run python examples/dataset_building/build_epoch_context_dataset.py \
   --clean-source output/synthetic_spike_source/synthetic_spike_source_raw.fif::spike_onset \
   --artifact-library output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
   --artifact-library output/artifact_libraries/large_mff_aas/large_mff_aas_artifact.npz \

@@ -77,7 +77,7 @@ Caveat: those baseline numbers come from the synthetic spike artifact context
 dataset, while DPAE's numbers come from the Niazy AAS proof-fit dataset, which
 is a much narrower (and easier) target. The fair comparison would be to evaluate
 all three models on the Niazy proof-fit set or all three on the synthetic set.
-The orchestrator may want to extend `examples/evaluate_context_artifact_model.py`
+The orchestrator may want to extend `examples/model_evaluation/evaluate_context_artifact_model.py`
 to register `dpae` alongside the others, or to re-run the existing synthetic
 evaluation against the DPAE checkpoint for an apples-to-apples comparison.
 
@@ -118,7 +118,7 @@ evaluation against the DPAE checkpoint for an apples-to-apples comparison.
 
 ## Next steps the orchestrator could consider
 
-- Register `dpae` in `examples/evaluate_context_artifact_model.py` so it
+- Register `dpae` in `examples/model_evaluation/evaluate_context_artifact_model.py` so it
   participates in the synthetic-dataset comparison alongside the two existing
   baselines (this requires editing a non-`dpae` file, which is outside this
   agent's allowed scope).

@@ -21,7 +21,7 @@ Build the Niazy proof-fit context dataset first (the same one used by
 `cascaded_context_dae`):
 
 ```bash
-uv run python examples/build_niazy_proof_fit_context_dataset.py \
+uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
   --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
   --target-epoch-samples 512 \
   --context-epochs 7 \

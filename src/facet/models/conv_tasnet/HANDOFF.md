@@ -54,7 +54,7 @@
    `finished`. Required hot-patch fix (`32190a0 fix: resolve training
    config relative to submit worktree`) was rebased into this branch
    before resubmit.
-8. **Phase 8 evaluation**: `examples/evaluate_conv_tasnet.py` runs the
+8. **Phase 8 evaluation**: `examples/model_evaluation/evaluate_conv_tasnet.py` runs the
    trained TorchScript on the held-out 20 % val split of the Niazy
    proof-fit `.npz` and writes manifest/metrics/summary/plots via
    `ModelEvaluationWriter`. Run id `20260510_224113`.
@@ -117,7 +117,7 @@ five orders of magnitude below the supervised loss).
   metric tells us the model learnt the mapping, not that it
   generalises across subjects, scanners, or to MFF data.
 - The evaluator does **not** run real Niazy EDF trigger-locked metrics
-  (the existing `examples/evaluate_context_artifact_model.py` is
+  (the existing `examples/model_evaluation/evaluate_context_artifact_model.py` is
   hard-wired to the cascaded model families). Adding that path —
   ideally as a unified evaluator that includes Conv-TasNet alongside
   the cascaded models — is a worthwhile next step but was out of scope
@@ -140,6 +140,6 @@ five orders of magnitude below the supervised loss).
 Pipeline integration via `DeepLearningCorrection` (no
 `facet.core` changes; no edits outside
 `src/facet/models/conv_tasnet/`, `tests/models/conv_tasnet/`, and
-the new `examples/evaluate_conv_tasnet.py`).
+the new `examples/model_evaluation/evaluate_conv_tasnet.py`).
 
 The branch is ready for orchestrator review. Not pushed, not merged.

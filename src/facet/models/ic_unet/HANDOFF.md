@@ -27,7 +27,7 @@ training_output/icunetniazyprooffit_20260510_223556/exports/ic_unet.ts
 
 ## Evaluation
 
-- Script: `examples/evaluate_ic_unet.py`
+- Script: `examples/model_evaluation/evaluate_ic_unet.py`
 - Manifest:
   `output/model_evaluations/ic_unet/20260510_full/evaluation_manifest.json`
 - Metrics: `output/model_evaluations/ic_unet/20260510_full/metrics.json`
@@ -80,7 +80,7 @@ and `output/model_evaluations/cascaded_context_dae/20260510_vit_compare/metrics.
   `training_niazy_proof_fit_smoke.yaml` (smoke), both `device: cuda`.
 - ✅ `README.md`, `documentation/model_card.md`,
   `documentation/research_notes.md`, `documentation/evaluations.md`.
-- ✅ `examples/evaluate_ic_unet.py`.
+- ✅ `examples/model_evaluation/evaluate_ic_unet.py`.
 - ✅ `tests/models/ic_unet/test_processor.py` and
   `test_training_smoke.py` (9 tests, all passing locally:
   `uv run pytest tests/models/ic_unet -v`).

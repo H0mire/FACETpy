@@ -5,10 +5,10 @@ script deliberately loads only the first trigger window needed for an artifact
 library and runs AAS at native sampling rate. No pre-AAS upsampling is applied.
 
 The resulting bundle is compatible with
-``examples/build_synthetic_spike_artifact_context_dataset.py``.
+``examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py``.
 
 Example:
-    uv run python examples/extract_large_mff_aas_artifact_signal.py
+    uv run python examples/dataset_building/extract_large_mff_aas_artifact_signal.py
 """
 
 from __future__ import annotations

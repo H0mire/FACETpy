@@ -118,7 +118,7 @@ The research notes must contain:
 - Key architectural components and what each one is responsible for.
 - Inputs the original paper expects (sampling rate, segment length, channel
   layout) and how that maps to our Niazy proof-fit dataset
-  (see examples/build_niazy_proof_fit_context_dataset.py).
+  (see examples/dataset_building/build_niazy_proof_fit_context_dataset.py).
 - The loss function(s) used in the original paper.
 - Any non-obvious training tricks.
 - A short hardware feasibility note: rough parameter count, expected memory
@@ -157,7 +157,7 @@ already there. The major helpers you should reuse:
   invent your own evaluation file format.
 - Console: facet.console.processor_progress and facet.console.report_metric
   for any custom progress reporting.
-- Niazy dataset: examples/build_niazy_proof_fit_context_dataset.py builds
+- Niazy dataset: examples/dataset_building/build_niazy_proof_fit_context_dataset.py builds
   the .npz with arrays:
     noisy_context, artifact_context, clean_context, noisy_center,
     artifact_center, clean_center, artifact_epoch_lengths_samples,

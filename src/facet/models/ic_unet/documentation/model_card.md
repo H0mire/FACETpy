@@ -44,7 +44,7 @@ uv run python tools/gpu_fleet/fleet.py submit \
   --name ic_unet_niazy_smoke \
   --worktree . \
   --training-config src/facet/models/ic_unet/training_niazy_proof_fit_smoke.yaml \
-  --prepare-command "uv run python examples/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
+  --prepare-command "uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512"
 ```
 
 ## Evaluation notes

@@ -85,7 +85,7 @@ were evaluated against the **single-channel synthetic spike-artifact
 dataset** (`output/synthetic_spike_artifact_context_512/...`), not the
 Niazy proof-fit dataset that I used. The architectures themselves are
 also single-channel models, so my one-line attempt to re-run
-`examples/evaluate_context_artifact_model.py` against the Niazy
+`examples/model_evaluation/evaluate_context_artifact_model.py` against the Niazy
 proof-fit npz fails with a shape mismatch
 (`mat1 and mat2 shapes cannot be multiplied (128x107520 and 3584x512)`).
 
@@ -177,7 +177,7 @@ investigation is wanted:
 - **Apples-to-apples baseline comparison on Niazy proof-fit.** Either
   re-evaluate the existing single-channel `cascaded_dae` /
   `cascaded_context_dae` checkpoints on the Niazy proof-fit npz
-  (requires extending `examples/evaluate_context_artifact_model.py` to
+  (requires extending `examples/model_evaluation/evaluate_context_artifact_model.py` to
   loop per channel, or building a thin wrapper that does so), or
   re-train both baselines on the Niazy proof-fit dataset and evaluate.
 - **Complex-valued reconstruction.** Train a variant that predicts the

@@ -53,7 +53,7 @@ Original ViT expects images of e.g. 224×224×3. Our spectrograms are much
 smaller and single-channel.
 
 We use the existing **Niazy proof-fit context dataset** built by
-`examples/build_niazy_proof_fit_context_dataset.py`. Relevant arrays:
+`examples/dataset_building/build_niazy_proof_fit_context_dataset.py`. Relevant arrays:
 
 - `noisy_context`: `(N, 7, n_channels, 512)` — input EEG with GA
 - `clean_context`: `(N, 7, n_channels, 512)` — AAS-corrected EEG surrogate

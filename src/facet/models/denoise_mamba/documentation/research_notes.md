@@ -107,7 +107,7 @@ paper consumes one channel at a time with input shape `(B, 1, T)` and
 predicts the clean (or artifact) signal at the same length.
 
 Our Niazy proof-fit dataset built by
-`examples/build_niazy_proof_fit_context_dataset.py` is conceptually the same
+`examples/dataset_building/build_niazy_proof_fit_context_dataset.py` is conceptually the same
 single-channel sequence-to-sequence task, but applied to MR gradient
 artifacts on real EEG-fMRI recordings:
 

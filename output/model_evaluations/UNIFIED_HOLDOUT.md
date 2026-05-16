@@ -25,7 +25,7 @@ Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
 | 2 | conv_tasnet | Audio (TCN) | +22.74 | -10.94 | +11.79 | +0.9973 | 0.073 | +0.71 | 699.4 |
 | 3 | cascaded_context_dae | Autoencoder (context MLP) | +18.92 | -10.94 | +7.98 | +0.9936 | 0.113 | +0.08 | 0.1 |
 | 4 | sepformer | Audio (Transformer) | +18.71 | -10.94 | +7.76 | +0.9933 | 0.116 | -0.34 | 99.5 |
-| 5 | cascaded_dae | Autoencoder (cascaded MLP) | +18.06 | -10.94 | +7.11 | +0.9923 | 0.125 | +0.27 | 0.0 |
+| 5 | cascaded_dae | Autoencoder (cascaded MLP) | +18.06 | -10.94 | +7.11 | +0.9923 | 0.125 | +0.27 | 0.8 |
 | 6 | nested_gan | GAN (TF+Time) | +11.71 | -10.94 | +0.77 | +0.9746 | 0.260 | -1.83 | 133.1 |
 | 7 | denoise_mamba | SSM | +11.20 | -10.94 | +0.26 | +0.9614 | 0.275 | -0.60 | 70.1 |
 | 8 | ic_unet | Discriminative + ICA | +11.11 | -10.94 | +0.16 | +0.9613 | 0.278 | -0.66 | 1.2 |
@@ -46,7 +46,7 @@ Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
 ## Methodology Notes
 
 - **Holdout split** is at the **window level** (n=833 → 166), not channel-window level. This means all 30 channels of each holdout window go through every model, and per-channel models see them as 4980 channel-windows. The split is deterministic given `seed=42`.
-- **Metric formulas** are reused verbatim from `examples/evaluate_conv_tasnet.py` so the absolute numbers stay backwards-compatible with Run 1 per-model evaluations.
+- **Metric formulas** are reused verbatim from `examples/model_evaluation/evaluate_conv_tasnet.py` so the absolute numbers stay backwards-compatible with Run 1 per-model evaluations.
 - **Inference paths**:
   - 10 models: TorchScript export (`.ts` file) from `training_output/<run>/exports/`.
   - `denoise_mamba`: Source module + `last.pt` checkpoint, because the TorchScript bakes `device='cuda:0'` into the SSM scan (`run_2_plan §3.5` device-baking anti-pattern).

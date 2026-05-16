@@ -11,7 +11,7 @@ Niazy, spectral coherence, spike detection) and renders one comparison figure
 plus a per-channel diagnostics figure.
 
 Example:
-    uv run python examples/evaluate_context_artifact_model_full_metrics.py \\
+    uv run python examples/model_evaluation/evaluate_context_artifact_model_full_metrics.py \\
         --checkpoint training_output/sevenepochcontextartifactnet_20260430_134222/exports/seven_epoch_context_artifact_net.ts
 """
 

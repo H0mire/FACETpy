@@ -5,7 +5,7 @@ This avoids hard assumptions about matching montages between the clean spike EEG
 recording and the Niazy fMRI artifact recording.
 
 Example:
-    uv run python examples/build_synthetic_spike_artifact_dataset.py \
+    uv run python examples/dataset_building/build_synthetic_spike_artifact_dataset.py \
         --clean-file /path/to/clean_spike_recording.fif \
         --annotation-regex "spike|Spike|SPIKE" \
         --output-dir ./output/synthetic_spike_artifact_dataset

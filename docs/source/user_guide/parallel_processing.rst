@@ -378,7 +378,7 @@ can opt in.  A minimal example:
 This processor will be split channel-wise by ``ParallelExecutor`` exactly like
 ``AASCorrection``.  No other changes are required.
 
-See ``examples/channelwise_execution.py`` for a complete runnable example
+See ``examples/pipelines/channelwise_execution.py`` for a complete runnable example
 including benchmark helpers and backend comparisons.
 
 Pipeline-Level Parallelization

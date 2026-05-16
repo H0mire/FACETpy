@@ -1,7 +1,7 @@
 """Factories for training a 7-epoch context artifact model with ``facet-train``.
 
 The dataset is expected to come from:
-``examples/build_synthetic_spike_artifact_context_dataset.py``.
+``examples/dataset_building/build_synthetic_spike_artifact_context_dataset.py``.
 """
 
 from __future__ import annotations
