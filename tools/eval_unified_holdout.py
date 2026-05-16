@@ -186,6 +186,24 @@ MODELS: dict[str, ModelSpec] = {
         family="GAN (hybrid CNN+Transformer, ctx fix)",
         notes="(1,7,512) in — note flat 7-epoch packing, not (1,7,1,512). Per-epoch demean.",
     ),
+    "cascaded_dae": ModelSpec(
+        model_id="cascaded_dae",
+        model_name="Cascaded DAE",
+        description="Two-stage residual fully-connected denoising autoencoder (per-channel single-epoch)",
+        ts_path="cascadeddenoisingautoencoderniazyprooffit_*/exports/cascaded_dae.ts",
+        ts_path_cpu=None,
+        family="Autoencoder (cascaded MLP)",
+        notes="(1,1,512) in → (1,1,512) artifact out. Per-segment demean. Glob picks newest matching training_output run.",
+    ),
+    "cascaded_context_dae": ModelSpec(
+        model_id="cascaded_context_dae",
+        model_name="Cascaded Context DAE",
+        description="Two-stage residual context DAE predicting the center-epoch artifact (per-channel 7-epoch context)",
+        ts_path="cascadedcontextdenoisingautoencoderniazyprooffit_*/exports/cascaded_context_dae.ts",
+        ts_path_cpu=None,
+        family="Autoencoder (context MLP)",
+        notes="(1,7,1,512) in → (1,1,512) artifact out. Per-epoch demean. Glob picks newest matching training_output run.",
+    ),
 }
 
 
@@ -336,6 +354,23 @@ def _load_torchscript(path: Path, device: str):
             raise
     m.eval()
     return m
+
+
+def _resolve_ts_path(rel_path: str | None) -> str | None:
+    """Resolve a glob-pattern ts_path to the newest matching training_output entry.
+
+    Plain (non-glob) paths are returned unchanged. Useful for models whose
+    training run-id is not known at registry-time (e.g. cascaded DAE Run-1
+    retrofills) so the registry can declare
+    ``cascadeddenoisingautoencoderniazyprooffit_*/exports/cascaded_dae.ts``
+    and the driver picks the newest matching run automatically.
+    """
+    if not rel_path or "*" not in rel_path:
+        return rel_path
+    matches = sorted(TRAIN_ROOT.glob(rel_path), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not matches:
+        return rel_path  # let downstream `exists()` check emit the missing-file message
+    return str(matches[0].relative_to(TRAIN_ROOT))
 
 
 def _batched_forward(
@@ -697,6 +732,30 @@ def infer_d4pm(
     return out.reshape(N, C, S)
 
 
+def infer_cascaded_dae(
+    spec: ModelSpec, ds: dict[str, np.ndarray], *, device: str, batch_size: int = 256
+) -> np.ndarray:
+    """Cascaded DAE: per-channel single-epoch.
+
+    Identical I/O contract to DPAE: (1, 1, 512) noisy_center per channel-window,
+    demean per segment, predict the full artifact, remove prediction DC.
+    """
+    return infer_dpae(spec, ds, device=device, batch_size=batch_size)
+
+
+def infer_cascaded_context_dae(
+    spec: ModelSpec, ds: dict[str, np.ndarray], *, device: str, batch_size: int = 128
+) -> np.ndarray:
+    """Cascaded Context DAE: (1, 7, 1, 512) in → (1, 1, 512) artifact out per channel-window.
+
+    Identical I/O contract to SepFormer/Nested-GAN: per-epoch demean of the
+    7-epoch context, predict the center-epoch artifact directly.
+    """
+    return _per_channel_7epoch_stack_predict(
+        spec, ds, device=device, batch_size=batch_size
+    )
+
+
 INFERENCE_FUNCS: dict[str, Callable] = {
     "dpae": infer_dpae,
     "ic_unet": infer_ic_unet,
@@ -710,6 +769,8 @@ INFERENCE_FUNCS: dict[str, Callable] = {
     "d4pm": infer_d4pm,
     "dhct_gan": infer_dhct_gan,
     "dhct_gan_v2": infer_dhct_gan_v2,
+    "cascaded_dae": infer_cascaded_dae,
+    "cascaded_context_dae": infer_cascaded_context_dae,
 }
 
 
@@ -791,6 +852,14 @@ def run_model(
 ) -> dict:
     """Run inference + metrics + write outputs for one model. Returns metrics dict."""
     print(f"\n=== {spec.model_id} ({spec.family}) ===")
+    # Resolve any glob pattern in ts_path / ts_path_cpu to the newest matching run.
+    resolved_ts = _resolve_ts_path(spec.ts_path)
+    resolved_ts_cpu = _resolve_ts_path(spec.ts_path_cpu)
+    if resolved_ts != spec.ts_path or resolved_ts_cpu != spec.ts_path_cpu:
+        spec = ModelSpec(
+            **{**spec.__dict__, "ts_path": resolved_ts, "ts_path_cpu": resolved_ts_cpu}
+        )
+        print(f"  resolved ts_path -> {spec.ts_path}")
     if not (TRAIN_ROOT / spec.ts_path).exists():
         print(f"[skip] export not found: {TRAIN_ROOT / spec.ts_path}")
         return {}
