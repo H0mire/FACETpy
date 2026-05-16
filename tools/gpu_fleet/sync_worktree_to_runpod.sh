@@ -61,6 +61,7 @@ rsync -az --delete --no-owner --no-group \
   --exclude 'output/' \
   --exclude 'remote_logs/' \
   --exclude 'training_output/' \
+  --exclude 'worktrees/' \
   --exclude 'export/' \
   --exclude 'ai-docs/' \
   --exclude 'quick-notes/' \
