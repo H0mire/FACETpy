@@ -42,14 +42,16 @@ Normalized from each model's `flat_metrics`. SNR improvement = `clean_snr_db_aft
 | 1 | demucs | Audio (U-Net+LSTM) | +31.28 | 0.9996 | 0.027 | 20260511_005636 | 4998 |
 | 2 | conv_tasnet | Audio (TCN) | +22.03 | 0.9969 | 0.079 | 20260510_224113 | 4998 |
 | 3 | sepformer | Audio (Transformer) | +19.05 | 0.9938 | 0.112 | 20260511_012740 | 4998 |
-| 4 | nested_gan | GAN (TF+Time) | +13.54 | 0.9776 | 0.210 | 20260511_004531 | 833 |
-| 5 | denoise_mamba | SSM | +11.80 | 0.9664 | 0.257 | niazy_proof_fit_full | 24990 |
-| 6 | ic_unet | Discriminative + ICA | +11.77 | 0.9667 | 0.258 | 20260510_full | 833 |
-| 7 | vit_spectrogram | Vision (MAE) | +11.60 | 0.9660 | 0.263 | 20260510_full | 833 |
-| 8 | st_gnn | Graph (GNN) | +11.00 | 0.9595 | 0.277 | niazy_proof_fit_20260510_211512 | – |
-| 9 | dpae | Discriminative | +7.48 | 0.9132 | 0.423 | 20260510_193431 | 24990 |
-| 10 | d4pm | Diffusion | +3.21\* | 0.7251 | 0.699 | 20260510_d4pm_full_e4 | 32 (4 ch) |
-| 11 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | +1.69 | 0.5673 | 0.824 | 20260511_proof_fit | – |
+| 4 | cascaded_context_dae | Autoencoder (context MLP) | +18.84 | 0.9935 | 0.114 | 20260516_173107_proof_fit | 4998 |
+| 5 | cascaded_dae | Autoencoder (cascaded MLP) | +17.79 | 0.9917 | 0.129 | 20260516_173107_proof_fit | 4998 |
+| 6 | nested_gan | GAN (TF+Time) | +13.54 | 0.9776 | 0.210 | 20260511_004531 | 833 |
+| 7 | denoise_mamba | SSM | +11.80 | 0.9664 | 0.257 | niazy_proof_fit_full | 24990 |
+| 8 | ic_unet | Discriminative + ICA | +11.77 | 0.9667 | 0.258 | 20260510_full | 833 |
+| 9 | vit_spectrogram | Vision (MAE) | +11.60 | 0.9660 | 0.263 | 20260510_full | 833 |
+| 10 | st_gnn | Graph (GNN) | +11.00 | 0.9595 | 0.277 | niazy_proof_fit_20260510_211512 | – |
+| 11 | dpae | Discriminative | +7.48 | 0.9132 | 0.423 | 20260510_193431 | 24990 |
+| 12 | d4pm | Diffusion | +3.21\* | 0.7251 | 0.699 | 20260510_d4pm_full_e4 | 32 (4 ch) |
+| 13 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | +1.69 | 0.5673 | 0.824 | 20260511_proof_fit | – |
 | — | dhct_gan | GAN (single-epoch input, failed) | −7.13 | 0.1577 | 2.272 | 20260510_233500_proof_fit | – |
 
 \* D4PM evaluated on only 32 examples × 4 channels because of diffusion
@@ -72,15 +74,22 @@ evaluations. Re-evaluation on the full validation split is recommended.
 | d4pm | [src](../../src/facet/models/d4pm/) | [HANDOFF.md](../../src/facet/models/d4pm/HANDOFF.md) | [d4pm/20260510_d4pm_full_e4/](d4pm/20260510_d4pm_full_e4/) |
 | dhct_gan | [src](../../src/facet/models/dhct_gan/) | [HANDOFF.md](../../src/facet/models/dhct_gan/HANDOFF.md) | [dhct_gan/20260510_233500_proof_fit/](dhct_gan/20260510_233500_proof_fit/) |
 | dhct_gan_v2 | [src](../../src/facet/models/dhct_gan_v2/) | [HANDOFF.md](../../src/facet/models/dhct_gan_v2/HANDOFF.md) | [dhct_gan_v2/20260511_proof_fit/](dhct_gan_v2/20260511_proof_fit/) |
+| cascaded_dae | [src](../../src/facet/models/cascaded_dae/) | – | [cascaded_dae/20260516_173107_proof_fit/](cascaded_dae/20260516_173107_proof_fit/) |
+| cascaded_context_dae | [src](../../src/facet/models/cascaded_context_dae/) | – | [cascaded_context_dae/20260516_173107_proof_fit/](cascaded_context_dae/20260516_173107_proof_fit/) |
 
-## Pre-Existing Baselines (Different Dataset)
+## Superseded Baselines (Synthetic Spike Dataset)
 
-These two were evaluated on the synthetic spike artifact dataset before the
-proof-fit workflow; absolute metrics are not directly comparable to the table
-above, but are kept here for completeness:
+The two cascaded DAE entries below were initial baselines evaluated on the
+synthetic-spike dataset before the proof-fit workflow existed. They are
+**superseded** by the niazy proof-fit runs `20260516_173107_proof_fit` listed
+in the Cross-Model Ranking table above, which use the same dataset, val
+split, seed, and metric formulas as every other model in the study.
 
-- [`cascaded_dae/`](cascaded_dae/) — original channel-wise DAE baseline
-- [`cascaded_context_dae/`](cascaded_context_dae/) — 7-epoch context DAE baseline
+- [`cascaded_dae/20260502_115914/`](cascaded_dae/20260502_115914/) — synthetic_spike, SNR Δ −0.05 dB, art_corr 0.09
+- [`cascaded_context_dae/20260502_115926/`](cascaded_context_dae/20260502_115926/) — synthetic_spike, SNR Δ +3.16 dB, art_corr 0.73
+
+The synthetic-spike runs are kept on disk for provenance — do not cite
+their absolute numbers as DAE performance.
 
 ## Reproducing Any Result
 
@@ -129,13 +138,15 @@ Full report: [`UNIFIED_HOLDOUT.md`](UNIFIED_HOLDOUT.md).
 |---:|---|---:|---:|---:|---:|---:|
 | 1 | demucs | +31.30 | +0.9996 | 0.027 | +31.28 | +0.02 |
 | 2 | conv_tasnet | +22.74 | +0.9973 | 0.073 | +22.03 | +0.71 |
-| 3 | sepformer | +18.71 | +0.9933 | 0.116 | +19.05 | -0.34 |
-| 4 | nested_gan | +11.71 | +0.9746 | 0.260 | +13.54 | -1.83 |
-| 5 | denoise_mamba | +11.20 | +0.9614 | 0.275 | +11.80 | -0.60 |
-| 6 | ic_unet | +11.11 | +0.9613 | 0.278 | +11.77 | -0.66 |
-| 7 | st_gnn | +11.00 | +0.9595 | 0.282 | +11.00 | +0.00 |
-| 8 | vit_spectrogram | +10.95 | +0.9605 | 0.284 | +11.60 | -0.65 |
-| 9 | dpae | +7.28 | +0.9092 | 0.432 | +7.48 | -0.20 |
-| 10 | d4pm | +4.81 | +0.9265 | 0.575 | +3.21 | +1.60 |
-| 11 | dhct_gan_v2 | -1.17 | +0.5644 | 1.145 | +1.69 | -2.86 |
-| 12 | dhct_gan | -7.12 | +0.1573 | 2.269 | -7.13 | +0.01 |
+| 3 | cascaded_context_dae | +18.92 | +0.9936 | 0.113 | +18.84 | +0.08 |
+| 4 | sepformer | +18.71 | +0.9933 | 0.116 | +19.05 | -0.34 |
+| 5 | cascaded_dae | +18.06 | +0.9923 | 0.125 | +17.79 | +0.27 |
+| 6 | nested_gan | +11.71 | +0.9746 | 0.260 | +13.54 | -1.83 |
+| 7 | denoise_mamba | +11.20 | +0.9614 | 0.275 | +11.80 | -0.60 |
+| 8 | ic_unet | +11.11 | +0.9613 | 0.278 | +11.77 | -0.66 |
+| 9 | st_gnn | +11.00 | +0.9595 | 0.282 | +11.00 | +0.00 |
+| 10 | vit_spectrogram | +10.95 | +0.9605 | 0.284 | +11.60 | -0.65 |
+| 11 | dpae | +7.28 | +0.9092 | 0.432 | +7.48 | -0.20 |
+| 12 | d4pm | +4.81 | +0.9265 | 0.575 | +3.21 | +1.60 |
+| 13 | dhct_gan_v2 | -1.17 | +0.5644 | 1.145 | +1.69 | -2.86 |
+| 14 | dhct_gan | -7.12 | +0.1573 | 2.269 | -7.13 | +0.01 |

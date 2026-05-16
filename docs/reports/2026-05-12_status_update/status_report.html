@@ -193,25 +193,39 @@ blockquote:first-of-type {
 </head>
 <body>
 <h1>Statusupdate Masterarbeit FACETpy v2</h1>
-<p><strong>Janik Michael Müller · 2026-05-12</strong></p>
+<p><strong>Janik Michael Müller · 2026-05-12</strong> (Update 2026-05-16: Cascaded-DAE-Retrofill)</p>
 <blockquote>
 <p><strong>Thema.</strong> Deep-Learning-Korrektur von fMRT-Gradienten-Artefakten in
-simultanen EEG-fMRT-Aufnahmen — systematischer Vergleich von 12 Modellen
-aus 7 Architektur-Familien auf einem reproduzierbaren Niazy-Proof-Fit-
+simultanen EEG-fMRT-Aufnahmen — systematischer Vergleich von <strong>14 Modellen</strong>
+aus 8 Architektur-Familien auf einem reproduzierbaren Niazy-Proof-Fit-
 Datensatz.</p>
+<p><strong>Update 2026-05-16.</strong> Die zwei Cascaded-DAE-Modelle (<code>cascaded_dae</code>,
+<code>cascaded_context_dae</code>), bisher nur auf einem älteren Synthetic-Spike-
+Datensatz evaluiert, wurden nachträglich im gleichen Run-1-Schema auf den
+Niazy-Proof-Fit-Datensatz trainiert (L1-Loss, symmetrisches Hidden
+<code>[512, 128, 512]</code>, Joint-End-to-End-Training, sonst identisch zu allen
+anderen Modellen). Beide schlagen das +11 dB-Plateau klar und landen auf
+Rank 4 (Context, +18.84 dB) und Rank 5 (Standard, +17.79 dB) — direkt
+hinter SepFormer und vor allen GAN/SSM/Vision/Graph-Modellen.</p>
 </blockquote>
 <hr>
 <h2>TL;DR</h2>
-<p>In den letzten beiden Tagen wurden <strong>12 Deep-Learning-Modelle</strong> aus 7
-Architektur-Familien parallel auf zwei RunPod-GPUs trainiert und gegen den
+<p>In den letzten Tagen wurden <strong>14 Deep-Learning-Modelle</strong> aus 8 Architektur-
+Familien parallel auf zwei RunPod-GPUs trainiert und gegen den
 Niazy-Proof-Fit-Datensatz (833 Beispiele × 7 Kontext-Epochen × 30 Kanäle ×
-512 Samples) evaluiert. Anschließend wurden alle 12 Modelle auf einem
+512 Samples) evaluiert. Anschließend wurden alle 14 Modelle auf einem
 <strong>einheitlichen Holdout-Split</strong> (166 Windows = 4980 Channel-Windows, seed=42)
 re-evaluiert, um den Test-Split-Confound aus dem ersten Durchlauf zu
 eliminieren.</p>
 <p><strong>Hauptergebnisse:</strong>
-- <strong>Top-Tier</strong>: Audio-Source-Separation-Modelle dominieren — Demucs erreicht
+- <strong>Top-Tier</strong>: Audio-Source-Separation-Modelle führen — Demucs erreicht
   <strong>+31.30 dB</strong> SNR-Verbesserung, Conv-TasNet +22.74 dB, SepFormer +18.71 dB.
+- <strong>Autoencoder-Familie überrascht</strong>: die retrofilled Cascaded DAEs landen
+  auf Rank 4 (+18.92 dB, 4.46 M Parameter, 0.1 s Inferenzzeit) bzw. Rank 5
+  (+18.06 dB, 1.31 M Parameter) — bei 100–1000× schnellerer Inferenz als
+  die Audio-Modelle. L1-Loss + größere Hidden-Schichten haben das frühere
+  +3 dB-Ergebnis des Synthetic-Spike-Trainings nicht nur überholt, sondern
+  in den Top-5 katapultiert.
 - <strong>Plateau-Tier</strong>: 5 Modelle (Nested-GAN, Denoise-Mamba, IC-U-Net, ST-GNN,
   ViT) clustern auf <strong>+11 dB ± 0.7 dB</strong> — strukturelles Plateau, kein
   Eval-Artefakt.
@@ -269,9 +283,9 @@ identischen Split re-evaluiert mit den kanonischen Metriken aus
 <tbody>
 <tr>
 <td>Top</td>
-<td>+18 bis +31 dB</td>
-<td>Demucs, Conv-TasNet, SepFormer</td>
-<td>Audio-Source-Separation transferiert hervorragend auf EEG.</td>
+<td>+17 bis +31 dB</td>
+<td>Demucs, Conv-TasNet, SepFormer, <strong>Cascaded Context DAE</strong>, <strong>Cascaded DAE</strong></td>
+<td>Audio-Source-Separation und gut konfigurierte Autoencoder transferieren hervorragend auf EEG.</td>
 </tr>
 <tr>
 <td>Plateau</td>
@@ -302,11 +316,13 @@ Verschiebungen:</p>
   zufällig "günstige" Test-Beispiele in der Eval; unter dem Unified Holdout
   treten die GAN-Trainings-Instabilitäten deutlicher hervor.</li>
 </ul>
-<h3>2.3 Trainings-Verläufe aller 12 Modelle</h3>
-<p><img alt="Figur 3 — Alle 12 Trainings-Kurven" src="file:///Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/docs/reports/2026-05-12_status_update/figures/fig_3_training_curves.png"></p>
+<h3>2.3 Trainings-Verläufe aller 14 Modelle</h3>
+<p><img alt="Figur 3 — Alle 14 Trainings-Kurven" src="file:///Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/docs/reports/2026-05-12_status_update/figures/fig_3_training_curves.png"></p>
 <p>Sortiert nach Unified-Holdout SNR-Verbesserung. Top-Tier zeigt monotone
 Konvergenz; Plateau-Tier konvergiert ebenfalls sauber; Bottom-Tier
-(DHCT-GAN v1/v2, DPAE, ViT) zeigt charakteristische Pathologien — siehe §3.</p>
+(DHCT-GAN v1/v2, DPAE, ViT) zeigt charakteristische Pathologien — siehe §3.
+Die beiden Cascaded-DAE-Modelle (Update 2026-05-16) konvergieren beide in
+unter 30 Epochen via Early-Stopping mit deutlich sichtbarem L1-Loss-Verlauf.</p>
 <h3>2.4 Alle Metriken im Direktvergleich</h3>
 <p>Die SNR-Verbesserung ist die Headline-Zahl, aber für die Thesis-Diskussion
 sind auch die Detail-Metriken wichtig — insbesondere die <strong>FACETpy-konforme
@@ -349,10 +365,22 @@ trennt die <code>RMS-Recovery</code>-Metrik sie sauber auf:</p>
 <td>Leichte Über-Energie (gut)</td>
 </tr>
 <tr>
+<td><strong>Cascaded Context DAE</strong></td>
+<td style="text-align: right;"><strong>+18.92</strong></td>
+<td style="text-align: right;"><strong>1.51</strong></td>
+<td>Leichte Unter-Korrektur (~51% Restenergie)</td>
+</tr>
+<tr>
 <td>SepFormer</td>
 <td style="text-align: right;">+18.71</td>
 <td style="text-align: right;"><strong>1.18</strong></td>
 <td>Leichte Über-Energie</td>
+</tr>
+<tr>
+<td><strong>Cascaded DAE</strong></td>
+<td style="text-align: right;"><strong>+18.06</strong></td>
+<td style="text-align: right;"><strong>1.53</strong></td>
+<td>Leichte Unter-Korrektur (~53% Restenergie)</td>
 </tr>
 <tr>
 <td>Nested-GAN</td>

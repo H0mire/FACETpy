@@ -1,26 +1,41 @@
 # Statusupdate Masterarbeit FACETpy v2
-**Janik Michael Müller · 2026-05-12**
+**Janik Michael Müller · 2026-05-12** (Update 2026-05-16: Cascaded-DAE-Retrofill)
 
 > **Thema.** Deep-Learning-Korrektur von fMRT-Gradienten-Artefakten in
-> simultanen EEG-fMRT-Aufnahmen — systematischer Vergleich von 12 Modellen
-> aus 7 Architektur-Familien auf einem reproduzierbaren Niazy-Proof-Fit-
+> simultanen EEG-fMRT-Aufnahmen — systematischer Vergleich von **14 Modellen**
+> aus 8 Architektur-Familien auf einem reproduzierbaren Niazy-Proof-Fit-
 > Datensatz.
+
+> **Update 2026-05-16.** Die zwei Cascaded-DAE-Modelle (`cascaded_dae`,
+> `cascaded_context_dae`), bisher nur auf einem älteren Synthetic-Spike-
+> Datensatz evaluiert, wurden nachträglich im gleichen Run-1-Schema auf den
+> Niazy-Proof-Fit-Datensatz trainiert (L1-Loss, symmetrisches Hidden
+> `[512, 128, 512]`, Joint-End-to-End-Training, sonst identisch zu allen
+> anderen Modellen). Beide schlagen das +11 dB-Plateau klar und landen auf
+> Rank 4 (Context, +18.84 dB) und Rank 5 (Standard, +17.79 dB) — direkt
+> hinter SepFormer und vor allen GAN/SSM/Vision/Graph-Modellen.
 
 ---
 
 ## TL;DR
 
-In den letzten beiden Tagen wurden **12 Deep-Learning-Modelle** aus 7
-Architektur-Familien parallel auf zwei RunPod-GPUs trainiert und gegen den
+In den letzten Tagen wurden **14 Deep-Learning-Modelle** aus 8 Architektur-
+Familien parallel auf zwei RunPod-GPUs trainiert und gegen den
 Niazy-Proof-Fit-Datensatz (833 Beispiele × 7 Kontext-Epochen × 30 Kanäle ×
-512 Samples) evaluiert. Anschließend wurden alle 12 Modelle auf einem
+512 Samples) evaluiert. Anschließend wurden alle 14 Modelle auf einem
 **einheitlichen Holdout-Split** (166 Windows = 4980 Channel-Windows, seed=42)
 re-evaluiert, um den Test-Split-Confound aus dem ersten Durchlauf zu
 eliminieren.
 
 **Hauptergebnisse:**
-- **Top-Tier**: Audio-Source-Separation-Modelle dominieren — Demucs erreicht
+- **Top-Tier**: Audio-Source-Separation-Modelle führen — Demucs erreicht
   **+31.30 dB** SNR-Verbesserung, Conv-TasNet +22.74 dB, SepFormer +18.71 dB.
+- **Autoencoder-Familie überrascht**: die retrofilled Cascaded DAEs landen
+  auf Rank 4 (+18.92 dB, 4.46 M Parameter, 0.1 s Inferenzzeit) bzw. Rank 5
+  (+18.06 dB, 1.31 M Parameter) — bei 100–1000× schnellerer Inferenz als
+  die Audio-Modelle. L1-Loss + größere Hidden-Schichten haben das frühere
+  +3 dB-Ergebnis des Synthetic-Spike-Trainings nicht nur überholt, sondern
+  in den Top-5 katapultiert.
 - **Plateau-Tier**: 5 Modelle (Nested-GAN, Denoise-Mamba, IC-U-Net, ST-GNN,
   ViT) clustern auf **+11 dB ± 0.7 dB** — strukturelles Plateau, kein
   Eval-Artefakt.
@@ -78,7 +93,7 @@ identischen Split re-evaluiert mit den kanonischen Metriken aus
 
 | Tier | SNR↑ | Modelle | Interpretation |
 |---|---|---|---|
-| Top | +18 bis +31 dB | Demucs, Conv-TasNet, SepFormer | Audio-Source-Separation transferiert hervorragend auf EEG. |
+| Top | +17 bis +31 dB | Demucs, Conv-TasNet, SepFormer, **Cascaded Context DAE**, **Cascaded DAE** | Audio-Source-Separation und gut konfigurierte Autoencoder transferieren hervorragend auf EEG. |
 | Plateau | +10 bis +12 dB | Nested-GAN, Denoise-Mamba, IC-U-Net, ST-GNN, ViT | Strukturelle Ceiling — alle 5 Familien landen bei demselben Wert. |
 | Bottom | −7 bis +7 dB | DPAE, D4PM, DHCT-GAN v1/v2 | Diagnostizierte Defekte (§3) oder Sample-Size-Confound. |
 
@@ -99,13 +114,15 @@ Verschiebungen:
   zufällig "günstige" Test-Beispiele in der Eval; unter dem Unified Holdout
   treten die GAN-Trainings-Instabilitäten deutlicher hervor.
 
-### 2.3 Trainings-Verläufe aller 12 Modelle
+### 2.3 Trainings-Verläufe aller 14 Modelle
 
-![Figur 3 — Alle 12 Trainings-Kurven](figures/fig_3_training_curves.png)
+![Figur 3 — Alle 14 Trainings-Kurven](figures/fig_3_training_curves.png)
 
 Sortiert nach Unified-Holdout SNR-Verbesserung. Top-Tier zeigt monotone
 Konvergenz; Plateau-Tier konvergiert ebenfalls sauber; Bottom-Tier
 (DHCT-GAN v1/v2, DPAE, ViT) zeigt charakteristische Pathologien — siehe §3.
+Die beiden Cascaded-DAE-Modelle (Update 2026-05-16) konvergieren beide in
+unter 30 Epochen via Early-Stopping mit deutlich sichtbarem L1-Loss-Verlauf.
 
 ### 2.4 Alle Metriken im Direktvergleich
 
@@ -137,7 +154,9 @@ trennt die `RMS-Recovery`-Metrik sie sauber auf:
 |---|---:|---:|---|
 | Demucs | +31.30 | **1.02** | Perfekte Energie-Erhaltung |
 | Conv-TasNet | +22.74 | **1.09** | Leichte Über-Energie (gut) |
+| **Cascaded Context DAE** | **+18.92** | **1.51** | Leichte Unter-Korrektur (~51% Restenergie) |
 | SepFormer | +18.71 | **1.18** | Leichte Über-Energie |
+| **Cascaded DAE** | **+18.06** | **1.53** | Leichte Unter-Korrektur (~53% Restenergie) |
 | Nested-GAN | +11.71 | **0.21** | **Über-Korrektur** (79% Signal weg) |
 | Denoise-Mamba | +11.20 | **0.30** | Über-Korrektur |
 | IC-U-Net | +11.11 | **0.21** | Über-Korrektur |

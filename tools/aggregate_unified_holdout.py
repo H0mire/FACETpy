@@ -29,13 +29,19 @@ FAMILY: dict[str, str] = {
     "d4pm": "Diffusion",
     "dhct_gan": "GAN (single-epoch input, failed)",
     "dhct_gan_v2": "GAN (hybrid CNN+Transformer, ctx fix)",
+    "cascaded_dae": "Autoencoder (cascaded MLP)",
+    "cascaded_context_dae": "Autoencoder (context MLP)",
 }
 
 # Note about non-comparability — d4pm Run 1 was on 32 samples, vit on full 833, etc.
+# Both cascaded DAE entries reference their own Run-1 retrofill (this branch); the
+# original synthetic_spike numbers are kept out of this delta column on purpose.
 RUN1_SNR: dict[str, float] = {
     "demucs": 31.28,
     "conv_tasnet": 22.03,
     "sepformer": 19.05,
+    "cascaded_context_dae": 18.84,
+    "cascaded_dae": 17.79,
     "nested_gan": 13.54,
     "denoise_mamba": 11.80,
     "ic_unet": 11.77,

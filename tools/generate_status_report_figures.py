@@ -52,6 +52,8 @@ FAMILY: dict[str, str] = {
     "dhct_gan_v2": "GAN",
     "dpae": "Discriminative",
     "ic_unet": "Discriminative",
+    "cascaded_dae": "Autoencoder",
+    "cascaded_context_dae": "Autoencoder",
     "denoise_mamba": "SSM",
     "vit_spectrogram": "Vision",
     "st_gnn": "Graph",
@@ -61,6 +63,7 @@ FAMILY: dict[str, str] = {
 FAMILY_COLOR: dict[str, str] = {
     "Audio": "#1f77b4",          # blue
     "Discriminative": "#2ca02c", # green
+    "Autoencoder": "#17becf",    # cyan
     "SSM": "#ff7f0e",            # orange
     "Vision": "#9467bd",         # purple
     "Graph": "#8c564b",          # brown
@@ -78,6 +81,8 @@ DISPLAY_NAME: dict[str, str] = {
     "vit_spectrogram": "ViT Spectrogram",
     "st_gnn": "ST-GNN",
     "dpae": "DPAE",
+    "cascaded_dae": "Cascaded DAE",
+    "cascaded_context_dae": "Cascaded Context DAE",
     "d4pm": "D4PM",
     "dhct_gan_v2": "DHCT-GAN v2",
     "dhct_gan": "DHCT-GAN v1",
@@ -85,6 +90,7 @@ DISPLAY_NAME: dict[str, str] = {
 
 RUN1_SNR: dict[str, float] = {
     "demucs": 31.28, "conv_tasnet": 22.03, "sepformer": 19.05,
+    "cascaded_context_dae": 18.84, "cascaded_dae": 17.79,
     "nested_gan": 13.54, "denoise_mamba": 11.80, "ic_unet": 11.77,
     "vit_spectrogram": 11.60, "st_gnn": 11.00, "dpae": 7.48,
     "d4pm": 3.21, "dhct_gan_v2": 1.69, "dhct_gan": -7.13,

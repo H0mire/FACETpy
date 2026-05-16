@@ -1,0 +1,51 @@
+{
+  "metrics": {
+    "synthetic_niazy_proof_fit_val_split": {
+      "n_examples": 4998,
+      "samples_per_epoch": 512,
+      "input_mean_removed": true,
+      "prediction_mean_removed": true,
+      "clean_mse_before": 3.4587285426823655e-06,
+      "clean_mse_after": 4.520977014976779e-08,
+      "clean_mae_before": 0.0009077009162865579,
+      "clean_mae_after": 0.0001614922657608986,
+      "clean_snr_db_before": -11.60905647277832,
+      "clean_snr_db_after": 7.227785587310791,
+      "artifact_mse": 4.520977014976779e-08,
+      "artifact_mae": 0.0001614922657608986,
+      "artifact_corr": 0.9934873809929842,
+      "artifact_snr_db": 18.836841583251953,
+      "predicted_clean_mse": 4.520977014976779e-08,
+      "predicted_clean_corr": 0.9112421993776192,
+      "predicted_source_sum_mse": 7.435590846801934e-23,
+      "residual_error_rms_ratio": 0.11432939520381069,
+      "clean_mse_reduction_pct": 98.69287891224022,
+      "clean_snr_improvement_db": 18.83684206008911,
+      "inference_seconds": 0.548405,
+      "device": "cpu"
+    }
+  },
+  "flat_metrics": {
+    "synthetic_niazy_proof_fit_val_split.n_examples": 4998,
+    "synthetic_niazy_proof_fit_val_split.samples_per_epoch": 512,
+    "synthetic_niazy_proof_fit_val_split.input_mean_removed": true,
+    "synthetic_niazy_proof_fit_val_split.prediction_mean_removed": true,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_before": 3.4587285426823655e-06,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_after": 4.520977014976779e-08,
+    "synthetic_niazy_proof_fit_val_split.clean_mae_before": 0.0009077009162865579,
+    "synthetic_niazy_proof_fit_val_split.clean_mae_after": 0.0001614922657608986,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_db_before": -11.60905647277832,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_db_after": 7.227785587310791,
+    "synthetic_niazy_proof_fit_val_split.artifact_mse": 4.520977014976779e-08,
+    "synthetic_niazy_proof_fit_val_split.artifact_mae": 0.0001614922657608986,
+    "synthetic_niazy_proof_fit_val_split.artifact_corr": 0.9934873809929842,
+    "synthetic_niazy_proof_fit_val_split.artifact_snr_db": 18.836841583251953,
+    "synthetic_niazy_proof_fit_val_split.predicted_clean_mse": 4.520977014976779e-08,
+    "synthetic_niazy_proof_fit_val_split.predicted_clean_corr": 0.9112421993776192,
+    "synthetic_niazy_proof_fit_val_split.predicted_source_sum_mse": 7.435590846801934e-23,
+    "synthetic_niazy_proof_fit_val_split.residual_error_rms_ratio": 0.11432939520381069,
+    "synthetic_niazy_proof_fit_val_split.clean_mse_reduction_pct": 98.69287891224022,
+    "synthetic_niazy_proof_fit_val_split.clean_snr_improvement_db": 18.83684206008911,
+    "synthetic_niazy_proof_fit_val_split.inference_seconds": 0.548405
+  }
+}

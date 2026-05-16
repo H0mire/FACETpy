@@ -23,16 +23,18 @@ Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
 |---:|---|---|---:|---:|---:|---:|---:|---:|---:|
 | 1 | demucs | Audio (U-Net+LSTM) | +31.30 | -10.94 | +20.35 | +0.9996 | 0.027 | +0.02 | 147.7 |
 | 2 | conv_tasnet | Audio (TCN) | +22.74 | -10.94 | +11.79 | +0.9973 | 0.073 | +0.71 | 923.0 |
-| 3 | sepformer | Audio (Transformer) | +18.71 | -10.94 | +7.76 | +0.9933 | 0.116 | -0.34 | 135.6 |
-| 4 | nested_gan | GAN (TF+Time) | +11.71 | -10.94 | +0.77 | +0.9746 | 0.260 | -1.83 | 167.9 |
-| 5 | denoise_mamba | SSM | +11.20 | -10.94 | +0.26 | +0.9614 | 0.275 | -0.60 | 101.1 |
-| 6 | ic_unet | Discriminative + ICA | +11.11 | -10.94 | +0.16 | +0.9613 | 0.278 | -0.66 | 1.7 |
-| 7 | st_gnn | Graph (GNN) | +11.00 | -10.94 | +0.06 | +0.9595 | 0.282 | +0.00 | 5.3 |
-| 8 | vit_spectrogram | Vision (MAE) | +10.95 | -10.94 | +0.00 | +0.9605 | 0.284 | -0.65 | 12.4 |
-| 9 | dpae | Discriminative | +7.28 | -10.94 | -3.66 | +0.9092 | 0.432 | -0.20 | 29.8 |
-| 10 | d4pm | Diffusion | +4.81 | -10.94 | -6.14 | +0.9265 | 0.575 | +1.60 | 1332.8 |
-| 11 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | -1.17 | -10.94 | -12.12 | +0.5644 | 1.145 | -2.86 | 32.0 |
-| 12 | dhct_gan | GAN (single-epoch input, failed) | -7.12 | -10.94 | -18.06 | +0.1573 | 2.269 | +0.01 | 27.1 |
+| 3 | cascaded_context_dae | Autoencoder (context MLP) | +18.92 | -10.94 | +7.98 | +0.9936 | 0.113 | +0.08 | 0.1 |
+| 4 | sepformer | Audio (Transformer) | +18.71 | -10.94 | +7.76 | +0.9933 | 0.116 | -0.34 | 135.6 |
+| 5 | cascaded_dae | Autoencoder (cascaded MLP) | +18.06 | -10.94 | +7.11 | +0.9923 | 0.125 | +0.27 | 0.5 |
+| 6 | nested_gan | GAN (TF+Time) | +11.71 | -10.94 | +0.77 | +0.9746 | 0.260 | -1.83 | 167.9 |
+| 7 | denoise_mamba | SSM | +11.20 | -10.94 | +0.26 | +0.9614 | 0.275 | -0.60 | 101.1 |
+| 8 | ic_unet | Discriminative + ICA | +11.11 | -10.94 | +0.16 | +0.9613 | 0.278 | -0.66 | 1.7 |
+| 9 | st_gnn | Graph (GNN) | +11.00 | -10.94 | +0.06 | +0.9595 | 0.282 | +0.00 | 5.3 |
+| 10 | vit_spectrogram | Vision (MAE) | +10.95 | -10.94 | +0.00 | +0.9605 | 0.284 | -0.65 | 12.4 |
+| 11 | dpae | Discriminative | +7.28 | -10.94 | -3.66 | +0.9092 | 0.432 | -0.20 | 29.8 |
+| 12 | d4pm | Diffusion | +4.81 | -10.94 | -6.14 | +0.9265 | 0.575 | +1.60 | 1332.8 |
+| 13 | dhct_gan_v2 | GAN (hybrid CNN+Transformer, ctx fix) | -1.17 | -10.94 | -12.12 | +0.5644 | 1.145 | -2.86 | 32.0 |
+| 14 | dhct_gan | GAN (single-epoch input, failed) | -7.12 | -10.94 | -18.06 | +0.1573 | 2.269 | +0.01 | 27.1 |
 
 **Reading the table:**
 - `SNR↑ dB` is the primary thesis metric. Higher is better.
@@ -54,7 +56,9 @@ Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).
 
 - [`demucs/holdout_v1/`](../demucs/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
 - [`conv_tasnet/holdout_v1/`](../conv_tasnet/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
+- [`cascaded_context_dae/holdout_v1/`](../cascaded_context_dae/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
 - [`sepformer/holdout_v1/`](../sepformer/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
+- [`cascaded_dae/holdout_v1/`](../cascaded_dae/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
 - [`nested_gan/holdout_v1/`](../nested_gan/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
 - [`denoise_mamba/holdout_v1/`](../denoise_mamba/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
 - [`ic_unet/holdout_v1/`](../ic_unet/holdout_v1/) — `metrics.json`, `evaluation_summary.md`, `plots/holdout_examples.png`
