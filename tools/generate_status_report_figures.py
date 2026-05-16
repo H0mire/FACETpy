@@ -58,6 +58,7 @@ FAMILY: dict[str, str] = {
     "vit_spectrogram": "Vision",
     "st_gnn": "Graph",
     "d4pm": "Diffusion",
+    "aas_naive_6nn": "Baseline (AAS)",
 }
 
 FAMILY_COLOR: dict[str, str] = {
@@ -69,6 +70,7 @@ FAMILY_COLOR: dict[str, str] = {
     "Graph": "#8c564b",          # brown
     "Diffusion": "#e377c2",      # pink
     "GAN": "#d62728",            # red
+    "Baseline (AAS)": "#444444", # dark gray — reference baseline
 }
 
 DISPLAY_NAME: dict[str, str] = {
@@ -86,13 +88,16 @@ DISPLAY_NAME: dict[str, str] = {
     "d4pm": "D4PM",
     "dhct_gan_v2": "DHCT-GAN v2",
     "dhct_gan": "DHCT-GAN v1",
+    "aas_naive_6nn": "AAS (6-neighbor)",
 }
 
 RUN1_SNR: dict[str, float] = {
     "demucs": 31.28, "conv_tasnet": 22.03, "sepformer": 19.05,
     "cascaded_context_dae": 18.84, "cascaded_dae": 17.79,
     "nested_gan": 13.54, "denoise_mamba": 11.80, "ic_unet": 11.77,
-    "vit_spectrogram": 11.60, "st_gnn": 11.00, "dpae": 7.48,
+    "vit_spectrogram": 11.60, "st_gnn": 11.00,
+    "aas_naive_6nn": 9.16,
+    "dpae": 7.48,
     "d4pm": 3.21, "dhct_gan_v2": 1.69, "dhct_gan": -7.13,
 }
 

@@ -21,8 +21,10 @@
       "rms_baseline_noisy_ratio": 7.25469446182251,
       "clean_mse_reduction_pct": 93.25719594945613,
       "clean_snr_improvement_db": 11.711594879627228,
-      "inference_seconds": 167.947225,
-      "device": "cpu"
+      "inference_seconds": 133.0795611249996,
+      "device": "cpu",
+      "inference_seconds_legacy": 167.947225,
+      "inference_timing_note": "remeasured 2026-05-16 with cold-start isolation (fresh subprocess per model, 1 warmup pass excluded, median of 3 timed passes)"
     }
   },
   "flat_metrics": {
@@ -46,6 +48,6 @@
     "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
     "unified_holdout.clean_mse_reduction_pct": 93.25719594945613,
     "unified_holdout.clean_snr_improvement_db": 11.711594879627228,
-    "unified_holdout.inference_seconds": 167.947225
+    "unified_holdout.inference_seconds": 133.0795611249996
   }
 }

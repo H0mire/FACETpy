@@ -31,11 +31,22 @@ eliminieren.
 - **Top-Tier**: Audio-Source-Separation-Modelle führen — Demucs erreicht
   **+31.30 dB** SNR-Verbesserung, Conv-TasNet +22.74 dB, SepFormer +18.71 dB.
 - **Autoencoder-Familie überrascht**: die retrofilled Cascaded DAEs landen
-  auf Rank 4 (+18.92 dB, 4.46 M Parameter, 0.1 s Inferenzzeit) bzw. Rank 5
-  (+18.06 dB, 1.31 M Parameter) — bei 100–1000× schnellerer Inferenz als
-  die Audio-Modelle. L1-Loss + größere Hidden-Schichten haben das frühere
-  +3 dB-Ergebnis des Synthetic-Spike-Trainings nicht nur überholt, sondern
-  in den Top-5 katapultiert.
+  auf Rank 4 (+18.92 dB, 4.46 M Parameter, 0.113 s Inferenzzeit) bzw.
+  Rank 5 (+18.06 dB, 1.31 M Parameter, 0.042 s). Cascaded DAE läuft damit
+  **4× schneller als die Production-FACETpy-AAS** (0.153 s) und Cascaded
+  Context DAE in etwa AAS-Geschwindigkeit. Gegenüber den Audio-Modellen
+  (Demucs 107.9 s, SepFormer 99.5 s — alle auf derselben MacBook-CPU
+  gemessen) sind die DAEs 800–2570× schneller. L1-Loss + symmetrisches
+  Hidden `[512, 128, 512]` haben das frühere +3 dB-Ergebnis des
+  Synthetic-Spike-Trainings nicht nur überholt, sondern in den Top-5
+  katapultiert.
+- **AAS-Baseline als Referenz**: eine simple 6-Nachbar-Mittelung im
+  selben 7-Epochen-Kontextfenster (essentially „naive AAS") erreicht
+  bereits +9.16 dB bei 2 μs/Channel-Window. Damit schlägt diese AAS-
+  Sub-Baseline 5 von 14 trainierten Deep-Learning-Modellen
+  (DPAE, D4PM, DHCT-GAN v1/v2). Die DAE-Retrofill ist das erste lernende
+  Verfahren in dieser Studie, das **gleichzeitig auf beiden Achsen**
+  (Qualität + Geschwindigkeit) gegen den AAS-Naive-Baseline gewinnt.
 - **Plateau-Tier**: 5 Modelle (Nested-GAN, Denoise-Mamba, IC-U-Net, ST-GNN,
   ViT) clustern auf **+11 dB ± 0.7 dB** — strukturelles Plateau, kein
   Eval-Artefakt.

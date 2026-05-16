@@ -17,6 +17,7 @@ EVAL_ROOT = REPO_ROOT / "output/model_evaluations"
 RUN_ID = "holdout_v1"
 
 FAMILY: dict[str, str] = {
+    "aas_naive_6nn": "Baseline (AAS)",
     "dpae": "Discriminative",
     "ic_unet": "Discriminative + ICA",
     "denoise_mamba": "SSM",
@@ -36,6 +37,8 @@ FAMILY: dict[str, str] = {
 # Note about non-comparability — d4pm Run 1 was on 32 samples, vit on full 833, etc.
 # Both cascaded DAE entries reference their own Run-1 retrofill (this branch); the
 # original synthetic_spike numbers are kept out of this delta column on purpose.
+# aas_naive_6nn is a non-learned baseline — its "Run 1 SNR" mirrors its holdout
+# SNR (deterministic).
 RUN1_SNR: dict[str, float] = {
     "demucs": 31.28,
     "conv_tasnet": 22.03,
@@ -47,6 +50,7 @@ RUN1_SNR: dict[str, float] = {
     "ic_unet": 11.77,
     "vit_spectrogram": 11.60,
     "st_gnn": 11.00,
+    "aas_naive_6nn": 9.16,
     "dpae": 7.48,
     "d4pm": 3.21,
     "dhct_gan_v2": 1.69,
