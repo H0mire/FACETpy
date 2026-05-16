@@ -16,11 +16,11 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_context_dae.training:build_model
   kwargs:
-    hidden_units: [512, 128, 512]
+    hidden_units: [768, 192, 768]  # must match training_niazy_proof_fit.yaml
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_context_dae.training:build_loss
   loss_kwargs:
-    name: mse
+    name: l1  # must match training_niazy_proof_fit.yaml
   device: cuda
 
 data:

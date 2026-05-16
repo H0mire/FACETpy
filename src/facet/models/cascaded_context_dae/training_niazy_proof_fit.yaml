@@ -16,11 +16,20 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_context_dae.training:build_model
   kwargs:
-    hidden_units: [512, 128, 512]
+    # Hidden bumped from [512,128,512] (~4.5M params) to [768,192,768] (~7M)
+    # for the Run-1 retrofill. Rationale: input dim is 3584 (7*512), so a
+    # 512→128 bottleneck is a 28x compression on a high-frequency signal —
+    # likely an information bottleneck. ~7M params sits between Conv-TasNet
+    # (~5M) and Demucs (16.6M) in the Run-1 lineup; still safe vs overfit
+    # on 19992 training pairs (~350 params/sample) given dropout=0.2.
+    hidden_units: [768, 192, 768]
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_context_dae.training:build_loss
   loss_kwargs:
-    name: mse
+    # L1 instead of MSE — see cascaded_dae YAML for full rationale. Tldr:
+    # Demucs (+31 dB) uses L1, MSE-trained autoencoder-style models
+    # (DPAE +7.5 dB, old DAE +3 dB) stagnated lower.
+    name: l1
   device: cuda
 
 data:

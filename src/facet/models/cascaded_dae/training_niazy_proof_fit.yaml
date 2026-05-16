@@ -16,11 +16,22 @@ model:
   framework: pytorch
   factory: facet.models.cascaded_dae.training:build_model
   kwargs:
-    hidden_units: [128, 32, 128]
+    # Hidden bumped from [128,32,128] (~280k params) to [256,64,256] (~600k)
+    # for the Run-1 retrofill. Rationale: 19992 training pairs were starving
+    # the prototype config (~14 params/sample). Doubling both encoder/decoder
+    # width and the bottleneck keeps the model well below overfit territory
+    # (~30 params/sample) and gives the MLP a fair shot at the artifact
+    # structure without losing the "vanilla MLP baseline" role of the family.
+    hidden_units: [256, 64, 256]
     dropout_rate: 0.2
   loss_factory: facet.models.cascaded_dae.training:build_loss
   loss_kwargs:
-    name: mse
+    # L1 instead of MSE. Demucs (the +31 dB winner) uses L1; L1 is more robust
+    # to the heavy-tailed artifact amplitude distribution
+    # (max_abs_artifact_uv = 13.6 mV, mean_abs_artifact_uv = 0.92 mV per
+    # dataset metadata). Bit-identical architecture, L1-vs-MSE swap is a
+    # known 1-3 dB swing in source-separation literature.
+    name: l1
   device: cuda
 
 data:
