@@ -27,9 +27,11 @@ from __future__ import annotations
 
 import argparse
 import json
+from math import gcd
 from pathlib import Path
 
 import numpy as np
+from scipy.signal import resample_poly
 
 DEFAULT_ARTIFACT_BUNDLE = Path("output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz")
 DEFAULT_OUTPUT_DIR = Path("output/niazy_proof_fit_context_512")
@@ -47,13 +49,30 @@ def parse_args() -> argparse.Namespace:
 
 
 def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
-    if values.shape[-1] == target_samples:
+    """Bandlimited polyphase resampling.
+
+    Matches the resampling logic used in
+    ``facet.models.cascaded_context_dae.processor._resample_1d`` so that
+    training data and inference share the same canonical resampler.
+    Replaces the earlier linear interpolation (sinc^2 lowpass) which
+    destroyed HF content in the artifact estimates.
+    """
+    n = int(values.shape[-1])
+    if n == target_samples:
         return values.astype(np.float32, copy=True)
-    if values.shape[-1] == 0:
+    if n == 0:
         return np.zeros(target_samples, dtype=np.float32)
-    source_x = np.linspace(0.0, 1.0, values.shape[-1], endpoint=False, dtype=np.float64)
-    target_x = np.linspace(0.0, 1.0, target_samples, endpoint=False, dtype=np.float64)
-    return np.interp(target_x, source_x, values).astype(np.float32)
+    g = gcd(target_samples, n)
+    up, down = target_samples // g, n // g
+    out = resample_poly(values.astype(np.float64, copy=False), up, down)
+    if out.shape[-1] > target_samples:
+        out = out[..., :target_samples]
+    elif out.shape[-1] < target_samples:
+        pad = target_samples - out.shape[-1]
+        out = np.concatenate(
+            [out, np.full(pad, out[..., -1], dtype=out.dtype)], axis=-1
+        )
+    return out.astype(np.float32, copy=False)
 
 
 def _resample_epoch(epoch: np.ndarray, target_samples: int) -> np.ndarray:
