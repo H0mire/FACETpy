@@ -440,8 +440,15 @@ class MissingTriggerDetector(Processor):
 
         for i in range(len(triggers) - 1):
             gap = triggers[i + 1] - triggers[i]
-            if gap > artifact_length * 1.9:
-                search_pos = triggers[i] + artifact_length
+            if gap <= artifact_length * 1.9:
+                continue
+            # A gap clearly wider than one artifact length may hide MORE than a
+            # single missing trigger. Estimate how many regularly-spaced
+            # triggers (spacing ≈ artifact_length) are missing and probe each
+            # candidate position, not just the first one.
+            n_missing = max(1, int(round(gap / artifact_length)) - 1)
+            for k in range(1, n_missing + 1):
+                search_pos = triggers[i] + k * artifact_length
                 candidate = self._align_to_template(ref_data, template, search_pos, search_window, tmin, tmax)
                 if self._is_artifact(ref_data, template, candidate, tmin, artifact_length):
                     missing_triggers.append(candidate)
