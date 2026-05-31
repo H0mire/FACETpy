@@ -11,6 +11,7 @@ examples/
 ├── complete_pipeline_example_bcg.py    Same plus BCG correction
 ├── complete_pipeline_example_large_dataset.py
 ├── complete_pipeline_example_large_dataset_bcg.py
+├── complete_pipeline_example_cascaded_context_dae.py  Full pipeline w/ trained DL corrector
 ├── convert_types.py                    Small helper (MNE event-array conversions)
 │
 ├── datasets/                           Sample EEG data used by the examples (EDF, BIDS, GDF)
