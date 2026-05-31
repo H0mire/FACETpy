@@ -5,7 +5,7 @@ PCA-based artifact correction processor.
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import butter, filtfilt
+from scipy.signal import filtfilt, firwin
 
 from ..console import processor_progress
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
@@ -113,7 +113,7 @@ class PCACorrection(Processor):
                     continue
 
                 try:
-                    residuals = self._calc_pca_residuals(
+                    fitted_artifact = self._calc_fitted_artifact(
                         raw._data[ch_idx],
                         triggers,
                         artifact_length,
@@ -121,8 +121,11 @@ class PCACorrection(Processor):
                         s_acq_end,
                         hp_weights,
                     )
-                    raw._data[ch_idx][s_acq_start:s_acq_end] -= residuals
-                    estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += residuals
+                    # Match MATLAB FACET (FACET.m:1266-1267):
+                    #   RANoiseAcq = RANoiseAcq + fitted_res
+                    #   RAEEGAcq   = RAEEGAcq   - fitted_res
+                    raw._data[ch_idx][s_acq_start:s_acq_end] -= fitted_artifact
+                    estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += fitted_artifact
                     progress.advance(1, message=status_prefix)
                 except Exception as exc:
                     logger.error("PCA failed for channel {}: {}", ch_name, exc)
@@ -160,7 +163,7 @@ class PCACorrection(Processor):
             return self._create_hp_filter(sfreq)
         return None
 
-    def _calc_pca_residuals(
+    def _calc_fitted_artifact(
         self,
         ch_data: np.ndarray,
         triggers: np.ndarray,
@@ -169,7 +172,7 @@ class PCACorrection(Processor):
         s_acq_end: int,
         hp_weights: np.ndarray | None,
     ) -> np.ndarray:
-        """Calculate PCA-based artifact residuals for a single channel.
+        """Calculate the OBS-fitted artifact estimate for a single channel.
 
         Parameters
         ----------
@@ -189,7 +192,8 @@ class PCACorrection(Processor):
         Returns
         -------
         np.ndarray
-            Residual (artifact) signal of length ``s_acq_end - s_acq_start``.
+            Fitted artifact (OBS reconstruction) of length
+            ``s_acq_end - s_acq_start``, to be subtracted from the EEG.
         """
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
@@ -200,9 +204,9 @@ class PCACorrection(Processor):
         offset = int(artifact_length * 0.1)
 
         epochs = split_vector(ch_data_filtered, adjusted_triggers + offset, artifact_length)
-        residuals_per_epoch = self._calc_pca(epochs)
+        artifact_per_epoch = self._calc_pca(epochs)
 
-        fitted_res = np.zeros(len(ch_data_acq))
+        fitted_artifact = np.zeros(len(ch_data_acq))
         for i, trigger in enumerate(adjusted_triggers):
             start_pos = trigger + offset
             end_pos = start_pos + artifact_length
@@ -212,14 +216,20 @@ class PCACorrection(Processor):
                 epoch_length = len(ch_data_acq) - start_pos
                 if epoch_length <= 0:
                     continue
-                fitted_res[start_pos:] = residuals_per_epoch[i, :epoch_length]
+                fitted_artifact[start_pos:] = artifact_per_epoch[i, :epoch_length]
             else:
-                fitted_res[start_pos:end_pos] = residuals_per_epoch[i, :]
+                fitted_artifact[start_pos:end_pos] = artifact_per_epoch[i, :]
 
-        return fitted_res
+        return fitted_artifact
 
     def _calc_pca(self, epochs: np.ndarray) -> np.ndarray:
-        """Apply PCA to epochs and return the artifact residuals.
+        """Apply PCA to epochs and return the OBS-fitted artifact estimate.
+
+        Mirrors the MATLAB FACET OBS routine (``DoPCA.m`` + ``FitOBS.m`` +
+        ``FACET.m:1252-1267``): epochs are mean-centered per column, SVD yields
+        the optimal basis set, each epoch is projected onto the top components
+        (rank-k reconstruction = LSQ fit), and the reconstruction itself is
+        returned as the artifact estimate to be subtracted from the EEG.
 
         Parameters
         ----------
@@ -229,7 +239,8 @@ class PCACorrection(Processor):
         Returns
         -------
         np.ndarray
-            Residual (artifact) matrix of shape (n_epochs, n_times).
+            Per-epoch OBS reconstruction (artifact estimate) of shape
+            (n_epochs, n_times).
         """
         epochs_t = epochs.T
 
@@ -241,10 +252,11 @@ class PCACorrection(Processor):
             return np.zeros_like(epochs)
 
         X_valid = epochs_t[:, valid_mask]
+        # MATLAB FACET uses ``detrend('constant')`` — column-wise mean removal
+        # only. z-Score scaling would distort the variance ranking of the
+        # singular values and break the OBS auto-selection heuristic.
         mean_valid = np.mean(X_valid, axis=0)
-        std_valid = np.std(X_valid, axis=0, ddof=0)
-        std_valid = np.where(std_valid < variance_threshold, 1.0, std_valid)
-        X_centered = (X_valid - mean_valid) / std_valid
+        X_centered = X_valid - mean_valid
 
         try:
             U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
@@ -261,13 +273,15 @@ class PCACorrection(Processor):
         U_reduced = U[:, :n_components]
         S_reduced = S[:n_components]
         Vt_reduced = Vt[:n_components, :]
-        X_reconstructed_valid = ((U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid) + mean_valid
+        # Rank-k reconstruction in the original (mean-restored) space. This is
+        # the OBS-fitted artifact estimate — equivalent to MATLAB FACET's
+        # ``fitted_res = papc * (pinv(papc) * epoch)``.
+        artifact_valid = (U_reduced @ np.diag(S_reduced) @ Vt_reduced) + mean_valid
 
-        residuals_valid = X_valid - X_reconstructed_valid
-        residuals_full = np.zeros_like(epochs_t)
-        residuals_full[:, valid_mask] = residuals_valid
+        artifact_full = np.zeros_like(epochs_t)
+        artifact_full[:, valid_mask] = artifact_valid
 
-        return residuals_full.T
+        return artifact_full.T
 
     def _select_n_components(self, singular_values: np.ndarray, max_components: int, n_samples: int) -> int:
         """Determine the number of PCA components to retain.
@@ -337,7 +351,14 @@ class PCACorrection(Processor):
         return max(1, pcs)
 
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
-        """Create Butterworth high-pass filter weights.
+        """Create FIR high-pass filter weights.
+
+        FIR design matches the MATLAB FACET pipeline (``firls`` in
+        ``FACET.m:888``) so the existing ``filtfilt(weights, 1, ...)`` call
+        site stays valid (``a = 1`` only holds for FIR filters). The earlier
+        implementation tried to use a Butterworth IIR but discarded the ``a``
+        coefficients, which silently turned it into an invalid 5-tap FIR with
+        the wrong frequency response.
 
         Parameters
         ----------
@@ -347,12 +368,17 @@ class PCACorrection(Processor):
         Returns
         -------
         np.ndarray
-            Filter weights for use with ``scipy.signal.filtfilt``.
+            FIR filter taps for use with ``scipy.signal.filtfilt``.
         """
         nyq = 0.5 * sfreq
         normalized_cutoff = self.hp_freq / nyq
-        b, _ = butter(5, normalized_cutoff, btype="high")
-        return b
+        # Linear-phase FIR HP; odd numtaps guarantees a Type-I filter usable
+        # for high-pass. Length scales with sampling rate to keep the cutoff
+        # sharp at low ``hp_freq`` values (e.g. 1 Hz).
+        numtaps = max(101, int(2 * sfreq))
+        if numtaps % 2 == 0:
+            numtaps += 1
+        return firwin(numtaps, normalized_cutoff, pass_zero=False)
 
     def _get_acquisition_window(self, context: ProcessingContext) -> tuple:
         """Return the start and end sample indices of the acquisition window.
