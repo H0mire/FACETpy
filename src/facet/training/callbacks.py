@@ -6,10 +6,12 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 from loguru import logger
 
 if TYPE_CHECKING:
     from .trainer import TrainingState
+    from .wrapper import TrainableModelWrapper
 
 
 # ---------------------------------------------------------------------------
@@ -438,3 +440,196 @@ class WandbCallback(Callback):
     def on_train_end(self, state: TrainingState) -> None:
         if self._run is not None:
             self._run.finish()
+
+
+class SavePredictionSamplesCallback(Callback):
+    """Snapshot a fixed batch of validation predictions every N epochs.
+
+    Picks ``n_samples`` validation indices once at ``on_train_begin`` (using
+    a deterministic seed) and re-uses them every snapshot, so the resulting
+    plots are directly comparable across epochs. Each snapshot writes:
+
+    * ``<output_dir>/epoch_NNNN.npz`` — raw arrays ``indices``, ``noisy``,
+      ``target``, ``prediction`` for downstream analysis.
+    * ``<output_dir>/epoch_NNNN.png`` — one row per sample with target and
+      prediction overlaid on the same axes.
+
+    Parameters
+    ----------
+    wrapper : TrainableModelWrapper
+        Model wrapper; must implement :meth:`predict_batch`.
+    val_dataset : dataset-like or None
+        Validation dataset. When ``None`` or empty, the callback is a no-op.
+    output_dir : str or Path
+        Destination directory (created automatically).
+    n_samples : int
+        Number of validation samples to snapshot.
+    every_n_epochs : int
+        Snapshot cadence. ``1`` means after every epoch.
+    seed : int
+        Seed used to draw the fixed sample indices once at train start.
+    verbose : bool
+        Log snapshot events.
+    """
+
+    def __init__(
+        self,
+        wrapper: TrainableModelWrapper,
+        val_dataset: Any,
+        output_dir: str | Path,
+        *,
+        n_samples: int = 4,
+        every_n_epochs: int = 5,
+        seed: int = 7,
+        verbose: bool = True,
+    ) -> None:
+        self.wrapper = wrapper
+        self.val_dataset = val_dataset
+        self.output_dir = Path(output_dir)
+        self.n_samples = int(n_samples)
+        self.every_n_epochs = max(1, int(every_n_epochs))
+        self.seed = int(seed)
+        self.verbose = verbose
+        self._indices: list[int] | None = None
+
+    def on_train_begin(self, state: TrainingState) -> None:
+        if self.val_dataset is None or len(self.val_dataset) == 0:
+            logger.warning(
+                "SavePredictionSamplesCallback: validation dataset is empty; "
+                "snapshots disabled."
+            )
+            self._indices = None
+            return
+        n = len(self.val_dataset)
+        k = min(self.n_samples, n)
+        rng = np.random.default_rng(self.seed)
+        self._indices = sorted(int(i) for i in rng.choice(n, size=k, replace=False))
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        if self.verbose:
+            logger.info(
+                "SavePredictionSamplesCallback: snapshotting {} val sample(s) "
+                "every {} epoch(s) to {}",
+                k,
+                self.every_n_epochs,
+                self.output_dir,
+            )
+
+    def on_epoch_end(self, state: TrainingState) -> None:
+        if not self._indices:
+            return
+        if state.epoch % self.every_n_epochs != 0:
+            return
+
+        noisy_list, target_list = zip(
+            *(self.val_dataset[idx] for idx in self._indices), strict=False
+        )
+        noisy = np.stack(noisy_list, axis=0)
+        target = np.stack(target_list, axis=0)
+
+        try:
+            prediction = self.wrapper.predict_batch(noisy)
+        except NotImplementedError:
+            logger.warning(
+                "SavePredictionSamplesCallback: wrapper {} does not implement "
+                "predict_batch(); disabling further snapshots.",
+                type(self.wrapper).__name__,
+            )
+            self._indices = None
+            return
+
+        prediction = np.asarray(prediction, dtype=np.float32)
+
+        self._write_npz(state.epoch, noisy, target, prediction)
+        self._write_plot(state.epoch, target, prediction)
+        if self.verbose:
+            logger.info(
+                "SavePredictionSamplesCallback: wrote epoch {:04d} snapshot.",
+                state.epoch,
+            )
+
+    # ------------------------------------------------------------------
+    # Output helpers
+    # ------------------------------------------------------------------
+
+    def _write_npz(
+        self,
+        epoch: int,
+        noisy: np.ndarray,
+        target: np.ndarray,
+        prediction: np.ndarray,
+    ) -> None:
+        path = self.output_dir / f"epoch_{epoch:04d}.npz"
+        np.savez(
+            path,
+            indices=np.asarray(self._indices, dtype=np.int64),
+            noisy=noisy.astype(np.float32, copy=False),
+            target=target.astype(np.float32, copy=False),
+            prediction=prediction,
+        )
+
+    def _write_plot(
+        self,
+        epoch: int,
+        target: np.ndarray,
+        prediction: np.ndarray,
+    ) -> None:
+        try:
+            import matplotlib
+
+            matplotlib.use("Agg", force=True)
+            import matplotlib.pyplot as plt
+        except ImportError as exc:  # pragma: no cover
+            logger.warning(
+                "Skipping prediction snapshot plot because matplotlib is "
+                "not available: {}",
+                exc,
+            )
+            return
+
+        n = target.shape[0]
+        fig, axes = plt.subplots(n, 1, figsize=(12, 2.4 * n), squeeze=False)
+        for row, sample_idx in enumerate(self._indices or []):
+            ax = axes[row, 0]
+            tgt = _to_1d(target[row])
+            pred = _to_1d(prediction[row])
+            x = np.arange(min(tgt.size, pred.size))
+            ax.plot(
+                x,
+                tgt[: x.size] * 1e6,
+                color="black",
+                linewidth=1.0,
+                alpha=0.75,
+                label="target",
+            )
+            ax.plot(
+                x,
+                pred[: x.size] * 1e6,
+                color="#dc2626",
+                linewidth=1.0,
+                alpha=0.75,
+                label="prediction",
+            )
+            ax.set_ylabel("µV")
+            ax.set_title(f"val sample {sample_idx}")
+            ax.grid(alpha=0.25)
+            if row == 0:
+                ax.legend(loc="upper right", fontsize=8)
+        axes[-1, 0].set_xlabel("sample")
+        fig.suptitle(f"Predictions @ epoch {epoch}")
+        fig.tight_layout()
+        fig.savefig(self.output_dir / f"epoch_{epoch:04d}.png", dpi=140)
+        plt.close(fig)
+
+
+def _to_1d(arr: np.ndarray) -> np.ndarray:
+    """Reduce an arbitrary-rank prediction/target to a 1D view for plotting.
+
+    Squeezes singleton axes; for multi-channel arrays, returns the first
+    channel. Always returns a contiguous 1D float array.
+    """
+    a = np.asarray(arr)
+    while a.ndim > 1 and a.shape[0] == 1:
+        a = a.squeeze(0)
+    if a.ndim > 1:
+        a = a[0]
+    return np.ascontiguousarray(a, dtype=np.float32)

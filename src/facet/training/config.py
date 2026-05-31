@@ -93,6 +93,39 @@ class AugmentationConfig:
 
 
 @dataclass
+class PredictionSamplesConfig:
+    """Controls per-epoch validation-set prediction snapshots.
+
+    When ``enabled``, a small fixed batch of validation examples is forwarded
+    through the model every ``every_n_epochs`` epochs and saved as both an
+    NPZ (raw arrays) and a PNG (target vs. prediction overlay) under
+    ``<run_dir>/<output_subdir>/epoch_NNNN.{npz,png}``. Useful to visually
+    follow how the artifact reconstruction matures during training.
+
+    Parameters
+    ----------
+    enabled : bool
+        Master switch. When False the callback is not registered.
+    n_samples : int
+        Number of validation samples to plot (clamped to len(val_dataset)).
+    every_n_epochs : int
+        Snapshot cadence. ``1`` writes after every epoch.
+    seed : int
+        Seed used to draw the fixed sample indices once at train start. The
+        same indices are reused every snapshot, so plots are directly
+        comparable across epochs.
+    output_subdir : str
+        Sub-directory (relative to the run dir) for snapshot outputs.
+    """
+
+    enabled: bool = False
+    n_samples: int = 4
+    every_n_epochs: int = 5
+    seed: int = 7
+    output_subdir: str = "predictions"
+
+
+@dataclass
 class LoggingConfig:
     """Controls what gets logged and where.
 
@@ -202,6 +235,7 @@ class TrainingConfig:
     early_stopping: EarlyStoppingConfig | None = None
     augmentation: AugmentationConfig = field(default_factory=AugmentationConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    prediction_samples: PredictionSamplesConfig = field(default_factory=PredictionSamplesConfig)
 
     # Escape hatch for framework-specific params
     extra: dict[str, Any] = field(default_factory=dict)
@@ -239,6 +273,9 @@ class TrainingConfig:
 
         if "logging" in data and isinstance(data["logging"], dict):
             data["logging"] = LoggingConfig(**data["logging"])
+
+        if "prediction_samples" in data and isinstance(data["prediction_samples"], dict):
+            data["prediction_samples"] = PredictionSamplesConfig(**data["prediction_samples"])
 
         # Drop unknown keys for forward compatibility
         known = {f.name for f in dataclasses.fields(cls)}

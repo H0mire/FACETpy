@@ -35,6 +35,7 @@ from .callbacks import (
     EarlyStoppingCallback,
     LossPlotCallback,
     MetricLoggerCallback,
+    SavePredictionSamplesCallback,
 )
 from .config import TrainingConfig
 from .wrapper import TrainableModelWrapper
@@ -538,6 +539,28 @@ class Trainer:
                     mode=self.config.early_stopping.mode,
                     patience=self.config.early_stopping.patience,
                     min_delta=self.config.early_stopping.min_delta,
+                )
+            )
+
+        # Auto-add SavePredictionSamplesCallback when enabled and a val dataset
+        # is available.
+        pred_cfg = self.config.prediction_samples
+        has_pred_samples = any(
+            isinstance(cb, SavePredictionSamplesCallback) for cb in callbacks
+        )
+        if (
+            not has_pred_samples
+            and pred_cfg.enabled
+            and self.val_dataset is not None
+        ):
+            callbacks.append(
+                SavePredictionSamplesCallback(
+                    wrapper=self.wrapper,
+                    val_dataset=self.val_dataset,
+                    output_dir=run_dir / pred_cfg.output_subdir,
+                    n_samples=pred_cfg.n_samples,
+                    every_n_epochs=pred_cfg.every_n_epochs,
+                    seed=pred_cfg.seed,
                 )
             )
 

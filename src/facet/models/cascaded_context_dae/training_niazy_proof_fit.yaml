@@ -75,6 +75,15 @@ logging:
   val_every_n_epochs: 1
   progress_bar: true
 
+# Snapshot a fixed set of validation predictions every N epochs. Output
+# lands in <run_dir>/predictions/epoch_NNNN.{npz,png}. Useful for tracking
+# how the artifact reconstruction matures during training.
+prediction_samples:
+  enabled: true
+  n_samples: 4
+  every_n_epochs: 5
+  seed: 7
+
 export:
   enabled: true
   format: torchscript

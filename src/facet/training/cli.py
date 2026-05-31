@@ -83,7 +83,13 @@ class TrainingCLIConfig:
         dataset = DataCLIConfig(**data["data"])
 
         training_dict = dict(data.get("training", {}))
-        for key in ("checkpoint", "early_stopping", "augmentation", "logging"):
+        for key in (
+            "checkpoint",
+            "early_stopping",
+            "augmentation",
+            "logging",
+            "prediction_samples",
+        ):
             if key in data and key not in training_dict:
                 training_dict[key] = data[key]
         training = TrainingConfig.from_dict(training_dict)

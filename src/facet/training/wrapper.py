@@ -99,6 +99,28 @@ class TrainableModelWrapper(ABC):
         Same signature and return convention as :meth:`train_step`.
         """
 
+    def predict_batch(self, noisy: np.ndarray) -> np.ndarray:
+        """Run a forward pass without target / loss and return predictions.
+
+        Default implementation raises :class:`NotImplementedError`; concrete
+        framework wrappers (PyTorch, TF) override it. Used by
+        :class:`SavePredictionSamplesCallback` to snapshot validation outputs
+        during training.
+
+        Parameters
+        ----------
+        noisy : np.ndarray
+            Mini-batch of inputs in the model's expected shape.
+
+        Returns
+        -------
+        np.ndarray
+            Mini-batch of predictions in the model's output shape.
+        """
+        raise NotImplementedError(
+            f"{type(self).__name__}.predict_batch() is not implemented."
+        )
+
     @abstractmethod
     def save_checkpoint(self, path: Path) -> None:
         """Serialise model weights + optimiser state to *path*."""
@@ -278,6 +300,14 @@ class PyTorchModelWrapper(TrainableModelWrapper):
 
         return {"loss": float(loss.cpu())}
 
+    def predict_batch(self, noisy: np.ndarray) -> np.ndarray:
+        torch = self._torch
+        self._model.eval()
+        x = torch.as_tensor(noisy, dtype=torch.float32, device=self._device)
+        with torch.no_grad():
+            pred = self._model(x)
+        return pred.detach().cpu().numpy()
+
     def scheduler_step(self) -> None:
         """Step the LR scheduler (call once per epoch after validation)."""
         if self._scheduler is not None:
@@ -431,6 +461,15 @@ class TensorFlowModelWrapper(TrainableModelWrapper):
             result = self._model.test_on_batch(x, y, return_dict=True)
 
         return {k: float(v) for k, v in result.items()}
+
+    def predict_batch(self, noisy: np.ndarray) -> np.ndarray:
+        x = self._to_tf(noisy)
+        if self._device:
+            with self._tf.device(self._device):
+                pred = self._model.predict_on_batch(x)
+        else:
+            pred = self._model.predict_on_batch(x)
+        return self._from_tf(pred)
 
     def save_checkpoint(self, path: Path) -> None:
         path = Path(path)
