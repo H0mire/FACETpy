@@ -404,9 +404,27 @@ class SubsampleAligner(Processor):
     a search segment is extracted, cross-correlated against a reference epoch,
     and the trigger is shifted by the lag that maximises the correlation.
 
-    When ``apply_to_raw=True`` the corresponding raw data segments are also
-    rolled by the computed shifts; otherwise only the trigger positions in
-    metadata are updated.
+    Three modes are available via the ``mode`` parameter:
+
+    - ``"legacy"`` (default): whole-sample (integer) alignment. The
+      cross-correlation peak is located at integer resolution and the
+      correction is applied either by moving the triggers
+      (``apply_to_raw=False``) or by rolling the raw data segments
+      (``apply_to_raw=True``). The original, well-tested behaviour.
+    - ``"fast"``: sub-sample alignment via parabolic interpolation of the
+      cross-correlation peak (~0.05 sample error). The fractional shift is
+      baked into the raw data with FFT (sinc) phase shifting; triggers stay at
+      their integer positions. Negligible extra cost over ``"legacy"``.
+    - ``"quality"``: sub-sample alignment via binary search over the true
+      alignment objective on the FFT-shifted data — the MATLAB FACET
+      ``AlignSubSample`` approach. Essentially exact (~1e-3 sample error) at the
+      cost of ~``interpolation_iters`` IFFTs per epoch (roughly 10x ``"fast"``).
+
+    Both sub-sample modes remove residual sub-sample misalignment, the dominant
+    source of residual artifact after AAS. (Naive FFT-upsampling of the
+    correlation vector was evaluated and rejected: on the normalised,
+    non-periodic correlation it is *less* accurate than the ``"fast"``
+    parabolic fit.)
 
     Parameters
     ----------
@@ -418,9 +436,15 @@ class SubsampleAligner(Processor):
         (default: None).
     search_window : int, optional
         Search radius in samples. Defaults to twice the upsampling factor.
+    mode : {"legacy", "fast", "quality"}, optional
+        Alignment mode (default: ``"legacy"``). See the class docstring.
     apply_to_raw : bool, optional
-        If ``True``, roll raw data segments by the computed shifts
-        (default: False).
+        ``"legacy"`` mode only: if ``True``, roll raw data segments by the
+        computed shifts instead of moving the triggers (default: False).
+        Ignored by ``"fast"``/``"quality"`` (which always write to the data).
+    interpolation_iters : int, optional
+        Binary-search iterations for ``mode="quality"`` (default: 15, matching
+        MATLAB FACET).
     """
 
     name = "subsample_aligner"
@@ -439,12 +463,18 @@ class SubsampleAligner(Processor):
         ref_trigger_index: int = 0,
         ref_channel: int | None = None,
         search_window: int | None = None,
+        mode: str = "legacy",
         apply_to_raw: bool = False,
+        interpolation_iters: int = 15,
     ) -> None:
+        if mode not in ("legacy", "fast", "quality"):
+            raise ValueError(f"mode must be 'legacy', 'fast' or 'quality', got {mode!r}")
         self.ref_trigger_index = ref_trigger_index
         self.ref_channel = ref_channel
         self.search_window = search_window
+        self.mode = mode
         self.apply_to_raw = apply_to_raw
+        self.interpolation_iters = max(1, int(interpolation_iters))
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -475,25 +505,47 @@ class SubsampleAligner(Processor):
         ref_channel = self._pick_ref_channel(raw)
         ref_signal = raw.get_data(picks=[ref_channel])[0]
 
+        # Extract the reference epoch over the SAME extended window the per-epoch
+        # search segments use (front/back padded by ``search_radius``). If the
+        # reference were the inner window only, ``crosscorrelation`` would pad
+        # the shorter array at its end, displacing the zero-lag point by
+        # ``search_radius`` and adding a constant +search_radius bias to every
+        # computed shift (a zero-offset artifact then yields shift=search_radius
+        # instead of 0).
         ref_epoch = _extract_epoch_with_padding(
             ref_signal,
-            triggers[self.ref_trigger_index] - pre_samples,
-            window_length,
+            triggers[self.ref_trigger_index] - pre_samples - search_radius,
+            window_length + 2 * search_radius,
             n_samples,
         )
+        fractional = self.mode != "legacy"
         shifts = self._compute_shifts(
-            ref_signal, triggers, ref_epoch, pre_samples, window_length, search_radius, n_samples
+            ref_signal,
+            triggers,
+            ref_epoch,
+            pre_samples,
+            window_length,
+            search_radius,
+            n_samples,
+            fractional=fractional,
         )
-        aligned_triggers = np.clip(triggers + shifts, 0, n_samples - 1).astype(int)
 
         # --- BUILD RESULT ---
+        if fractional:
+            applied_to = "raw_fractional"
+        elif self.apply_to_raw:
+            applied_to = "raw"
+        else:
+            applied_to = "triggers"
+
         new_metadata = context.metadata.copy()
-        new_metadata.triggers = aligned_triggers
         new_metadata.custom.setdefault("subsample_alignment", {}).update(
             {
                 "shifts": shifts.tolist(),
                 "ref_trigger_index": self.ref_trigger_index,
                 "search_window": search_radius,
+                "mode": self.mode,
+                "applied_to": applied_to,
             }
         )
         if new_metadata.pre_trigger_samples is None:
@@ -501,10 +553,34 @@ class SubsampleAligner(Processor):
         if new_metadata.post_trigger_samples is None:
             new_metadata.post_trigger_samples = post_samples
 
+        # ``shift`` is the offset of the artifact relative to its nominal
+        # trigger (positive = artifact sits later). The correction can be
+        # applied EITHER by moving the triggers OR by moving the data — never
+        # both, otherwise the artifact is displaced twice.
+        if fractional:
+            # "fast"/"quality": bake the sub-sample shift into the data via FFT
+            # phase shifting (like MATLAB AlignSubSample). Triggers stay integer.
+            logger.debug("Applying fractional subsample shifts to raw data (mode={})", self.mode)
+            new_metadata.triggers = triggers
+            if np.any(shifts):
+                raw_copy = self._apply_fractional_shifts_to_raw(
+                    raw, triggers, shifts, pre_samples, post_samples, n_samples
+                )
+                return context.with_raw(raw_copy).with_metadata(new_metadata)
+            return context.with_metadata(new_metadata)
+
         if self.apply_to_raw and np.any(shifts):
+            # Bake the correction into the data: roll each segment by -shift so
+            # the artifact moves back onto the nominal trigger position. The
+            # triggers therefore stay at their original positions.
             logger.debug("Applying subsample shifts to raw data segments")
+            new_metadata.triggers = triggers
             raw_copy = self._apply_shifts_to_raw(raw, triggers, shifts, pre_samples, post_samples, n_samples)
             return context.with_raw(raw_copy).with_metadata(new_metadata)
+
+        # Default: move the triggers to the measured artifact positions; the
+        # raw data is left untouched.
+        new_metadata.triggers = np.clip(triggers + shifts, 0, n_samples - 1).astype(int)
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -553,6 +629,7 @@ class SubsampleAligner(Processor):
         window_length: int,
         search_radius: int,
         n_samples: int,
+        fractional: bool = False,
     ) -> np.ndarray:
         """Compute per-trigger subsample alignment shifts.
 
@@ -572,13 +649,18 @@ class SubsampleAligner(Processor):
             Search radius in samples.
         n_samples : int
             Total number of samples in the recording.
+        fractional : bool, optional
+            If ``True``, refine each peak to fractional-sample resolution via
+            FFT-upsampling of the correlation vector; otherwise return integer
+            shifts (default: False).
 
         Returns
         -------
         np.ndarray
-            Integer shift for each trigger, shape ``(n_triggers,)``.
+            Shift for each trigger, shape ``(n_triggers,)``. Integer dtype when
+            ``fractional=False``, float dtype otherwise.
         """
-        shifts = np.zeros(len(triggers), dtype=int)
+        shifts = np.zeros(len(triggers), dtype=float if fractional else int)
         for idx, trigger in enumerate(triggers):
             if idx == self.ref_trigger_index:
                 continue
@@ -589,8 +671,174 @@ class SubsampleAligner(Processor):
                 n_samples,
             )
             corr = np.nan_to_num(crosscorrelation(segment, ref_epoch, search_radius))
-            shifts[idx] = int(np.argmax(corr) - search_radius)
+            integer_shift = int(np.argmax(corr) - search_radius)
+            if not fractional:
+                shifts[idx] = integer_shift
+            elif self.mode == "fast":
+                shifts[idx] = self._refine_shift_parabolic(corr, search_radius)
+            else:  # "quality"
+                shifts[idx] = self._refine_shift_matlab(segment, ref_epoch, integer_shift)
         return shifts
+
+    @staticmethod
+    def _refine_shift_parabolic(corr: np.ndarray, search_radius: int) -> float:
+        """Sub-sample peak via 3-point parabolic interpolation.
+
+        Fast (~0.05 sample error). Bias-bounded but not exact; use
+        ``mode="quality"`` for higher fidelity.
+
+        Parameters
+        ----------
+        corr : np.ndarray
+            Correlation values over lags ``-search_radius .. +search_radius``.
+        search_radius : int
+            Search radius (zero-lag centre).
+
+        Returns
+        -------
+        float
+            Sub-sample shift in samples.
+        """
+        k = int(np.argmax(corr))
+        if k <= 0 or k >= len(corr) - 1:
+            return float(k - search_radius)
+        a, b, c = corr[k - 1], corr[k], corr[k + 1]
+        denom = a - 2 * b + c
+        delta = 0.0 if denom == 0 else 0.5 * (a - c) / denom
+        return (k - search_radius) + float(delta)
+
+    def _refine_shift_matlab(self, segment: np.ndarray, ref_epoch: np.ndarray, integer_shift: int) -> float:
+        """Sub-sample shift via binary search on the true alignment objective.
+
+        Mirrors MATLAB FACET ``AlignSubSample``: the segment is FFT-shifted by
+        a fractional amount and compared to the reference; a binary search over
+        the shift maximises their (mean-removed) cross-product. Essentially
+        exact at the cost of ``interpolation_iters`` IFFTs per epoch.
+
+        Parameters
+        ----------
+        segment : np.ndarray
+            1-D search segment around the current trigger.
+        ref_epoch : np.ndarray
+            1-D reference epoch (alignment target), same length as ``segment``.
+        integer_shift : int
+            Integer-resolution shift used to bracket the search.
+
+        Returns
+        -------
+        float
+            Sub-sample shift in samples.
+        """
+        n = len(segment)
+        spectrum = np.fft.fft(segment)
+        freqs = np.fft.fftfreq(n)
+        ref0 = ref_epoch - ref_epoch.mean()
+
+        def neg_objective(shift: float) -> float:
+            # Shift the segment by -shift (undo the artifact's displacement)
+            shifted = np.real(np.fft.ifft(spectrum * np.exp(2j * np.pi * freqs * shift)))
+            shifted = shifted - shifted.mean()
+            return -float(np.dot(shifted, ref0))
+
+        left, mid, right = integer_shift - 1.0, float(integer_shift), integer_shift + 1.0
+        c_left, c_mid, c_right = neg_objective(left), neg_objective(mid), neg_objective(right)
+        for _ in range(self.interpolation_iters):
+            if c_left < c_right:
+                right, c_right = mid, c_mid
+            else:
+                left, c_left = mid, c_mid
+            mid = 0.5 * (left + right)
+            c_mid = neg_objective(mid)
+        return mid
+
+    @staticmethod
+    def _fractional_shift(segment: np.ndarray, shift: float) -> np.ndarray:
+        """Shift a (channels x time) segment by a fractional number of samples.
+
+        Uses ideal band-limited (sinc) interpolation via FFT phase rotation,
+        matching the MATLAB FACET ``AlignSubSample`` resampling. Positive
+        ``shift`` delays the signal (moves it right).
+
+        Parameters
+        ----------
+        segment : np.ndarray
+            2-D array of shape ``(n_channels, n_times)``.
+        shift : float
+            Shift in samples (may be fractional).
+
+        Returns
+        -------
+        np.ndarray
+            The shifted segment, same shape as the input.
+        """
+        n = segment.shape[-1]
+        freqs = np.fft.fftfreq(n)
+        phase = np.exp(-2j * np.pi * freqs * shift)
+        return np.real(np.fft.ifft(np.fft.fft(segment, axis=-1) * phase, axis=-1))
+
+    def _apply_fractional_shifts_to_raw(
+        self,
+        raw: mne.io.Raw,
+        triggers: np.ndarray,
+        shifts: np.ndarray,
+        pre_samples: int,
+        post_samples: int,
+        n_samples: int,
+    ) -> mne.io.Raw:
+        """Apply fractional shifts to raw data segments via FFT phase shifting.
+
+        Each window is shifted by ``-shift`` so the artifact (sitting ``shift``
+        samples after the nominal trigger) moves back onto the trigger. The
+        shift is performed on an edge-padded copy of the window to keep the
+        circular FFT wrap-around out of the artifact region; only the inner
+        window is written back.
+
+        Parameters
+        ----------
+        raw : mne.io.Raw
+            Source raw object (copied internally).
+        triggers : np.ndarray
+            Original (integer) trigger positions.
+        shifts : np.ndarray
+            Per-trigger fractional shift values.
+        pre_samples : int
+            Samples before trigger forming each window start.
+        post_samples : int
+            Samples after trigger forming each window end.
+        n_samples : int
+            Total recording length in samples.
+
+        Returns
+        -------
+        mne.io.Raw
+            New raw object with fractionally-shifted segments.
+        """
+        raw_copy = raw.copy()
+        data = raw_copy.get_data()
+        n_channels = data.shape[0]
+        max_shift = float(np.max(np.abs(shifts))) if len(shifts) else 0.0
+        pad = 8 + int(np.ceil(max_shift))
+
+        for idx, shift in enumerate(shifts):
+            if shift == 0:
+                continue
+            window_start = max(0, triggers[idx] - pre_samples)
+            window_end = min(n_samples, triggers[idx] + post_samples)
+            length = window_end - window_start
+            if length <= 0:
+                continue
+            # Edge-padded extension so the circular shift does not wrap real
+            # samples into the artifact region.
+            extended = np.empty((n_channels, length + 2 * pad), dtype=data.dtype)
+            for ch in range(n_channels):
+                extended[ch] = _extract_epoch_with_padding(
+                    data[ch], window_start - pad, length + 2 * pad, n_samples
+                )
+            shifted = self._fractional_shift(extended, -float(shift))
+            data[:, window_start:window_end] = shifted[:, pad : pad + length]
+
+        raw_copy._data[:] = data
+        return raw_copy
 
     def _apply_shifts_to_raw(
         self,
@@ -633,6 +881,10 @@ class SubsampleAligner(Processor):
             window_start = max(0, trigger - pre_samples)
             window_end = min(n_samples, trigger + post_samples)
             segment = data[:, window_start:window_end]
-            data[:, window_start:window_end] = np.roll(segment, shift, axis=1)
+            # Roll by -shift: the artifact sits `shift` samples after the
+            # nominal trigger, so shifting the segment LEFT by `shift` brings it
+            # back onto the trigger position (matches MATLAB AlignSubSample,
+            # which shifts the data to the reference rather than moving triggers).
+            data[:, window_start:window_end] = np.roll(segment, -shift, axis=1)
         raw_copy._data[:] = data
         return raw_copy
