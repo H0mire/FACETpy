@@ -1040,20 +1040,32 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(ref_data, axis=1)
 
-        # Residual variance is the difference; clamped to avoid division by zero.
-        var_residual = np.maximum(var_corrected - var_reference, 1e-10)
-
-        snr_per_channel = np.abs(var_reference / var_residual)
-        snr_mean = np.mean(snr_per_channel)
+        # MATLAB FACET (snr_residual.m + Eval.m:296): residual = corrected -
+        # reference, SNR = reference / residual, then negative SNR values are
+        # discarded (``r = r(r >= 0)``). Over-corrected channels (corrected
+        # variance below the clean baseline) yield a negative residual and are
+        # dropped rather than clamped — clamping would manufacture a huge
+        # spurious SNR and bias the mean upward.
+        var_residual = var_corrected - var_reference
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snr_per_channel = var_reference / var_residual
+        valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else 0.0
+        # Non-finite / dropped channels stored as NaN to keep the per-channel
+        # array JSON-clean and aligned with the channel order.
+        snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
 
         if self.verbose:
+            n_dropped = int(np.sum(~valid))
             logger.info("SNR diagnostics: var_reference {}", _dist_summary(var_reference))
             logger.info("SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
             logger.info("SNR diagnostics: var_residual {}", _dist_summary(var_residual))
-            logger.info("SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
-            worst, best = _top_channels(snr_per_channel, channel_names)
-            logger.info("SNR diagnostics: lowest channels [{}]", best)
-            logger.info("SNR diagnostics: highest channels [{}]", worst)
+            logger.info("SNR diagnostics: dropped (over-corrected) channels = {}", n_dropped)
+            if np.any(valid):
+                logger.info("SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel[valid]))
+                worst, best = _top_channels(snr_per_channel_clean, channel_names)
+                logger.info("SNR diagnostics: lowest channels [{}]", best)
+                logger.info("SNR diagnostics: highest channels [{}]", worst)
 
         report_metric("snr", float(snr_mean), label="SNR", display=f"{snr_mean:.2f}")
 
@@ -1061,7 +1073,7 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
         metrics["snr"] = float(snr_mean)
-        metrics["snr_per_channel"] = snr_per_channel.tolist()
+        metrics["snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1235,19 +1247,27 @@ class LegacySNRCalculator(Processor):
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(reference_data, axis=1)
 
-        var_residual = np.maximum(var_corrected - var_reference, 1e-10)
-
-        snr_per_channel = np.abs(var_reference / var_residual)
-        snr_mean = float(np.mean(snr_per_channel))
+        # MATLAB FACET (snr_residual.m + Eval.m:296): residual = corrected -
+        # reference, SNR = reference / residual; negative SNR (over-corrected
+        # channels) are discarded, not clamped.
+        var_residual = var_corrected - var_reference
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snr_per_channel = var_reference / var_residual
+        valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else 0.0
+        snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
 
         if self.verbose:
+            n_dropped = int(np.sum(~valid))
             logger.info("Legacy SNR diagnostics: var_reference {}", _dist_summary(var_reference))
             logger.info("Legacy SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
             logger.info("Legacy SNR diagnostics: var_residual {}", _dist_summary(var_residual))
-            logger.info("Legacy SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
-            worst, best = _top_channels(snr_per_channel, channel_names)
-            logger.info("Legacy SNR diagnostics: lowest channels [{}]", best)
-            logger.info("Legacy SNR diagnostics: highest channels [{}]", worst)
+            logger.info("Legacy SNR diagnostics: dropped (over-corrected) channels = {}", n_dropped)
+            if np.any(valid):
+                logger.info("Legacy SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel[valid]))
+                worst, best = _top_channels(snr_per_channel_clean, channel_names)
+                logger.info("Legacy SNR diagnostics: lowest channels [{}]", best)
+                logger.info("Legacy SNR diagnostics: highest channels [{}]", worst)
 
         report_metric(
             "legacy_snr",
@@ -1260,7 +1280,9 @@ class LegacySNRCalculator(Processor):
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
         metrics["legacy_snr"] = snr_mean
-        metrics["legacy_snr_per_channel"] = snr_per_channel.tolist()
+        metrics["legacy_snr_per_channel"] = [
+            None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean
+        ]
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -2080,9 +2102,14 @@ class SpikeDetectionRateCalculator(Processor):
             logger.warning("No EEG channels found for SpikeDetectionRateCalculator")
             return context
 
-        # Restrict to acquisition window
+        # Restrict to acquisition window. Extend the end past the last trigger
+        # by one artifact length so the final artifact is fully included —
+        # otherwise its spikes are dropped from rate_orig, biasing the
+        # suppression ratio. Matches the RMS/Legacy-SNR window convention.
+        artifact_length = context.get_artifact_length()
+        tail = int(artifact_length) if artifact_length else 1
         acq_start = int(triggers[0])
-        acq_end = min(raw.n_times, int(triggers[-1]) + 1)
+        acq_end = min(raw.n_times, int(triggers[-1]) + tail)
 
         data_corr = raw._data[eeg_picks, acq_start:acq_end].astype(np.float64)
         data_orig = raw_orig._data[eeg_picks, acq_start:acq_end].astype(np.float64)
