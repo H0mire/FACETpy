@@ -114,7 +114,12 @@ def create_standard_pipeline(
         AASCorrection(window_size=30, correlation_threshold=0.975),
     ]
     if use_pca and _has_pca:
-        processors.append(PCACorrection(n_components=0.95, hp_freq=1.0))
+        # OBS high-pass before PCA = MATLAB FACET OBSHPFrequency (300 Hz in all
+        # MATLAB example scripts): an aggressive high-pass so the OBS basis
+        # models only the high-frequency residual gradient artifact, not the
+        # (low-frequency) neural signal. NOT the same as the global 1 Hz EEG
+        # high-pass above.
+        processors.append(PCACorrection(n_components=0.95, hp_freq=300.0))
 
     if additional_corrections:
         processors.extend(additional_corrections)

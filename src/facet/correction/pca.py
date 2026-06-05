@@ -5,7 +5,7 @@ PCA-based artifact correction processor.
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import filtfilt, firwin
+from scipy.signal import filtfilt, firls, firwin
 
 from ..console import processor_progress
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
@@ -93,6 +93,21 @@ class PCACorrection(Processor):
         # --- COMPUTE ---
         hp_weights = self._resolve_hp_weights(raw.info["sfreq"])
         s_acq_start, s_acq_end = self._get_acquisition_window(context)
+
+        # The HP filter and acquisition window are identical for every channel,
+        # so decide ONCE (and log once) whether the filter can be applied. This
+        # surfaces an over-long filter as a clear warning instead of letting
+        # ``filtfilt`` raise inside the per-channel ``except`` and silently
+        # disabling the entire correction.
+        if hp_weights is not None and (s_acq_end - s_acq_start) <= len(hp_weights):
+            logger.warning(
+                "OBS high-pass filter ({} taps) is longer than the acquisition "
+                "window ({} samples); proceeding without high-pass filtering",
+                len(hp_weights),
+                s_acq_end - s_acq_start,
+            )
+            hp_weights = None
+
         # Direct _data access avoids a full array copy on large datasets
         estimated_artifacts = np.zeros(raw._data.shape)
 
@@ -197,7 +212,7 @@ class PCACorrection(Processor):
         """
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
-        ch_data_filtered = filtfilt(hp_weights, 1, ch_data_acq) if hp_weights is not None else ch_data_acq
+        ch_data_filtered = self._apply_hp_filter(ch_data_acq, hp_weights) if hp_weights is not None else ch_data_acq
 
         adjusted_triggers = triggers - s_acq_start
         # Small offset prevents epoch boundaries from sitting exactly on the trigger
@@ -275,8 +290,15 @@ class PCACorrection(Processor):
         Vt_reduced = Vt[:n_components, :]
         # Rank-k reconstruction in the original (mean-restored) space. This is
         # the OBS-fitted artifact estimate — equivalent to MATLAB FACET's
-        # ``fitted_res = papc * (pinv(papc) * epoch)``.
-        artifact_valid = (U_reduced @ np.diag(S_reduced) @ Vt_reduced) + mean_valid
+        # ``fitted_res = papc * (pinv(papc) * epoch)``. The broadcasting form
+        # ``U * S`` avoids materialising a ``diag(S)`` matrix.
+        #
+        # ``np.errstate`` suppresses a spurious "divide by zero encountered in
+        # matmul" FP flag numpy can raise for this product (it performs no
+        # division). Harmless under numpy's default "warn" mode but fatal under
+        # ``-W error`` / ``filterwarnings=error``.
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+            artifact_valid = (U_reduced * S_reduced) @ Vt_reduced + mean_valid
 
         artifact_full = np.zeros_like(epochs_t)
         artifact_full[:, valid_mask] = artifact_valid
@@ -353,17 +375,25 @@ class PCACorrection(Processor):
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
         """Create FIR high-pass filter weights.
 
-        FIR design matches the MATLAB FACET pipeline (``firls`` in
-        ``FACET.m:888``) so the existing ``filtfilt(weights, 1, ...)`` call
-        site stays valid (``a = 1`` only holds for FIR filters). The earlier
-        implementation tried to use a Butterworth IIR but discarded the ``a``
-        coefficients, which silently turned it into an invalid 5-tap FIR with
-        the wrong frequency response.
+        Replicates the MATLAB FACET OBS high-pass (``FACET.m:878-888``): a
+        linear-phase ``firls`` filter whose **order is derived from the cutoff
+        and a ±10 Hz transition band**::
+
+            filtorder = round(1.2 * sfreq / (OBSHPFrequency - 10))   # made even
+            f = [0, (hp-10)/nyq, (hp+10)/nyq, 1];   a = [0 0 1 1]
+
+        This keeps the filter short (~23 taps at 300 Hz / 5 kHz), so it never
+        triggers the ``filtfilt`` padlen blow-up that the previous
+        ``numtaps = max(101, 2*sfreq)`` design caused (~10001 taps at 1 Hz).
+        The transition-band formula is only defined for cutoffs above its 10 Hz
+        half-width; for ``hp_freq <= 10`` it falls back to a windowed-sinc
+        high-pass (which inherently needs a long filter at this sampling rate —
+        the call site caps the padding so it still cannot raise).
 
         Parameters
         ----------
         sfreq : float
-            Sampling frequency in Hz.
+            Sampling frequency in Hz (the current, possibly upsampled, rate).
 
         Returns
         -------
@@ -371,14 +401,48 @@ class PCACorrection(Processor):
             FIR filter taps for use with ``scipy.signal.filtfilt``.
         """
         nyq = 0.5 * sfreq
-        normalized_cutoff = self.hp_freq / nyq
-        # Linear-phase FIR HP; odd numtaps guarantees a Type-I filter usable
-        # for high-pass. Length scales with sampling rate to keep the cutoff
-        # sharp at low ``hp_freq`` values (e.g. 1 Hz).
+        cutoff = self.hp_freq
+
+        if cutoff > 10:
+            lo = (cutoff - 10) / nyq
+            hi = (cutoff + 10) / nyq
+            if 0 < lo < hi < 1:
+                # MATLAB derives an even filter ORDER; firls taps = order + 1.
+                filtorder = int(round(1.2 * sfreq / (cutoff - 10)))
+                if filtorder % 2 != 0:
+                    filtorder += 1
+                numtaps = max(filtorder + 1, 3)
+                return firls(numtaps, [0.0, lo, hi, 1.0], [0.0, 0.0, 1.0, 1.0])
+
+        # Low cutoff (≤ 10 Hz): MATLAB's transition-band formula is undefined.
+        normalized_cutoff = cutoff / nyq
         numtaps = max(101, int(2 * sfreq))
         if numtaps % 2 == 0:
             numtaps += 1
         return firwin(numtaps, normalized_cutoff, pass_zero=False)
+
+    @staticmethod
+    def _apply_hp_filter(signal: np.ndarray, weights: np.ndarray) -> np.ndarray:
+        """Zero-phase high-pass with padding capped to the signal length.
+
+        ``scipy.signal.filtfilt`` raises when the signal is shorter than its
+        default ``padlen = 3*(len(weights)-1)``. Capping the padlen keeps a long
+        FIR (low-cutoff fallback) from crashing on short acquisition windows.
+
+        Parameters
+        ----------
+        signal : np.ndarray
+            1-D signal to filter.
+        weights : np.ndarray
+            FIR high-pass weights.
+
+        Returns
+        -------
+        np.ndarray
+            Zero-phase filtered signal (same length as ``signal``).
+        """
+        padlen = min(3 * (len(weights) - 1), len(signal) - 1)
+        return filtfilt(weights, 1.0, signal, padlen=max(padlen, 0))
 
     def _get_acquisition_window(self, context: ProcessingContext) -> tuple:
         """Return the start and end sample indices of the acquisition window.

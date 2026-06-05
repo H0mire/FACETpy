@@ -316,6 +316,72 @@ class TestPCACorrection:
         assert start == 80
         assert end == 340
 
+    def test_pca_hp_filter_matlab_order(self):
+        """OBS high-pass at 300 Hz must be a short MATLAB-style firls filter."""
+        from scipy.signal import freqz
+
+        sfreq = 5000.0  # upsampled rate
+        nyq = sfreq / 2
+        weights = PCACorrection(hp_freq=300.0)._create_hp_filter(sfreq)
+
+        # MATLAB derives ~23 taps here (order from cutoff + ±10 Hz band), NOT
+        # the old 2*sfreq = 10001. Stays well clear of any filtfilt padlen blow-up.
+        assert len(weights) < 100
+        assert len(weights) % 2 == 1  # odd -> Type-I FIR
+
+        def gain(f):
+            _, h = freqz(weights, worN=[f / nyq * np.pi])
+            return abs(h[0])
+
+        assert gain(10) < 0.2  # low frequencies attenuated
+        assert gain(1000) > 0.8  # high frequencies passed
+
+    def test_pca_hp_filter_no_crash_on_short_upsampled_recording(self):
+        """OBS HP must not crash / silently disable PCA on short recordings.
+
+        Regression: ``numtaps = max(101, 2*sfreq)`` produced a 10001-tap filter
+        whose ``filtfilt`` padlen (~30000) exceeded short windows, raising inside
+        the per-channel ``except`` and disabling correction for every channel.
+        """
+        sfreq = 5000.0
+        n = 12000  # 2.4 s — below the old 30000-sample padlen threshold
+        art_len = 200
+        triggers = np.arange(1, 20) * 500
+
+        # O(1) amplitudes (avoid subnormal-scale FP flags) with genuine rank>1
+        # artifact structure: high-frequency content survives the 300 Hz HP and
+        # varies per epoch so the OBS basis has something to fit.
+        rng = np.random.default_rng(1)
+        data = rng.standard_normal((2, n)) * 0.05
+        t = np.arange(art_len)
+        base = (np.sin(2 * np.pi * 600 / sfreq * t) + 0.5 * np.sin(2 * np.pi * 900 / sfreq * t)) * np.hanning(art_len)
+        for i, tr in enumerate(triggers):
+            if tr + art_len < n:
+                data[:, tr : tr + art_len] += base * (1.0 + 0.1 * i)
+
+        info = mne.create_info(["C3", "C4"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = art_len
+        context = ProcessingContext(raw=raw, metadata=metadata)
+
+        before = raw.get_data().copy()
+        result = PCACorrection(n_components=2, hp_freq=300.0).process(context)
+
+        # Correction actually ran (data changed) — not silently skipped.
+        assert not np.allclose(before, result.get_raw().get_data())
+        assert result.has_estimated_noise()
+
+    def test_pca_low_cutoff_hp_apply_does_not_raise(self):
+        """The long-FIR (1 Hz) fallback must not raise on short signals."""
+        weights = PCACorrection(hp_freq=1.0)._create_hp_filter(5000.0)
+        assert len(weights) > 1000  # low cutoff inherently needs a long filter
+        # filtfilt would normally raise (signal < padlen); the capped helper must not.
+        short = np.random.default_rng(0).standard_normal(5000)
+        out = PCACorrection._apply_hp_filter(short, weights)
+        assert out.shape == short.shape
+
 
 @pytest.mark.unit
 class TestFARMCorrection:
