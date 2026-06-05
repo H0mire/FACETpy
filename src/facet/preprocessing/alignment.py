@@ -407,19 +407,19 @@ class SubsampleAligner(Processor):
 
     Three modes are available via the ``mode`` parameter:
 
-    - ``"legacy"`` (default): whole-sample (integer) alignment. The
-      cross-correlation peak is located at integer resolution and the
-      correction is applied either by moving the triggers
-      (``apply_to_raw=False``) or by rolling the raw data segments
-      (``apply_to_raw=True``). The original, well-tested behaviour.
-    - ``"fast"``: sub-sample alignment via parabolic interpolation of the
-      cross-correlation peak (~0.05 sample error). The fractional shift is
+    - ``"fast"`` (default): sub-sample alignment via parabolic interpolation of
+      the cross-correlation peak (~0.05 sample error). The fractional shift is
       baked into the raw data with FFT (sinc) phase shifting; triggers stay at
       their integer positions. Negligible extra cost over ``"legacy"``.
     - ``"quality"``: sub-sample alignment via binary search over the true
       alignment objective on the FFT-shifted data — the MATLAB FACET
       ``AlignSubSample`` approach. Essentially exact (~1e-3 sample error) at the
       cost of ~``interpolation_iters`` IFFTs per epoch (roughly 10x ``"fast"``).
+    - ``"legacy"``: whole-sample (integer) alignment. The cross-correlation
+      peak is located at integer resolution and the correction is applied
+      either by moving the triggers (``apply_to_raw=False``) or by rolling the
+      raw data segments (``apply_to_raw=True``). The original, well-tested
+      behaviour, kept for safety / backwards compatibility.
 
     Both sub-sample modes remove residual sub-sample misalignment, the dominant
     source of residual artifact after AAS. (Naive FFT-upsampling of the
@@ -437,8 +437,8 @@ class SubsampleAligner(Processor):
         (default: None).
     search_window : int, optional
         Search radius in samples. Defaults to twice the upsampling factor.
-    mode : {"legacy", "fast", "quality"}, optional
-        Alignment mode (default: ``"legacy"``). See the class docstring.
+    mode : {"fast", "quality", "legacy"}, optional
+        Alignment mode (default: ``"fast"``). See the class docstring.
     apply_to_raw : bool, optional
         ``"legacy"`` mode only: if ``True``, roll raw data segments by the
         computed shifts instead of moving the triggers (default: False).
@@ -474,7 +474,7 @@ class SubsampleAligner(Processor):
         ref_trigger_index: int = 0,
         ref_channel: int | None = None,
         search_window: int | None = None,
-        mode: str = "legacy",
+        mode: str = "fast",
         apply_to_raw: bool = False,
         interpolation_iters: int = 15,
         ssa_hp_freq: float | None = 300.0,

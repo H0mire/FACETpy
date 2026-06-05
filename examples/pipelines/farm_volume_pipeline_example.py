@@ -54,7 +54,7 @@ pipeline = Pipeline(
         HighPassFilter(freq=1.0),
         UpSample(factor=UPSAMPLE),
         SliceAligner(ref_trigger_index=0),
-        SubsampleAligner(ref_trigger_index=0),
+        SubsampleAligner(ref_trigger_index=0, mode="quality"),
         # Equivalent to MATLAB's RemoveVolumeArt step. Skips automatically
         # when no volume gaps are detected in trigger spacing.
         VolumeArtifactCorrection(template_count=5, weighting_position=0.8, weighting_slope=20.0),

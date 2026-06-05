@@ -287,12 +287,12 @@ class TestAcquisitionAlignment:
         assert aligned[0] == context.get_triggers()[0]
         assert aligned[1] - context.get_triggers()[1] == 3
 
-    def test_subsample_aligner_records_shifts(self):
-        """SubsampleAligner should adjust triggers and record shift metadata."""
+    def test_subsample_aligner_legacy_moves_triggers(self):
+        """Legacy mode adjusts triggers and records shift metadata."""
         context = self._build_shifted_context(shift_samples=2)
         context = CutAcquisitionWindow().execute(context)
 
-        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5)
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode="legacy")
         result = aligner.execute(context)
 
         aligned = result.get_triggers()
@@ -304,20 +304,20 @@ class TestAcquisitionAlignment:
         recorded_shift = alignment_meta["shifts"][1]
         assert abs(recorded_shift - 2) <= 3
 
-    def test_subsample_default_is_legacy_integer(self):
-        """Default mode ('legacy') keeps the integer behaviour (moves triggers)."""
+    def test_subsample_default_is_fast(self):
+        """Default mode ('fast') keeps triggers integer and bakes the shift into raw."""
         context = self._build_shifted_context(shift_samples=2)
         context = CutAcquisitionWindow().execute(context)
+        original_triggers = context.get_triggers().copy()
 
         aligner = SubsampleAligner(ref_trigger_index=0, search_window=5)
-        assert aligner.mode == "legacy"
+        assert aligner.mode == "fast"
         result = aligner.execute(context)
 
-        # Legacy default moves triggers and leaves the raw data untouched.
-        assert result.metadata.custom["subsample_alignment"]["applied_to"] == "triggers"
-        np.testing.assert_array_equal(
-            result.get_raw().get_data(), context.get_raw().get_data()
-        )
+        # Fast default leaves triggers integer and writes the shift into raw.
+        assert result.metadata.custom["subsample_alignment"]["applied_to"] == "raw_fractional"
+        np.testing.assert_array_equal(result.get_triggers(), original_triggers)
+        assert not np.array_equal(result.get_raw().get_data(), context.get_raw().get_data())
 
     def test_subsample_fast_and_quality_keep_triggers_and_write_raw(self):
         """'fast'/'quality' keep integer triggers and bake the shift into raw."""
