@@ -11,7 +11,7 @@ import pytest
 
 
 def _load_builder_module():
-    module_path = Path(__file__).resolve().parents[1] / "examples" / "build_synthetic_spike_artifact_context_dataset.py"
+    module_path = Path(__file__).resolve().parents[1] / "examples" / "dataset_building" / "build_synthetic_spike_artifact_context_dataset.py"
     spec = importlib.util.spec_from_file_location("build_synthetic_spike_artifact_context_dataset", module_path)
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None

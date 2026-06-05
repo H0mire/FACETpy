@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from math import gcd
 from pathlib import Path
 from typing import Any
 
 import mne
 import numpy as np
+from scipy.signal import resample_poly
 
 from ...core import ProcessingContext, ProcessorValidationError, register_processor
 from ...correction.deep_learning import (
@@ -22,17 +24,33 @@ from ...correction.deep_learning import (
 
 
 def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
+    """Bandlimited polyphase resampling of one channel epoch to a fixed length.
+
+    Uses ``scipy.signal.resample_poly`` (FIR polyphase filter) to match the
+    resampling used when the training dataset was built. Linear interpolation
+    has a ``sinc^2`` lowpass response that attenuates the HF EPI-readout
+    content these models were trained on, so input (native -> fixed) and
+    output (fixed -> native) must use the same bandlimited resampler.
+    """
     if values.ndim != 1:
         raise ValueError(f"Expected 1D values, got shape {values.shape}")
     if target_samples <= 0:
         raise ValueError("target_samples must be positive")
-    if len(values) == target_samples:
+    n = len(values)
+    if n == target_samples:
         return values.astype(np.float32, copy=False)
-    if len(values) == 0:
+    if n == 0:
         return np.zeros(target_samples, dtype=np.float32)
-    source_x = np.linspace(0.0, 1.0, len(values), dtype=np.float64)
-    target_x = np.linspace(0.0, 1.0, target_samples, dtype=np.float64)
-    return np.interp(target_x, source_x, values).astype(np.float32)
+    if n == 1:
+        return np.full(target_samples, float(values[0]), dtype=np.float32)
+    g = gcd(target_samples, n)
+    up, down = target_samples // g, n // g
+    out = resample_poly(values.astype(np.float64, copy=False), up, down)
+    if out.shape[0] > target_samples:
+        out = out[:target_samples]
+    elif out.shape[0] < target_samples:
+        out = np.pad(out, (0, target_samples - out.shape[0]), mode="edge")
+    return out.astype(np.float32, copy=False)
 
 
 def _resample_2d(values: np.ndarray, target_samples: int) -> np.ndarray:

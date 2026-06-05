@@ -17,11 +17,9 @@ from .evaluation import (
 )
 from .io import EDFExporter, Loader
 from .preprocessing import (
-    CutAcquisitionWindow,
     DownSample,
     HighPassFilter,
     LowPassFilter,
-    PasteAcquisitionWindow,
     SliceAligner,
     SubsampleAligner,
     TriggerDetector,
