@@ -19,6 +19,7 @@ from facet.preprocessing import (
     MagicErasor,
     MATLABPreFilter,
     MissingTriggerCompleter,
+    MissingTriggerDetector,
     SliceAligner,
     SliceTriggerGenerator,
     SubsampleAligner,
@@ -401,6 +402,67 @@ class TestAcquisitionAlignment:
         result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="legacy", ssa_hp_freq=300.0).execute(ctx)
         assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] is None
 
+    def _build_fractional_context(self, true_shift):
+        """Context whose 2nd artifact is shifted by a known *sub-sample* amount."""
+        sfreq = 200
+        artifact_length = 40
+        n_samples = 400
+        triggers = np.array([100, 200])
+
+        # Half-sine template (zero at both ends -> negligible FFT-shift wrap-around).
+        base = np.sin(np.linspace(0.0, np.pi, artifact_length)) * 1e-6
+        freqs = np.fft.fftfreq(artifact_length)
+        shifted = np.real(np.fft.ifft(np.fft.fft(base) * np.exp(-2j * np.pi * freqs * true_shift)))
+
+        data = np.zeros((1, n_samples), dtype=float)
+        data[0, triggers[0] : triggers[0] + artifact_length] += base
+        data[0, triggers[1] : triggers[1] + artifact_length] += shifted
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, verbose=False)
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        metadata.upsampling_factor = 1
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_subsample_recovers_fractional_shift(self):
+        """fast/quality must recover a known sub-sample shift to sub-integer
+        precision. The old ``abs(recorded - 2) <= 3`` tolerance would pass for a
+        pure-integer estimate; here the true shift is 2.4 so a tolerance < 0.4
+        proves genuine sub-sample accuracy.
+        """
+        true_shift = 2.4
+        # disable the SSA high-pass: at sfreq=200 a 300 Hz cutoff is meaningless,
+        # and we want to isolate the fractional-shift estimator itself.
+        for mode, tol in (("fast", 0.35), ("quality", 0.2)):
+            context = self._build_fractional_context(true_shift)
+            context = CutAcquisitionWindow().execute(context)
+            aligner = SubsampleAligner(ref_trigger_index=0, search_window=8, mode=mode, ssa_hp_freq=None)
+            result = aligner.execute(context)
+            recorded = result.metadata.custom["subsample_alignment"]["shifts"][1]
+            assert abs(abs(recorded) - true_shift) <= tol, f"{mode}: recorded={recorded}"
+
+    def test_subsample_legacy_apply_to_raw_rolls_data_keeps_triggers(self):
+        """Legacy ``apply_to_raw=True`` bakes the shift into the raw data and
+        leaves triggers at their original positions — a regression lock for the
+        double-application fix (artifact must not be displaced twice; M11)."""
+        context = self._build_shifted_context(shift_samples=3)
+        context = CutAcquisitionWindow().execute(context)
+        original_triggers = context.get_triggers().copy()
+        before = context.get_raw().get_data().copy()
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=6, mode="legacy", apply_to_raw=True)
+        result = aligner.execute(context)
+
+        # Data rolled (shift baked in); triggers unchanged (no double application).
+        assert not np.array_equal(result.get_raw().get_data(), before)
+        np.testing.assert_array_equal(result.get_triggers(), original_triggers)
+        meta = result.metadata.custom["subsample_alignment"]
+        assert meta["applied_to"] == "raw"
+        assert abs(meta["shifts"][1] - 3) <= 3
+
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
         # Remove artifact length
@@ -550,6 +612,38 @@ class TestMATLABTriggerParity:
         expected = np.array([100, 150, 200, 250, 500, 550, 600, 650], dtype=int)
         np.testing.assert_array_equal(result.get_triggers(), expected)
         assert result.metadata.slices_per_volume == 4
+
+    def test_missing_trigger_detector_recovers_multiple_in_one_gap(self):
+        """A gap several artifact-lengths wide must yield ALL missing triggers,
+        not just the first one (the multi-missing-gap branch)."""
+        sfreq = 200.0
+        artifact_length = 40
+        positions = [100, 140, 180, 220, 260, 300]  # regular train, spacing = L
+        n_samples = 400
+        template = np.sin(np.linspace(0.0, np.pi, artifact_length)) * 1e-6
+        # Tiny baseline noise so silent probe windows aren't all-zero (a pure
+        # zero window makes the normalised cross-correlation divide by zero);
+        # 1e-9 << the 1e-6 template, so artifact correlations stay ~1.0.
+        rng = np.random.default_rng(0)
+        data = rng.standard_normal((1, n_samples)) * 1e-9
+        for p in positions:
+            data[0, p : p + artifact_length] += template
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        # Omit two consecutive triggers (180, 220) -> a 3*L gap between 140/260.
+        metadata.triggers = np.array([100, 140, 260, 300], dtype=int)
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+        result = MissingTriggerDetector(correlation_threshold=0.9).execute(context)
+        recovered = result.get_triggers().tolist()
+
+        assert len(recovered) == 6, recovered
+        assert any(abs(t - 180) <= 4 for t in recovered)
+        assert any(abs(t - 220) <= 4 for t in recovered)
 
 
 @pytest.mark.unit

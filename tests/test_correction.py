@@ -244,6 +244,40 @@ class TestANCCorrection:
         except ImportError:
             pytest.skip("C extension not available")
 
+    def test_anc_python_lms_matches_hand_computed_reference(self):
+        """Pin the MATLAB-faithful LMS recurrence: N+1 taps, regressor includes
+        the current sample (refs[n-N : n+1]) and a 2*mu weight update.
+
+        Hand trace for N=1, mu=0.01, w=[0,0]:
+          n=1: x=[r0,r1]=[1,2], y=0, e=20  -> w=2*mu*e*x=[0.4,0.8]
+          n=2: x=[r1,r2]=[2,3], y=0.4*2+0.8*3=3.2
+        so y == [0, 0, 3.2].  An old N-tap / mu (not 2*mu) / lagged-regressor
+        implementation would not reproduce this.
+        """
+        anc = ANCCorrection(filter_order=1, use_c_extension=False)
+        reference = np.array([1.0, 2.0, 3.0])
+        data = np.array([10.0, 20.0, 30.0])
+        y = anc._anc_python(reference, data, mu=0.01, filter_order=1)
+        np.testing.assert_allclose(y, [0.0, 0.0, 3.2], atol=1e-12)
+
+    @pytest.mark.requires_c_extension
+    def test_anc_python_fallback_matches_c_extension(self):
+        """The pure-Python LMS must be numerically identical to the fastranc C
+        extension (the whole point of the MATLAB-parity rewrite)."""
+        try:
+            from facet.helpers.fastranc import fastr_anc  # noqa: F401
+        except Exception:
+            pytest.skip("fastranc C extension not built")
+
+        rng = np.random.default_rng(0)
+        reference = rng.standard_normal(256)
+        data = rng.standard_normal(256)
+        mu, order = 1e-3, 5
+        anc = ANCCorrection(filter_order=order)
+        y_python = anc._anc_python(reference, data, mu, order)
+        y_c = anc._anc_fast(reference, data, mu, order)
+        np.testing.assert_allclose(y_python, y_c, rtol=1e-6, atol=1e-9)
+
 
 @pytest.mark.unit
 class TestPCACorrection:
@@ -381,6 +415,48 @@ class TestPCACorrection:
         short = np.random.default_rng(0).standard_normal(5000)
         out = PCACorrection._apply_hp_filter(short, weights)
         assert out.shape == short.shape
+
+    def test_pca_obs_removes_rank1_artifact(self):
+        """OBS must reconstruct and subtract a rank-1 (single-template) artifact.
+
+        Each trigger epoch is a scalar multiple of one fixed template, so the
+        artifact family is rank-1. A correct OBS basis (mean-centred, no
+        z-scoring) with a single component captures that template and subtracts
+        it, collapsing the in-epoch energy. A broken reconstruction (e.g. the
+        pre-fix code that subtracted the *residual* instead of the fitted
+        artifact) would leave the artifact essentially untouched.
+        """
+        sfreq = 1000.0
+        artifact_length = 50
+        n_epochs = 15
+        triggers = np.array([artifact_length * (i + 2) for i in range(n_epochs)], dtype=int)
+        n_samples = int(triggers[-1] + 3 * artifact_length)
+
+        rng = np.random.default_rng(0)
+        template = np.sin(np.linspace(0.0, 2.0 * np.pi, artifact_length))  # zero-mean shape
+        amps = 1.0 + 0.3 * rng.standard_normal(n_epochs)  # per-epoch scaling -> rank-1
+        data = np.zeros((1, n_samples))
+        for tr, a in zip(triggers, amps, strict=True):
+            data[0, tr : tr + artifact_length] += a * template * 1e-5
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+        result = PCACorrection(n_components=1, hp_freq=None).execute(context)
+        corrected = result.get_raw()._data[0]
+
+        def epoch_energy(sig):
+            return float(sum(np.sum(sig[tr : tr + artifact_length] ** 2) for tr in triggers))
+
+        before = epoch_energy(data[0])
+        after = epoch_energy(corrected)
+        assert before > 0
+        assert after < 0.2 * before, f"rank-1 artifact not removed: {after / before:.2%} energy remains"
 
 
 @pytest.mark.unit

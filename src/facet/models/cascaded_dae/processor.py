@@ -17,6 +17,7 @@ from ...correction.deep_learning import (
     DeepLearningOutputType,
     DeepLearningPrediction,
     DeepLearningRuntime,
+    _overlap_add_window,
 )
 
 
@@ -94,8 +95,11 @@ class CascadedDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
         channels = self._resolve_channels(data.shape[0])
         model, torch = self._load_model()
         artifact = np.zeros_like(data)
-        counts = np.zeros_like(data, dtype=np.uint16)
+        weights = np.zeros(data.shape, dtype=np.float64)
         chunk_ranges = self._chunk_ranges(data.shape[1])
+        # Tapered constant-overlap-add window cross-fades overlapping chunks
+        # instead of a flat count average, removing boundary seams (M6).
+        window = _overlap_add_window(self.chunk_size_samples, self.chunk_overlap_samples)
 
         for start, stop in chunk_ranges:
             if stop - start != self.chunk_size_samples:
@@ -107,11 +111,11 @@ class CascadedDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
                 prediction = self._predict_segment(model, torch, segment)
                 if self.remove_prediction_mean:
                     prediction = prediction - prediction.mean(axis=-1, keepdims=True)
-                artifact[ch_idx : ch_idx + 1, start:stop] += prediction.astype(data.dtype, copy=False)
-                counts[ch_idx : ch_idx + 1, start:stop] += 1
+                artifact[ch_idx : ch_idx + 1, start:stop] += (window * prediction).astype(data.dtype, copy=False)
+                weights[ch_idx : ch_idx + 1, start:stop] += window
 
-        covered = counts > 0
-        artifact[covered] = artifact[covered] / counts[covered]
+        covered = weights > 0
+        artifact[covered] = artifact[covered] / weights[covered]
         metadata = {
             "checkpoint_path": self.checkpoint_path,
             "chunk_size_samples": self.chunk_size_samples,

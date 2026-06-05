@@ -7,6 +7,7 @@ import dataclasses
 import importlib
 import inspect
 import json
+import math
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -709,8 +710,11 @@ def _write_run_summary(
         },
         "training": {
             "total_epochs": result.total_epochs,
-            "best_epoch": result.best_epoch,
-            "best_metric": result.best_metric,
+            # best_metric is NaN when the monitored metric never appeared (e.g.
+            # validation skipped every epoch). Emit null instead of a bare NaN
+            # token, which is invalid JSON and rejected by strict parsers.
+            "best_epoch": result.best_epoch if math.isfinite(result.best_metric) else None,
+            "best_metric": result.best_metric if math.isfinite(result.best_metric) else None,
             "elapsed_seconds": result.elapsed_seconds,
         },
         "results": {

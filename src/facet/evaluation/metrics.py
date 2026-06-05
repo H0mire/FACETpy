@@ -1050,7 +1050,12 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         with np.errstate(divide="ignore", invalid="ignore"):
             snr_per_channel = var_reference / var_residual
         valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
-        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else 0.0
+        # When *every* channel is over-corrected there is no comparable channel
+        # left, so the SNR is undefined — return NaN rather than 0.0. A 0.0
+        # would read as "worst possible SNR" and silently corrupt comparisons;
+        # NaN lets callers distinguish "no valid channels" from "zero SNR".
+        # Stored as ``None`` in the metrics dict below to stay JSON-strict.
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else float("nan")
         # Non-finite / dropped channels stored as NaN to keep the per-channel
         # array JSON-clean and aligned with the channel order.
         snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
@@ -1067,12 +1072,17 @@ class SNRCalculator(Processor, ReferenceDataMixin):
                 logger.info("SNR diagnostics: lowest channels [{}]", best)
                 logger.info("SNR diagnostics: highest channels [{}]", worst)
 
-        report_metric("snr", float(snr_mean), label="SNR", display=f"{snr_mean:.2f}")
+        report_metric(
+            "snr",
+            float(snr_mean),
+            label="SNR",
+            display=f"{snr_mean:.2f}" if np.isfinite(snr_mean) else "n/a",
+        )
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
-        metrics["snr"] = float(snr_mean)
+        metrics["snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
         metrics["snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
@@ -1254,7 +1264,9 @@ class LegacySNRCalculator(Processor):
         with np.errstate(divide="ignore", invalid="ignore"):
             snr_per_channel = var_reference / var_residual
         valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
-        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else 0.0
+        # No comparable channels (all over-corrected) -> undefined SNR, return
+        # NaN rather than 0.0 (see SNRCalculator). Stored as None below.
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else float("nan")
         snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
 
         if self.verbose:
@@ -1273,13 +1285,13 @@ class LegacySNRCalculator(Processor):
             "legacy_snr",
             snr_mean,
             label="Legacy SNR",
-            display=f"{snr_mean:.2f}",
+            display=f"{snr_mean:.2f}" if np.isfinite(snr_mean) else "n/a",
         )
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
-        metrics["legacy_snr"] = snr_mean
+        metrics["legacy_snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
         metrics["legacy_snr_per_channel"] = [
             None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean
         ]

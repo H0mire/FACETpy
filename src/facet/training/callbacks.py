@@ -171,7 +171,9 @@ class CheckpointCallback(Callback):
     def on_epoch_end(self, state: TrainingState) -> None:
         metrics = {**state.train_metrics, **state.val_metrics}
         value = metrics.get(self.monitor)
-        if value is None:
+        # Skip epochs whose monitored value is missing or non-finite: never
+        # checkpoint, rank, or early-stop on a NaN/inf metric.
+        if value is None or not np.isfinite(value):
             return
 
         # Always write last
@@ -257,7 +259,9 @@ class EarlyStoppingCallback(Callback):
     def on_epoch_end(self, state: TrainingState) -> None:
         metrics = {**state.train_metrics, **state.val_metrics}
         value = metrics.get(self.monitor)
-        if value is None:
+        # Skip epochs whose monitored value is missing or non-finite: never
+        # checkpoint, rank, or early-stop on a NaN/inf metric.
+        if value is None or not np.isfinite(value):
             return
 
         if self._is_better(value, self._best):

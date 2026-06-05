@@ -323,7 +323,7 @@ class Trainer:
                 spark = _sparkline(history)
                 arrow = _trend_arrow(history)
 
-                is_best = (name == monitor and state.epoch == state.best_epoch)
+                is_best = name == monitor and math.isfinite(state.best_metric) and state.epoch == state.best_epoch
                 annotation = "★ best" if is_best else ""
                 color = "green" if arrow == "↓" else ("red" if arrow == "↑" else "white")
                 table.add_row(
@@ -488,7 +488,11 @@ class Trainer:
         mode = self.config.checkpoint.mode
         all_metrics = {**state.train_metrics, **state.val_metrics}
         value = all_metrics.get(monitor)
-        if value is None:
+        # Ignore missing or non-finite monitored values: a transient NaN/inf
+        # loss must not become "best" or poison best_metric (which would then
+        # serialise as invalid JSON). best_metric stays NaN only if no finite
+        # value ever appears, and is emitted as null in the run summary.
+        if value is None or not math.isfinite(value):
             return
         if math.isnan(state.best_metric):
             state.best_metric = value

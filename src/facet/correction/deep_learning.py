@@ -23,6 +23,32 @@ from loguru import logger
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 
 
+def _overlap_add_window(length: int, taper: int) -> np.ndarray:
+    """Return a 1-D overlap-add weighting window of ``length`` samples.
+
+    The window is ``1.0`` across the interior and tapers over ``taper`` samples
+    at each edge with a raised-cosine (``sin^2``) ramp. Two adjacent windows
+    whose taper regions overlap sum to exactly ``1.0`` (constant-overlap-add),
+    so accumulating ``window * prediction`` and dividing by the accumulated
+    window yields a smooth cross-fade instead of the hard step that a flat
+    (rectangular) count average leaves at every chunk boundary. The ramp is
+    sampled at bin midpoints so it never reaches exactly zero, keeping the
+    boundary normalisation (``estimated / weight``) well-defined even where a
+    sample is covered by a single chunk edge.
+
+    ``taper <= 0`` yields an all-ones window (the previous rectangular
+    behaviour, used when chunks do not overlap).
+    """
+    length = int(length)
+    window = np.ones(length, dtype=np.float64)
+    taper = int(min(max(taper, 0), length // 2))
+    if taper > 0:
+        ramp = np.sin(0.5 * np.pi * (np.arange(taper) + 0.5) / taper) ** 2
+        window[:taper] = ramp
+        window[length - taper :] = ramp[::-1]
+    return window
+
+
 class DeepLearningArchitecture(StrEnum):
     """High-level architecture families relevant for EEG-fMRI denoising."""
 
@@ -2329,7 +2355,7 @@ class DeepLearningCorrection(Processor):
             }
             return raw, estimated_artifacts, execution_metadata
 
-        artifact_counts = np.zeros(raw._data.shape, dtype=np.uint16)
+        artifact_weights = np.zeros(raw._data.shape, dtype=np.float64)
 
         for chunk_start, chunk_stop in chunk_ranges:
             chunk_context = self._build_chunk_context(context, chunk_start, chunk_stop)
@@ -2341,8 +2367,13 @@ class DeepLearningCorrection(Processor):
             global_start = chunk_start + local_start
             global_stop = chunk_start + local_stop
 
-            estimated_artifacts[channel_indices, global_start:global_stop] += artifact_segment
-            artifact_counts[channel_indices, global_start:global_stop] += 1
+            # Tapered constant-overlap-add weighting cross-fades adjacent chunks
+            # instead of averaging them with equal weight, removing the boundary
+            # seams a flat count average leaves at each overlap region.
+            seg_len = global_stop - global_start
+            window = _overlap_add_window(seg_len, min(spec.chunk_overlap_samples, seg_len // 2))
+            estimated_artifacts[channel_indices, global_start:global_stop] += window * artifact_segment
+            artifact_weights[channel_indices, global_start:global_stop] += window
             chunk_summaries.append(
                 {
                     "chunk_start_sample": chunk_start,
@@ -2354,8 +2385,8 @@ class DeepLearningCorrection(Processor):
                 }
             )
 
-        covered_mask = artifact_counts > 0
-        estimated_artifacts[covered_mask] = estimated_artifacts[covered_mask] / artifact_counts[covered_mask]
+        covered_mask = artifact_weights > 0
+        estimated_artifacts[covered_mask] = estimated_artifacts[covered_mask] / artifact_weights[covered_mask]
         raw._data[covered_mask] -= estimated_artifacts[covered_mask]
 
         execution_metadata = {
