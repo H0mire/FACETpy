@@ -36,8 +36,21 @@ class PCACorrection(Processor):
         retain (float in (0, 1)). Use ``"auto"`` for MATLAB-like OBS auto
         selection. Default: 0.95.
     hp_freq : float, optional
-        High-pass cutoff frequency in Hz applied before PCA. None skips
-        filtering (default: None).
+        High-pass cutoff frequency in Hz applied before PCA, to remove slow
+        drift so the OBS basis is built on a common baseline (Niazy 2005 uses
+        1 Hz). ``None`` skips filtering (default: None) — appropriate when the
+        pipeline already high-passed the data upstream (e.g. a global 1 Hz
+        ``HighPassFilter`` before up-sampling), which is the recommended setup.
+
+        Two caveats if you set this explicitly:
+
+        - **Keep it well below any final low-pass cutoff.** The OBS correction
+          only affects the band ``[hp_freq, final_lp]``; with ``hp_freq >=``
+          the final low-pass (e.g. 300 Hz before a 70 Hz low-pass) the
+          correction lands entirely in the discarded band and does nothing.
+        - **A low cutoff at an up-sampled rate needs a very long FIR** (a sharp
+          1 Hz high-pass at 20 kHz is ~40000 taps). Prefer high-passing once at
+          the original sampling rate upstream instead.
     hp_filter_weights : np.ndarray, optional
         Pre-computed filter weights; overrides ``hp_freq`` when provided.
     exclude_channels : list, optional
