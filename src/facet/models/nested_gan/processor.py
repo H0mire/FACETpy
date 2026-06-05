@@ -196,9 +196,7 @@ class NestedGANAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "NestedGAN requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("NestedGAN requires PyTorch. Install the pytorch extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model

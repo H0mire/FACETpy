@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
@@ -45,9 +44,7 @@ class SinusoidalNoiseLevelEmbedding(nn.Module):
     def forward(self, noise_level: torch.Tensor) -> torch.Tensor:
         half = self.dim // 2
         device = noise_level.device
-        freqs = torch.exp(
-            -math.log(10000.0) * torch.arange(half, device=device, dtype=torch.float32) / half
-        )
+        freqs = torch.exp(-math.log(10000.0) * torch.arange(half, device=device, dtype=torch.float32) / half)
         args = noise_level.float().unsqueeze(-1) * freqs.unsqueeze(0)
         return torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
 
@@ -129,15 +126,9 @@ class D4PMNoisePredictor(nn.Module):
 
         self.proj_in = nn.Linear(feats, d_model)
 
-        self.layers_x = nn.ModuleList(
-            [TransformerEncoderLayer1D(d_model, n_heads, d_ff) for _ in range(n_layers)]
-        )
-        self.layers_cond = nn.ModuleList(
-            [TransformerEncoderLayer1D(d_model, n_heads, d_ff) for _ in range(n_layers)]
-        )
-        self.films = nn.ModuleList(
-            [FiLM(embed_dim=embed_dim, feature_dim=d_model) for _ in range(n_layers)]
-        )
+        self.layers_x = nn.ModuleList([TransformerEncoderLayer1D(d_model, n_heads, d_ff) for _ in range(n_layers)])
+        self.layers_cond = nn.ModuleList([TransformerEncoderLayer1D(d_model, n_heads, d_ff) for _ in range(n_layers)])
+        self.films = nn.ModuleList([FiLM(embed_dim=embed_dim, feature_dim=d_model) for _ in range(n_layers)])
 
         self.proj_out = nn.Linear(d_model, feats)
         self.out_conv = nn.Sequential(
@@ -146,9 +137,7 @@ class D4PMNoisePredictor(nn.Module):
             nn.Conv1d(feats, 1, kernel_size=3, padding=1),
         )
 
-    def forward(
-        self, h_t: torch.Tensor, cond_y: torch.Tensor, noise_level: torch.Tensor
-    ) -> torch.Tensor:
+    def forward(self, h_t: torch.Tensor, cond_y: torch.Tensor, noise_level: torch.Tensor) -> torch.Tensor:
         embed = self.embed_mlp(self.embed(noise_level))
 
         x = self.in_x(h_t)
@@ -156,7 +145,7 @@ class D4PMNoisePredictor(nn.Module):
         x = self.proj_in(x.transpose(1, 2))
         c = self.proj_in(c.transpose(1, 2))
 
-        for layer_x, layer_c, film in zip(self.layers_x, self.layers_cond, self.films):
+        for layer_x, layer_c, film in zip(self.layers_x, self.layers_cond, self.films, strict=False):
             x = layer_x(x)
             c = layer_c(c)
             x = x + c
@@ -200,9 +189,7 @@ class D4PMTrainingModule(nn.Module):
         betas = make_beta_schedule(num_steps, beta_start, beta_end)
         alphas = 1.0 - betas
         alphas_cumprod = torch.cumprod(alphas, dim=0)
-        alphas_cumprod_prev = torch.cat(
-            [torch.tensor([1.0], dtype=torch.float64), alphas_cumprod[:-1]]
-        )
+        alphas_cumprod_prev = torch.cat([torch.tensor([1.0], dtype=torch.float64), alphas_cumprod[:-1]])
 
         self.register_buffer("betas", betas.float())
         self.register_buffer("alphas_cumprod", alphas_cumprod.float())
@@ -235,18 +222,14 @@ class D4PMTrainingModule(nn.Module):
             epoch_samples=epoch_samples,
         )
 
-    def q_sample(
-        self, h0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor
-    ) -> torch.Tensor:
+    def q_sample(self, h0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor) -> torch.Tensor:
         sqrt_alpha = self.sqrt_alphas_cumprod[t].view(-1, 1, 1)
         sqrt_one_minus = self.sqrt_one_minus_alphas_cumprod[t].view(-1, 1, 1)
         return sqrt_alpha * h0 + sqrt_one_minus * noise
 
     def forward(self, packed: torch.Tensor) -> torch.Tensor:
         if packed.shape[1] != 2:
-            raise ValueError(
-                f"D4PMTrainingModule expects packed input with 2 channels, got {packed.shape[1]}"
-            )
+            raise ValueError(f"D4PMTrainingModule expects packed input with 2 channels, got {packed.shape[1]}")
         if torch.jit.is_tracing():
             # Trace-stable stub for the CLI's torch.jit.trace export. The
             # traced module is only retained as a smoke artifact; real
@@ -319,8 +302,7 @@ class D4PMArtifactDataset:
             )
         if self.noisy.shape != self.artifact.shape:
             raise ValueError(
-                f"noisy_center and artifact_center must match; got "
-                f"{self.noisy.shape} vs {self.artifact.shape}"
+                f"noisy_center and artifact_center must match; got {self.noisy.shape} vs {self.artifact.shape}"
             )
 
         self.n_examples = int(self.noisy.shape[0])
@@ -400,9 +382,7 @@ class D4PMEpsilonLoss(nn.Module):
     def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         del target
         if prediction.shape[1] != 2:
-            raise ValueError(
-                f"D4PMEpsilonLoss expects (B, 2, T) prediction, got {prediction.shape}"
-            )
+            raise ValueError(f"D4PMEpsilonLoss expects (B, 2, T) prediction, got {prediction.shape}")
         pred_noise = prediction[:, 0:1, :]
         true_noise = prediction[:, 1:2, :]
         return self.loss_fn(pred_noise, true_noise)

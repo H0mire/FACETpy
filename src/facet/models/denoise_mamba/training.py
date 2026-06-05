@@ -21,7 +21,6 @@ from torch import nn
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # Selective state space (Mamba-1 style) implemented in pure PyTorch.
 # ---------------------------------------------------------------------------
@@ -239,9 +238,7 @@ class DenoiseMamba(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() != 3 or x.shape[1] != 1:
-            raise ValueError(
-                f"DenoiseMamba expects shape (batch, 1, samples); got {tuple(x.shape)}"
-            )
+            raise ValueError(f"DenoiseMamba expects shape (batch, 1, samples); got {tuple(x.shape)}")
         h = self.input_proj(x)
         h = h.transpose(1, 2)
         for block in self.blocks:
@@ -257,7 +254,7 @@ class DenoiseMamba(nn.Module):
 
 
 class _SubsetDataset:
-    def __init__(self, parent: "ChannelWiseSingleEpochArtifactDataset", indices: list[int]) -> None:
+    def __init__(self, parent: ChannelWiseSingleEpochArtifactDataset, indices: list[int]) -> None:
         self._parent = parent
         self._indices = indices
 

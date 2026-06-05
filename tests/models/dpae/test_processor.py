@@ -29,10 +29,8 @@ def test_dpae_build_model_from_input_shape():
 
 
 def test_dpae_residual_init_zero_means_pure_decoder():
-    torch = pytest.importorskip("torch")
-    model = DualPathwayAutoencoder(
-        input_size=64, base_filters=4, latent_filters=8, residual_init=0.0
-    )
+    pytest.importorskip("torch")
+    model = DualPathwayAutoencoder(input_size=64, base_filters=4, latent_filters=8, residual_init=0.0)
     assert float(model.residual_scale.detach().cpu()) == 0.0
 
 

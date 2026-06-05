@@ -8,11 +8,9 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
-
 
 
 def _glu_channels(channels: int) -> int:
@@ -55,9 +53,7 @@ class _DecoderBlock(torch.nn.Module):
         self.conv_glu = torch.nn.Conv1d(in_channels, _glu_channels(in_channels), kernel_size=3, padding=1)
         self.glu = torch.nn.GLU(dim=1)
         padding = (kernel_size - stride) // 2
-        self.deconv = torch.nn.ConvTranspose1d(
-            in_channels, out_channels, kernel_size, stride=stride, padding=padding
-        )
+        self.deconv = torch.nn.ConvTranspose1d(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
         self.is_last = is_last
         self.activation = torch.nn.ReLU() if not is_last else torch.nn.Identity()
 
@@ -222,13 +218,9 @@ class FlatContextArtifactDataset:
         if noisy.shape != artifact.shape:
             raise ValueError("noisy_context and artifact_context must share the same shape")
         if noisy.ndim != 4:
-            raise ValueError(
-                "noisy_context must have shape (examples, context_epochs, channels, samples)"
-            )
+            raise ValueError("noisy_context must have shape (examples, context_epochs, channels, samples)")
         if noisy.shape[1] != self.context_epochs:
-            raise ValueError(
-                f"expected {self.context_epochs} context epochs in the bundle, got {noisy.shape[1]}"
-            )
+            raise ValueError(f"expected {self.context_epochs} context epochs in the bundle, got {noisy.shape[1]}")
 
         self._noisy = noisy
         self._artifact = artifact
@@ -249,8 +241,12 @@ class FlatContextArtifactDataset:
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         example_idx = int(idx) // self.n_channels
         channel_idx = int(idx) % self.n_channels
-        noisy_flat = self._noisy[example_idx, :, channel_idx, :].reshape(1, self.total_samples).astype(np.float32, copy=True)
-        target_flat = self._artifact[example_idx, :, channel_idx, :].reshape(1, self.total_samples).astype(np.float32, copy=True)
+        noisy_flat = (
+            self._noisy[example_idx, :, channel_idx, :].reshape(1, self.total_samples).astype(np.float32, copy=True)
+        )
+        target_flat = (
+            self._artifact[example_idx, :, channel_idx, :].reshape(1, self.total_samples).astype(np.float32, copy=True)
+        )
         if self.demean_input:
             noisy_flat -= noisy_flat.mean(axis=-1, keepdims=True)
         if self.demean_target:

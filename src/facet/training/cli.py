@@ -258,15 +258,11 @@ def load_training_cli_config(path: str | Path) -> TrainingCLIConfig:
         try:
             import yaml
         except ImportError as exc:  # pragma: no cover
-            raise ImportError(
-                "PyYAML is required for YAML training configs. Install with: pip install pyyaml"
-            ) from exc
+            raise ImportError("PyYAML is required for YAML training configs. Install with: pip install pyyaml") from exc
         with path.open("r", encoding="utf-8") as fh:
             raw = yaml.safe_load(fh)
     else:
-        raise ProcessorValidationError(
-            f"Unsupported config format '{suffix}'. Use .json, .yaml, or .yml"
-        )
+        raise ProcessorValidationError(f"Unsupported config format '{suffix}'. Use .json, .yaml, or .yml")
 
     if not isinstance(raw, dict):
         raise ProcessorValidationError("Training CLI config must decode to a top-level mapping")
@@ -329,14 +325,10 @@ def _resolve_inference_spec(cli_config: TrainingCLIConfig) -> dict[str, Any] | N
 
 def _import_object(spec: str) -> Any:
     if ":" not in spec:
-        raise ProcessorValidationError(
-            f"Factory reference '{spec}' is invalid. Use the form 'module:function'."
-        )
+        raise ProcessorValidationError(f"Factory reference '{spec}' is invalid. Use the form 'module:function'.")
     module_name, attr_path = spec.split(":", maxsplit=1)
     if not module_name or not attr_path:
-        raise ProcessorValidationError(
-            f"Factory reference '{spec}' is invalid. Use the form 'module:function'."
-        )
+        raise ProcessorValidationError(f"Factory reference '{spec}' is invalid. Use the form 'module:function'.")
     module = importlib.import_module(module_name)
     obj = module
     for part in attr_path.split("."):
@@ -348,8 +340,7 @@ def _invoke_factory(factory: Any, explicit_kwargs: dict[str, Any], injected_kwar
     explicit_kwargs = dict(explicit_kwargs)
     signature = inspect.signature(factory)
     accepts_var_kwargs = any(
-        parameter.kind == inspect.Parameter.VAR_KEYWORD
-        for parameter in signature.parameters.values()
+        parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in signature.parameters.values()
     )
 
     call_kwargs = dict(explicit_kwargs)
@@ -464,16 +455,8 @@ def _build_model(
 
 def _build_wrapper(cli_config: TrainingCLIConfig, model: Any) -> Any:
     framework = cli_config.model.framework.strip().lower()
-    optimizer_cls = (
-        _import_object(cli_config.model.optimizer_factory)
-        if cli_config.model.optimizer_factory
-        else None
-    )
-    scheduler_cls = (
-        _import_object(cli_config.model.scheduler_factory)
-        if cli_config.model.scheduler_factory
-        else None
-    )
+    optimizer_cls = _import_object(cli_config.model.optimizer_factory) if cli_config.model.optimizer_factory else None
+    scheduler_cls = _import_object(cli_config.model.scheduler_factory) if cli_config.model.scheduler_factory else None
 
     shared_kwargs = {
         "learning_rate": cli_config.training.learning_rate,
@@ -581,9 +564,7 @@ def _export_model_if_requested(
 
     if framework == "tensorflow":
         if export_format != "keras":
-            raise ProcessorValidationError(
-                f"Unsupported export format '{export_format}' for TensorFlow. Use 'keras'."
-            )
+            raise ProcessorValidationError(f"Unsupported export format '{export_format}' for TensorFlow. Use 'keras'.")
         return _export_tensorflow_keras(wrapper=wrapper, path=export_path)
 
     raise ProcessorValidationError(f"Unsupported framework '{cli_config.model.framework}'")
@@ -722,9 +703,7 @@ def _write_run_summary(
             "resolved_config_json": str(run_dir / "facet_train_config.resolved.json"),
             "resolved_config_yaml": str(run_dir / "facet_train_config.resolved.yaml"),
             "log_file": (
-                str(run_dir / cli_config.training.logging.log_file)
-                if cli_config.training.logging.log_file
-                else None
+                str(run_dir / cli_config.training.logging.log_file) if cli_config.training.logging.log_file else None
             ),
             "loss_plot_file": (
                 str(run_dir / cli_config.training.logging.loss_plot_file)
@@ -768,11 +747,7 @@ def _summarize_inference_spec(
         {
             "version": "1",
             "processor": "deep_learning_correction",
-            "adapter": (
-                "pytorch_inference"
-                if str(framework).lower() == "pytorch"
-                else "tensorflow_inference"
-            ),
+            "adapter": ("pytorch_inference" if str(framework).lower() == "pytorch" else "tensorflow_inference"),
             "spec": spec,
             "store_run_metadata": True,
             "trigger_aligned_chunking": False,

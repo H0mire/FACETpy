@@ -56,7 +56,7 @@ def test_dataset_factory_round_trip_via_in_memory_npz(tmp_path: Path):
 
 @pytest.mark.unit
 def test_pytorch_wrapper_runs_train_and_eval_step():
-    torch = pytest.importorskip("torch")
+    pytest.importorskip("torch")
 
     model = build_model(input_shape=(7, 1, 512), depth=2, embed_dim=96, n_heads=4, mlp_ratio=2.0)
     loss_fn = build_loss("mse")

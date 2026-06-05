@@ -120,9 +120,7 @@ class DHCTGanAdapter(DeepLearningModelAdapter):
             raise ProcessorValidationError("epoch_samples must be positive when provided")
         triggers = np.asarray(context.get_triggers(), dtype=int)
         if len(triggers) < 2:
-            raise ProcessorValidationError(
-                f"DHCT-GAN inference requires at least two triggers, got {len(triggers)}"
-            )
+            raise ProcessorValidationError(f"DHCT-GAN inference requires at least two triggers, got {len(triggers)}")
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
         raw = context.get_raw()
@@ -169,9 +167,7 @@ class DHCTGanAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "DHCTGanAdapter requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("DHCTGanAdapter requires PyTorch. Install the pytorch extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -208,9 +204,7 @@ class DHCTGanAdapter(DeepLearningModelAdapter):
             return [int(idx) for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)]
         return list(range(len(raw.ch_names)))
 
-    def _predict_segment(
-        self, model: Any, torch: Any, segment: np.ndarray, native_length: int
-    ) -> np.ndarray:
+    def _predict_segment(self, model: Any, torch: Any, segment: np.ndarray, native_length: int) -> np.ndarray:
         segment = segment.astype(np.float32, copy=True)
         if self.demean_input:
             segment = segment - segment.mean()

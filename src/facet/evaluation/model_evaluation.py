@@ -52,9 +52,7 @@ def _flatten_numeric_metrics(metrics: dict[str, Any], prefix: str = "") -> dict[
     flat: dict[str, float | int | bool] = {}
     for key, value in metrics.items():
         metric_key = f"{prefix}.{key}" if prefix else key
-        if isinstance(value, bool):
-            flat[metric_key] = value
-        elif isinstance(value, (int, float)):
+        if isinstance(value, (bool, int, float)):
             flat[metric_key] = value
         elif isinstance(value, dict):
             flat.update(_flatten_numeric_metrics(value, metric_key))

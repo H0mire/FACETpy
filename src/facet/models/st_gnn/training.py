@@ -9,7 +9,6 @@ See ``documentation/research_notes.md`` for the design rationale.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import mne
 import numpy as np
@@ -21,9 +20,36 @@ from facet.training.dataset import NPZContextArtifactDataset
 # 30-channel order in the Niazy proof-fit bundle. Hard-coded so the
 # Chebyshev Laplacian baked into the model is reproducible across runs.
 NIAZY_PROOF_FIT_CHANNELS: tuple[str, ...] = (
-    "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "T3", "C3", "Cz",
-    "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2", "AF4",
-    "AF3", "FC2", "FC1", "CP1", "CP2", "PO3", "PO4", "FC6", "FC5", "CP5",
+    "Fp1",
+    "Fp2",
+    "F7",
+    "F3",
+    "Fz",
+    "F4",
+    "F8",
+    "T3",
+    "C3",
+    "Cz",
+    "C4",
+    "T4",
+    "T5",
+    "P3",
+    "Pz",
+    "P4",
+    "T6",
+    "O1",
+    "O2",
+    "AF4",
+    "AF3",
+    "FC2",
+    "FC1",
+    "CP1",
+    "CP2",
+    "PO3",
+    "PO4",
+    "FC6",
+    "FC5",
+    "CP5",
 )
 
 # Niazy uses old 10-20 names; map to modern 10-05 montage equivalents.
@@ -75,7 +101,7 @@ def _knn_adjacency(positions: np.ndarray, k: int) -> np.ndarray:
 
     adjacency = np.zeros((n, n), dtype=np.float64)
     for (a, b), d in zip(edges, edge_distances, strict=True):
-        weight = float(np.exp(-(d ** 2) / (sigma ** 2)))
+        weight = float(np.exp(-(d**2) / (sigma**2)))
         adjacency[a, b] = weight
         adjacency[b, a] = weight
     np.fill_diagonal(adjacency, 1.0)
@@ -122,7 +148,7 @@ class ChebConv(nn.Module):
         self.k_order = int(k_order)
         self.weight = nn.Parameter(torch.empty(self.k_order, self.in_channels, self.out_channels))
         self.bias = nn.Parameter(torch.zeros(self.out_channels))
-        nn.init.kaiming_uniform_(self.weight, a=5 ** 0.5)
+        nn.init.kaiming_uniform_(self.weight, a=5**0.5)
 
     def forward(self, x: torch.Tensor, l_tilde: torch.Tensor) -> torch.Tensor:
         # x: (B, C_in, N, T). Move N to the position multiplied by L_tilde.
@@ -219,9 +245,7 @@ class SpatiotemporalGNN(nn.Module):
         if context_epochs < 1 or context_epochs % 2 == 0:
             raise ValueError("context_epochs must be a positive odd integer")
         if l_tilde.shape != (n_channels, n_channels):
-            raise ValueError(
-                f"l_tilde shape {tuple(l_tilde.shape)} does not match n_channels={n_channels}"
-            )
+            raise ValueError(f"l_tilde shape {tuple(l_tilde.shape)} does not match n_channels={n_channels}")
         self.context_epochs = int(context_epochs)
         self.n_channels = int(n_channels)
         self.samples = int(samples)
@@ -288,16 +312,12 @@ def build_model(
         ctx, n_ch, samples = input_shape
     else:
         if context_epochs is None or epoch_samples is None or n_channels is None:
-            raise ValueError(
-                "build_model needs input_shape, or all of context_epochs / epoch_samples / n_channels"
-            )
+            raise ValueError("build_model needs input_shape, or all of context_epochs / epoch_samples / n_channels")
         ctx, n_ch, samples = int(context_epochs), int(n_channels), int(epoch_samples)
 
     names = tuple(channel_names) if channel_names is not None else NIAZY_PROOF_FIT_CHANNELS
     if len(names) != n_ch:
-        raise ValueError(
-            f"channel_names length ({len(names)}) must match n_channels from dataset ({n_ch})"
-        )
+        raise ValueError(f"channel_names length ({len(names)}) must match n_channels from dataset ({n_ch})")
 
     l_tilde = build_chebyshev_laplacian(names, k=knn_k)
     return SpatiotemporalGNN(

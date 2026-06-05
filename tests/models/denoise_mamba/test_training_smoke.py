@@ -35,7 +35,10 @@ def test_train_val_split_returns_disjoint_subsets():
 
     class _FakeBase:
         sfreq = 100.0
-        def __len__(self): return 4
+
+        def __len__(self):
+            return 4
+
         def __getitem__(self, idx):
             return (np.zeros((2, 8), dtype=np.float32), np.ones((2, 8), dtype=np.float32))
 

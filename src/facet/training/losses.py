@@ -119,8 +119,8 @@ def snr_loss(
         Small constant for numerical stability.
     """
     residual = prediction - target
-    signal_power = np.mean(target ** 2, axis=-1) + eps
-    noise_power = np.mean(residual ** 2, axis=-1) + eps
+    signal_power = np.mean(target**2, axis=-1) + eps
+    noise_power = np.mean(residual**2, axis=-1) + eps
     snr_db = 10.0 * np.log10(signal_power / noise_power)
     return float(-np.mean(snr_db))
 
@@ -154,14 +154,10 @@ class CompositeLoss:
         # breakdown → {"mse": 0.010, "spectral": 0.020, "total": 0.012}
     """
 
-    def __init__(
-        self, components: dict[str, tuple[Callable, float]]
-    ) -> None:
+    def __init__(self, components: dict[str, tuple[Callable, float]]) -> None:
         self.components = components
 
-    def __call__(
-        self, prediction: np.ndarray, target: np.ndarray
-    ) -> tuple[float, dict[str, float]]:
+    def __call__(self, prediction: np.ndarray, target: np.ndarray) -> tuple[float, dict[str, float]]:
         """Compute weighted total loss and per-component breakdown.
 
         Returns
@@ -236,13 +232,9 @@ class TorchLossWrapper:
 
             return F.mse_loss(pred_tensor, target_tensor)
         except ImportError as exc:
-            raise ImportError(
-                "PyTorch is required for TorchLossWrapper.gradient_loss()"
-            ) from exc
+            raise ImportError("PyTorch is required for TorchLossWrapper.gradient_loss()") from exc
 
-    def numpy_metrics(
-        self, prediction: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def numpy_metrics(self, prediction: np.ndarray, target: np.ndarray) -> dict[str, float]:
         """Compute numpy metrics for logging (no gradient)."""
         result = self.loss_fn(prediction, target)
         if isinstance(result, tuple):

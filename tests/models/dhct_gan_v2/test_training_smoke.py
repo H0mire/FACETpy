@@ -10,8 +10,8 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from facet.models.dhct_gan_v2.training import build_dataset, build_loss, build_model
-from facet.training.trainer import Trainer
 from facet.training.config import TrainingConfig
+from facet.training.trainer import Trainer
 from facet.training.wrapper import PyTorchModelWrapper
 
 

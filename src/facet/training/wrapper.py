@@ -73,9 +73,7 @@ class TrainableModelWrapper(ABC):
         self.grad_clip_norm = grad_clip_norm
 
     @abstractmethod
-    def train_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def train_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         """Run one forward + backward pass on a mini-batch.
 
         Parameters
@@ -91,9 +89,7 @@ class TrainableModelWrapper(ABC):
         """
 
     @abstractmethod
-    def eval_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def eval_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         """Run one forward pass in evaluation mode (no gradient).
 
         Same signature and return convention as :meth:`train_step`.
@@ -117,9 +113,7 @@ class TrainableModelWrapper(ABC):
         np.ndarray
             Mini-batch of predictions in the model's output shape.
         """
-        raise NotImplementedError(
-            f"{type(self).__name__}.predict_batch() is not implemented."
-        )
+        raise NotImplementedError(f"{type(self).__name__}.predict_batch() is not implemented.")
 
     @abstractmethod
     def save_checkpoint(self, path: Path) -> None:
@@ -151,10 +145,7 @@ class TrainableModelWrapper(ABC):
 
     def __repr__(self) -> str:
         return (
-            f"{type(self).__name__}("
-            f"lr={self.learning_rate}, "
-            f"wd={self.weight_decay}, "
-            f"grad_clip={self.grad_clip_norm})"
+            f"{type(self).__name__}(lr={self.learning_rate}, wd={self.weight_decay}, grad_clip={self.grad_clip_norm})"
         )
 
 
@@ -233,9 +224,7 @@ class PyTorchModelWrapper(TrainableModelWrapper):
             grad_clip_norm=grad_clip_norm,
         )
         if importlib.util.find_spec("torch") is None:
-            raise ProcessorValidationError(
-                "PyTorchModelWrapper requires torch. Install with: pip install torch"
-            )
+            raise ProcessorValidationError("PyTorchModelWrapper requires torch. Install with: pip install torch")
 
         import torch
 
@@ -254,17 +243,13 @@ class PyTorchModelWrapper(TrainableModelWrapper):
 
         self._scheduler = None
         if scheduler_cls is not None:
-            self._scheduler = scheduler_cls(
-                self._optimizer, **(scheduler_kwargs or {})
-            )
+            self._scheduler = scheduler_cls(self._optimizer, **(scheduler_kwargs or {}))
 
     # ------------------------------------------------------------------
     # TrainableModelWrapper implementation
     # ------------------------------------------------------------------
 
-    def train_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def train_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         torch = self._torch
         self._model.train()
         self._optimizer.zero_grad()
@@ -277,17 +262,13 @@ class PyTorchModelWrapper(TrainableModelWrapper):
         loss.backward()
 
         if self.grad_clip_norm is not None:
-            torch.nn.utils.clip_grad_norm_(
-                self._model.parameters(), self.grad_clip_norm
-            )
+            torch.nn.utils.clip_grad_norm_(self._model.parameters(), self.grad_clip_norm)
 
         self._optimizer.step()
 
         return {"loss": float(loss.detach().cpu())}
 
-    def eval_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def eval_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         torch = self._torch
         self._model.eval()
 
@@ -321,11 +302,7 @@ class PyTorchModelWrapper(TrainableModelWrapper):
             {
                 "model_state_dict": self._model.state_dict(),
                 "optimizer_state_dict": self._optimizer.state_dict(),
-                "scheduler_state_dict": (
-                    self._scheduler.state_dict()
-                    if self._scheduler is not None
-                    else None
-                ),
+                "scheduler_state_dict": (self._scheduler.state_dict() if self._scheduler is not None else None),
             },
             str(path),
         )
@@ -336,10 +313,7 @@ class PyTorchModelWrapper(TrainableModelWrapper):
         self._model.load_state_dict(ckpt["model_state_dict"])
         if "optimizer_state_dict" in ckpt:
             self._optimizer.load_state_dict(ckpt["optimizer_state_dict"])
-        if (
-            self._scheduler is not None
-            and ckpt.get("scheduler_state_dict") is not None
-        ):
+        if self._scheduler is not None and ckpt.get("scheduler_state_dict") is not None:
             self._scheduler.load_state_dict(ckpt["scheduler_state_dict"])
 
     @property
@@ -408,8 +382,7 @@ class TensorFlowModelWrapper(TrainableModelWrapper):
         )
         if importlib.util.find_spec("tensorflow") is None:
             raise ProcessorValidationError(
-                "TensorFlowModelWrapper requires tensorflow. "
-                "Install with: pip install tensorflow"
+                "TensorFlowModelWrapper requires tensorflow. Install with: pip install tensorflow"
             )
 
         import tensorflow as tf
@@ -425,18 +398,14 @@ class TensorFlowModelWrapper(TrainableModelWrapper):
     def _to_tf(self, arr: np.ndarray) -> Any:
         """Convert numpy (batch, ch, time) to TF tensor (batch, time, ch)."""
         # Keras Conv1D expects (batch, timesteps, channels)
-        return self._tf.constant(
-            np.moveaxis(arr, 1, -1).astype(np.float32)
-        )
+        return self._tf.constant(np.moveaxis(arr, 1, -1).astype(np.float32))
 
     def _from_tf(self, tensor: Any) -> np.ndarray:
         """Convert TF tensor (batch, time, ch) back to numpy (batch, ch, time)."""
         arr = tensor.numpy()
         return np.moveaxis(arr, -1, 1)
 
-    def train_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def train_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         x = self._to_tf(noisy)
         y = self._to_tf(target)
 
@@ -448,9 +417,7 @@ class TensorFlowModelWrapper(TrainableModelWrapper):
 
         return {k: float(v) for k, v in result.items()}
 
-    def eval_step(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> dict[str, float]:
+    def eval_step(self, noisy: np.ndarray, target: np.ndarray) -> dict[str, float]:
         x = self._to_tf(noisy)
         y = self._to_tf(target)
 

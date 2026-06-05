@@ -85,7 +85,7 @@ class _MultiHeadSelfAttention(torch.nn.Module):
         self.d_model = int(d_model)
         self.n_heads = int(n_heads)
         self.d_head = self.d_model // self.n_heads
-        self.scale = self.d_head ** -0.5
+        self.scale = self.d_head**-0.5
         self.qkv = torch.nn.Linear(self.d_model, 3 * self.d_model)
         self.out_proj = torch.nn.Linear(self.d_model, self.d_model)
         self.attn_dropout = torch.nn.Dropout(dropout)
@@ -434,10 +434,7 @@ class _NegSISNRLoss(torch.nn.Module):
         pred = pred - pred.mean(dim=-1, keepdim=True)
         tgt = tgt - tgt.mean(dim=-1, keepdim=True)
 
-        s_target = (
-            (pred * tgt).sum(dim=-1, keepdim=True)
-            / (tgt.pow(2).sum(dim=-1, keepdim=True) + self.eps)
-        ) * tgt
+        s_target = ((pred * tgt).sum(dim=-1, keepdim=True) / (tgt.pow(2).sum(dim=-1, keepdim=True) + self.eps)) * tgt
         e_noise = pred - s_target
         ratio = s_target.pow(2).sum(dim=-1) / (e_noise.pow(2).sum(dim=-1) + self.eps)
         si_snr = 10.0 * torch.log10(ratio + self.eps)
@@ -482,7 +479,7 @@ def build_loss(name: str = "mse", **kwargs: Any) -> torch.nn.Module:
 
 
 class _SubsetDataset:
-    def __init__(self, parent: "ChannelWiseContextArtifactDataset", indices: list[int]) -> None:
+    def __init__(self, parent: ChannelWiseContextArtifactDataset, indices: list[int]) -> None:
         self._parent = parent
         self._indices = indices
 

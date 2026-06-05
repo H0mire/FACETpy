@@ -336,9 +336,9 @@ class TestAcquisitionAlignment:
             assert meta["applied_to"] == "raw_fractional"
             assert meta["mode"] == mode
             # The raw data must have been modified (fractional shift applied).
-            assert not np.array_equal(
-                result.get_raw().get_data(), context.get_raw().get_data()
-            ), f"{mode} did not modify raw data"
+            assert not np.array_equal(result.get_raw().get_data(), context.get_raw().get_data()), (
+                f"{mode} did not modify raw data"
+            )
             # Recorded shift should be a fractional estimate near the true +2.
             recorded = meta["shifts"][1]
             assert abs(recorded - 2) <= 3

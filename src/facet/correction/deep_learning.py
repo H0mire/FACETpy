@@ -196,13 +196,18 @@ class DeepLearningModelSpec:
             raise ValueError("chunk_overlap_samples must be smaller than chunk_size_samples")
         if self.dual_output_rtol < 0 or self.dual_output_atol < 0:
             raise ValueError("dual_output_rtol and dual_output_atol must be >= 0")
-        if self.execution_granularity == DeepLearningExecutionGranularity.CHANNEL_GROUP and not self.supports_multichannel:
-            raise ValueError("channel_group execution requires supports_multichannel=True")
-        if self.execution_granularity == DeepLearningExecutionGranularity.MULTICHANNEL and not self.supports_multichannel:
-            raise ValueError("multichannel execution requires supports_multichannel=True")
         if (
             self.execution_granularity == DeepLearningExecutionGranularity.CHANNEL_GROUP
-            and (self.channel_group_size is None or self.channel_group_size < 2)
+            and not self.supports_multichannel
+        ):
+            raise ValueError("channel_group execution requires supports_multichannel=True")
+        if (
+            self.execution_granularity == DeepLearningExecutionGranularity.MULTICHANNEL
+            and not self.supports_multichannel
+        ):
+            raise ValueError("multichannel execution requires supports_multichannel=True")
+        if self.execution_granularity == DeepLearningExecutionGranularity.CHANNEL_GROUP and (
+            self.channel_group_size is None or self.channel_group_size < 2
         ):
             raise ValueError("channel_group execution requires channel_group_size >= 2")
 
@@ -246,8 +251,7 @@ class DeepLearningModelAdapter(ABC):
             raise ProcessorValidationError(f"Model '{self.spec.name}' requires an estimated noise reference")
         if self.spec.min_sfreq is not None and context.get_sfreq() < self.spec.min_sfreq:
             raise ProcessorValidationError(
-                f"Model '{self.spec.name}' requires sfreq >= {self.spec.min_sfreq:g} Hz, "
-                f"got {context.get_sfreq():g} Hz"
+                f"Model '{self.spec.name}' requires sfreq >= {self.spec.min_sfreq:g} Hz, got {context.get_sfreq():g} Hz"
             )
         if self.spec.requires_channel_positions and not self._has_channel_positions(context):
             raise ProcessorValidationError(
@@ -423,7 +427,9 @@ class TensorFlowInferenceAdapter(DeepLearningModelAdapter):
         checkpoint_path = self.spec.checkpoint_path
         if checkpoint_path is None:
             raise ProcessorValidationError(f"Model '{self.spec.name}' requires checkpoint_path")
-        resolved_format = self.spec.checkpoint_format or self._infer_checkpoint_format(Path(checkpoint_path).expanduser())
+        resolved_format = self.spec.checkpoint_format or self._infer_checkpoint_format(
+            Path(checkpoint_path).expanduser()
+        )
         if resolved_format is None:
             raise ProcessorValidationError(
                 f"Model '{self.spec.name}' checkpoint format could not be inferred from {checkpoint_path}. "
@@ -696,7 +702,9 @@ class PyTorchInferenceAdapter(DeepLearningModelAdapter):
         checkpoint_path = self.spec.checkpoint_path
         if checkpoint_path is None:
             raise ProcessorValidationError(f"Model '{self.spec.name}' requires checkpoint_path")
-        resolved_format = self.spec.checkpoint_format or self._infer_checkpoint_format(Path(checkpoint_path).expanduser())
+        resolved_format = self.spec.checkpoint_format or self._infer_checkpoint_format(
+            Path(checkpoint_path).expanduser()
+        )
         if resolved_format is None:
             raise ProcessorValidationError(
                 f"Model '{self.spec.name}' checkpoint format could not be inferred from {checkpoint_path}. "
@@ -732,7 +740,9 @@ class PyTorchInferenceAdapter(DeepLearningModelAdapter):
         if checkpoint_format == "torchscript":
             jit_module = getattr(torch, "jit", None)
             if jit_module is None or not hasattr(jit_module, "load"):
-                raise ProcessorValidationError("PyTorch runtime does not expose torch.jit.load for TorchScript checkpoints")
+                raise ProcessorValidationError(
+                    "PyTorch runtime does not expose torch.jit.load for TorchScript checkpoints"
+                )
             model = jit_module.load(str(checkpoint_path), map_location=device_name)
             checkpoint_load_mode = "torchscript"
         elif checkpoint_format in {"pt", "pth", "ckpt"}:
@@ -994,7 +1004,7 @@ class OnnxInferenceAdapter(DeepLearningModelAdapter):
 
         session_options_cls = getattr(ort, "SessionOptions", None)
         opts = session_options_cls() if session_options_cls is not None else None
-        session_cls = getattr(ort, "InferenceSession")
+        session_cls = ort.InferenceSession
 
         if opts is not None:
             self._session = session_cls(str(checkpoint_path), sess_options=opts, providers=providers)
@@ -1052,8 +1062,7 @@ class OnnxInferenceAdapter(DeepLearningModelAdapter):
             return self._restore_output_layout(outputs[output_names.index(self.output_key)])
         if len(outputs) != 1:
             raise ProcessorValidationError(
-                f"ONNX model '{self.spec.name}' returned {len(outputs)} outputs; "
-                "set output_key explicitly"
+                f"ONNX model '{self.spec.name}' returned {len(outputs)} outputs; set output_key explicitly"
             )
         return self._restore_output_layout(outputs[0])
 
@@ -1062,20 +1071,14 @@ class OnnxInferenceAdapter(DeepLearningModelAdapter):
         outputs: list[np.ndarray],
         output_names: list[str],
     ) -> tuple[np.ndarray, np.ndarray]:
-        missing = [
-            k for k in (self.artifact_output_key, self.clean_output_key) if k not in output_names
-        ]
+        missing = [k for k in (self.artifact_output_key, self.clean_output_key) if k not in output_names]
         if missing:
             raise ProcessorValidationError(
                 f"ONNX model '{self.spec.name}' is missing output(s) {missing} for output_type='both'. "
                 f"Available: {output_names}"
             )
-        artifact_data = self._restore_output_layout(
-            outputs[output_names.index(self.artifact_output_key)]
-        )
-        clean_data = self._restore_output_layout(
-            outputs[output_names.index(self.clean_output_key)]
-        )
+        artifact_data = self._restore_output_layout(outputs[output_names.index(self.artifact_output_key)])
+        clean_data = self._restore_output_layout(outputs[output_names.index(self.clean_output_key)])
         return artifact_data, clean_data
 
     # ------------------------------------------------------------------
@@ -1256,9 +1259,7 @@ class NumpyInferenceAdapter(DeepLearningModelAdapter):
         checkpoint_path = Path(self.spec.checkpoint_path).expanduser()
         suffix = checkpoint_path.suffix.lower()
 
-        if suffix == ".npy":
-            self._weights = np.load(str(checkpoint_path), allow_pickle=False)
-        elif suffix in {".npz"}:
+        if suffix == ".npy" or suffix in {".npz"}:
             self._weights = np.load(str(checkpoint_path), allow_pickle=False)
         else:
             # Fallback: try npy first, then npz
@@ -1282,15 +1283,12 @@ class NumpyInferenceAdapter(DeepLearningModelAdapter):
         try:
             result = self.predict_fn(data, weights)
         except Exception as exc:
-            raise ProcessorValidationError(
-                f"Model '{self.spec.name}' predict_fn raised an error: {exc}"
-            ) from exc
+            raise ProcessorValidationError(f"Model '{self.spec.name}' predict_fn raised an error: {exc}") from exc
 
         result = np.asarray(result, dtype=np.float64)
         if result.ndim != 2 or result.shape != data.shape:
             raise ProcessorValidationError(
-                f"Model '{self.spec.name}' predict_fn must return shape {data.shape}, "
-                f"got {tuple(result.shape)}"
+                f"Model '{self.spec.name}' predict_fn must return shape {data.shape}, got {tuple(result.shape)}"
             )
 
         metadata: dict[str, Any] = {
@@ -1305,7 +1303,7 @@ class NumpyInferenceAdapter(DeepLearningModelAdapter):
             return DeepLearningPrediction(clean_data=result, metadata=metadata)
 
         raise ProcessorValidationError(
-            f"NumpyInferenceAdapter does not support output_type='both'. "
+            "NumpyInferenceAdapter does not support output_type='both'. "
             "Return either artifact or clean signal from predict_fn and set output_type accordingly."
         )
 
@@ -1362,7 +1360,7 @@ class SpectrogramMixin:
         self,
         data: np.ndarray,
         sfreq: float,
-    ) -> "tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]":
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Compute per-channel STFT and split into magnitude and phase.
 
         Parameters
@@ -1386,9 +1384,7 @@ class SpectrogramMixin:
         win = getattr(self, "window", "hann")
 
         if noverlap >= nperseg:
-            raise ValueError(
-                f"SpectrogramMixin: noverlap ({noverlap}) must be less than nperseg ({nperseg})"
-            )
+            raise ValueError(f"SpectrogramMixin: noverlap ({noverlap}) must be less than nperseg ({nperseg})")
 
         magnitudes: list[np.ndarray] = []
         phases: list[np.ndarray] = []
@@ -1444,10 +1440,7 @@ class SpectrogramMixin:
         results: list[np.ndarray] = []
         for ch_Zxx in Zxx:
             _, x = _scipy_istft(ch_Zxx, fs=sfreq, window=win, nperseg=nperseg, noverlap=noverlap)
-            if len(x) >= n_samples:
-                x = x[:n_samples]
-            else:
-                x = np.pad(x, (0, n_samples - len(x)))
+            x = x[:n_samples] if len(x) >= n_samples else np.pad(x, (0, n_samples - len(x)))
             results.append(x)
         return np.stack(results)
 
@@ -1459,7 +1452,7 @@ class SpectrogramMixin:
         self,
         magnitude: np.ndarray,
         phase: np.ndarray,
-        context: "ProcessingContext",
+        context: ProcessingContext,
     ) -> np.ndarray:
         """Run the model on a magnitude spectrogram.
 
@@ -1488,7 +1481,7 @@ class SpectrogramMixin:
     # predict() override
     # ------------------------------------------------------------------
 
-    def predict(self, context: "ProcessingContext") -> "DeepLearningPrediction":
+    def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
         """Predict with automatic STFT → model → iSTFT wrapping.
 
         Processing flow:
@@ -1791,13 +1784,18 @@ def spec_to_dict(spec: DeepLearningModelSpec) -> dict[str, Any]:
     # StrEnum values serialise as str automatically via asdict, but convert
     # explicitly for clarity and forward-compatibility.
     str_fields = {
-        "architecture", "runtime", "domain", "output_type",
-        "latency_profile", "execution_granularity",
-        "channel_grouping_strategy", "dual_output_policy",
+        "architecture",
+        "runtime",
+        "domain",
+        "output_type",
+        "latency_profile",
+        "execution_granularity",
+        "channel_grouping_strategy",
+        "dual_output_policy",
     }
-    for field in str_fields:
-        if raw.get(field) is not None:
-            raw[field] = str(raw[field])
+    for field_name in str_fields:
+        if raw.get(field_name) is not None:
+            raw[field_name] = str(raw[field_name])
     # tags is a tuple → list for JSON compatibility
     if isinstance(raw.get("tags"), tuple):
         raw["tags"] = list(raw["tags"])
@@ -1845,9 +1843,9 @@ def spec_from_dict(data: dict[str, Any]) -> DeepLearningModelSpec:
         "channel_grouping_strategy": DeepLearningChannelGroupingStrategy,
         "dual_output_policy": DeepLearningDualOutputPolicy,
     }
-    for field, enum_cls in enum_map.items():
-        if field in filtered and filtered[field] is not None:
-            filtered[field] = enum_cls(filtered[field])
+    for field_name, enum_cls in enum_map.items():
+        if field_name in filtered and filtered[field_name] is not None:
+            filtered[field_name] = enum_cls(filtered[field_name])
 
     # tags must be a tuple
     if "tags" in filtered and isinstance(filtered["tags"], list):
@@ -1952,9 +1950,8 @@ class DeepLearningCorrection(Processor):
             raise ProcessorValidationError(f"Model '{spec.name}' declared output_type='artifact' but returned none")
         if spec.output_type == DeepLearningOutputType.CLEAN and prediction.clean_data is None:
             raise ProcessorValidationError(f"Model '{spec.name}' declared output_type='clean' but returned none")
-        if (
-            spec.output_type == DeepLearningOutputType.BOTH
-            and (prediction.clean_data is None or prediction.artifact_data is None)
+        if spec.output_type == DeepLearningOutputType.BOTH and (
+            prediction.clean_data is None or prediction.artifact_data is None
         ):
             raise ProcessorValidationError(
                 f"Model '{spec.name}' declared output_type='both' and must return both clean_data and artifact_data"
@@ -2188,9 +2185,7 @@ class DeepLearningCorrection(Processor):
         if arr.ndim != 2:
             raise ProcessorValidationError(f"{label} must be a 2D array with shape (n_channels, n_samples)")
         if arr.shape != (n_channels, n_samples):
-            raise ProcessorValidationError(
-                f"{label} must have shape {(n_channels, n_samples)}, got {tuple(arr.shape)}"
-            )
+            raise ProcessorValidationError(f"{label} must have shape {(n_channels, n_samples)}, got {tuple(arr.shape)}")
         return arr
 
     def _resolve_artifact_prediction(
@@ -2269,9 +2264,7 @@ class DeepLearningCorrection(Processor):
             return self._process_chunked(context)
         return self._process_single_pass(context)
 
-    def _process_trigger_aligned(
-        self, context: ProcessingContext
-    ) -> tuple[mne.io.BaseRaw, np.ndarray, dict[str, Any]]:
+    def _process_trigger_aligned(self, context: ProcessingContext) -> tuple[mne.io.BaseRaw, np.ndarray, dict[str, Any]]:
         """Run inference with chunks aligned to TR (trigger) boundaries."""
         raw = context.get_raw().copy()
         total_samples = raw._data.shape[1]
@@ -2527,7 +2520,7 @@ class DeepLearningCorrection(Processor):
         }
 
     @classmethod
-    def from_config_dict(cls, data: dict[str, Any]) -> "DeepLearningCorrection":
+    def from_config_dict(cls, data: dict[str, Any]) -> DeepLearningCorrection:
         """Reconstruct a :class:`DeepLearningCorrection` from a config dict.
 
         This is the inverse of :meth:`to_config_dict`.  The adapter is
@@ -2568,11 +2561,7 @@ class DeepLearningCorrection(Processor):
         # Build spec_overrides: all spec fields except checkpoint_path
         # (which is passed as a positional kwarg to stay compatible with all adapters).
         spec_fields = {f.name for f in dataclasses.fields(DeepLearningModelSpec)}
-        spec_overrides = {
-            k: getattr(spec, k)
-            for k in spec_fields
-            if k != "checkpoint_path"
-        }
+        spec_overrides = {k: getattr(spec, k) for k in spec_fields if k != "checkpoint_path"}
 
         adapter = adapter_cls(
             checkpoint_path=spec.checkpoint_path,
@@ -2591,7 +2580,8 @@ class DeepLearningCorrection(Processor):
 # Convenience I/O helpers
 # ---------------------------------------------------------------------------
 
-def save_deep_learning_config(processor: "DeepLearningCorrection", path: "str | Path") -> None:
+
+def save_deep_learning_config(processor: DeepLearningCorrection, path: str | Path) -> None:
     """Save a :class:`DeepLearningCorrection` configuration to a JSON file.
 
     Parameters
@@ -2615,7 +2605,7 @@ def save_deep_learning_config(processor: "DeepLearningCorrection", path: "str | 
     logger.info("Saved DeepLearningCorrection config to {}", output_path)
 
 
-def load_deep_learning_config(path: "str | Path") -> "DeepLearningCorrection":
+def load_deep_learning_config(path: str | Path) -> DeepLearningCorrection:
     """Load a :class:`DeepLearningCorrection` from a JSON configuration file.
 
     Parameters

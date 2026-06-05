@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from facet.core import ProcessingContext, ProcessingMetadata
+from facet.core import ProcessingContext, ProcessingMetadata, ProcessorValidationError
 from facet.models.nested_gan import NestedGANCorrection
 
 
@@ -67,5 +67,5 @@ def test_nested_gan_correction_requires_enough_triggers(tmp_path):
         context_epochs=7,
         epoch_samples=8,
     )
-    with pytest.raises(Exception):
+    with pytest.raises(ProcessorValidationError):
         correction.validate(context)

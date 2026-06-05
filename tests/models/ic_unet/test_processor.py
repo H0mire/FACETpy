@@ -9,7 +9,6 @@ from facet.models.ic_unet.training import (
     IcUnet1D,
     IcUnetWithIca,
     NiazyContextIcDataset,
-    build_dataset,
     build_loss,
     build_model,
 )
@@ -59,8 +58,7 @@ def test_icunet_with_ica_one_batch_backward_pass():
     loss.backward()
 
     grads_observed = any(
-        param.grad is not None and torch.any(param.grad.abs() > 0)
-        for param in model.unet.parameters()
+        param.grad is not None and torch.any(param.grad.abs() > 0) for param in model.unet.parameters()
     )
     assert grads_observed, "U-Net parameters did not receive gradients"
 
@@ -72,9 +70,7 @@ class _StubBaseDataset:
         return 3
 
     def __getitem__(self, idx: int):
-        noisy = (
-            np.arange(7 * 4 * 16, dtype=np.float32).reshape(7, 4, 16) + idx
-        )
+        noisy = np.arange(7 * 4 * 16, dtype=np.float32).reshape(7, 4, 16) + idx
         target = noisy[3] * 0.5
         return noisy, target
 
@@ -130,11 +126,14 @@ def test_ic_unet_correction_applies_center_epochs(tmp_path):
 
     class _ConstantArtifact(torch.nn.Module):
         def forward(self, x):
-            return torch.ones(
-                (x.shape[0], x.shape[1], x.shape[-1] // 7),
-                dtype=x.dtype,
-                device=x.device,
-            ) * 0.25
+            return (
+                torch.ones(
+                    (x.shape[0], x.shape[1], x.shape[-1] // 7),
+                    dtype=x.dtype,
+                    device=x.device,
+                )
+                * 0.25
+            )
 
     checkpoint = tmp_path / "constant_artifact.ts"
     scripted = torch.jit.trace(_ConstantArtifact(), torch.zeros(1, 2, 7 * 8))

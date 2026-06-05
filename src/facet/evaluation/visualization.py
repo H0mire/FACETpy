@@ -125,9 +125,7 @@ class RawPlotter(Processor):
         self.title = title
         source_lower = source.lower()
         if source_lower not in _VALID_SOURCES:
-            raise ValueError(
-                f"Unsupported source '{source}'. Valid options: {list(_VALID_SOURCES)}"
-            )
+            raise ValueError(f"Unsupported source '{source}'. Valid options: {list(_VALID_SOURCES)}")
         self.source = source_lower
         super().__init__()
 
@@ -157,9 +155,7 @@ class RawPlotter(Processor):
         # --- RETURN ---
         return context
 
-    def _resolve_source_data(
-        self, context: ProcessingContext, raw
-    ) -> np.ndarray | None:
+    def _resolve_source_data(self, context: ProcessingContext, raw) -> np.ndarray | None:
         """Return the (n_channels, n_times) array to plot, or ``None`` to skip.
 
         Centralises the ``source`` parameter so MNE and Matplotlib modes share
@@ -244,9 +240,7 @@ class RawPlotter(Processor):
         elif (self.auto_close or self.save_path) and is_matplotlib_figure:
             plt.close(fig)
 
-    def _plot_with_matplotlib(
-        self, raw, data: np.ndarray, context: ProcessingContext
-    ) -> None:
+    def _plot_with_matplotlib(self, raw, data: np.ndarray, context: ProcessingContext) -> None:
         """Use Matplotlib to plot the resolved source array, optionally with overlay."""
         channel_idx, channel_name = self._resolve_channel(raw)
         sfreq = raw.info["sfreq"]
@@ -264,11 +258,7 @@ class RawPlotter(Processor):
         # Overlay semantics:
         # - source="raw":        overlay = original recording  (before/after view)
         # - source="prediction": overlay = original NOISY signal (residual diagnostic)
-        original = (
-            self._extract_original_overlay(context, channel_idx, times, sfreq)
-            if self.overlay_original
-            else None
-        )
+        original = self._extract_original_overlay(context, channel_idx, times, sfreq) if self.overlay_original else None
 
         fig_kwargs = {"figsize": (12, 4)}
         fig_kwargs.update(self.figure_kwargs)
@@ -276,14 +266,14 @@ class RawPlotter(Processor):
 
         if self.source == SOURCE_PREDICTION:
             current_label = "Predicted artifact"
-            current_color = "#dc2626"            # red — model output
+            current_color = "#dc2626"  # red — model output
             current_alpha = 0.9
             original_label = "Original noisy"
-            original_color = "#374151"           # dark gray — reference
+            original_color = "#374151"  # dark gray — reference
             original_alpha = 0.55
         else:
             current_label = "Corrected"
-            current_color = None                 # let matplotlib choose
+            current_color = None  # let matplotlib choose
             current_alpha = 0.8
             original_label = "Original"
             original_color = None

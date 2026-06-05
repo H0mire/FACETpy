@@ -50,7 +50,7 @@ def test_model_forward_then_backward_updates_gradients():
     )
     x = torch.randn(2, 7, 1, 512, requires_grad=False)
     y = model(x)
-    loss = (y ** 2).mean()
+    loss = (y**2).mean()
     loss.backward()
     grad_norms = [p.grad.detach().norm().item() for p in model.parameters() if p.grad is not None]
     assert grad_norms, "no parameter received a gradient"

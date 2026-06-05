@@ -130,7 +130,9 @@ def evaluate(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
 
     # Restore the noisy center's original mean before computing the artifact
     # so we don't lose the DC offset between noisy and predicted clean.
-    noisy_center_demeaned = noisy_center - noisy_center.mean(axis=-1, keepdims=True) if args.demean_input else noisy_center
+    noisy_center_demeaned = (
+        noisy_center - noisy_center.mean(axis=-1, keepdims=True) if args.demean_input else noisy_center
+    )
     pred_artifact = noisy_center_demeaned - pred_clean
     corrected = noisy_center - pred_artifact
 

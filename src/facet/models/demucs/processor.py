@@ -182,9 +182,7 @@ class DemucsAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "Demucs requires PyTorch. Install the deeplearning extra first."
-            ) from exc
+            raise ProcessorValidationError("Demucs requires PyTorch. Install the deeplearning extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -242,8 +240,7 @@ class DemucsAdapter(DeepLearningModelAdapter):
             prediction = prediction[0]
         if prediction.ndim != 1:
             raise ProcessorValidationError(
-                "Demucs TorchScript model must return shape (batch, 1, samples), "
-                f"got {tuple(output.shape)}"
+                f"Demucs TorchScript model must return shape (batch, 1, samples), got {tuple(output.shape)}"
             )
         prediction = prediction.astype(np.float32, copy=False)
         center_slice = prediction[radius * target_samples : (radius + 1) * target_samples]

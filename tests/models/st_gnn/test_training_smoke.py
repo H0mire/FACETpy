@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib
 
-import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
@@ -54,10 +53,7 @@ def test_one_batch_backward_pass_updates_gradients() -> None:
     loss = loss_fn(output, target)
     loss.backward()
 
-    has_grad = any(
-        param.grad is not None and torch.any(param.grad != 0).item()
-        for param in model.parameters()
-    )
+    has_grad = any(param.grad is not None and torch.any(param.grad != 0).item() for param in model.parameters())
     assert has_grad, "no parameter received a non-zero gradient"
     optimiser.step()
 

@@ -677,8 +677,7 @@ class SubsampleAligner(Processor):
         hi = (cutoff * 1.1) / nyq
         if not 0 < lo < hi < 1:
             logger.warning(
-                "SSA high-pass cutoff {} Hz not realisable at {} Hz (band {:.3f}-{:.3f}); "
-                "disabling SSA high-pass",
+                "SSA high-pass cutoff {} Hz not realisable at {} Hz (band {:.3f}-{:.3f}); disabling SSA high-pass",
                 cutoff,
                 sfreq,
                 lo,
@@ -721,8 +720,7 @@ class SubsampleAligner(Processor):
         padlen = 3 * (len(weights) - 1)
         if len(signal) <= padlen:
             logger.debug(
-                "Reference signal too short ({} samples) for SSA high-pass padlen ({}); "
-                "skipping SSA high-pass",
+                "Reference signal too short ({} samples) for SSA high-pass padlen ({}); skipping SSA high-pass",
                 len(signal),
                 padlen,
             )
@@ -942,9 +940,7 @@ class SubsampleAligner(Processor):
             # samples into the artifact region.
             extended = np.empty((n_channels, length + 2 * pad), dtype=data.dtype)
             for ch in range(n_channels):
-                extended[ch] = _extract_epoch_with_padding(
-                    data[ch], window_start - pad, length + 2 * pad, n_samples
-                )
+                extended[ch] = _extract_epoch_with_padding(data[ch], window_start - pad, length + 2 * pad, n_samples)
             shifted = self._fractional_shift(extended, -float(shift))
             data[:, window_start:window_end] = shifted[:, pad : pad + length]
 

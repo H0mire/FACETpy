@@ -9,17 +9,14 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from facet.models.dhct_gan_v2 import DHCTGanV2Adapter, DHCTGanV2Correction
+from facet.models.dhct_gan_v2 import DHCTGanV2Adapter
 from facet.models.dhct_gan_v2.training import (
-    DHCTGanV2ContextDataset,
     DHCTGanV2Generator,
-    DHCTGanV2Loss,
     PatchGANDiscriminator,
     build_dataset,
     build_loss,
     build_model,
 )
-from facet.training.dataset import NPZContextArtifactDataset
 
 
 @pytest.fixture(scope="module")
@@ -53,9 +50,7 @@ def test_forward_shape(generator: DHCTGanV2Generator, epoch_samples: int, contex
     assert y.shape == (2, 1, epoch_samples)
 
 
-def test_forward_dict_outputs(
-    generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int
-) -> None:
+def test_forward_dict_outputs(generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int) -> None:
     x = torch.randn(2, context_epochs, epoch_samples)
     out = generator._compute_outputs(x)
     for key in ("artifact", "clean", "fused_clean", "gate"):
@@ -63,9 +58,7 @@ def test_forward_dict_outputs(
     assert out["noisy_center"].shape == (2, 1, epoch_samples)
 
 
-def test_backward_updates_gradients(
-    generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int
-) -> None:
+def test_backward_updates_gradients(generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int) -> None:
     x = torch.randn(4, context_epochs, epoch_samples)
     artifact = torch.randn(4, 1, epoch_samples) * 0.1
     clean = torch.randn(4, 1, epoch_samples) * 0.1
@@ -81,9 +74,7 @@ def test_backward_updates_gradients(
     assert grad_count > 0, "no generator parameters received gradient"
 
 
-def test_loss_runs_under_no_grad(
-    generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int
-) -> None:
+def test_loss_runs_under_no_grad(generator: DHCTGanV2Generator, epoch_samples: int, context_epochs: int) -> None:
     loss_fn = build_loss(beta_adv=0.1)
     x = torch.randn(2, context_epochs, epoch_samples)
     target = torch.cat(
@@ -155,6 +146,7 @@ def test_adapter_predict_with_synthetic_raw(tmp_path: Path, context_epochs: int)
     scripted.save(str(checkpoint))
 
     import mne
+
     from facet.core import ProcessingContext
 
     sfreq = 512.0
@@ -193,6 +185,7 @@ def test_adapter_rejects_insufficient_triggers(tmp_path: Path, context_epochs: i
     scripted.save(str(checkpoint))
 
     import mne
+
     from facet.core import ProcessingContext, ProcessorValidationError
 
     info = mne.create_info(["EEG01", "EEG02"], 512.0, ch_types="eeg")

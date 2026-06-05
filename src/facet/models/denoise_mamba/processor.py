@@ -80,9 +80,7 @@ class DenoiseMambaAdapter(DeepLearningModelAdapter):
         if self.chunk_size_samples <= 0:
             raise ProcessorValidationError("chunk_size_samples must be positive")
         if self.chunk_overlap_samples < 0 or self.chunk_overlap_samples >= self.chunk_size_samples:
-            raise ProcessorValidationError(
-                "chunk_overlap_samples must be >= 0 and smaller than chunk_size_samples"
-            )
+            raise ProcessorValidationError("chunk_overlap_samples must be >= 0 and smaller than chunk_size_samples")
         raw = context.get_raw()
         if raw.n_times < self.chunk_size_samples:
             raise ProcessorValidationError(
@@ -133,9 +131,7 @@ class DenoiseMambaAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "DenoiseMamba requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("DenoiseMamba requires PyTorch. Install the pytorch extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -153,8 +149,7 @@ class DenoiseMambaAdapter(DeepLearningModelAdapter):
             output = output[0]
         if output.shape != segment.shape:
             raise ProcessorValidationError(
-                f"DenoiseMamba TorchScript model must return shape {segment.shape}, "
-                f"got {tuple(output.shape)}"
+                f"DenoiseMamba TorchScript model must return shape {segment.shape}, got {tuple(output.shape)}"
             )
         return output
 

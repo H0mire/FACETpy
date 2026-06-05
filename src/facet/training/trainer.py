@@ -81,7 +81,7 @@ class TrainingState:
     # Progress
     epoch: int = 0
     max_epochs: int = 0
-    step: int = 0                      # global batch step counter
+    step: int = 0  # global batch step counter
     n_train_batches: int = 0
     n_val_batches: int = 0
 
@@ -268,9 +268,7 @@ class Trainer:
     # Dashboard display
     # ------------------------------------------------------------------
 
-    def _fit_with_live(
-        self, state: TrainingState, callbacks: CallbackList, run_dir: Path
-    ) -> None:
+    def _fit_with_live(self, state: TrainingState, callbacks: CallbackList, run_dir: Path) -> None:
         console = Console()
         progress = self._make_progress()
         epoch_task = progress.add_task("Epoch", total=self.config.max_epochs)
@@ -311,7 +309,7 @@ class Trainer:
             )
             table.add_column("Metric", style="bold", ratio=3)
             table.add_column("Value", ratio=2, justify="right")
-            table.add_column("", ratio=1, justify="center")   # trend arrow
+            table.add_column("", ratio=1, justify="center")  # trend arrow
             table.add_column("Last 10 epochs", ratio=4)
             table.add_column("", ratio=2, style="dim italic")  # annotation
 
@@ -353,16 +351,12 @@ class Trainer:
                 callbacks.on_epoch_begin(state)
 
                 # ---- train ----
-                train_metrics = self._run_epoch(
-                    state, "train", callbacks, progress, batch_task
-                )
+                train_metrics = self._run_epoch(state, "train", callbacks, progress, batch_task)
                 state.train_metrics = train_metrics
 
                 # ---- validate ----
                 if self.val_dataset is not None and epoch % self.config.logging.val_every_n_epochs == 0:
-                    val_metrics = self._run_epoch(
-                        state, "val", callbacks, progress, batch_task
-                    )
+                    val_metrics = self._run_epoch(state, "val", callbacks, progress, batch_task)
                     state.val_metrics = val_metrics
                 else:
                     state.val_metrics = {}
@@ -411,10 +405,7 @@ class Trainer:
             self._step_scheduler()
 
             # Log to console
-            metric_str = "  ".join(
-                f"{k}={v:.4f}"
-                for k, v in {**train_metrics, **state.val_metrics}.items()
-            )
+            metric_str = "  ".join(f"{k}={v:.4f}" for k, v in {**train_metrics, **state.val_metrics}.items())
             logger.info("Epoch {:03d}/{:03d}  {}", epoch, self.config.max_epochs, metric_str)
 
             if state.stop_training:
@@ -452,10 +443,8 @@ class Trainer:
             end = min(start + batch_size, n)
             batch_indices = indices[start:end]
 
-            noisy_list, target_list = zip(
-                *[dataset[int(i)] for i in batch_indices], strict=False
-            )
-            noisy = np.stack(noisy_list, axis=0)    # (B, C, T)
+            noisy_list, target_list = zip(*[dataset[int(i)] for i in batch_indices], strict=False)
+            noisy = np.stack(noisy_list, axis=0)  # (B, C, T)
             target = np.stack(target_list, axis=0)  # (B, C, T)
 
             callbacks.on_batch_begin(state)
@@ -523,19 +512,13 @@ class Trainer:
         # Auto-add MetricLoggerCallback if configured
         has_logger = any(isinstance(cb, MetricLoggerCallback) for cb in callbacks)
         if not has_logger and self.config.logging.log_file:
-            callbacks.append(
-                MetricLoggerCallback(filepath=run_dir / self.config.logging.log_file)
-            )
+            callbacks.append(MetricLoggerCallback(filepath=run_dir / self.config.logging.log_file))
 
         has_loss_plot = any(isinstance(cb, LossPlotCallback) for cb in callbacks)
         if not has_loss_plot and self.config.logging.loss_plot_file:
-            callbacks.append(
-                LossPlotCallback(filepath=run_dir / self.config.logging.loss_plot_file)
-            )
+            callbacks.append(LossPlotCallback(filepath=run_dir / self.config.logging.loss_plot_file))
 
-        has_early_stopping = any(
-            isinstance(cb, EarlyStoppingCallback) for cb in callbacks
-        )
+        has_early_stopping = any(isinstance(cb, EarlyStoppingCallback) for cb in callbacks)
         if not has_early_stopping and self.config.early_stopping is not None:
             callbacks.append(
                 EarlyStoppingCallback(
@@ -549,14 +532,8 @@ class Trainer:
         # Auto-add SavePredictionSamplesCallback when enabled and a val dataset
         # is available.
         pred_cfg = self.config.prediction_samples
-        has_pred_samples = any(
-            isinstance(cb, SavePredictionSamplesCallback) for cb in callbacks
-        )
-        if (
-            not has_pred_samples
-            and pred_cfg.enabled
-            and self.val_dataset is not None
-        ):
+        has_pred_samples = any(isinstance(cb, SavePredictionSamplesCallback) for cb in callbacks)
+        if not has_pred_samples and pred_cfg.enabled and self.val_dataset is not None:
             callbacks.append(
                 SavePredictionSamplesCallback(
                     wrapper=self.wrapper,

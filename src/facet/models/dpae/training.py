@@ -18,7 +18,6 @@ from torch import nn
 
 from facet.training.dataset import EEGArtifactDataset, NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # Architecture
 # ---------------------------------------------------------------------------

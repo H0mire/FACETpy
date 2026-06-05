@@ -45,9 +45,7 @@ def _load_bundle(path: Path) -> dict[str, Any]:
             "artifact_center": bundle["artifact_center"].astype(np.float32),
             "clean_center": bundle["clean_center"].astype(np.float32),
             "sfreq": float(bundle["sfreq"][0]) if "sfreq" in bundle.files else float("nan"),
-            "ch_names": (
-                [str(name) for name in bundle["ch_names"]] if "ch_names" in bundle.files else []
-            ),
+            "ch_names": ([str(name) for name in bundle["ch_names"]] if "ch_names" in bundle.files else []),
         }
 
 
@@ -128,12 +126,8 @@ def _compute_metrics(
             "n_examples": int(noisy_center.shape[0]),
             "n_channels": int(noisy_center.shape[1]),
             "epoch_samples": int(noisy_center.shape[2]),
-            "clean_reconstruction_l1_before": float(
-                np.mean(np.abs(noisy_center - clean_center))
-            ),
-            "clean_reconstruction_l1_after": float(
-                np.mean(np.abs(corrected - clean_center))
-            ),
+            "clean_reconstruction_l1_before": float(np.mean(np.abs(noisy_center - clean_center))),
+            "clean_reconstruction_l1_after": float(np.mean(np.abs(corrected - clean_center))),
             "clean_reconstruction_l2_before": float(_flat_rms(noisy_center - clean_center)),
             "clean_reconstruction_l2_after": float(_flat_rms(corrected - clean_center)),
             "clean_snr_db_before": _snr_db(clean_center, noisy_center - clean_center),
@@ -141,23 +135,17 @@ def _compute_metrics(
             "artifact_prediction_l1": float(np.mean(np.abs(artifact_residual))),
             "artifact_prediction_rms": float(_flat_rms(artifact_residual)),
             "artifact_correlation": _pearson_corr(predicted_artifact, artifact_center),
-            "residual_rms_ratio": (
-                float(_flat_rms(artifact_residual) / max(_flat_rms(artifact_center), 1e-12))
-            ),
+            "residual_rms_ratio": (float(_flat_rms(artifact_residual) / max(_flat_rms(artifact_center), 1e-12))),
         },
         "real_proxy": {
             "trigger_locked_rms_before": float(_flat_rms(noisy_center)),
             "trigger_locked_rms_after": float(_flat_rms(corrected)),
             "predicted_artifact_rms": float(_flat_rms(predicted_artifact)),
-            "rms_reduction_pct": (
-                100.0
-                * (1.0 - _flat_rms(corrected) / max(_flat_rms(noisy_center), 1e-12))
-            ),
+            "rms_reduction_pct": (100.0 * (1.0 - _flat_rms(corrected) / max(_flat_rms(noisy_center), 1e-12))),
         },
     }
     metrics["synthetic"]["clean_snr_improvement_db"] = (
-        metrics["synthetic"]["clean_snr_db_after"]
-        - metrics["synthetic"]["clean_snr_db_before"]
+        metrics["synthetic"]["clean_snr_db_after"] - metrics["synthetic"]["clean_snr_db_before"]
     )
     return metrics
 
@@ -220,12 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--demean-input", action="store_true", default=True)
     parser.add_argument("--no-demean-input", dest="demean_input", action="store_false")
-    parser.add_argument(
-        "--remove-prediction-mean", action="store_true", default=True
-    )
-    parser.add_argument(
-        "--no-remove-prediction-mean", dest="remove_prediction_mean", action="store_false"
-    )
+    parser.add_argument("--remove-prediction-mean", action="store_true", default=True)
+    parser.add_argument("--no-remove-prediction-mean", dest="remove_prediction_mean", action="store_false")
     parser.add_argument(
         "--run-id",
         default=None,
@@ -306,10 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     run = writer.write(
         metrics=metrics,
         config=config,
-        artifacts={
-            plot_path.name: str(plot_path.relative_to(writer.run.run_dir))
-            for plot_path in plot_paths
-        },
+        artifacts={plot_path.name: str(plot_path.relative_to(writer.run.run_dir)) for plot_path in plot_paths},
         interpretation=(
             f"Clean-SNR improvement: "
             f"{metrics['synthetic']['clean_snr_improvement_db']:.2f} dB. "

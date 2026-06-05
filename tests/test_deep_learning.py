@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -551,7 +550,9 @@ class TestDeepLearningCorrection:
             )
 
             def predict(self, context):
-                return DeepLearningPrediction(artifact_data=np.zeros((context.get_n_channels(), context.get_raw().n_times)))
+                return DeepLearningPrediction(
+                    artifact_data=np.zeros((context.get_n_channels(), context.get_raw().n_times))
+                )
 
         processor = DeepLearningCorrection(MissingCheckpointPathModel())
         with pytest.raises(ProcessorValidationError, match="checkpoint does not exist"):
@@ -570,7 +571,9 @@ class TestDeepLearningCorrection:
             )
 
             def predict(self, context):
-                return DeepLearningPrediction(artifact_data=np.zeros((context.get_n_channels(), context.get_raw().n_times)))
+                return DeepLearningPrediction(
+                    artifact_data=np.zeros((context.get_n_channels(), context.get_raw().n_times))
+                )
 
         processor = DeepLearningCorrection(IncompatibleCheckpointFormatModel())
         with pytest.raises(ProcessorValidationError, match="incompatible with runtime"):
@@ -1145,7 +1148,9 @@ def _make_onnx_monkeypatch(monkeypatch, session_factory, *, cuda_available: bool
     original_find_spec = dl_module.importlib.util.find_spec
     original_import_module = dl_module.importlib.import_module
 
-    available_providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda_available else ["CPUExecutionProvider"]
+    available_providers = (
+        ["CUDAExecutionProvider", "CPUExecutionProvider"] if cuda_available else ["CPUExecutionProvider"]
+    )
 
     class _FakeOrtModule:
         SessionOptions = None  # no-op
@@ -1507,9 +1512,7 @@ class TestOnnxInferenceAdapter:
     # Session caching (lazy load)
     # ------------------------------------------------------------------
 
-    def test_onnx_session_created_once_across_multiple_predict_calls(
-        self, sample_context, monkeypatch, tmp_path
-    ):
+    def test_onnx_session_created_once_across_multiple_predict_calls(self, sample_context, monkeypatch, tmp_path):
         checkpoint = tmp_path / "model.onnx"
         checkpoint.write_bytes(b"placeholder")
 
@@ -1538,9 +1541,7 @@ class TestOnnxInferenceAdapter:
     # Metadata in pipeline result
     # ------------------------------------------------------------------
 
-    def test_onnx_prediction_metadata_contains_backend_and_providers(
-        self, sample_context, monkeypatch, tmp_path
-    ):
+    def test_onnx_prediction_metadata_contains_backend_and_providers(self, sample_context, monkeypatch, tmp_path):
         checkpoint = tmp_path / "model.onnx"
         checkpoint.write_bytes(b"placeholder")
 
@@ -1635,6 +1636,7 @@ class TestOnnxInferenceAdapter:
 # ---------------------------------------------------------------------------
 # NumpyInferenceAdapter tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestNumpyInferenceAdapter:
@@ -1768,6 +1770,7 @@ class TestNumpyInferenceAdapter:
         )
 
         import unittest.mock as mock
+
         with mock.patch("numpy.load", side_effect=counting_load):
             adapter._weights = None  # reset cache
             adapter.predict(sample_context)
@@ -1850,6 +1853,7 @@ class TestNumpyInferenceAdapter:
 # Blueprint tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestResearchBlueprints:
     """Tests for research blueprint completeness."""
@@ -1865,6 +1869,7 @@ class TestResearchBlueprints:
     def test_eegdfus_blueprint_is_offline(self):
         spec = list_deep_learning_blueprints()["eegdfus"]
         from facet.correction.deep_learning import DeepLearningLatencyProfile
+
         assert spec.latency_profile == DeepLearningLatencyProfile.OFFLINE
 
     def test_eegm2_blueprint_present(self):
@@ -1882,10 +1887,20 @@ class TestResearchBlueprints:
 
     def test_all_expected_blueprints_present(self):
         expected = {
-            "dar", "dpae", "ic_u_net", "dhct_gan", "nested_gan",
-            "d4pm", "denoise_mamba", "conv_tasnet", "demucs",
-            "sepformer", "vit_spectrogram", "st_gnn",
-            "eegdfus", "eegm2",
+            "dar",
+            "dpae",
+            "ic_u_net",
+            "dhct_gan",
+            "nested_gan",
+            "d4pm",
+            "denoise_mamba",
+            "conv_tasnet",
+            "demucs",
+            "sepformer",
+            "vit_spectrogram",
+            "st_gnn",
+            "eegdfus",
+            "eegm2",
         }
         blueprints = list_deep_learning_blueprints()
         assert expected == set(blueprints.keys())
@@ -1899,6 +1914,7 @@ class TestResearchBlueprints:
 # ---------------------------------------------------------------------------
 # Spec serialisation tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestSpecSerialization:
@@ -1936,6 +1952,7 @@ class TestSpecSerialization:
 
     def test_spec_to_dict_is_json_serialisable(self):
         import json
+
         spec = self._base_spec(
             checkpoint_path="/tmp/model.npy",
             tags=("test",),
@@ -2004,6 +2021,7 @@ class TestSpecSerialization:
 # Trigger-aligned Chunking tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestTriggerAlignedChunking:
     """Tests for DeepLearningCorrection with trigger_aligned_chunking=True."""
@@ -2014,18 +2032,21 @@ class TestTriggerAlignedChunking:
 
     def test_trigger_chunk_ranges_single_trigger_per_chunk(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         triggers = np.array([100, 200, 300, 400])
         ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=1)
         assert ranges == [(100, 200), (200, 300), (300, 400), (400, 500)]
 
     def test_trigger_chunk_ranges_two_triggers_per_chunk(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         triggers = np.array([100, 200, 300, 400])
         ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=2)
         assert ranges == [(100, 300), (300, 500)]
 
     def test_trigger_chunk_ranges_three_triggers_per_chunk_uneven(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         # 4 triggers, 3 per chunk → one full group + one partial
         triggers = np.array([50, 150, 250, 350])
         ranges = DLC._trigger_chunk_ranges(triggers, 450, triggers_per_chunk=3)
@@ -2033,17 +2054,20 @@ class TestTriggerAlignedChunking:
 
     def test_trigger_chunk_ranges_unsorted_triggers_are_sorted(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         triggers = np.array([400, 100, 300, 200])
         ranges = DLC._trigger_chunk_ranges(triggers, 500, triggers_per_chunk=1)
         assert ranges == [(100, 200), (200, 300), (300, 400), (400, 500)]
 
     def test_trigger_chunk_ranges_empty_triggers_returns_full_range(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         ranges = DLC._trigger_chunk_ranges(np.array([]), 500, triggers_per_chunk=1)
         assert ranges == [(0, 500)]
 
     def test_trigger_chunk_ranges_pretrigger_data_excluded(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         # First trigger at sample 50 → samples [0,50) are excluded
         triggers = np.array([50, 150])
         ranges = DLC._trigger_chunk_ranges(triggers, 200, triggers_per_chunk=1)
@@ -2051,6 +2075,7 @@ class TestTriggerAlignedChunking:
 
     def test_trigger_chunk_ranges_last_chunk_extends_to_total(self):
         from facet.correction.deep_learning import DeepLearningCorrection as DLC
+
         triggers = np.array([0, 100, 200])
         total = 350
         ranges = DLC._trigger_chunk_ranges(triggers, total, triggers_per_chunk=1)
@@ -2062,6 +2087,7 @@ class TestTriggerAlignedChunking:
 
     def test_trigger_aligned_chunking_raises_without_triggers(self, sample_context, tmp_path):
         from facet.core import ProcessorValidationError
+
         ckpt = tmp_path / "w.npy"
         np.save(str(ckpt), np.ones(1))
         processor = DeepLearningCorrection(
@@ -2076,8 +2102,6 @@ class TestTriggerAlignedChunking:
             trigger_aligned_chunking=True,
         )
         # sample_context has triggers, so strip them
-        import dataclasses
-        from facet.core.context import ProcessingMetadata
         no_trigger_ctx = sample_context.with_raw(sample_context.get_raw().copy())
         no_trigger_ctx.metadata.triggers = None
 
@@ -2100,9 +2124,7 @@ class TestTriggerAlignedChunking:
     # End-to-end: trigger-aligned correction applies to correct windows
     # ------------------------------------------------------------------
 
-    def test_trigger_aligned_chunking_corrects_only_trigger_windows(
-        self, sample_context, tmp_path
-    ):
+    def test_trigger_aligned_chunking_corrects_only_trigger_windows(self, sample_context, tmp_path):
         """Artifact subtraction happens only within [first_trigger, total_samples)."""
         ckpt = tmp_path / "artifact.npy"
         artifact_value = 0.1e-6
@@ -2194,6 +2216,7 @@ class TestTriggerAlignedChunking:
 # Config-Loader tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestDeepLearningConfig:
     """Tests for to_config_dict / from_config_dict / save / load helpers."""
@@ -2225,6 +2248,7 @@ class TestDeepLearningConfig:
 
     def test_to_config_dict_returns_json_serialisable_dict(self, tmp_path, monkeypatch):
         import json
+
         processor = self._make_onnx_processor(tmp_path, monkeypatch)
         d = processor.to_config_dict()
         json.dumps(d)  # must not raise
@@ -2232,8 +2256,15 @@ class TestDeepLearningConfig:
     def test_to_config_dict_contains_required_keys(self, tmp_path, monkeypatch):
         processor = self._make_onnx_processor(tmp_path, monkeypatch)
         d = processor.to_config_dict()
-        for key in ("version", "processor", "adapter", "spec",
-                    "store_run_metadata", "trigger_aligned_chunking", "triggers_per_chunk"):
+        for key in (
+            "version",
+            "processor",
+            "adapter",
+            "spec",
+            "store_run_metadata",
+            "trigger_aligned_chunking",
+            "triggers_per_chunk",
+        ):
             assert key in d, f"Missing key: {key}"
 
     def test_to_config_dict_adapter_name_is_onnx_inference(self, tmp_path, monkeypatch):
@@ -2248,7 +2279,8 @@ class TestDeepLearningConfig:
 
     def test_to_config_dict_preserves_trigger_aligned_params(self, tmp_path, monkeypatch):
         processor = self._make_onnx_processor(
-            tmp_path, monkeypatch,
+            tmp_path,
+            monkeypatch,
             trigger_aligned_chunking=True,
             triggers_per_chunk=3,
         )
@@ -2263,6 +2295,7 @@ class TestDeepLearningConfig:
                 architecture=DeepLearningArchitecture.CUSTOM,
                 runtime=DeepLearningRuntime.NUMPY,
             )
+
             def predict(self, context):
                 return DeepLearningPrediction(artifact_data=np.zeros((1, 1)))
 
@@ -2312,8 +2345,10 @@ class TestDeepLearningConfig:
 
     def test_save_and_load_config_json(self, tmp_path, monkeypatch):
         import json
+
         processor = self._make_onnx_processor(
-            tmp_path, monkeypatch,
+            tmp_path,
+            monkeypatch,
             trigger_aligned_chunking=True,
             triggers_per_chunk=2,
         )
@@ -2341,6 +2376,7 @@ class TestDeepLearningConfig:
 # SpectrogramMixin
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestSpectrogramMixin:
     """Tests for SpectrogramMixin STFT/iSTFT wrapping."""
@@ -2352,7 +2388,6 @@ class TestSpectrogramMixin:
     @staticmethod
     def _make_adapter(output_type=None, nperseg=64, noverlap=48, identity=True):
         """Return a concrete SpectrogramMixin + NumpyInferenceAdapter subclass."""
-        from dataclasses import replace as _replace
 
         from facet.correction import (
             DeepLearningOutputType,
@@ -2395,6 +2430,7 @@ class TestSpectrogramMixin:
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=["eeg"] * n_channels)
         raw = mne.io.RawArray(data, info, verbose=False)
         from facet.core import ProcessingContext
+
         return ProcessingContext(raw=raw)
 
     # ------------------------------------------------------------------

@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -73,13 +72,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10(
-            (np.mean(np.square(reference)) + 1e-20)
-            / (np.mean(np.square(error)) + 1e-20)
-        )
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -101,9 +94,11 @@ def _flatten_windows(
     n_examples, n_context, n_channels, n_samples = noisy_context.shape
     # Per-channel flattening: re-order to (E*C, K, T) and (E*C, 1, T).
     # Stack channel axis to the leading example axis.
-    context_flat = np.transpose(noisy_context, (0, 2, 1, 3)).reshape(
-        n_examples * n_channels, n_context, n_samples
-    ).astype(np.float32, copy=False)
+    context_flat = (
+        np.transpose(noisy_context, (0, 2, 1, 3))
+        .reshape(n_examples * n_channels, n_context, n_samples)
+        .astype(np.float32, copy=False)
+    )
     center_shape = (n_examples * n_channels, 1, n_samples)
     return (
         context_flat,
@@ -113,9 +108,7 @@ def _flatten_windows(
     )
 
 
-def _predict_artifact(
-    checkpoint: Path, context: np.ndarray, batch_size: int, device: str
-) -> np.ndarray:
+def _predict_artifact(checkpoint: Path, context: np.ndarray, batch_size: int, device: str) -> np.ndarray:
     import torch
 
     model = torch.jit.load(str(checkpoint), map_location=device)
@@ -123,9 +116,7 @@ def _predict_artifact(
     predictions: list[np.ndarray] = []
     with torch.no_grad():
         for start in range(0, context.shape[0], batch_size):
-            batch = torch.as_tensor(
-                context[start : start + batch_size], dtype=torch.float32, device=device
-            )
+            batch = torch.as_tensor(context[start : start + batch_size], dtype=torch.float32, device=device)
             pred = model(batch).detach().cpu().numpy().astype(np.float32, copy=False)
             predictions.append(pred)
     return np.concatenate(predictions, axis=0)
@@ -208,9 +199,7 @@ def evaluate(args: argparse.Namespace) -> None:
             "clean_mae_after": _mae(corrected, clean_flat),
             "clean_snr_db_before": _snr_db(clean_flat, before_error),
             "clean_snr_db_after": _snr_db(clean_flat, after_error),
-            "clean_snr_improvement_db": (
-                _snr_db(clean_flat, after_error) - _snr_db(clean_flat, before_error)
-            ),
+            "clean_snr_improvement_db": (_snr_db(clean_flat, after_error) - _snr_db(clean_flat, before_error)),
             "clean_mse_reduction_pct": 100.0
             * (1.0 - _mse(corrected, clean_flat) / (_mse(noisy_flat, clean_flat) + 1e-20)),
             "artifact_mse": _mse(pred_artifact, artifact_flat),

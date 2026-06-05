@@ -28,7 +28,6 @@ from torch import nn
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # U-Net core (multichannel 1-D)
 # ---------------------------------------------------------------------------
@@ -172,8 +171,7 @@ class IcUnetWithIca(nn.Module):
             ica_init = np.asarray(ica_init, dtype=np.float32)
             if ica_init.shape != (self.n_channels, self.n_channels):
                 raise ValueError(
-                    f"ica_init must have shape ({self.n_channels}, {self.n_channels}), "
-                    f"got {ica_init.shape}"
+                    f"ica_init must have shape ({self.n_channels}, {self.n_channels}), got {ica_init.shape}"
                 )
         ica_inv = np.linalg.pinv(ica_init).astype(np.float32)
 
@@ -235,17 +233,13 @@ class IcUnetEnsembleLoss(nn.Module):
     def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         loss = self.amplitude_weight * self._mse(prediction, target)
         if self.velocity_weight > 0:
-            loss = loss + self.velocity_weight * self._mse(
-                self._diff(prediction), self._diff(target)
-            )
+            loss = loss + self.velocity_weight * self._mse(self._diff(prediction), self._diff(target))
         if self.acceleration_weight > 0:
             loss = loss + self.acceleration_weight * self._mse(
                 self._diff(self._diff(prediction)), self._diff(self._diff(target))
             )
         if self.frequency_weight > 0:
-            loss = loss + self.frequency_weight * self._mse(
-                self._spectrum(prediction), self._spectrum(target)
-            )
+            loss = loss + self.frequency_weight * self._mse(self._spectrum(prediction), self._spectrum(target))
         return loss
 
 
@@ -300,9 +294,7 @@ class NiazyContextIcDataset:
             raise ValueError("base dataset must contain at least one example")
         first_noisy, first_target = base_dataset[0]
         if first_noisy.ndim != 3:
-            raise ValueError(
-                "base dataset input must have shape (context_epochs, channels, samples)"
-            )
+            raise ValueError("base dataset input must have shape (context_epochs, channels, samples)")
         if first_target.ndim != 2:
             raise ValueError("base dataset target must have shape (channels, samples)")
 
@@ -322,7 +314,9 @@ class NiazyContextIcDataset:
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         noisy_context, target = self.base_dataset[idx]
-        noisy_flat = noisy_context.transpose(1, 0, 2).reshape(self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        noisy_flat = (
+            noisy_context.transpose(1, 0, 2).reshape(self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        )
         target_out = target.astype(np.float32, copy=True)
         if self.demean_input:
             noisy_flat -= noisy_flat.mean(axis=-1, keepdims=True)
@@ -440,9 +434,7 @@ def build_model(
 ) -> IcUnetWithIca:
     """facet-train model factory."""
     if input_shape is None and (n_channels is None or epoch_samples is None or context_epochs is None):
-        raise ValueError(
-            "build_model requires input_shape or (n_channels, context_epochs, epoch_samples)"
-        )
+        raise ValueError("build_model requires input_shape or (n_channels, context_epochs, epoch_samples)")
 
     if input_shape is not None and len(input_shape) == 2:
         resolved_n_channels = int(input_shape[0])
@@ -458,9 +450,7 @@ def build_model(
         else:
             resolved_context_epochs = int(context_epochs) if context_epochs else 7
             if full_samples % resolved_context_epochs != 0:
-                raise ValueError(
-                    f"Cannot split full_samples={full_samples} into {resolved_context_epochs} epochs"
-                )
+                raise ValueError(f"Cannot split full_samples={full_samples} into {resolved_context_epochs} epochs")
             resolved_epoch_samples = full_samples // resolved_context_epochs
     else:
         resolved_n_channels = int(n_channels)

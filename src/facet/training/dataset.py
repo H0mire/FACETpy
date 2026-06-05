@@ -27,9 +27,7 @@ class TriggerJitter:
         self.max_jitter = max_jitter
         self._rng = np.random.default_rng(seed)
 
-    def __call__(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, noisy: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         shift = int(self._rng.integers(-self.max_jitter, self.max_jitter + 1))
         if shift == 0:
             return noisy, target
@@ -46,15 +44,11 @@ class NoiseScaling:
         NoiseScaling(scale_range=(0.9, 1.1))
     """
 
-    def __init__(
-        self, scale_range: tuple[float, float] = (0.9, 1.1), seed: int = 0
-    ) -> None:
+    def __init__(self, scale_range: tuple[float, float] = (0.9, 1.1), seed: int = 0) -> None:
         self.scale_range = scale_range
         self._rng = np.random.default_rng(seed)
 
-    def __call__(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, noisy: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         lo, hi = self.scale_range
         if lo == hi == 1.0:
             return noisy, target
@@ -69,9 +63,7 @@ class ChannelDropout:
         self.p = p
         self._rng = np.random.default_rng(seed)
 
-    def __call__(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, noisy: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if self.p <= 0.0:
             return noisy, target
         mask = self._rng.random(noisy.shape[0]) > self.p  # (n_channels,)
@@ -87,9 +79,7 @@ class SignFlip:
         self.p = p
         self._rng = np.random.default_rng(seed)
 
-    def __call__(
-        self, noisy: np.ndarray, target: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def __call__(self, noisy: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if self.p <= 0.0:
             return noisy, target
         if self._rng.random() < self.p:
@@ -196,9 +186,7 @@ class NPZContextArtifactDataset:
     def target_shape(self) -> tuple[int, int]:
         return (self.n_channels, self.epoch_samples)
 
-    def train_val_split(
-        self, val_ratio: float = 0.2, seed: int = 42
-    ) -> tuple[_SubsetDataset, _SubsetDataset]:
+    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple[_SubsetDataset, _SubsetDataset]:
         n = len(self)
         rng = np.random.default_rng(seed)
         indices = rng.permutation(n).tolist()
@@ -343,19 +331,11 @@ class EEGArtifactDataset:
                 break
             noisy_chunk = noisy_data[:, start:end]
             clean_chunk = clean_data[:, start:end]
-            target_chunk = (
-                noisy_chunk - clean_chunk
-                if self.target_type == "artifact"
-                else clean_chunk
-            )
+            target_chunk = noisy_chunk - clean_chunk if self.target_type == "artifact" else clean_chunk
             self._chunks.append((noisy_chunk.copy(), target_chunk.copy()))
 
     def _trigger_starts(self, triggers: np.ndarray, n_samples: int) -> list[int]:
-        return [
-            int(t)
-            for t in np.sort(triggers)
-            if int(t) + self.chunk_size <= n_samples
-        ]
+        return [int(t) for t in np.sort(triggers) if int(t) + self.chunk_size <= n_samples]
 
     def _sliding_starts(self, n_samples: int) -> list[int]:
         hop = max(1, int(self.chunk_size * (1.0 - self.overlap)))
@@ -392,9 +372,7 @@ class EEGArtifactDataset:
     # Train / validation split
     # ------------------------------------------------------------------
 
-    def train_val_split(
-        self, val_ratio: float = 0.2, seed: int = 42
-    ) -> tuple[_SubsetDataset, _SubsetDataset]:
+    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple[_SubsetDataset, _SubsetDataset]:
         """Split into train and validation subsets (index-mapped, no data copy).
 
         Parameters
@@ -472,15 +450,10 @@ class _TorchDatasetAdapter:
         try:
             import torch  # noqa: PLC0415
         except ImportError as exc:
-            raise ImportError(
-                "PyTorch is required for to_torch(). "
-                "Install it with: pip install torch"
-            ) from exc
+            raise ImportError("PyTorch is required for to_torch(). Install it with: pip install torch") from exc
 
         noisy, target = self._dataset[idx]
-        return torch.as_tensor(noisy, dtype=torch.float32), torch.as_tensor(
-            target, dtype=torch.float32
-        )
+        return torch.as_tensor(noisy, dtype=torch.float32), torch.as_tensor(target, dtype=torch.float32)
 
 
 # ---------------------------------------------------------------------------
@@ -493,10 +466,7 @@ def _build_tf_dataset(dataset: Any, batch_size: int) -> Any:
     try:
         import tensorflow as tf  # noqa: PLC0415
     except ImportError as exc:
-        raise ImportError(
-            "TensorFlow is required for to_tf(). "
-            "Install it with: pip install tensorflow"
-        ) from exc
+        raise ImportError("TensorFlow is required for to_tf(). Install it with: pip install tensorflow") from exc
 
     noisy_0, _ = dataset[0]
     n_channels, chunk_size = noisy_0.shape

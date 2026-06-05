@@ -26,9 +26,7 @@ import torch
 from facet.evaluation import ModelEvaluationWriter
 from facet.models.d4pm.training import D4PMTrainingModule
 
-_DEFAULT_DATASET = Path(
-    "./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+_DEFAULT_DATASET = Path("./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 
 
 def parse_args() -> argparse.Namespace:
@@ -67,14 +65,10 @@ def _sample_artifact_batch(
     device = noisy_y.device
     h_t = torch.randn_like(noisy_y)
 
-    step_indices = torch.linspace(
-        module.num_steps - 1, 0, sample_steps, device=device
-    ).long()
+    step_indices = torch.linspace(module.num_steps - 1, 0, sample_steps, device=device).long()
 
     for step_idx, t_int in enumerate(step_indices.tolist()):
-        t_tensor = torch.full(
-            (noisy_y.shape[0],), t_int, dtype=torch.long, device=device
-        )
+        t_tensor = torch.full((noisy_y.shape[0],), t_int, dtype=torch.long, device=device)
         noise_level = module.sqrt_alphas_cumprod[t_tensor]
         pred_noise = module.predictor(h_t, noisy_y, noise_level)
 
@@ -99,12 +93,12 @@ def _sample_artifact_batch(
 
 
 def _rms(values: np.ndarray, axis: int = -1) -> np.ndarray:
-    return np.sqrt(np.mean(values ** 2, axis=axis))
+    return np.sqrt(np.mean(values**2, axis=axis))
 
 
 def _snr_db(signal: np.ndarray, noise: np.ndarray, axis: int = -1) -> np.ndarray:
-    signal_power = np.mean(signal ** 2, axis=axis) + 1e-30
-    noise_power = np.mean(noise ** 2, axis=axis) + 1e-30
+    signal_power = np.mean(signal**2, axis=axis) + 1e-30
+    noise_power = np.mean(noise**2, axis=axis) + 1e-30
     return 10.0 * np.log10(signal_power / noise_power)
 
 
@@ -112,9 +106,7 @@ def _correlation(a: np.ndarray, b: np.ndarray, axis: int = -1) -> np.ndarray:
     a_centered = a - a.mean(axis=axis, keepdims=True)
     b_centered = b - b.mean(axis=axis, keepdims=True)
     num = np.sum(a_centered * b_centered, axis=axis)
-    den = np.sqrt(
-        np.sum(a_centered ** 2, axis=axis) * np.sum(b_centered ** 2, axis=axis)
-    )
+    den = np.sqrt(np.sum(a_centered**2, axis=axis) * np.sum(b_centered**2, axis=axis))
     return num / (den + 1e-30)
 
 
@@ -129,7 +121,6 @@ def main() -> None:
     noisy = bundle["noisy_center"].astype(np.float32)
     artifact = bundle["artifact_center"].astype(np.float32)
     clean = bundle["clean_center"].astype(np.float32)
-    ch_names = list(bundle["ch_names"])
     sfreq = float(bundle["sfreq"][0]) if "sfreq" in bundle else float("nan")
 
     n_examples_total, n_channels_total, n_samples = noisy.shape
@@ -171,9 +162,7 @@ def main() -> None:
     with torch.no_grad():
         for start in range(0, flat_n, batch):
             stop = min(start + batch, flat_n)
-            y = torch.as_tensor(
-                noisy_flat[start:stop, None, :], dtype=torch.float32, device=device
-            )
+            y = torch.as_tensor(noisy_flat[start:stop, None, :], dtype=torch.float32, device=device)
             h = _sample_artifact_batch(
                 module,
                 y,
@@ -222,8 +211,7 @@ def main() -> None:
         model_id="d4pm",
         model_name="D4PM",
         model_description=(
-            "Single-branch conditional DDPM gradient-artifact predictor "
-            "(reduction of arXiv:2509.14302)."
+            "Single-branch conditional DDPM gradient-artifact predictor (reduction of arXiv:2509.14302)."
         ),
         run_id=args.run_id or time.strftime("%Y%m%d_%H%M%S"),
     )

@@ -13,13 +13,11 @@ from facet.models.d4pm import D4PMArtifactCorrection, D4PMArtifactDiffusionAdapt
 from facet.models.d4pm.training import D4PMTrainingModule
 
 
-def _make_synthetic_context(
-    n_channels: int = 3, sfreq: float = 4096.0, n_samples: int = 4096
-) -> ProcessingContext:
+def _make_synthetic_context(n_channels: int = 3, sfreq: float = 4096.0, n_samples: int = 4096) -> ProcessingContext:
     rng = np.random.default_rng(0)
     data = rng.standard_normal((n_channels, n_samples)).astype(np.float32) * 1e-5
     info = mne.create_info(
-        [f"EEG{i+1}" for i in range(n_channels)],
+        [f"EEG{i + 1}" for i in range(n_channels)],
         sfreq=sfreq,
         ch_types=["eeg"] * n_channels,
     )
@@ -63,9 +61,9 @@ def test_adapter_predicts_artifact_shape(tmp_path):
     sfreq = 1024.0
     n_samples = 4 * 128
     rng = np.random.default_rng(0)
-    data = (rng.standard_normal((n_channels, n_samples)).astype(np.float32) * 1e-5)
+    data = rng.standard_normal((n_channels, n_samples)).astype(np.float32) * 1e-5
     info = mne.create_info(
-        [f"EEG{i+1}" for i in range(n_channels)],
+        [f"EEG{i + 1}" for i in range(n_channels)],
         sfreq=sfreq,
         ch_types=["eeg"] * n_channels,
     )
@@ -106,7 +104,7 @@ def test_processor_runs_end_to_end(tmp_path):
     rng = np.random.default_rng(1)
     data = rng.standard_normal((n_channels, n_samples)).astype(np.float32) * 1e-5
     info = mne.create_info(
-        [f"EEG{i+1}" for i in range(n_channels)],
+        [f"EEG{i + 1}" for i in range(n_channels)],
         sfreq=sfreq,
         ch_types=["eeg"] * n_channels,
     )

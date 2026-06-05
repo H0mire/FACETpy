@@ -82,7 +82,7 @@ def test_sepformer_one_batch_backward_updates_gradients():
     optim.zero_grad()
     loss.backward()
     optim.step()
-    assert any(not torch.equal(p, q) for p, q in zip(model.parameters(), before))
+    assert any(not torch.equal(p, q) for p, q in zip(model.parameters(), before, strict=False))
 
 
 def test_sepformer_torchscript_roundtrip_preserves_shape(tmp_path):

@@ -18,7 +18,6 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,8 +27,7 @@ from facet.evaluation import ModelEvaluationWriter
 MODEL_ID = "dhct_gan"
 MODEL_NAME = "DHCT-GAN"
 MODEL_DESCRIPTION = (
-    "Dual-branch hybrid CNN-Transformer generative adversarial denoiser "
-    "(Cai et al., MDPI Sensors 25/1/231, 2025)."
+    "Dual-branch hybrid CNN-Transformer generative adversarial denoiser (Cai et al., MDPI Sensors 25/1/231, 2025)."
 )
 
 
@@ -71,13 +69,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10(
-            (np.mean(np.square(reference)) + 1e-20)
-            / (np.mean(np.square(error)) + 1e-20)
-        )
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -185,9 +177,7 @@ def evaluate(args: argparse.Namespace) -> None:
             "clean_mae_after": _mae(corrected, clean_flat),
             "clean_snr_db_before": _snr_db(clean_flat, before_error),
             "clean_snr_db_after": _snr_db(clean_flat, after_error),
-            "clean_snr_improvement_db": (
-                _snr_db(clean_flat, after_error) - _snr_db(clean_flat, before_error)
-            ),
+            "clean_snr_improvement_db": (_snr_db(clean_flat, after_error) - _snr_db(clean_flat, before_error)),
             "clean_mse_reduction_pct": 100.0
             * (1.0 - _mse(corrected, clean_flat) / (_mse(noisy_flat, clean_flat) + 1e-20)),
             "artifact_mse": _mse(pred_artifact, artifact_flat),

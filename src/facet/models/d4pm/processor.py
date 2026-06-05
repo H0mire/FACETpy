@@ -144,14 +144,10 @@ class D4PMArtifactDiffusionAdapter(DeepLearningModelAdapter):
         if self.epoch_samples <= 0:
             raise ProcessorValidationError("epoch_samples must be positive")
         if self.sample_steps < 1 or self.sample_steps > self.num_steps:
-            raise ProcessorValidationError(
-                f"sample_steps must be in [1, {self.num_steps}], got {self.sample_steps}"
-            )
+            raise ProcessorValidationError(f"sample_steps must be in [1, {self.num_steps}], got {self.sample_steps}")
         triggers = np.asarray(context.get_triggers(), dtype=int)
         if len(triggers) < 2:
-            raise ProcessorValidationError(
-                f"D4PM requires at least 2 triggers to define epochs, got {len(triggers)}"
-            )
+            raise ProcessorValidationError(f"D4PM requires at least 2 triggers to define epochs, got {len(triggers)}")
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
         raw = context.get_raw()
@@ -175,9 +171,7 @@ class D4PMArtifactDiffusionAdapter(DeepLearningModelAdapter):
                     native = data[ch_idx, start:stop]
                     resampled = _resample_1d(native, self.epoch_samples)
                     artifact_512 = self._sample_artifact(module, torch, resampled)
-                    artifact_native = _resample_1d(artifact_512, native_len).astype(
-                        data.dtype, copy=False
-                    )
+                    artifact_native = _resample_1d(artifact_512, native_len).astype(data.dtype, copy=False)
                     estimated_artifacts[ch_idx, start:stop] += artifact_native
                 corrected_epochs += 1
 
@@ -205,9 +199,7 @@ class D4PMArtifactDiffusionAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "D4PM requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("D4PM requires PyTorch. Install the pytorch extra first.") from exc
 
         from .training import D4PMTrainingModule
 
@@ -257,26 +249,17 @@ class D4PMArtifactDiffusionAdapter(DeepLearningModelAdapter):
         if self.channel_indices is not None:
             return [int(idx) for idx in self.channel_indices]
         if self.eeg_only:
-            return [
-                int(idx)
-                for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)
-            ]
+            return [int(idx) for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)]
         return list(range(len(raw.ch_names)))
 
-    def _sample_artifact(
-        self, module: Any, torch: Any, noisy_y: np.ndarray
-    ) -> np.ndarray:
+    def _sample_artifact(self, module: Any, torch: Any, noisy_y: np.ndarray) -> np.ndarray:
         device = self.device
         y_mean = float(noisy_y.mean()) if self.demean_input else 0.0
-        y = torch.as_tensor(
-            noisy_y - y_mean, dtype=torch.float32, device=device
-        ).view(1, 1, -1)
+        y = torch.as_tensor(noisy_y - y_mean, dtype=torch.float32, device=device).view(1, 1, -1)
 
         h_t = torch.randn_like(y)
 
-        step_indices = torch.linspace(
-            self.num_steps - 1, 0, self.sample_steps, device=device
-        ).long()
+        step_indices = torch.linspace(self.num_steps - 1, 0, self.sample_steps, device=device).long()
 
         for step_idx, t_int in enumerate(step_indices.tolist()):
             t_tensor = torch.tensor([t_int], dtype=torch.long, device=device)

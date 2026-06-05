@@ -251,9 +251,7 @@ class EarlyStoppingCallback(Callback):
         self._best: float = float("inf") if mode == "min" else float("-inf")
         self._wait: int = 0
         self._is_better = (
-            (lambda new, best: new < best - min_delta)
-            if mode == "min"
-            else (lambda new, best: new > best + min_delta)
+            (lambda new, best: new < best - min_delta) if mode == "min" else (lambda new, best: new > best + min_delta)
         )
 
     def on_epoch_end(self, state: TrainingState) -> None:
@@ -421,9 +419,7 @@ class WandbCallback(Callback):
         try:
             import wandb  # noqa: PLC0415
         except ImportError as exc:
-            raise ImportError(
-                "wandb is required for WandbCallback. Install with: pip install wandb"
-            ) from exc
+            raise ImportError("wandb is required for WandbCallback. Install with: pip install wandb") from exc
 
         self._run = wandb.init(
             project=self.project,
@@ -498,10 +494,7 @@ class SavePredictionSamplesCallback(Callback):
 
     def on_train_begin(self, state: TrainingState) -> None:
         if self.val_dataset is None or len(self.val_dataset) == 0:
-            logger.warning(
-                "SavePredictionSamplesCallback: validation dataset is empty; "
-                "snapshots disabled."
-            )
+            logger.warning("SavePredictionSamplesCallback: validation dataset is empty; snapshots disabled.")
             self._indices = None
             return
         n = len(self.val_dataset)
@@ -511,8 +504,7 @@ class SavePredictionSamplesCallback(Callback):
         self.output_dir.mkdir(parents=True, exist_ok=True)
         if self.verbose:
             logger.info(
-                "SavePredictionSamplesCallback: snapshotting {} val sample(s) "
-                "every {} epoch(s) to {}",
+                "SavePredictionSamplesCallback: snapshotting {} val sample(s) every {} epoch(s) to {}",
                 k,
                 self.every_n_epochs,
                 self.output_dir,
@@ -524,9 +516,7 @@ class SavePredictionSamplesCallback(Callback):
         if state.epoch % self.every_n_epochs != 0:
             return
 
-        noisy_list, target_list = zip(
-            *(self.val_dataset[idx] for idx in self._indices), strict=False
-        )
+        noisy_list, target_list = zip(*(self.val_dataset[idx] for idx in self._indices), strict=False)
         noisy = np.stack(noisy_list, axis=0)
         target = np.stack(target_list, axis=0)
 
@@ -584,8 +574,7 @@ class SavePredictionSamplesCallback(Callback):
             import matplotlib.pyplot as plt
         except ImportError as exc:  # pragma: no cover
             logger.warning(
-                "Skipping prediction snapshot plot because matplotlib is "
-                "not available: {}",
+                "Skipping prediction snapshot plot because matplotlib is not available: {}",
                 exc,
             )
             return

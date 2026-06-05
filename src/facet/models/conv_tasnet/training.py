@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
-
 
 # ---------------------------------------------------------------------------
 # Architecture
@@ -120,7 +118,7 @@ class ConvTasNetSeparator(torch.nn.Module):
                     bottleneck_channels=self.bottleneck_channels,
                     hidden_channels=self.hidden_channels,
                     kernel_size=self.block_kernel,
-                    dilation=2 ** block_idx,
+                    dilation=2**block_idx,
                 )
                 for _ in range(self.n_repeats)
                 for block_idx in range(self.n_blocks)
@@ -142,9 +140,7 @@ class ConvTasNetSeparator(torch.nn.Module):
 
     def forward(self, mixture: torch.Tensor) -> torch.Tensor:
         if mixture.dim() != 3 or mixture.shape[1] != 1:
-            raise ValueError(
-                f"ConvTasNetSeparator expects shape (batch, 1, samples), got {tuple(mixture.shape)}"
-            )
+            raise ValueError(f"ConvTasNetSeparator expects shape (batch, 1, samples), got {tuple(mixture.shape)}")
         n_samples = mixture.shape[-1]
         latent = self.encoder_act(self.encoder(mixture))
         bottleneck = self.bottleneck(self.pre_norm(latent))
@@ -157,9 +153,7 @@ class ConvTasNetSeparator(torch.nn.Module):
 
         mask_logits = self.mask_conv(self.mask_act(skip_sum))
         masks = self._apply_mask_activation(mask_logits)
-        masks = masks.view(
-            mixture.shape[0], self.n_sources, self.encoder_filters, latent.shape[-1]
-        )
+        masks = masks.view(mixture.shape[0], self.n_sources, self.encoder_filters, latent.shape[-1])
 
         sources: list[torch.Tensor] = []
         for src_idx in range(self.n_sources):
@@ -179,8 +173,7 @@ class ConvTasNetSeparator(torch.nn.Module):
             reshaped = mask_logits.view(batch, self.n_sources, self.encoder_filters, frames)
             return torch.softmax(reshaped, dim=1).view(batch, -1, frames)
         raise ValueError(
-            f"Unsupported mask_activation '{self.mask_activation}'. "
-            "Expected one of: sigmoid, relu, softmax."
+            f"Unsupported mask_activation '{self.mask_activation}'. Expected one of: sigmoid, relu, softmax."
         )
 
 
@@ -309,15 +302,10 @@ class _NegSISDR(torch.nn.Module):
             )
         prediction = prediction - prediction.mean(dim=-1, keepdim=True)
         target = target - target.mean(dim=-1, keepdim=True)
-        scale = (prediction * target).sum(dim=-1, keepdim=True) / (
-            target.pow(2).sum(dim=-1, keepdim=True) + self.eps
-        )
+        scale = (prediction * target).sum(dim=-1, keepdim=True) / (target.pow(2).sum(dim=-1, keepdim=True) + self.eps)
         projection = scale * target
         noise = prediction - projection
-        sdr = 10.0 * torch.log10(
-            (projection.pow(2).sum(dim=-1) + self.eps)
-            / (noise.pow(2).sum(dim=-1) + self.eps)
-        )
+        sdr = 10.0 * torch.log10((projection.pow(2).sum(dim=-1) + self.eps) / (noise.pow(2).sum(dim=-1) + self.eps))
         return -sdr.mean()
 
 
@@ -381,9 +369,7 @@ def build_loss(
         return _WeightedSourceMSE(clean_weight=clean_weight, artifact_weight=artifact_weight)
     if normalized in {"si_sdr_neg", "neg_si_sdr", "si_sdr"}:
         return _NegSISDR()
-    raise ValueError(
-        f"Unsupported loss name '{name}'. Use one of: mse, l1, weighted_mse, si_sdr_neg."
-    )
+    raise ValueError(f"Unsupported loss name '{name}'. Use one of: mse, l1, weighted_mse, si_sdr_neg.")
 
 
 def build_dataset(

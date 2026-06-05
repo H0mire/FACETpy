@@ -104,3 +104,11 @@ known-first-party = ["facet"]
 [tool.ruff.lint.per-file-ignores]
 # Package __init__ uses early logging config, optional imports, and conditional exports
 "src/facet/__init__.py" = ["E402"]
+# These torch test modules gate the whole file on pytest.importorskip("torch")
+# before importing torch-dependent symbols, so module-level imports legitimately
+# follow a statement (E402).
+"tests/models/dhct_gan/test_processor.py" = ["E402"]
+"tests/models/dhct_gan/test_training_smoke.py" = ["E402"]
+"tests/models/dhct_gan_v2/test_processor.py" = ["E402"]
+"tests/models/dhct_gan_v2/test_training_smoke.py" = ["E402"]
+"tests/models/st_gnn/test_training_smoke.py" = ["E402"]

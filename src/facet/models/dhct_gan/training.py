@@ -3,15 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-from facet.training.dataset import NPZContextArtifactDataset
-
 
 # ---------------------------------------------------------------------------
 # Building blocks
@@ -221,14 +217,14 @@ class DHCTGanGenerator(nn.Module):
         )
 
         # Encoder stages
-        channels = [self.base_channels * (2 ** i) for i in range(self.depth)]
+        channels = [self.base_channels * (2**i) for i in range(self.depth)]
         encoder_in = [self.base_channels] + channels[:-1]
         self.encoder_stages = nn.ModuleList(
             EncoderStage(
                 in_ch=encoder_in[i],
                 out_ch=channels[i],
                 num_heads=num_heads,
-                window_size=max(2, window_size // (2 ** i)),
+                window_size=max(2, window_size // (2**i)),
             )
             for i in range(self.depth)
         )
@@ -415,8 +411,7 @@ class DHCTGanLoss(nn.Module):
         """
         if target.shape[1] != 3:
             raise ValueError(
-                f"DHCTGanLoss expects target with 3 channels (artifact, clean, noisy), "
-                f"got shape {tuple(target.shape)}"
+                f"DHCTGanLoss expects target with 3 channels (artifact, clean, noisy), got shape {tuple(target.shape)}"
             )
 
         self._ensure_device(pred)
@@ -445,9 +440,7 @@ class DHCTGanLoss(nn.Module):
 
         if self.beta_adv > 0.0:
             d_for_gen = self.discriminator(pred)
-            adv_loss = F.binary_cross_entropy_with_logits(
-                d_for_gen, torch.ones_like(d_for_gen)
-            )
+            adv_loss = F.binary_cross_entropy_with_logits(d_for_gen, torch.ones_like(d_for_gen))
             generator_loss = generator_loss + self.beta_adv * adv_loss
 
         return generator_loss
@@ -483,7 +476,11 @@ class DHCTGanArtifactDataset:
             self._artifact = bundle["artifact_center"].astype(np.float32, copy=False)
             self.sfreq = float(bundle["sfreq"][0]) if "sfreq" in bundle else float("nan")
 
-        for name, arr in (("noisy_center", self._noisy), ("clean_center", self._clean), ("artifact_center", self._artifact)):
+        for name, arr in (
+            ("noisy_center", self._noisy),
+            ("clean_center", self._clean),
+            ("artifact_center", self._artifact),
+        ):
             if arr.ndim != 3:
                 raise ValueError(f"Expected {name} to have shape (examples, channels, samples), got {arr.shape}")
         if not (self._noisy.shape == self._clean.shape == self._artifact.shape):
@@ -534,7 +531,7 @@ class DHCTGanArtifactDataset:
     def n_chunks(self) -> int:
         return self._length
 
-    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple["_Subset", "_Subset"]:
+    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple[_Subset, _Subset]:
         n = self._length
         if n == 0:
             raise ValueError("Dataset is empty")

@@ -217,8 +217,7 @@ class DualPathwayAutoencoderAdapter(DeepLearningModelAdapter):
             prediction = prediction[0]
         if prediction.ndim != 1:
             raise ProcessorValidationError(
-                "DPAE TorchScript model must return shape (batch, 1, samples), "
-                f"got {tuple(output.shape)}"
+                f"DPAE TorchScript model must return shape (batch, 1, samples), got {tuple(output.shape)}"
             )
         prediction = prediction.astype(np.float32, copy=False)
         if self.remove_prediction_mean:

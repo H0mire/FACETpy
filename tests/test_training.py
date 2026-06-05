@@ -42,7 +42,7 @@ from facet.training import (
 
 SFREQ = 250.0
 N_CHANNELS = 4
-N_SAMPLES = 2500   # 10 s
+N_SAMPLES = 2500  # 10 s
 
 
 def _make_raw(data: np.ndarray | None = None, sfreq: float = SFREQ) -> mne.io.RawArray:
@@ -82,6 +82,7 @@ def sample_context() -> ProcessingContext:
 # ---------------------------------------------------------------------------
 # TrainingConfig
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestTrainingConfig:
@@ -144,6 +145,7 @@ class TestTrainingConfig:
 # ---------------------------------------------------------------------------
 # EEGArtifactDataset
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestEEGArtifactDataset:
@@ -232,6 +234,7 @@ class TestEEGArtifactDataset:
 # Augmentation transforms
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestAugmentationTransforms:
     def _pair(self):
@@ -286,9 +289,7 @@ class TestAugmentationTransforms:
             called.append(True)
             return n, t
 
-        ds = EEGArtifactDataset(
-            sample_context, chunk_size=250, transforms=[_spy]
-        )
+        ds = EEGArtifactDataset(sample_context, chunk_size=250, transforms=[_spy])
         ds[0]
         assert len(called) == 1
 
@@ -296,6 +297,7 @@ class TestAugmentationTransforms:
 # ---------------------------------------------------------------------------
 # Loss functions
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestLossFunctions:
@@ -359,6 +361,7 @@ class TestLossFunctions:
 # TrainableModelWrapper (using a minimal concrete stub)
 # ---------------------------------------------------------------------------
 
+
 class _CountingWrapper(TrainableModelWrapper):
     """Minimal wrapper for testing the callback/trainer infrastructure."""
 
@@ -417,6 +420,7 @@ class TestTrainableModelWrapper:
 # Callbacks
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestCheckpointCallback:
     def _make_state(self, epoch=1, val_loss=0.05):
@@ -445,8 +449,12 @@ class TestCheckpointCallback:
     def test_top_k_pruning(self, tmp_path):
         wrapper = _CountingWrapper()
         cb = CheckpointCallback(
-            wrapper=wrapper, dirpath=tmp_path / "ckpts",
-            monitor="loss", mode="min", save_top_k=2, save_last=False,
+            wrapper=wrapper,
+            dirpath=tmp_path / "ckpts",
+            monitor="loss",
+            mode="min",
+            save_top_k=2,
+            save_last=False,
         )
         cb.on_train_begin(TrainingState())
         for epoch, loss in enumerate([0.05, 0.04, 0.06, 0.03], start=1):
@@ -545,6 +553,7 @@ class TestLossPlotCallback:
 # ---------------------------------------------------------------------------
 # Trainer (end-to-end, no real framework)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.unit
 class TestTrainer:
@@ -647,12 +656,8 @@ class TestTrainer:
             batch_size=4,
             output_dir=str(tmp_path / "runs"),
             logging=LoggingConfig(rich_live=False, log_file=None),
-            checkpoint=CheckpointConfig(
-                monitor="loss", save_top_k=1, save_last=False
-            ),
-            early_stopping=EarlyStoppingConfig(
-                monitor="loss", patience=2, min_delta=1e9
-            ),
+            checkpoint=CheckpointConfig(monitor="loss", save_top_k=1, save_last=False),
+            early_stopping=EarlyStoppingConfig(monitor="loss", patience=2, min_delta=1e9),
         )
         trainer = Trainer(wrapper, train_ds, val_ds, config)
         result = trainer.fit()

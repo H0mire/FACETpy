@@ -68,9 +68,7 @@ def test_one_batch_backward_pass_updates_parameters():
 
     optimizer.step()
     moved = sum(
-        1
-        for before, p in zip(initial, model.parameters())
-        if not torch.allclose(before, p.detach())
+        1 for before, p in zip(initial, model.parameters(), strict=False) if not torch.allclose(before, p.detach())
     )
     assert moved > 0
 

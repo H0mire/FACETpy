@@ -83,9 +83,7 @@ class ConvTasNetAdapter(DeepLearningModelAdapter):
         if self.chunk_size_samples <= 0:
             raise ProcessorValidationError("chunk_size_samples must be positive")
         if self.chunk_overlap_samples < 0 or self.chunk_overlap_samples >= self.chunk_size_samples:
-            raise ProcessorValidationError(
-                "chunk_overlap_samples must be >= 0 and smaller than chunk_size_samples"
-            )
+            raise ProcessorValidationError("chunk_overlap_samples must be >= 0 and smaller than chunk_size_samples")
         raw = context.get_raw()
         if raw.n_times < self.chunk_size_samples:
             raise ProcessorValidationError(
@@ -138,9 +136,7 @@ class ConvTasNetAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "Conv-TasNet requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("Conv-TasNet requires PyTorch. Install the pytorch extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -156,8 +152,7 @@ class ConvTasNetAdapter(DeepLearningModelAdapter):
 
         if output.ndim != 3 or output.shape[0] != 1:
             raise ProcessorValidationError(
-                "Conv-TasNet TorchScript model must return shape (1, n_sources, samples), "
-                f"got {tuple(output.shape)}"
+                f"Conv-TasNet TorchScript model must return shape (1, n_sources, samples), got {tuple(output.shape)}"
             )
         if output.shape[1] < 2:
             raise ProcessorValidationError(

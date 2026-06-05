@@ -239,8 +239,7 @@ class DHCTGanV2Adapter(DeepLearningModelAdapter):
             prediction = prediction[0]
         if prediction.ndim != 1:
             raise ProcessorValidationError(
-                "DHCT-GAN v2 TorchScript model must return shape (batch, 1, samples), "
-                f"got {tuple(output.shape)}"
+                f"DHCT-GAN v2 TorchScript model must return shape (batch, 1, samples), got {tuple(output.shape)}"
             )
         prediction = prediction.astype(np.float32, copy=False)
         if self.remove_prediction_mean:
@@ -253,10 +252,7 @@ class DHCTGanV2Correction(DeepLearningCorrection):
     """Pipeline processor for DHCT-GAN v2 per-channel multi-epoch artifact correction."""
 
     name = "dhct_gan_v2_correction"
-    description = (
-        "Multi-epoch context dual-branch hybrid CNN-Transformer GAN artifact correction "
-        "(per channel)"
-    )
+    description = "Multi-epoch context dual-branch hybrid CNN-Transformer GAN artifact correction (per channel)"
     version = "0.1.0"
 
     requires_raw = True

@@ -23,7 +23,6 @@ import torch
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # Dataset wrapper — exposes per-channel context examples with clean targets
 # ---------------------------------------------------------------------------
@@ -145,7 +144,7 @@ class _SelfAttention(torch.nn.Module):
         self.dim = dim
         self.n_heads = n_heads
         self.head_dim = dim // n_heads
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
         self.qkv = torch.nn.Linear(dim, dim * 3)
         self.attn_drop = torch.nn.Dropout(dropout)
         self.proj = torch.nn.Linear(dim, dim)

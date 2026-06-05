@@ -101,9 +101,7 @@ def test_demucs_inference_demean_matches_flat_context_dataset(tmp_path):
         artifact_context=noisy_context * 0.5,
         sfreq=np.array([100.0]),
     )
-    dataset = FlatContextArtifactDataset(
-        npz, context_epochs=n_epochs, demean_input=True, demean_target=False
-    )
+    dataset = FlatContextArtifactDataset(npz, context_epochs=n_epochs, demean_input=True, demean_target=False)
     train_input, _ = dataset[0]
 
     np.testing.assert_allclose(captured, train_input.reshape(-1), atol=1e-5)

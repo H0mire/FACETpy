@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -10,10 +9,9 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from facet.models.dhct_gan import DHCTGanAdapter, DHCTGanCorrection
+from facet.models.dhct_gan import DHCTGanAdapter
 from facet.models.dhct_gan.training import (
     DHCTGanGenerator,
-    DHCTGanLoss,
     PatchGANDiscriminator,
     build_dataset,
     build_loss,
@@ -116,6 +114,7 @@ def test_adapter_predict_with_synthetic_raw(tmp_path: Path) -> None:
 
     # Build a tiny ProcessingContext
     import mne
+
     from facet.core import ProcessingContext
 
     sfreq = 512.0

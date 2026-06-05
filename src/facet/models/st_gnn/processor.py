@@ -140,14 +140,10 @@ class SpatiotemporalGNNAdapter(DeepLearningModelAdapter):
                 if center_len <= 0:
                     continue
                 context_indices = range(center_idx - radius, center_idx + radius + 1)
-                epoch_stack = self._build_context_tensor(
-                    data, channel_indices, starts, stops, context_indices
-                )
+                epoch_stack = self._build_context_tensor(data, channel_indices, starts, stops, context_indices)
                 prediction = self._predict_artifact(model, torch, epoch_stack)
                 for local_idx, ch_idx in enumerate(channel_indices):
-                    artifact_native = _resample_1d(prediction[local_idx], center_len).astype(
-                        data.dtype, copy=False
-                    )
+                    artifact_native = _resample_1d(prediction[local_idx], center_len).astype(data.dtype, copy=False)
                     estimated_artifacts[ch_idx, center_start:center_stop] += artifact_native
                 corrected_epochs += 1
 
@@ -209,8 +205,7 @@ class SpatiotemporalGNNAdapter(DeepLearningModelAdapter):
         missing = [name for name in self.expected_channels if name not in ch_names]
         if missing:
             raise ProcessorValidationError(
-                "ST-GNN inference requires the channels baked into the trained adjacency. "
-                f"Missing: {missing}"
+                f"ST-GNN inference requires the channels baked into the trained adjacency. Missing: {missing}"
             )
         return [ch_names.index(name) for name in self.expected_channels]
 
@@ -222,9 +217,7 @@ class SpatiotemporalGNNAdapter(DeepLearningModelAdapter):
         stops: np.ndarray,
         context_indices: range,
     ) -> np.ndarray:
-        epoch_stack = np.empty(
-            (self.context_epochs, len(channel_indices), self.epoch_samples), dtype=np.float32
-        )
+        epoch_stack = np.empty((self.context_epochs, len(channel_indices), self.epoch_samples), dtype=np.float32)
         for stack_idx, epoch_idx in enumerate(context_indices):
             for local_idx, ch_idx in enumerate(channel_indices):
                 epoch_stack[stack_idx, local_idx] = _resample_1d(

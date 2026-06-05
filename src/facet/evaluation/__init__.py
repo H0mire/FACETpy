@@ -21,12 +21,12 @@ from .metrics import (
     SpectralCoherenceCalculator,
     SpikeDetectionRateCalculator,
 )
-from .visualization import RawPlotter
 from .model_evaluation import (
     EVALUATION_SCHEMA_VERSION,
     ModelEvaluationRun,
     ModelEvaluationWriter,
 )
+from .visualization import RawPlotter
 
 __all__ = [
     "EVALUATION_SCHEMA_VERSION",

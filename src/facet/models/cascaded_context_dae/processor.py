@@ -190,9 +190,7 @@ class CascadedContextDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
                 context_stack = np.stack(context_blocks, axis=1)
 
                 if self.demean_input:
-                    context_stack = context_stack - context_stack.mean(
-                        axis=-1, keepdims=True, dtype=np.float32
-                    )
+                    context_stack = context_stack - context_stack.mean(axis=-1, keepdims=True, dtype=np.float32)
 
                 # 2) One model forward pass batched across channels.
                 #    Input layout: (n_channels, 7, 1, target_samples)
@@ -216,15 +214,11 @@ class CascadedContextDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
                     )
 
                 if self.remove_prediction_mean:
-                    predictions = predictions - predictions.mean(
-                        axis=-1, keepdims=True, dtype=np.float32
-                    )
+                    predictions = predictions - predictions.mean(axis=-1, keepdims=True, dtype=np.float32)
 
                 # 3) Batched output resample (n_channels, target_samples) ->
                 #    (n_channels, center_len).
-                artifact_native = _resample_axis(
-                    predictions, center_len, axis=-1
-                ).astype(data.dtype, copy=False)
+                artifact_native = _resample_axis(predictions, center_len, axis=-1).astype(data.dtype, copy=False)
 
                 # 4) Scatter into the output buffer.
                 estimated_artifacts[channels_arr, center_start:center_stop] += artifact_native

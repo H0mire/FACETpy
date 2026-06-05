@@ -19,7 +19,6 @@ import torch.nn.functional as F
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 CENTER_INDEX = 3  # 7-epoch context, zero-based index of the center epoch
 
 
@@ -88,9 +87,7 @@ class _GDFN(torch.nn.Module):
         super().__init__()
         hidden = max(1, int(channels * expansion))
         self.project_in = torch.nn.Conv2d(channels, hidden * 2, kernel_size=1, bias=False)
-        self.dwconv = torch.nn.Conv2d(
-            hidden * 2, hidden * 2, kernel_size=3, padding=1, groups=hidden * 2, bias=False
-        )
+        self.dwconv = torch.nn.Conv2d(hidden * 2, hidden * 2, kernel_size=3, padding=1, groups=hidden * 2, bias=False)
         self.project_out = torch.nn.Conv2d(hidden, channels, kernel_size=1, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -323,9 +320,7 @@ class NestedGANGenerator(torch.nn.Module):
         inner_artifact = self.inner(center_epoch)
 
         refined_context = context_2d.clone()
-        refined_context[:, self.center_index, :] = (
-            context_2d[:, self.center_index, :] - inner_artifact
-        )
+        refined_context[:, self.center_index, :] = context_2d[:, self.center_index, :] - inner_artifact
 
         residual = self.outer(refined_context)
         return inner_artifact.unsqueeze(1) + residual
@@ -355,9 +350,7 @@ class MultiResolutionSTFTLoss(torch.nn.Module):
 
     def _log_mag(self, signal: torch.Tensor, n_fft: int) -> torch.Tensor:
         hop = max(1, int(n_fft * self.hop_fraction))
-        window = torch.hann_window(
-            n_fft, periodic=True, dtype=signal.dtype, device=signal.device
-        )
+        window = torch.hann_window(n_fft, periodic=True, dtype=signal.dtype, device=signal.device)
         spec = torch.stft(
             signal,
             n_fft=n_fft,

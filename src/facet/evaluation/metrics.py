@@ -1292,9 +1292,7 @@ class LegacySNRCalculator(Processor):
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
         metrics["legacy_snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
-        metrics["legacy_snr_per_channel"] = [
-            None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean
-        ]
+        metrics["legacy_snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1963,7 +1961,7 @@ class SpectralCoherenceCalculator(Processor, ReferenceDataMixin):
         band_results: dict[str, float] = {}
         for band_name, (fmin, fmax) in self.bands.items():
             ch_coherences: list[float] = []
-            for ch_corr, ch_orig in zip(data_corr, data_orig):
+            for ch_corr, ch_orig in zip(data_corr, data_orig, strict=False):
                 freqs, Cxy = signal.coherence(ch_orig, ch_corr, fs=sfreq, nperseg=nperseg)
                 mask = (freqs >= fmin) & (freqs <= fmax)
                 if mask.any():
@@ -2084,7 +2082,6 @@ class SpikeDetectionRateCalculator(Processor):
             ch_std = np.std(ch_data)
             if ch_std < 1e-15:
                 continue
-            threshold = ch_mean + threshold_std * ch_std
             above = np.abs(ch_data - ch_mean) > (threshold_std * ch_std)
             spike_indices = np.flatnonzero(above)
             # Enforce minimum distance between spikes

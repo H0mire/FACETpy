@@ -532,6 +532,7 @@ class TestEvaluationPipeline:
 # SpectralCoherenceCalculator
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestSpectralCoherenceCalculator:
     """Tests for SpectralCoherenceCalculator processor."""
@@ -603,6 +604,7 @@ class TestSpectralCoherenceCalculator:
 # SpikeDetectionRateCalculator
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.unit
 class TestSpikeDetectionRateCalculator:
     """Tests for SpikeDetectionRateCalculator processor."""
@@ -650,7 +652,7 @@ class TestSpikeDetectionRateCalculator:
         data_orig = data_corr.copy()
         for t in sample_triggers:
             if t < n_samples:
-                data_orig[:, t] += 500e-6   # large spike only in original
+                data_orig[:, t] += 500e-6  # large spike only in original
 
         ch_names = [f"EEG{i:02d}" for i in range(n_ch)]
         info = mne.create_info(ch_names=ch_names, sfreq=250.0, ch_types=["eeg"] * n_ch)

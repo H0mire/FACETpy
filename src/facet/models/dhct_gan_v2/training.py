@@ -18,7 +18,6 @@ import torch.nn.functional as F
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # Building blocks
 # ---------------------------------------------------------------------------
@@ -210,14 +209,14 @@ class DHCTGanV2Generator(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
 
-        channels = [self.base_channels * (2 ** i) for i in range(self.depth)]
+        channels = [self.base_channels * (2**i) for i in range(self.depth)]
         encoder_in = [self.base_channels] + channels[:-1]
         self.encoder_stages = nn.ModuleList(
             EncoderStage(
                 in_ch=encoder_in[i],
                 out_ch=channels[i],
                 num_heads=num_heads,
-                window_size=max(2, window_size // (2 ** i)),
+                window_size=max(2, window_size // (2**i)),
             )
             for i in range(self.depth)
         )
@@ -413,9 +412,7 @@ class DHCTGanV2Loss(nn.Module):
 
         if self.beta_adv > 0.0:
             d_for_gen = self.discriminator(pred)
-            adv_loss = F.binary_cross_entropy_with_logits(
-                d_for_gen, torch.ones_like(d_for_gen)
-            )
+            adv_loss = F.binary_cross_entropy_with_logits(d_for_gen, torch.ones_like(d_for_gen))
             generator_loss = generator_loss + self.beta_adv * adv_loss
 
         return generator_loss
@@ -538,7 +535,7 @@ class DHCTGanV2ContextDataset:
     def n_chunks(self) -> int:
         return self._length
 
-    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple["_Subset", "_Subset"]:
+    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple[_Subset, _Subset]:
         n = self._length
         if n == 0:
             raise ValueError("Dataset is empty")

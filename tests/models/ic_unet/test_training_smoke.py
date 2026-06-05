@@ -23,10 +23,13 @@ def _make_synthetic_batch(
     rng = np.random.default_rng(seed)
     full = context_epochs * epoch_samples
     noisy = rng.standard_normal((batch_size, n_channels, full)).astype(np.float32)
-    target = noisy[
-        ...,
-        (context_epochs // 2) * epoch_samples : (context_epochs // 2 + 1) * epoch_samples,
-    ].copy() * 0.1
+    target = (
+        noisy[
+            ...,
+            (context_epochs // 2) * epoch_samples : (context_epochs // 2 + 1) * epoch_samples,
+        ].copy()
+        * 0.1
+    )
     return torch.from_numpy(noisy), torch.from_numpy(target)
 
 
@@ -53,9 +56,7 @@ def test_one_training_step_reduces_loss():
     loss_fn = build_loss("mse")
     optimiser = torch.optim.Adam(model.parameters(), lr=1e-2)
 
-    noisy, target = _make_synthetic_batch(
-        batch_size=4, n_channels=3, context_epochs=7, epoch_samples=16
-    )
+    noisy, target = _make_synthetic_batch(batch_size=4, n_channels=3, context_epochs=7, epoch_samples=16)
 
     model.train()
     losses: list[float] = []

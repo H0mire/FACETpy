@@ -154,9 +154,7 @@ class IcUnetAdapter(DeepLearningModelAdapter):
                 prediction = self._predict_center_artifact(model, torch, noisy_full)
 
                 for local_idx, ch_idx in enumerate(channels):
-                    artifact_native = _resample_1d(prediction[local_idx], center_len).astype(
-                        data.dtype, copy=False
-                    )
+                    artifact_native = _resample_1d(prediction[local_idx], center_len).astype(data.dtype, copy=False)
                     estimated_artifacts[ch_idx, center_start:center_stop] += artifact_native
 
                 corrected_epochs += 1
@@ -184,9 +182,7 @@ class IcUnetAdapter(DeepLearningModelAdapter):
         try:
             import torch
         except ImportError as exc:  # pragma: no cover
-            raise ProcessorValidationError(
-                "IcUnet requires PyTorch. Install the pytorch extra first."
-            ) from exc
+            raise ProcessorValidationError("IcUnet requires PyTorch. Install the pytorch extra first.") from exc
         model = torch.jit.load(self.checkpoint_path, map_location=self.device)
         model.eval()
         self._model = model
@@ -213,8 +209,7 @@ class IcUnetAdapter(DeepLearningModelAdapter):
         stops = stops[valid].astype(int)
         if len(starts) < self.context_epochs:
             raise ProcessorValidationError(
-                f"Only {len(starts)} valid trigger epochs remain after clipping; "
-                f"need {self.context_epochs}"
+                f"Only {len(starts)} valid trigger epochs remain after clipping; need {self.context_epochs}"
             )
         return starts, stops
 
@@ -237,10 +232,7 @@ class IcUnetAdapter(DeepLearningModelAdapter):
         if self.channel_indices is not None:
             return [int(idx) for idx in self.channel_indices]
         if self.eeg_only:
-            return [
-                int(idx)
-                for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)
-            ]
+            return [int(idx) for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)]
         return list(range(len(raw.ch_names)))
 
     def _predict_center_artifact(
@@ -258,8 +250,7 @@ class IcUnetAdapter(DeepLearningModelAdapter):
             prediction = prediction[0]
         if prediction.ndim != 2:
             raise ProcessorValidationError(
-                "TorchScript model must return (batch, channels, samples), "
-                f"got {tuple(output.shape)}"
+                f"TorchScript model must return (batch, channels, samples), got {tuple(output.shape)}"
             )
         prediction = prediction.astype(np.float32, copy=False)
         if self.remove_prediction_mean:
@@ -314,7 +305,5 @@ class IcUnetCorrection(DeepLearningCorrection):
                 f"{self.name} loads a stateful TorchScript model and must not run in parallel mode"
             )
         if channel_sequential:
-            raise ProcessorValidationError(
-                f"{self.name} is multichannel; channel-sequential execution is unsupported"
-            )
+            raise ProcessorValidationError(f"{self.name} is multichannel; channel-sequential execution is unsupported")
         super().validate_execution_mode(parallel=parallel, channel_sequential=channel_sequential)
