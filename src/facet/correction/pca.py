@@ -36,21 +36,28 @@ class PCACorrection(Processor):
         retain (float in (0, 1)). Use ``"auto"`` for MATLAB-like OBS auto
         selection. Default: 0.95.
     hp_freq : float, optional
-        High-pass cutoff frequency in Hz applied before PCA, to remove slow
-        drift so the OBS basis is built on a common baseline (Niazy 2005 uses
-        1 Hz). ``None`` skips filtering (default: None) — appropriate when the
-        pipeline already high-passed the data upstream (e.g. a global 1 Hz
-        ``HighPassFilter`` before up-sampling), which is the recommended setup.
+        High-pass cutoff frequency in Hz applied before PCA. This determines
+        which band the OBS basis is fitted on — and that choice is a genuine
+        safety/efficacy trade-off, **not** just drift removal:
 
-        Two caveats if you set this explicitly:
+        - **High cutoff (≈ the final low-pass or above; FASTR uses 70 Hz, FACET
+          examples 300 Hz).** Keeps the EEG band *out* of the OBS, so the basis
+          can only model the high-frequency residual artifact and cannot remove
+          real EEG — safe. The flip side: if a final low-pass at/below this
+          cutoff follows, the OBS only cleans content that low-pass discards, so
+          it contributes little to the band-limited output.
+        - **Low cutoff (or ``None``, i.e. no OBS-specific filter — relying on an
+          upstream high-pass).** Lets the OBS act inside the EEG band, so it
+          *can* clean in-band residual — but it then **risks modelling and
+          subtracting real EEG**, because the brain signal lives in that band.
+          This is especially destructive with a variance-fraction
+          ``n_components`` (e.g. 0.95), which can capture the brain outright.
+          Only go low with a small *fixed* ``n_components`` (Niazy-style ~4) and
+          validate against ground truth.
 
-        - **Keep it well below any final low-pass cutoff.** The OBS correction
-          only affects the band ``[hp_freq, final_lp]``; with ``hp_freq >=``
-          the final low-pass (e.g. 300 Hz before a 70 Hz low-pass) the
-          correction lands entirely in the discarded band and does nothing.
-        - **A low cutoff at an up-sampled rate needs a very long FIR** (a sharp
-          1 Hz high-pass at 20 kHz is ~40000 taps). Prefer high-passing once at
-          the original sampling rate upstream instead.
+        Also note a low cutoff at an up-sampled rate needs a very long FIR (a
+        sharp 1 Hz high-pass at 20 kHz is ~40000 taps); high-pass once at the
+        original rate upstream instead. ``None`` skips filtering (default: None).
     hp_filter_weights : np.ndarray, optional
         Pre-computed filter weights; overrides ``hp_freq`` when provided.
     exclude_channels : list, optional

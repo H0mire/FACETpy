@@ -114,18 +114,16 @@ def create_standard_pipeline(
         AASCorrection(window_size=30, correlation_threshold=0.975),
     ]
     if use_pca and _has_pca:
-        # No OBS-specific high-pass: the global HighPassFilter(1.0) above already
-        # removed slow drift before up-sampling, so the OBS/PCA already operates
-        # on drift-free data across the full EEG band — exactly Niazy (2005)'s
-        # OBS, where a 1 Hz high-pass precedes the basis fit and the 70 Hz
-        # low-pass is applied afterwards. (An aggressive OBS high-pass — e.g. the
-        # 300 Hz used by FACET's MATLAB example scripts — would make the OBS act
-        # only above 300 Hz, which the final 70 Hz low-pass then discards, so PCA
-        # would contribute nothing to the output. If you do set hp_freq, keep it
-        # well below LowPassFilter's cutoff or the correction is wasted. Also,
-        # a low hp_freq at this up-sampled rate needs a very long FIR — design it
-        # at the original rate instead.)
-        processors.append(PCACorrection(n_components=0.95, hp_freq=None))
+        # OBS high-pass = 70 Hz, matching Niazy's FASTR reference *code*
+        # (fmrib_fastr.m: hpf=70). The high-pass keeps the EEG band out of the
+        # OBS so the basis models only the high-frequency residual artifact and
+        # cannot subtract real EEG. A lower cutoff (or None) lets the OBS act in
+        # the EEG band, which risks removing brain signal — see PCACorrection's
+        # hp_freq docstring. (Caveat: with the final LowPassFilter(70) below, a
+        # 70 Hz OBS high-pass contributes little to the band-limited output;
+        # it is kept primarily as the safe, reference-faithful default.)
+        # ``hp_freq=None`` remains available for users who want full-band OBS.
+        processors.append(PCACorrection(n_components=0.95, hp_freq=70.0))
 
     if additional_corrections:
         processors.extend(additional_corrections)
