@@ -347,6 +347,60 @@ class TestAcquisitionAlignment:
         with pytest.raises(ValueError):
             SubsampleAligner(mode="bogus")
 
+    def test_subsample_invalid_ssa_hp_freq(self):
+        """A negative SSA high-pass cutoff is rejected at construction."""
+        with pytest.raises(ValueError):
+            SubsampleAligner(ssa_hp_freq=-1.0)
+
+    def _build_hp_context(self, sfreq=2000, true_shift=2):
+        """Context at a rate where the 300 Hz SSA high-pass is realisable."""
+        artifact_length = 60
+        n_samples = 2000
+        triggers = np.array([400, 900, 1400])
+
+        data = np.zeros((1, n_samples), dtype=float)
+        # High-frequency artifact template (so the SSA high-pass has signal),
+        t = np.arange(artifact_length)
+        template = np.sin(2 * np.pi * 350 / sfreq * t) * np.hanning(artifact_length) * 1e-6
+        # plus a slow drift that the high-pass should remove.
+        data[0] += 0.2e-6 * np.sin(2 * np.pi * 1.0 / sfreq * np.arange(n_samples))
+        for i, tr in enumerate(triggers):
+            start = tr + (0 if i == 0 else true_shift)
+            data[0, start : start + artifact_length] += template
+
+        info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, verbose=False)
+
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        metadata.upsampling_factor = 10
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_subsample_ssa_highpass_configurable(self):
+        """SSA high-pass is configurable and only active for fractional modes."""
+        # Default: 300 Hz applied for fast/quality, recorded in metadata.
+        for mode in ("fast", "quality"):
+            ctx = self._build_hp_context()
+            result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode=mode).execute(ctx)
+            assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] == 300.0
+
+        # Configurable cutoff is honoured.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="fast", ssa_hp_freq=150.0).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] == 150.0
+
+        # Disabled explicitly.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="fast", ssa_hp_freq=None).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] is None
+
+        # Legacy is never high-passed, regardless of the parameter.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="legacy", ssa_hp_freq=300.0).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] is None
+
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
         # Remove artifact length

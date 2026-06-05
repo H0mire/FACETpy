@@ -7,6 +7,7 @@ recordings using cross-correlation techniques.
 import mne
 import numpy as np
 from loguru import logger
+from scipy.signal import filtfilt, firls
 
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 from ..helpers.crosscorr import crosscorrelation
@@ -445,6 +446,16 @@ class SubsampleAligner(Processor):
     interpolation_iters : int, optional
         Binary-search iterations for ``mode="quality"`` (default: 15, matching
         MATLAB FACET).
+    ssa_hp_freq : float or None, optional
+        High-pass cutoff in Hz applied to the reference channel **before**
+        estimating the sub-sample shift, mirroring MATLAB FACET
+        ``AlignSubSample`` (``SSAHPFrequency``, default 300 Hz). High-passing
+        makes the alignment lock onto the high-frequency gradient-artifact
+        edges instead of low-frequency drift / neural signal. The filter feeds
+        the shift *estimation* only — the computed shift is still applied to the
+        unfiltered raw data. ``None`` or ``0`` disables it. Only used by the
+        ``"fast"``/``"quality"`` modes; ``"legacy"`` is never filtered
+        (default: 300.0).
     """
 
     name = "subsample_aligner"
@@ -466,15 +477,19 @@ class SubsampleAligner(Processor):
         mode: str = "legacy",
         apply_to_raw: bool = False,
         interpolation_iters: int = 15,
+        ssa_hp_freq: float | None = 300.0,
     ) -> None:
         if mode not in ("legacy", "fast", "quality"):
             raise ValueError(f"mode must be 'legacy', 'fast' or 'quality', got {mode!r}")
+        if ssa_hp_freq is not None and ssa_hp_freq < 0:
+            raise ValueError(f"ssa_hp_freq must be None or >= 0, got {ssa_hp_freq!r}")
         self.ref_trigger_index = ref_trigger_index
         self.ref_channel = ref_channel
         self.search_window = search_window
         self.mode = mode
         self.apply_to_raw = apply_to_raw
         self.interpolation_iters = max(1, int(interpolation_iters))
+        self.ssa_hp_freq = ssa_hp_freq
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -505,6 +520,19 @@ class SubsampleAligner(Processor):
         ref_channel = self._pick_ref_channel(raw)
         ref_signal = raw.get_data(picks=[ref_channel])[0]
 
+        fractional = self.mode != "legacy"
+
+        # SSA high-pass (MATLAB AlignSubSample): high-pass the reference channel
+        # before estimating the sub-sample shift so the alignment locks onto the
+        # high-frequency artifact edges, not low-frequency drift / neural signal.
+        # This feeds the shift ESTIMATION only — the computed shift is applied to
+        # the unfiltered raw data below. ``"legacy"`` is intentionally left
+        # unfiltered (unchanged original behaviour).
+        ssa_hp_applied = None
+        estimation_signal = ref_signal
+        if fractional:
+            estimation_signal, ssa_hp_applied = self._highpass_for_estimation(ref_signal, raw.info["sfreq"])
+
         # Extract the reference epoch over the SAME extended window the per-epoch
         # search segments use (front/back padded by ``search_radius``). If the
         # reference were the inner window only, ``crosscorrelation`` would pad
@@ -513,14 +541,13 @@ class SubsampleAligner(Processor):
         # computed shift (a zero-offset artifact then yields shift=search_radius
         # instead of 0).
         ref_epoch = _extract_epoch_with_padding(
-            ref_signal,
+            estimation_signal,
             triggers[self.ref_trigger_index] - pre_samples - search_radius,
             window_length + 2 * search_radius,
             n_samples,
         )
-        fractional = self.mode != "legacy"
         shifts = self._compute_shifts(
-            ref_signal,
+            estimation_signal,
             triggers,
             ref_epoch,
             pre_samples,
@@ -546,6 +573,7 @@ class SubsampleAligner(Processor):
                 "search_window": search_radius,
                 "mode": self.mode,
                 "applied_to": applied_to,
+                "ssa_hp_freq": ssa_hp_applied,
             }
         )
         if new_metadata.pre_trigger_samples is None:
@@ -619,6 +647,89 @@ class SubsampleAligner(Processor):
             return self.ref_channel
         eeg_channels = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
         return int(eeg_channels[0]) if len(eeg_channels) else 0
+
+    def _design_ssa_highpass(self, sfreq: float) -> np.ndarray | None:
+        """Design the SSA high-pass FIR filter (MATLAB ``AlignSubSample``).
+
+        Replicates MATLAB FACET: a fixed-order (100, i.e. 101 taps) ``firls``
+        linear-phase high-pass with a ±10 % transition band around
+        ``ssa_hp_freq``. The fixed order keeps the filter short (~101 taps)
+        regardless of sampling rate, so it never triggers the ``filtfilt``
+        padlen blow-up that a cutoff-derived order would on upsampled data.
+
+        Parameters
+        ----------
+        sfreq : float
+            (Upsampled) sampling frequency in Hz.
+
+        Returns
+        -------
+        np.ndarray or None
+            FIR filter weights, or None when high-passing is disabled or the
+            requested cutoff is not realisable at this sampling rate.
+        """
+        cutoff = self.ssa_hp_freq
+        if cutoff is None or cutoff <= 0:
+            return None
+
+        nyq = 0.5 * sfreq
+        lo = (cutoff * 0.9) / nyq
+        hi = (cutoff * 1.1) / nyq
+        if not 0 < lo < hi < 1:
+            logger.warning(
+                "SSA high-pass cutoff {} Hz not realisable at {} Hz (band {:.3f}-{:.3f}); "
+                "disabling SSA high-pass",
+                cutoff,
+                sfreq,
+                lo,
+                hi,
+            )
+            return None
+
+        # MATLAB AlignSubSample uses firls(100, ...) -> 101 taps (fixed order).
+        try:
+            return firls(101, [0.0, lo, hi, 1.0], [0.0, 0.0, 1.0, 1.0])
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.warning("SSA high-pass design failed ({}); disabling SSA high-pass", exc)
+            return None
+
+    def _highpass_for_estimation(self, signal: np.ndarray, sfreq: float) -> tuple[np.ndarray, float | None]:
+        """High-pass the reference signal for shift estimation.
+
+        Applies a zero-phase ``filtfilt`` with the SSA high-pass weights. Falls
+        back to the unfiltered signal (with a debug log) when the filter is
+        disabled or the signal is shorter than the required padding, so short
+        test recordings never crash.
+
+        Parameters
+        ----------
+        signal : np.ndarray
+            1-D reference channel signal.
+        sfreq : float
+            (Upsampled) sampling frequency in Hz.
+
+        Returns
+        -------
+        tuple of (np.ndarray, float or None)
+            ``(estimation_signal, applied_cutoff)``. ``applied_cutoff`` is the
+            cutoff in Hz when filtering was applied, else None.
+        """
+        weights = self._design_ssa_highpass(sfreq)
+        if weights is None:
+            return signal, None
+
+        padlen = 3 * (len(weights) - 1)
+        if len(signal) <= padlen:
+            logger.debug(
+                "Reference signal too short ({} samples) for SSA high-pass padlen ({}); "
+                "skipping SSA high-pass",
+                len(signal),
+                padlen,
+            )
+            return signal, None
+
+        filtered = filtfilt(weights, 1.0, signal)
+        return filtered, float(self.ssa_hp_freq)
 
     def _compute_shifts(
         self,
