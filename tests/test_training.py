@@ -24,6 +24,7 @@ from facet.training import (
     MetricLoggerCallback,
     NoiseScaling,
     SignFlip,
+    TorchLossWrapper,
     TrainableModelWrapper,
     Trainer,
     TrainingConfig,
@@ -355,6 +356,37 @@ class TestLossFunctions:
         comp = CompositeLoss({"mse": (mse_loss, 1.0)})
         total, breakdown = comp(pred, target)
         assert breakdown["mse"] == pytest.approx(1.0, rel=1e-6)
+
+    def test_torch_loss_wrapper_requires_explicit_gradient_loss(self):
+        """Without an explicit gradient_loss_fn the wrapper must refuse to
+        invent an MSE gradient (which would diverge from the logged metric)."""
+        wrapper = TorchLossWrapper(loss_fn=snr_loss)
+        with pytest.raises(ValueError, match="gradient_loss_fn"):
+            wrapper.gradient_loss(object(), object())
+
+    def test_torch_loss_wrapper_uses_injected_gradient_loss(self):
+        """An explicitly injected gradient loss is the signal returned for the
+        backward pass; the numpy loss_fn stays logging-only."""
+        sentinel = object()
+        captured = {}
+
+        def fake_gradient_loss(pred, target):
+            captured["args"] = (pred, target)
+            return sentinel
+
+        wrapper = TorchLossWrapper(loss_fn=snr_loss, gradient_loss_fn=fake_gradient_loss)
+        result = wrapper.gradient_loss("pred", "target")
+        assert result is sentinel
+        assert captured["args"] == ("pred", "target")
+
+    def test_torch_loss_wrapper_numpy_metrics_for_logging(self):
+        """numpy_metrics returns the (logging-only) numpy metric breakdown."""
+        comp = CompositeLoss({"mse": (mse_loss, 1.0)})
+        wrapper = TorchLossWrapper(loss_fn=comp)
+        pred = np.ones((1, 1, 10))
+        target = np.zeros((1, 1, 10))
+        metrics = wrapper.numpy_metrics(pred, target)
+        assert metrics["mse"] == pytest.approx(1.0, rel=1e-6)
 
 
 # ---------------------------------------------------------------------------

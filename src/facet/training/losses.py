@@ -1,24 +1,24 @@
 """Framework-agnostic loss functions for EEG artifact correction training.
 
-All functions operate on NumPy arrays.  Framework-specific wrappers
-(PyTorch, TensorFlow) convert the return value to a differentiable
-scalar tensor before calling ``backward()`` / ``tape.gradient()``.
+All functions in this module operate on NumPy arrays and return plain
+floats.  They are convenient to write and test, but NumPy has no
+autograd, so they are **not differentiable** — they cannot be used
+directly as a gradient signal in a PyTorch/TensorFlow training loop.
+Treat them as **metrics** (for logging and monitoring).
 
-For PyTorch the recommended pattern is::
+To actually train on one of these objectives you need a differentiable
+implementation.  Two patterns are supported:
 
-    import torch
+1. **Implement the loss directly in the framework** (recommended).  The
+   per-model ``build_loss`` factories under :mod:`facet.models` do this,
+   e.g. a differentiable SI-SDR or weighted-MSE ``torch.nn.Module``.  The
+   value you log is then exactly the value you optimise.
 
-    def torch_loss(pred_tensor, target_tensor):
-        pred_np = pred_tensor.detach().cpu().numpy()
-        tgt_np  = target_tensor.detach().cpu().numpy()
-        value   = spectral_loss(pred_np, tgt_np, sfreq=250.0)
-        # Re-attach gradient via a surrogate MSE that has the same
-        # scale — or use the pre-built TorchLossWrapper below.
-        return torch.tensor(value, requires_grad=False)
-
-For production use, wrap a numpy loss with :class:`TorchLossWrapper` or
-:class:`TFLossWrapper` which handle the numpy ↔ tensor conversion and
-still propagate gradients through MSE so the model trains correctly.
+2. **Wrap a numpy metric with** :class:`TorchLossWrapper`.  The wrapper
+   logs the numpy metric and backpropagates a separate, explicitly
+   provided differentiable torch loss.  You must supply that gradient
+   loss yourself — the wrapper never silently substitutes one (see the
+   class docstring).
 """
 
 from __future__ import annotations
@@ -182,31 +182,44 @@ class CompositeLoss:
 
 
 class TorchLossWrapper:
-    """Wraps a numpy loss function for use inside a PyTorch training loop.
+    """Decouples a numpy *logging* metric from the *differentiable* gradient.
 
-    The wrapper computes the **numpy** metric (for logging), but returns a
-    differentiable **PyTorch MSE tensor** as the actual gradient signal.
-    This ensures gradients flow correctly while still giving you meaningful
-    loss curves.
+    The wrapper computes the **numpy** ``loss_fn`` for logging (meaningful
+    loss curves, per-component breakdown) and backpropagates a **separate,
+    explicitly provided** differentiable torch loss (``gradient_loss_fn``).
 
-    For full custom losses that need real gradients (e.g. spectral loss
-    with autograd), you should implement the loss directly in PyTorch and
-    not use this wrapper.
+    Because the numpy ``loss_fn`` is non-differentiable it can never be the
+    gradient signal.  The wrapper therefore does **not** invent one: if no
+    ``gradient_loss_fn`` is given, :meth:`gradient_loss` raises ``ValueError``
+    instead of silently optimising MSE while you watch a different curve.
+    This avoids the trap where the logged loss diverges from the optimised
+    loss.
+
+    For most cases the simpler, leak-free approach is to implement the loss
+    directly as a differentiable ``torch.nn.Module`` (see the per-model
+    ``build_loss`` factories) so the logged and optimised loss are identical.
 
     Parameters
     ----------
     loss_fn : callable
-        Numpy ``(prediction, target) -> float`` loss for *logging*.
+        Numpy ``(prediction, target) -> float`` (or :class:`CompositeLoss`)
+        used for *logging only*.
     gradient_loss_fn : callable or None
-        PyTorch ``(pred_tensor, target_tensor) -> scalar_tensor`` used for
-        the backward pass.  Defaults to ``torch.nn.functional.mse_loss``.
+        Differentiable torch ``(pred_tensor, target_tensor) -> scalar_tensor``
+        used for the backward pass.  Required before :meth:`gradient_loss`
+        can be called; if ``None`` it raises ``ValueError``.  Pass
+        ``torch.nn.functional.mse_loss`` explicitly if you do want an MSE
+        gradient.
 
     Example
     -------
     ::
 
+        import torch.nn.functional as F
+
         loss = TorchLossWrapper(
             loss_fn=CompositeLoss({"mse": (mse_loss, 1.0), "spectral": (spectral_loss, 0.1)}),
+            gradient_loss_fn=F.mse_loss,  # explicit: this is the signal we optimise
         )
 
         # Inside train_step:
@@ -224,15 +237,23 @@ class TorchLossWrapper:
         self._gradient_loss_fn = gradient_loss_fn
 
     def gradient_loss(self, pred_tensor: Any, target_tensor: Any) -> Any:
-        """Return a differentiable loss tensor for ``backward()``."""
-        if self._gradient_loss_fn is not None:
-            return self._gradient_loss_fn(pred_tensor, target_tensor)
-        try:
-            import torch.nn.functional as F  # noqa: N812
+        """Return the differentiable loss tensor for ``backward()``.
 
-            return F.mse_loss(pred_tensor, target_tensor)
-        except ImportError as exc:
-            raise ImportError("PyTorch is required for TorchLossWrapper.gradient_loss()") from exc
+        Raises
+        ------
+        ValueError
+            If no ``gradient_loss_fn`` was provided.  The numpy ``loss_fn``
+            is non-differentiable and is used for logging only, so there is
+            no safe gradient to fall back on.
+        """
+        if self._gradient_loss_fn is None:
+            raise ValueError(
+                "TorchLossWrapper.gradient_loss() requires an explicit `gradient_loss_fn` "
+                "(a differentiable torch loss). The numpy `loss_fn` is non-differentiable and "
+                "is used for logging only. Pass gradient_loss_fn=torch.nn.functional.mse_loss "
+                "for an MSE gradient, or implement your loss directly as a torch.nn.Module."
+            )
+        return self._gradient_loss_fn(pred_tensor, target_tensor)
 
     def numpy_metrics(self, prediction: np.ndarray, target: np.ndarray) -> dict[str, float]:
         """Compute numpy metrics for logging (no gradient)."""
