@@ -5,12 +5,12 @@ from scipy.signal import find_peaks
 from mne.preprocessing import ICA
 import mne
 from scipy.signal import correlate
-from facet.Epilepsy.shared_utils import build_template
+from facet.Epilepsy.helpers.shared_utils import build_template
 from mne.filter import filter_data
 from scipy.stats import kurtosis  # used by legacy build_ica_composite
 from facet.Epilepsy.Models.pipeline_results import TemplateICADetection
-from facet.Epilepsy.regressors import generate_hrf_regressors
-from facet.Epilepsy.diagnostic_utils import plot_ica_components_timecourses
+from facet.Epilepsy.helpers.regressors import generate_hrf_regressors
+from facet.Epilepsy.helpers.diagnostic_utils import plot_ica_components_timecourses
 
 # ======================= ICA composite (Ebrahimzadeh) =======================
 def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.),
@@ -45,16 +45,31 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
     augmented_spikes = augment_template(raw, spike_sec, template_z, best_ch)
     logger.info(f"Augmented spikes: {len(augmented_spikes)} (original: {len(spike_sec)})")
 
-    # Multi-run ICA for stable candidates
-    stable_indices, component_counts, component_lambdas = multi_run_ica(raw)
-    logger.info(f"Stable candidate components: {stable_indices}")
+    # Multi-run ICA: cluster components across runs and return cluster centroids
+    # (mixing-vector templates of sources that appear most often / with largest λ).
+    n_ica_runs = 10
+    cluster_centroids, component_counts, component_lambdas = multi_run_ica(
+        raw, n_runs=n_ica_runs)
+    logger.info(f"Discovered {len(cluster_centroids)} stable component clusters")
 
-    # Fit ICA once to get sources
+    # Fit final ICA once to get sources, then map each cluster centroid to the
+    # best-matching component of this final fit (greedy |Pearson| on mixing cols).
     n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
     ica = ICA(n_components=min(20, n_eeg),  # Reduced for speed
               random_state=97, method='infomax', max_iter='auto')
     ica.fit(raw.copy())  # Raw is already filtered to 1-100
     S = ica.get_sources(raw).get_data()
+
+    stable_indices = match_clusters_to_ica(cluster_centroids, ica)
+    logger.info(f"Stable candidate components (final ICA indices): {stable_indices}")
+
+    # Map cluster-level run-frequencies onto the final ICA component indices so
+    # reproducibility can be reported per accepted component (run frequency = how
+    # many of the ``n_ica_runs`` ICA repetitions that source appeared in).
+    component_run_counts = {
+        stable_indices[i]: int(component_counts.get(i, 0))
+        for i in range(len(stable_indices))
+    }
 
     accepted = []
     timecourses = []
@@ -96,6 +111,8 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
         ica_selection_stats={
             'component_counts': component_counts,
             'component_lambdas': component_lambdas,
+            'component_run_counts': component_run_counts,
+            'n_runs': n_ica_runs,
         },
     )
 
@@ -139,8 +156,9 @@ def normalize_signal(x, eps=1e-12):
     return (x - x.mean()) / (x.std() + eps)
 
 # ======================= Multi-run ICA for stability =======================
-def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3):
-    """Run ICA multiple times to select stable candidate components.
+def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3,
+                  cluster_threshold=0.8):
+    """Run ICA multiple times and cluster components across runs.
 
     Ebrahimzadeh 2021: "ICA algorithm was applied 10 times using different
     arbitrary (random) initialization weights, and the initial candidates
@@ -149,52 +167,178 @@ def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3):
     extracted independent components) across all 10 iterations were selected
     as final candidates."
 
-    λ is interpreted as the L2 norm of each component's column in the ICA
-    mixing matrix (A), which quantifies the component's contribution to the
-    observed EEG signal.
+    λ is the L2 norm of each component's column in the ICA mixing matrix (A),
+    which quantifies the component's contribution to the observed EEG signal.
 
-    NOTE – Component identity across runs:  ICA with different random seeds
-    produces different decompositions; component index k in run i is not
-    necessarily the same source as index k in run j.  The current
-    implementation uses index identity as a proxy, which is a known
-    simplification.  A full implementation would match components across
-    runs by correlating their mixing vectors or source timecourses.
+    Component-identity matching across runs
+    ---------------------------------------
+    ICA decompositions are permutation- and sign-invariant, so raw component
+    indices are not comparable across runs. We cluster all (n_runs ×
+    n_components) mixing vectors by absolute Pearson correlation of unit-norm
+    columns. Each resulting cluster represents one source seen across runs.
+    Clusters are ranked by the number of distinct runs they appear in
+    (frequency, paper's "most often" criterion) and then by mean λ. The top
+    ``max_keep`` cluster centroids are returned and can be matched to the
+    components of any subsequent ICA fit via ``match_clusters_to_ica``.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Pre-filtered EEG data.
+    n_runs : int
+        Number of ICA repetitions with different random seeds.
+    max_keep : int
+        Number of stable clusters to return (paper: 3).
+    cluster_threshold : float
+        Minimum |correlation| of mixing vectors for two components to be
+        grouped into the same cluster.
+
+    Returns
+    -------
+    cluster_centroids : list of ndarray
+        Sign-aligned, unit-norm mixing-vector centroid for each selected
+        cluster (shape: (n_channels,)). Use ``match_clusters_to_ica`` to
+        map these to components of a final ICA fit.
+    component_counts : dict[int, int]
+        Selected-cluster index → number of distinct runs it appeared in.
+    component_lambdas : dict[int, list[float]]
+        Selected-cluster index → list of λ values from all member components.
     """
     from loguru import logger
-    from collections import Counter
-    component_counts = Counter()
-    component_lambdas = {}  # index → list of λ values across runs
 
+    n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
+    n_comp = min(20, n_eeg)
+
+    # Collect every component from every run: (unit-norm mixing vector, λ, run, idx)
+    all_vecs = []
+    all_lambdas = []
+    all_runs = []
     for run in range(n_runs):
-        random_state = run  # different seed each time
-        n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
-        ica = ICA(n_components=min(20, n_eeg),
-                  random_state=random_state, method='infomax', max_iter='auto')
-        ica.fit(raw.copy())  # Raw is already filtered to 1-100
-        n_components = ica.n_components_
+        ica = ICA(n_components=n_comp, random_state=run,
+                  method='infomax', max_iter='auto')
+        ica.fit(raw.copy())
+        mixing = ica.mixing_matrix_  # (n_channels, n_components)
+        for k in range(ica.n_components_):
+            vec = mixing[:, k]
+            lam = float(np.linalg.norm(vec))
+            if lam > 0:
+                all_vecs.append(vec / lam)
+                all_lambdas.append(lam)
+                all_runs.append(run)
 
-        # Compute λ (mixing weight) for each component: L2 norm of mixing column
-        mixing = ica.mixing_matrix_  # shape (n_channels, n_components)
-        for idx in range(n_components):
-            component_counts[idx] += 1
-            if idx not in component_lambdas:
-                component_lambdas[idx] = []
-            lam = np.linalg.norm(mixing[:, idx])
-            component_lambdas[idx].append(lam)
+    if not all_vecs:
+        logger.warning("multi_run_ica: no components collected")
+        return [], {}, {}
 
-    # Two-stage selection per paper:
-    # 1. Rank by frequency (most often across runs)
-    # 2. Among those, pick top max_keep by highest average λ
-    candidates = sorted(
-        component_counts.items(),
-        key=lambda x: (x[1], np.mean(component_lambdas.get(x[0], [0]))),
-        reverse=True
+    M = np.asarray(all_vecs)              # (n_total, n_channels), unit-norm rows
+    lambdas_all = np.asarray(all_lambdas) # (n_total,)
+    runs_all = np.asarray(all_runs)       # (n_total,)
+
+    # Sign-invariant similarity (vectors are unit-norm → |dot| == |Pearson|)
+    sim = np.abs(M @ M.T)
+
+    # Greedy clustering: seed each cluster with the highest-λ unassigned vector,
+    # absorb all unassigned vectors above the similarity threshold.
+    n_total = M.shape[0]
+    assigned = np.zeros(n_total, dtype=bool)
+    order = np.argsort(-lambdas_all)
+    clusters = []
+    for i in order:
+        if assigned[i]:
+            continue
+        mask = (sim[i] >= cluster_threshold) & (~assigned)
+        members = np.where(mask)[0]
+        if members.size == 0:
+            continue
+        clusters.append(members)
+        assigned[members] = True
+
+    # Build per-cluster statistics
+    cluster_info = []
+    for members in clusters:
+        runs_in = np.unique(runs_all[members])
+        member_lambdas = lambdas_all[members].tolist()
+        seed_vec = M[members[0]]
+        signs = np.sign(M[members] @ seed_vec)
+        signs[signs == 0] = 1.0
+        aligned = M[members] * signs[:, None]
+        centroid = aligned.mean(axis=0)
+        centroid /= (np.linalg.norm(centroid) + 1e-12)
+        cluster_info.append({
+            'centroid': centroid,
+            'run_count': int(len(runs_in)),
+            'mean_lambda': float(np.mean(member_lambdas)),
+            'lambdas': member_lambdas,
+        })
+
+    # Paper-aligned ranking: primary = frequency across runs, secondary = mean λ
+    cluster_info.sort(
+        key=lambda c: (c['run_count'], c['mean_lambda']),
+        reverse=True,
     )
-    stable_indices = [idx for idx, _ in candidates[:max_keep]]
-    logger.info(f"Component counts: {dict(component_counts)}")
-    logger.info(f"Average λ: { {idx: f'{np.mean(vals):.4f}' for idx, vals in component_lambdas.items()} }")
-    logger.info(f"Selected top-{max_keep} stable: {stable_indices}")
-    return stable_indices, dict(component_counts), {k: list(v) for k, v in component_lambdas.items()}
+    selected = cluster_info[:max_keep]
+
+    cluster_centroids = [c['centroid'] for c in selected]
+    component_counts = {i: c['run_count'] for i, c in enumerate(selected)}
+    component_lambdas = {i: c['lambdas'] for i, c in enumerate(selected)}
+
+    mean_lambda_str = [f"{c['mean_lambda']:.4f}" for c in selected]
+    logger.info(
+        f"multi_run_ica: {len(cluster_info)} clusters from {n_runs} runs "
+        f"({n_total} total components, threshold={cluster_threshold})"
+    )
+    logger.info(
+        f"Top-{max_keep} cluster run-frequencies: "
+        f"{[c['run_count'] for c in selected]}"
+    )
+    logger.info(f"Top-{max_keep} cluster mean λ: {mean_lambda_str}")
+
+    return cluster_centroids, component_counts, component_lambdas
+
+
+def match_clusters_to_ica(cluster_centroids, ica):
+    """Map cluster-centroid mixing vectors to components of a fitted ICA.
+
+    Greedy matching by absolute Pearson correlation of mixing columns
+    (sign-invariant). Each centroid is paired with a distinct ICA component.
+
+    Parameters
+    ----------
+    cluster_centroids : list of ndarray
+        Unit-norm mixing-vector centroids (output of ``multi_run_ica``).
+    ica : mne.preprocessing.ICA
+        Fitted ICA whose components will be matched.
+
+    Returns
+    -------
+    matched_indices : list[int]
+        Component index in ``ica`` for each centroid, in the same order.
+    """
+    from loguru import logger
+
+    if not cluster_centroids:
+        return []
+
+    mixing = ica.mixing_matrix_  # (n_channels, n_components)
+    norms = np.linalg.norm(mixing, axis=0)
+    norms[norms == 0] = 1.0
+    mixing_norm = mixing / norms[None, :]
+
+    matched = []
+    used = set()
+    for ci, centroid in enumerate(cluster_centroids):
+        sims = np.abs(mixing_norm.T @ centroid)  # (n_components,)
+        for k in np.argsort(-sims):
+            k_int = int(k)
+            if k_int not in used:
+                matched.append(k_int)
+                used.add(k_int)
+                logger.info(
+                    f"Cluster {ci} → ICA component {k_int} "
+                    f"(|r|={sims[k_int]:.3f})"
+                )
+                break
+    return matched
 
 # ======================= Template augmentation =======================
 def augment_template(raw, spike_sec, template_z, best_ch, high_r_min=0.96, high_r_max=0.98, refractory_s=0.15):

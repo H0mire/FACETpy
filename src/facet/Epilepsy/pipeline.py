@@ -7,10 +7,10 @@ from scipy.io import loadmat
 
 sys.path.append("../../src")
 
-from facet.Epilepsy.preprocessing import load_mat_to_mne, filter_eeg, parse_spike_times, prepare_eeg_data
-from facet.Epilepsy.correlation_utils import select_components_template_ica
+from facet.Epilepsy.helpers.preprocessing import load_mat_to_mne, filter_eeg, parse_spike_times, prepare_eeg_data
+from facet.Epilepsy.helpers.correlation_utils import select_components_template_ica
 from facet.Epilepsy.Models.pipeline_results import TemplateICADetection
-from facet.Epilepsy.regressors import build_grouiller_regressor, generate_hrf_regressors, compute_and_attach_ica_regressors  
+from facet.Epilepsy.helpers.regressors import build_grouiller_regressor, generate_hrf_regressors, compute_and_attach_ica_regressors  
 
 def run_ebrahimzadeh_pipeline(
     mat_path: str,

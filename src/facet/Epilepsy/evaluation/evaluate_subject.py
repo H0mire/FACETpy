@@ -31,14 +31,16 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 
+import mne
 import numpy as np
 import pandas as pd
 
 from facet.Epilepsy.pipeline import run_combined_pipeline
-from facet.Epilepsy.preprocessing import prepare_eeg_data
+from facet.Epilepsy.helpers.preprocessing import prepare_eeg_data
 from facet.Epilepsy.evaluation.plots import (
     plot_acceptance_summary, plot_window_corr_distribution,
     plot_lambda_ranking, plot_template, plot_regressor_comparison,
+    plot_ica_topomaps, plot_ica_reproducibility, plot_grouiller_map,
 )
 
 # ── Constants ────────────────────────────────────────────────────────────────
@@ -68,6 +70,7 @@ class SubjectRecord:
     regressor_ebrahimzadeh: Optional[np.ndarray] = None
     regressor_grouiller: Optional[np.ndarray] = None
     epileptic_map: Optional[np.ndarray] = None
+    channel_names: list = field(default_factory=list)
     detection: object = None
 
 
@@ -85,6 +88,8 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
 
     detection = result.get("detection")
     grouiller = result.get("regressor_grouiller", {})
+
+    channel_names = _eeg_channel_names(detection)
 
     if detection is None:
         return SubjectRecord(
@@ -110,8 +115,57 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
         regressor_ebrahimzadeh=detection.regressor_ica,
         regressor_grouiller=grouiller.get("regressor_hrf"),
         epileptic_map=grouiller.get("epileptic_map"),
+        channel_names=channel_names,
         detection=detection,
     )
+
+
+def _eeg_channel_names(detection) -> list:
+    """EEG channel names (in epileptic-map order) from the detection's raw."""
+    raw = getattr(detection, "raw", None) if detection is not None else None
+    if raw is None:
+        return []
+    eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude="bads")
+    return [raw.ch_names[i] for i in eeg_picks]
+
+
+def grouiller_peak_channel(rec: "SubjectRecord") -> Optional[str]:
+    """Channel with the largest |value| in the epileptic map."""
+    emap = rec.epileptic_map
+    if emap is None or len(emap) == 0 or not rec.channel_names:
+        return None
+    peak_idx = int(np.argmax(np.abs(emap)))
+    if peak_idx < len(rec.channel_names):
+        return rec.channel_names[peak_idx]
+    return None
+
+
+def ebrahimzadeh_best_channel_name(rec: "SubjectRecord") -> Optional[str]:
+    """Name of the Ebrahimzadeh best channel (index into raw.ch_names)."""
+    det = rec.detection
+    raw = getattr(det, "raw", None) if det is not None else None
+    if raw is None or rec.best_channel is None:
+        return None
+    if 0 <= rec.best_channel < len(raw.ch_names):
+        return raw.ch_names[rec.best_channel]
+    return None
+
+
+def grouiller_focality(rec: "SubjectRecord") -> float:
+    """Focality = max(|map|) / median(|map|).  Higher = more focal."""
+    emap = rec.epileptic_map
+    if emap is None or len(emap) == 0:
+        return np.nan
+    a = np.abs(emap)
+    med = float(np.median(a))
+    return float(np.max(a) / med) if med > 0 else np.nan
+
+
+def ic_run_frequencies(rec: "SubjectRecord") -> list:
+    """Per accepted IC: (component_idx, run_count, n_runs)."""
+    counts = rec.ica_selection_stats.get("component_run_counts", {})
+    n_runs = int(rec.ica_selection_stats.get("n_runs", 0))
+    return [(idx, int(counts.get(idx, 0)), n_runs) for idx in rec.accepted_indices]
 
 
 # ── DataFrames ───────────────────────────────────────────────────────────────
@@ -127,16 +181,24 @@ def build_summary_dataframe(rec: SubjectRecord) -> pd.DataFrame:
         vals = lambdas.get(idx, [])
         mean_lams.append(f"{np.mean(vals):.4f}" if vals else "N/A")
 
+    ic_freqs = ic_run_frequencies(rec)
+    ic_freq_str = ";".join(f"IC{idx}:{count}/{n}" for idx, count, n in ic_freqs)
+
     row = {
         "subject": rec.subject,
         "mat_file": os.path.basename(rec.mat_path),
         "n_spikes_annotated": rec.n_spikes_annotated,
         "n_spikes_augmented": rec.n_spikes_augmented,
         "best_channel": rec.best_channel,
+        "best_channel_name": ebrahimzadeh_best_channel_name(rec),
         "n_accepted_components": rec.n_accepted_components,
         "accepted_indices": ";".join(str(i) for i in rec.accepted_indices),
         "median_corr_at_IEDs": ";".join(median_corrs),
         "mean_lambda": ";".join(mean_lams),
+        "ic_run_frequency": ic_freq_str,
+        "n_ica_runs": int(rec.ica_selection_stats.get("n_runs", 0)),
+        "grouiller_peak_channel": grouiller_peak_channel(rec),
+        "grouiller_focality": grouiller_focality(rec),
         "template_length_samples": (
             len(rec.template_z) if rec.template_z is not None else 0
         ),
@@ -245,9 +307,7 @@ def validate_outputs(rec: SubjectRecord) -> list[str]:
 def run_evaluation(mat_path: str):
     """Execute the full single-subject evaluation for one .mat file."""
     subject = os.path.splitext(os.path.basename(mat_path))[0]
-    out_dir = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "results", subject
-    )
+    out_dir = os.path.join(os.path.dirname(__file__), "results", subject)
     os.makedirs(out_dir, exist_ok=True)
     print(f"Subject:          {subject}")
     print(f"Input:            {os.path.abspath(mat_path)}")
@@ -282,6 +342,27 @@ def run_evaluation(mat_path: str):
     df_cd.to_csv(csv2, index=False)
     print(f"  Saved {csv2}")
 
+    # ── Arrays (for group-level aggregation) ────────────────────────────
+    npz_path = os.path.join(out_dir, f"arrays_{subject}.npz")
+    np.savez(
+        npz_path,
+        regressor_ebrahimzadeh=(
+            rec.regressor_ebrahimzadeh
+            if rec.regressor_ebrahimzadeh is not None else np.array([])
+        ),
+        regressor_grouiller=(
+            rec.regressor_grouiller
+            if rec.regressor_grouiller is not None else np.array([])
+        ),
+        template_z=(
+            rec.template_z if rec.template_z is not None else np.array([])
+        ),
+        epileptic_map=(
+            rec.epileptic_map if rec.epileptic_map is not None else np.array([])
+        ),
+    )
+    print(f"  Saved {npz_path}")
+
     # ── Figures ─────────────────────────────────────────────────────────
     print("\n--- Generating figures ---")
     plot_acceptance_summary(
@@ -294,6 +375,12 @@ def run_evaluation(mat_path: str):
         rec, os.path.join(out_dir, f"fig_{subject}_template.png"))
     plot_regressor_comparison(
         rec, os.path.join(out_dir, f"fig_{subject}_regressor_comparison.png"))
+    plot_ica_topomaps(
+        rec, os.path.join(out_dir, f"fig_{subject}_ica_topomaps.png"))
+    plot_ica_reproducibility(
+        rec, os.path.join(out_dir, f"fig_{subject}_ica_reproducibility.png"))
+    plot_grouiller_map(
+        rec, os.path.join(out_dir, f"fig_{subject}_grouiller_map.png"))
 
     print(f"\n✓ Single-subject evaluation complete for {subject}.")
     print(f"  Outputs in: {os.path.abspath(out_dir)}")
@@ -322,12 +409,11 @@ def main():
     )
     parser.add_argument(
         "--mat-file", "-m", default=None,
-        help="Filename or full path to the .mat file to evaluate "
-             "(default: DA00100T.mat)",
+        help="Filename or full path to the .mat file to evaluate ",
     )
     args = parser.parse_args()
 
-    file_name = "DA00100T.mat"
+    file_name = "DA00103D.mat"
     if args.mat_file:
         mat_file_path = _resolve_mat_path(args.mat_file)
     else:

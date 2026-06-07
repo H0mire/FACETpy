@@ -99,6 +99,30 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
     return raw, mat
 
 
+def load_edf_to_mne(edf_path, preload=True):
+    """
+    Load EEG data from an EDF file and create an MNE Raw object.
+    
+    Parameters
+    ----------
+    edf_path : str
+        Path to the .edf file.
+    preload : bool
+        Whether to load data into memory for filtering. Defaults to True.
+        
+    Returns
+    -------
+    raw : mne.io.Raw
+        MNE Raw object with EEG data.
+    """
+    print(f"[load_edf_to_mne] Loading {edf_path}...")
+    raw = mne.io.read_raw_edf(edf_path, preload=preload)
+    
+    # Try mapping EGI channel names (E1..E128) to the standard standard_1020 if needed
+    # or just set up as eeg types. E1 to E128 are mapped as eeg by default.
+    return raw
+
+
 def filter_eeg(raw):
     """
     Apply notch and band-pass filtering to EEG data.
