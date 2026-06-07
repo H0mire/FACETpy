@@ -463,6 +463,44 @@ class TestAcquisitionAlignment:
         assert meta["applied_to"] == "raw"
         assert abs(meta["shifts"][1] - 3) <= 3
 
+    def test_subsample_run_once_is_mode_dependent(self):
+        """Only 'legacy' (shared trigger move) is run-once; the fractional modes
+        write per-channel data and must run for every channel."""
+        assert SubsampleAligner(mode="legacy").run_once is True
+        assert SubsampleAligner(mode="fast").run_once is False
+        assert SubsampleAligner(mode="quality").run_once is False
+
+    def test_subsample_fractional_aligns_all_channels_channel_sequential(self):
+        """fast/quality must shift EVERY channel under channel-sequential
+        execution, not just the first (regression: run_once skipped channels
+        1+, leaving the fractional shift applied to channel 0 only)."""
+        from facet.core.channel_sequential import ChannelSequentialExecutor
+
+        sfreq, art_len, n, n_ch = 200.0, 40, 400, 3
+        triggers = np.array([100, 200])
+        template = np.sin(np.linspace(0, np.pi, art_len)) * 1e-6
+        for mode in ("fast", "quality"):
+            data = np.zeros((n_ch, n))
+            for ch in range(n_ch):
+                data[ch, 100:140] += template
+                data[ch, 202:242] += template  # 2nd artifact shifted by +2
+            info = mne.create_info([f"E{i}" for i in range(n_ch)], sfreq, ch_types="eeg")
+            raw = mne.io.RawArray(data, info, verbose=False)
+            metadata = ProcessingMetadata()
+            metadata.triggers = triggers.copy()
+            metadata.artifact_length = art_len
+            metadata.artifact_to_trigger_offset = 0.0
+            metadata.upsampling_factor = 1
+            context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+            before = context.get_raw().get_data().copy()
+            aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode=mode)
+            result = ChannelSequentialExecutor().execute([aligner], context)
+            after = result.get_raw().get_data()
+
+            changed = [i for i in range(n_ch) if not np.allclose(before[i], after[i])]
+            assert changed == list(range(n_ch)), f"{mode}: only channels {changed} were shifted"
+
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
         # Remove artifact length

@@ -467,6 +467,11 @@ class SubsampleAligner(Processor):
     modifies_raw = False
     parallel_safe = True
     channel_wise = True
+    # Class default; overridden per-instance in __init__. Only "legacy" is truly
+    # run-once (it moves the shared trigger metadata, which propagates to every
+    # channel). The fractional modes bake the shift into each channel's DATA, so
+    # in channel-sequential execution they must run for EVERY channel — otherwise
+    # only the first channel gets aligned.
     run_once = True
 
     def __init__(
@@ -487,6 +492,10 @@ class SubsampleAligner(Processor):
         self.ref_channel = ref_channel
         self.search_window = search_window
         self.mode = mode
+        # "legacy" moves the (shared) trigger metadata once; the fractional modes
+        # write per-channel data and must therefore run for every channel under
+        # channel-sequential execution (estimate + apply per channel).
+        self.run_once = mode == "legacy"
         self.apply_to_raw = apply_to_raw
         self.interpolation_iters = max(1, int(interpolation_iters))
         self.ssa_hp_freq = ssa_hp_freq
