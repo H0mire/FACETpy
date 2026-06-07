@@ -5,7 +5,8 @@ from __future__ import annotations
 import mne
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 from facet.core import ProcessingContext
 from facet.core.context import ProcessingMetadata

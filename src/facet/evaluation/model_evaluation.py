@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -31,9 +33,63 @@ def _json_default(value: Any) -> Any:
     return str(value)
 
 
+_PATH_TOKEN_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+def _validate_path_token(value: str, field_label: str) -> str:
+    """Validate that *value* is a safe single path segment.
+
+    Rejects empty strings, ``.``/``..`` and anything containing path
+    separators or characters outside ``[A-Za-z0-9._-]`` so that an
+    attacker-controlled ``model_id``/``run_id`` cannot traverse out of the
+    intended output directory (e.g. ``../../etc``).
+    """
+    token = (value or "").strip()
+    if not token:
+        raise ValueError(f"{field_label} must not be empty")
+    if token in {".", ".."} or _PATH_TOKEN_RE.match(token) is None:
+        raise ValueError(
+            f"{field_label} must match {_PATH_TOKEN_RE.pattern} with no path separators "
+            f"or '.'/'..' traversal; got {value!r}"
+        )
+    return token
+
+
+def _sanitize_for_json(obj: Any) -> Any:
+    """Recursively replace non-finite floats with ``None``.
+
+    ``json.dumps`` would otherwise emit bare ``NaN``/``Infinity`` tokens that
+    strict JSON parsers reject. Applied before dumping with ``allow_nan=False``
+    so the emitted JSON is always valid.
+    """
+    if isinstance(obj, dict):
+        return {key: _sanitize_for_json(value) for key, value in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(value) for value in obj]
+    if isinstance(obj, bool):
+        return obj
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    try:
+        import numpy as np
+    except ImportError:  # pragma: no cover
+        return obj
+    if isinstance(obj, np.floating):
+        as_float = float(obj)
+        return as_float if math.isfinite(as_float) else None
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.ndarray):
+        return _sanitize_for_json(obj.tolist())
+    return obj
+
+
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, default=_json_default), encoding="utf-8")
+    path.write_text(
+        json.dumps(_sanitize_for_json(payload), indent=2, default=_json_default, allow_nan=False),
+        encoding="utf-8",
+    )
 
 
 def _format_metric_value(value: Any) -> str:
@@ -90,8 +146,8 @@ class ModelEvaluationWriter:
     run_id: str = field(default_factory=_default_run_id)
 
     def __post_init__(self) -> None:
-        if not self.model_id.strip():
-            raise ValueError("model_id must not be empty")
+        _validate_path_token(self.model_id, "model_id")
+        _validate_path_token(self.run_id, "run_id")
         if not self.model_name.strip():
             raise ValueError("model_name must not be empty")
 
@@ -186,8 +242,8 @@ class ModelEvaluationWriter:
         if not limitation_rows:
             limitation_rows = "- No limitations recorded."
 
-        config_block = json.dumps(config, indent=2, default=_json_default)
-        metrics_block = json.dumps(metrics, indent=2, default=_json_default)
+        config_block = json.dumps(_sanitize_for_json(config), indent=2, default=_json_default, allow_nan=False)
+        metrics_block = json.dumps(_sanitize_for_json(metrics), indent=2, default=_json_default, allow_nan=False)
         interpretation_text = interpretation.strip() or "No interpretation recorded."
 
         return f"""# Evaluation Run: {self.model_name}

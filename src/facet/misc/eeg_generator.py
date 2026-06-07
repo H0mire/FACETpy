@@ -160,7 +160,7 @@ class SpikeParams:
     focal_channels: list[str | int] | None = None
     spatial_spread: float = 0.5  # 50% spread to neighbors
     gabor_frequency_hz: float = 25.0  # Hz - central frequency
-    annotate: bool = True
+    annotate: bool = False
     annotation_description: str = "spike_onset"
 
 

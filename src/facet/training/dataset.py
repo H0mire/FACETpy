@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,8 @@ import mne
 import numpy as np
 
 from ..core import ProcessingContext
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Augmentation transforms (numpy, callable)
@@ -136,7 +139,7 @@ class NPZContextArtifactDataset:
         if not self.path.exists():
             raise FileNotFoundError(self.path)
 
-        with np.load(self.path, allow_pickle=True) as bundle:
+        with np.load(self.path, allow_pickle=False) as bundle:
             self.noisy = bundle[input_key].astype(np.float32, copy=False)
             self.target = bundle[target_key].astype(np.float32, copy=False)
             self.sfreq = float(bundle["sfreq"][0]) if "sfreq" in bundle else float("nan")
@@ -372,7 +375,12 @@ class EEGArtifactDataset:
     # Train / validation split
     # ------------------------------------------------------------------
 
-    def train_val_split(self, val_ratio: float = 0.2, seed: int = 42) -> tuple[_SubsetDataset, _SubsetDataset]:
+    def train_val_split(
+        self,
+        val_ratio: float = 0.2,
+        seed: int = 42,
+        split_mode: str = "random",
+    ) -> tuple[_SubsetDataset, _SubsetDataset]:
         """Split into train and validation subsets (index-mapped, no data copy).
 
         Parameters
@@ -380,7 +388,15 @@ class EEGArtifactDataset:
         val_ratio : float
             Fraction of chunks reserved for validation.
         seed : int
-            Random seed for the shuffle.
+            Random seed for the shuffle (``split_mode="random"`` only).
+        split_mode : {"random", "contiguous"}
+            ``"random"`` shuffles chunks before splitting. With overlapping
+            sliding windows (``overlap > 0``) this lets physically overlapping
+            windows land in both subsets — temporal leakage that inflates
+            validation metrics — so a warning is emitted in that case.
+            ``"contiguous"`` performs a leakage-free block split (earliest
+            chunks → train, latest → validation) and drops a guard band of
+            overlapping windows at the seam.
 
         Returns
         -------
@@ -388,14 +404,46 @@ class EEGArtifactDataset:
             Both are lightweight :class:`_SubsetDataset` views that share
             the underlying chunk list with this dataset.
         """
+        if split_mode not in {"random", "contiguous"}:
+            raise ValueError(f"split_mode must be 'random' or 'contiguous', got {split_mode!r}")
+
         n = len(self._chunks)
+        n_val = max(1, int(n * val_ratio))
+
+        if split_mode == "contiguous":
+            guard = self._overlap_guard_chunks()
+            val_start = n - n_val
+            train_idx = list(range(0, max(0, val_start - guard)))
+            val_idx_list = list(range(val_start, n))
+            return _SubsetDataset(self, train_idx), _SubsetDataset(self, val_idx_list)
+
+        if self.overlap > 0 and not self.trigger_aligned:
+            logger.warning(
+                "train_val_split(split_mode='random') with overlap=%.3f on sliding-window "
+                "chunks places physically overlapping windows in both train and validation "
+                "(temporal leakage -> optimistic val metrics). Pass split_mode='contiguous' "
+                "for a leakage-free block split.",
+                self.overlap,
+            )
         rng = np.random.default_rng(seed)
         indices = rng.permutation(n).tolist()
-        n_val = max(1, int(n * val_ratio))
         val_idx = set(indices[:n_val])
         train_idx = [i for i in range(n) if i not in val_idx]
         val_idx_list = [i for i in range(n) if i in val_idx]
         return _SubsetDataset(self, train_idx), _SubsetDataset(self, val_idx_list)
+
+    def _overlap_guard_chunks(self) -> int:
+        """Number of trailing train chunks to drop at the contiguous-split seam.
+
+        Sliding windows that straddle the train/val boundary physically overlap;
+        dropping ``ceil(chunk_size / hop) - 1`` chunks removes that overlap so no
+        sample appears in both subsets. Returns 0 when chunks do not overlap
+        (``overlap == 0``) or are trigger-aligned.
+        """
+        if self.overlap <= 0 or self.trigger_aligned:
+            return 0
+        hop = max(1, int(self.chunk_size * (1.0 - self.overlap)))
+        return max(0, (self.chunk_size + hop - 1) // hop - 1)
 
     # ------------------------------------------------------------------
     # Framework adapters

@@ -603,7 +603,7 @@ class SavePredictionSamplesCallback(Callback):
                 label="prediction",
             )
             ax.set_ylabel("µV")
-            ax.set_title(f"val sample {sample_idx}")
+            ax.set_title(f"val sample {sample_idx} · ch0")
             ax.grid(alpha=0.25)
             if row == 0:
                 ax.legend(loc="upper right", fontsize=8)

@@ -980,6 +980,10 @@ class SubsampleAligner(Processor):
         """
         raw_copy = raw.copy()
         data = raw_copy.get_data()
+        # Read every epoch from a pristine snapshot so overlapping windows of
+        # consecutive triggers never read samples already shifted by an earlier
+        # iteration (in-place read/write contamination).
+        source = data.copy()
         n_channels = data.shape[0]
         max_shift = float(np.max(np.abs(shifts))) if len(shifts) else 0.0
         pad = 8 + int(np.ceil(max_shift))
@@ -996,7 +1000,7 @@ class SubsampleAligner(Processor):
             # samples into the artifact region.
             extended = np.empty((n_channels, length + 2 * pad), dtype=data.dtype)
             for ch in range(n_channels):
-                extended[ch] = _extract_epoch_with_padding(data[ch], window_start - pad, length + 2 * pad, n_samples)
+                extended[ch] = _extract_epoch_with_padding(source[ch], window_start - pad, length + 2 * pad, n_samples)
             shifted = self._fractional_shift(extended, -float(shift))
             data[:, window_start:window_end] = shifted[:, pad : pad + length]
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import dataclasses
 import importlib
 import inspect
@@ -173,75 +174,84 @@ def run_fit_command(config_path: str | Path) -> CLITrainingRun:
     config_path = Path(config_path).expanduser().resolve()
     config_dir = config_path.parent
 
-    if str(config_dir) not in sys.path:
+    # Expose the config directory so user factories referenced by import path
+    # resolve, then restore sys.path afterwards instead of leaking the entry
+    # globally. NOTE: a training config can execute arbitrary code via its
+    # factory import paths — treat config files as trusted input.
+    inserted_config_dir = str(config_dir) not in sys.path
+    if inserted_config_dir:
         sys.path.insert(0, str(config_dir))
+    try:
+        cli_config = load_training_cli_config(config_path)
+        _validate_training_config(cli_config)
 
-    cli_config = load_training_cli_config(config_path)
-    _validate_training_config(cli_config)
+        contexts = _load_contexts(cli_config) if cli_config.data.context_factory else []
+        dataset = _build_dataset(contexts, cli_config)
+        if len(dataset) == 0:
+            raise ProcessorValidationError("Dataset construction produced zero chunks; training cannot proceed")
 
-    contexts = _load_contexts(cli_config) if cli_config.data.context_factory else []
-    dataset = _build_dataset(contexts, cli_config)
-    if len(dataset) == 0:
-        raise ProcessorValidationError("Dataset construction produced zero chunks; training cannot proceed")
+        if cli_config.training.val_ratio > 0.0:
+            train_dataset, val_dataset = dataset.train_val_split(
+                val_ratio=cli_config.training.val_ratio,
+                seed=cli_config.training.seed,
+            )
+        else:
+            train_dataset, val_dataset = dataset, None
 
-    if cli_config.training.val_ratio > 0.0:
-        train_dataset, val_dataset = dataset.train_val_split(
-            val_ratio=cli_config.training.val_ratio,
-            seed=cli_config.training.seed,
+        sfreq = contexts[0].get_sfreq() if contexts else float(getattr(dataset, "sfreq", float("nan")))
+        model = _build_model(cli_config, dataset, sfreq)
+        wrapper = _build_wrapper(cli_config, model)
+
+        trainer = Trainer(
+            wrapper=wrapper,
+            train_dataset=train_dataset,
+            val_dataset=val_dataset,
+            config=cli_config.training,
         )
-    else:
-        train_dataset, val_dataset = dataset, None
+        result = trainer.fit()
 
-    sfreq = contexts[0].get_sfreq() if contexts else float(getattr(dataset, "sfreq", float("nan")))
-    model = _build_model(cli_config, dataset, sfreq)
-    wrapper = _build_wrapper(cli_config, model)
+        run_dir = Path(result.run_dir)
+        _write_resolved_cli_config(cli_config, run_dir)
 
-    trainer = Trainer(
-        wrapper=wrapper,
-        train_dataset=train_dataset,
-        val_dataset=val_dataset,
-        config=cli_config.training,
-    )
-    result = trainer.fit()
+        export_path = _export_model_if_requested(
+            cli_config=cli_config,
+            wrapper=wrapper,
+            dataset=dataset,
+            run_dir=run_dir,
+        )
+        inference_config_path = _write_inference_config_if_requested(
+            cli_config=cli_config,
+            export_path=export_path,
+            run_dir=run_dir,
+        )
+        summary_path = _write_run_summary(
+            cli_config=cli_config,
+            result=result,
+            n_contexts=len(contexts),
+            train_chunks=len(train_dataset),
+            val_chunks=len(val_dataset) if val_dataset is not None else 0,
+            dataset=dataset,
+            export_path=export_path,
+            inference_config_path=inference_config_path,
+        )
 
-    run_dir = Path(result.run_dir)
-    _write_resolved_cli_config(cli_config, run_dir)
-
-    export_path = _export_model_if_requested(
-        cli_config=cli_config,
-        wrapper=wrapper,
-        dataset=dataset,
-        run_dir=run_dir,
-    )
-    inference_config_path = _write_inference_config_if_requested(
-        cli_config=cli_config,
-        export_path=export_path,
-        run_dir=run_dir,
-    )
-    summary_path = _write_run_summary(
-        cli_config=cli_config,
-        result=result,
-        n_contexts=len(contexts),
-        train_chunks=len(train_dataset),
-        val_chunks=len(val_dataset) if val_dataset is not None else 0,
-        dataset=dataset,
-        export_path=export_path,
-        inference_config_path=inference_config_path,
-    )
-
-    logger.info(
-        "Training completed: run_dir={} best_epoch={} best_metric={:.6f}",
-        run_dir,
-        result.best_epoch,
-        result.best_metric,
-    )
-    return CLITrainingRun(
-        config=cli_config,
-        result=result,
-        export_path=export_path,
-        inference_config_path=inference_config_path,
-        summary_path=summary_path,
-    )
+        logger.info(
+            "Training completed: run_dir={} best_epoch={} best_metric={:.6f}",
+            run_dir,
+            result.best_epoch,
+            result.best_metric,
+        )
+        return CLITrainingRun(
+            config=cli_config,
+            result=result,
+            export_path=export_path,
+            inference_config_path=inference_config_path,
+            summary_path=summary_path,
+        )
+    finally:
+        if inserted_config_dir:
+            with contextlib.suppress(ValueError):
+                sys.path.remove(str(config_dir))
 
 
 def load_training_cli_config(path: str | Path) -> TrainingCLIConfig:

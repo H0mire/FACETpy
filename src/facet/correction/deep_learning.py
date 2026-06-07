@@ -13,12 +13,14 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
+from math import gcd
 from pathlib import Path
 from typing import Any
 
 import mne
 import numpy as np
 from loguru import logger
+from scipy.signal import resample_poly
 
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
 
@@ -47,6 +49,37 @@ def _overlap_add_window(length: int, taper: int) -> np.ndarray:
         window[:taper] = ramp
         window[length - taper :] = ramp[::-1]
     return window
+
+
+def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
+    """Bandlimited polyphase resampling of one channel epoch to a fixed length.
+
+    Uses ``scipy.signal.resample_poly`` (FIR polyphase filter) to match the
+    resampling used when the training dataset was built. Linear interpolation
+    has a ``sinc^2`` lowpass response that attenuates the HF EPI-readout content
+    these models were trained on, so input (native -> fixed) and output
+    (fixed -> native) must use the same bandlimited resampler. Shared by the
+    epoch-context model adapters (review finding L3).
+    """
+    if values.ndim != 1:
+        raise ValueError(f"Expected 1D values, got shape {values.shape}")
+    if target_samples <= 0:
+        raise ValueError("target_samples must be positive")
+    n = len(values)
+    if n == target_samples:
+        return values.astype(np.float32, copy=False)
+    if n == 0:
+        return np.zeros(target_samples, dtype=np.float32)
+    if n == 1:
+        return np.full(target_samples, float(values[0]), dtype=np.float32)
+    g = gcd(target_samples, n)
+    up, down = target_samples // g, n // g
+    out = resample_poly(values.astype(np.float64, copy=False), up, down)
+    if out.shape[0] > target_samples:
+        out = out[:target_samples]
+    elif out.shape[0] < target_samples:
+        out = np.pad(out, (0, target_samples - out.shape[0]), mode="edge")
+    return out.astype(np.float32, copy=False)
 
 
 class DeepLearningArchitecture(StrEnum):
@@ -174,6 +207,11 @@ class DeepLearningModelSpec:
     dual_output_atol: float = 1e-12
     description: str = ""
     tags: tuple[str, ...] = ()
+    # Inference-time preprocessing the model expects, persisted with the spec so
+    # a saved checkpoint records how its inputs were normalised at training time
+    # (review finding L10). The generic inference adapters apply demean_input
+    # (per-channel temporal mean removal) before running the model.
+    demean_input: bool = False
 
     def __post_init__(self) -> None:
         if self.checkpoint_format is not None and self.checkpoint_path is None:
@@ -351,9 +389,70 @@ class DeepLearningModelAdapter(ABC):
                 return False
         return True
 
+    def _input_data(self, context: ProcessingContext) -> np.ndarray:
+        """Return model input data, applying ``spec.demean_input`` when set.
+
+        A model trained on per-channel demeaned signals must also receive
+        demeaned inputs at inference; otherwise the DC offset it never saw at
+        training time skews the prediction (review finding L10). The flag lives
+        on the persisted spec so a saved checkpoint records the preprocessing its
+        inputs require. Returns a fresh array when demeaning (never mutates the
+        context's data in place).
+        """
+        data = context.get_data(copy=False)
+        if self.spec.demean_input:
+            data = data - data.mean(axis=-1, keepdims=True)
+        return data
+
     @abstractmethod
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
         """Run model inference and return an artifact or clean-signal estimate."""
+
+
+class EpochContextArtifactAdapter(DeepLearningModelAdapter):
+    """Base for trigger-aligned, epoch-context artifact-prediction adapters.
+
+    Centralises the channel resolution and trigger-to-trigger epoch boundary
+    construction that were copy-pasted across the context-window model
+    processors (review finding L3). Subclasses provide the model-specific
+    ``spec``, ``_load_model`` and prediction loop, and define the instance
+    attributes ``channel_indices``, ``eeg_only``, ``artifact_to_trigger_offset``,
+    ``context_epochs`` and ``epoch_samples`` in their ``__init__``. Models with a
+    different boundary policy (e.g. one epoch per trigger, or a more permissive
+    minimum-epoch check) override :meth:`_build_epoch_boundaries`.
+    """
+
+    def _resolve_channels(self, raw: mne.io.BaseRaw) -> list[int]:
+        if self.channel_indices is not None:
+            return [int(idx) for idx in self.channel_indices]
+        if self.eeg_only:
+            return [int(idx) for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)]
+        return list(range(len(raw.ch_names)))
+
+    def _build_epoch_boundaries(
+        self, context: ProcessingContext, triggers: np.ndarray, n_times: int
+    ) -> tuple[np.ndarray, np.ndarray, int]:
+        sfreq = context.get_sfreq()
+        artifact_offset = (
+            context.metadata.artifact_to_trigger_offset
+            if self.artifact_to_trigger_offset is None
+            else self.artifact_to_trigger_offset
+        )
+        offset_samples = int(round(artifact_offset * sfreq))
+        starts = triggers[:-1] + offset_samples
+        stops = triggers[1:] + offset_samples
+        valid = (starts >= 0) & (stops > starts) & (stops <= n_times)
+        starts = starts[valid].astype(int)
+        stops = stops[valid].astype(int)
+        if len(starts) < self.context_epochs:
+            raise ProcessorValidationError(
+                f"Only {len(starts)} valid trigger epochs remain after clipping; need {self.context_epochs}"
+            )
+        lengths = stops - starts
+        target_samples = self.epoch_samples or int(round(float(np.median(lengths))))
+        if target_samples <= 0:
+            raise ProcessorValidationError("Resolved epoch_samples must be positive")
+        return starts, stops, target_samples
 
 
 class TensorFlowInferenceAdapter(DeepLearningModelAdapter):
@@ -597,7 +696,7 @@ class TensorFlowInferenceAdapter(DeepLearningModelAdapter):
         )
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
-        data = context.get_data(copy=False)
+        data = self._input_data(context)
         input_array = self._prepare_input(data)
         outputs, device_name, signature_name = self._run_model(input_array)
         checkpoint_format = self._resolve_checkpoint_format()
@@ -863,7 +962,7 @@ class PyTorchInferenceAdapter(DeepLearningModelAdapter):
         )
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
-        data = context.get_data(copy=False)
+        data = self._input_data(context)
         input_array = self._prepare_input(data)
         outputs, checkpoint_format, device_name, checkpoint_load_mode = self._run_model(input_array)
 
@@ -1086,7 +1185,7 @@ class OnnxInferenceAdapter(DeepLearningModelAdapter):
     # ------------------------------------------------------------------
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
-        data = context.get_data(copy=False)
+        data = self._input_data(context)
         input_array = self._prepare_input(data)
 
         session = self._load_session()
@@ -1277,7 +1376,7 @@ class NumpyInferenceAdapter(DeepLearningModelAdapter):
     # ------------------------------------------------------------------
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
-        data = context.get_data(copy=False).astype(np.float64, copy=False)
+        data = self._input_data(context).astype(np.float64, copy=False)
         weights = self._load_weights()
 
         try:
@@ -2312,43 +2411,15 @@ class DeepLearningCorrection(Processor):
         total_samples = raw._data.shape[1]
         chunk_ranges = self._chunk_ranges(total_samples, spec.chunk_size_samples, spec.chunk_overlap_samples)
         estimated_artifacts = np.zeros_like(raw._data)
-        chunk_summaries: list[dict[str, Any]] = []
-
-        if spec.chunk_overlap_samples == 0:
-            for chunk_start, chunk_stop in chunk_ranges:
-                chunk_context = self._build_chunk_context(context, chunk_start, chunk_stop)
-                prediction = self.model.predict(chunk_context)
-                channel_indices, local_start, local_stop, artifact_segment = self._resolve_artifact_prediction(
-                    chunk_context.get_raw()._data,
-                    prediction,
-                )
-                global_start = chunk_start + local_start
-                global_stop = chunk_start + local_stop
-
-                estimated_artifacts[channel_indices, global_start:global_stop] = artifact_segment
-                chunk_summaries.append(
-                    {
-                        "chunk_start_sample": chunk_start,
-                        "chunk_stop_sample": chunk_stop,
-                        "prediction_start_sample": global_start,
-                        "prediction_stop_sample": global_stop,
-                        "channel_indices": channel_indices.tolist(),
-                        "prediction_metadata": deepcopy(prediction.metadata),
-                    }
-                )
-
-            raw._data -= estimated_artifacts
-            execution_metadata = {
-                "start_sample": 0,
-                "stop_sample": total_samples,
-                "channel_indices": list(range(raw._data.shape[0])),
-                "prediction_metadata": {"chunks": chunk_summaries},
-                "execution_mode": "chunked",
-                "chunk_count": len(chunk_ranges),
-            }
-            return raw, estimated_artifacts, execution_metadata
-
+        # Weighted overlap-add accumulator. A single path handles both the
+        # no-overlap and overlap cases: with chunk_overlap_samples == 0 the
+        # window is all-ones and each sample is covered exactly once, so the
+        # weights reduce to 1 and the division below is a no-op (identical to
+        # the former rectangular assignment); with overlap > 0 the tapered
+        # constant-overlap-add window cross-fades adjacent chunks, removing the
+        # boundary seams a flat count average would leave.
         artifact_weights = np.zeros(raw._data.shape, dtype=np.float64)
+        chunk_summaries: list[dict[str, Any]] = []
 
         for chunk_start, chunk_stop in chunk_ranges:
             chunk_context = self._build_chunk_context(context, chunk_start, chunk_stop)
@@ -2360,9 +2431,6 @@ class DeepLearningCorrection(Processor):
             global_start = chunk_start + local_start
             global_stop = chunk_start + local_stop
 
-            # Tapered constant-overlap-add weighting cross-fades adjacent chunks
-            # instead of averaging them with equal weight, removing the boundary
-            # seams a flat count average leaves at each overlap region.
             seg_len = global_stop - global_start
             window = _overlap_add_window(seg_len, min(spec.chunk_overlap_samples, seg_len // 2))
             estimated_artifacts[channel_indices, global_start:global_stop] += window * artifact_segment

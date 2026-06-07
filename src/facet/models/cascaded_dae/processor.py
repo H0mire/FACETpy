@@ -176,6 +176,13 @@ class CascadedDenoisingAutoencoderAdapter(DeepLearningModelAdapter):
         while start + self.chunk_size_samples <= n_samples:
             ranges.append((start, start + self.chunk_size_samples))
             start += step
+        # Append a final right-aligned chunk so trailing samples that do not
+        # fill a whole chunk are still corrected instead of silently dropped
+        # (up to chunk_size-1 samples otherwise). Safe because validate_context
+        # guarantees n_samples >= chunk_size_samples; the COLA weights handle
+        # the extra overlap with the previous chunk.
+        if ranges and ranges[-1][1] < n_samples:
+            ranges.append((n_samples - self.chunk_size_samples, n_samples))
         return ranges
 
 

@@ -1677,6 +1677,44 @@ class TestNumpyInferenceAdapter:
         cls = registry.get("numpy_inference")
         assert cls is NumpyInferenceAdapter
 
+    def test_demean_input_persisted_in_spec_and_applied(self, tmp_path):
+        """L10: demean_input is part of the persisted spec (survives a
+        serialise/deserialise round-trip) and the adapter removes the
+        per-channel temporal mean from the input before inference."""
+        import mne
+
+        from facet.core import ProcessingMetadata
+
+        ckpt = tmp_path / "w.npy"
+        np.save(str(ckpt), np.ones(1))
+        adapter = NumpyInferenceAdapter(
+            checkpoint_path=str(ckpt),
+            predict_fn=lambda data, w: np.zeros_like(data),
+            spec_overrides={"name": "NumpyDemean", "demean_input": True},
+        )
+        # persisted and round-trips through the JSON-compatible spec dict
+        assert adapter.spec.demean_input is True
+        assert spec_from_dict(spec_to_dict(adapter.spec)).demean_input is True
+
+        # context with a clear per-channel DC offset
+        sfreq = 100.0
+        t = np.arange(200) / sfreq
+        data = np.vstack([5.0 + np.sin(2 * np.pi * 3 * t), -2.0 + np.sin(2 * np.pi * 7 * t)])
+        info = mne.create_info(["C3", "C4"], sfreq=sfreq, ch_types="eeg")
+        ctx = ProcessingContext(raw=mne.io.RawArray(data, info, verbose=False), metadata=ProcessingMetadata())
+
+        demeaned = adapter._input_data(ctx)
+        np.testing.assert_allclose(demeaned.mean(axis=-1), [0.0, 0.0], atol=1e-9)
+
+        # without the flag the input is returned unchanged
+        adapter_off = NumpyInferenceAdapter(
+            checkpoint_path=str(ckpt),
+            predict_fn=lambda data, w: np.zeros_like(data),
+            spec_overrides={"name": "NumpyNoDemean"},
+        )
+        assert adapter_off.spec.demean_input is False
+        np.testing.assert_allclose(adapter_off._input_data(ctx), ctx.get_data(copy=False))
+
     # ------------------------------------------------------------------
     # Artifact output via .npy checkpoint
     # ------------------------------------------------------------------

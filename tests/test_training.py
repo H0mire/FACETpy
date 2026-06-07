@@ -216,6 +216,23 @@ class TestEEGArtifactDataset:
         train, val = ds.train_val_split(val_ratio=0.2, seed=7)
         assert len(train) + len(val) == len(ds)
 
+    def test_train_val_split_contiguous_is_disjoint_ordered_and_guarded(self, sample_context):
+        """L9: contiguous split is leakage-resistant — train chunks strictly
+        precede val chunks and a guard band drops the overlapping seam windows."""
+        ds = EEGArtifactDataset(sample_context, chunk_size=250, trigger_aligned=False, overlap=0.5)
+        train, val = ds.train_val_split(val_ratio=0.2, split_mode="contiguous")
+        train_idx = set(train._indices)
+        val_idx = set(val._indices)
+        assert train_idx.isdisjoint(val_idx)
+        assert max(train_idx) < min(val_idx)  # block split: train precedes val
+        # overlap=0.5 -> hop=125 -> guard = ceil(250/125)-1 = 1 chunk dropped
+        assert len(train) + len(val) == len(ds) - 1
+
+    def test_train_val_split_invalid_mode_raises(self, sample_context):
+        ds = EEGArtifactDataset(sample_context, chunk_size=250)
+        with pytest.raises(ValueError, match="split_mode"):
+            ds.train_val_split(split_mode="bogus")
+
     def test_repr(self, sample_context):
         ds = EEGArtifactDataset(sample_context, chunk_size=250)
         r = repr(ds)

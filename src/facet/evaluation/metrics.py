@@ -50,8 +50,13 @@ def _top_channels(values: np.ndarray, channel_names: list[str], n: int = 3) -> t
     arr = np.asarray(values, dtype=float).ravel()
     if arr.size == 0:
         return "[]", "[]"
-    n = max(1, min(n, arr.size, len(channel_names)))
-    order = np.argsort(arr)
+    # Rank only channels with a finite metric: np.argsort sorts NaN/inf to the
+    # end, which would otherwise mis-report undefined channels as the "worst".
+    finite_idx = np.flatnonzero(np.isfinite(arr))
+    if finite_idx.size == 0:
+        return "[]", "[]"
+    n = max(1, min(n, finite_idx.size, len(channel_names)))
+    order = finite_idx[np.argsort(arr[finite_idx])]
     best_idx = order[:n]
     worst_idx = order[-n:][::-1]
     best = ", ".join(f"{channel_names[i]}={arr[i]:.3g}" for i in best_idx)

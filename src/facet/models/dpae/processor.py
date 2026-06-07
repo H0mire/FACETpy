@@ -2,58 +2,26 @@
 
 from __future__ import annotations
 
-from math import gcd
 from pathlib import Path
 from typing import Any
 
-import mne
 import numpy as np
-from scipy.signal import resample_poly
 
 from ...core import ProcessingContext, ProcessorValidationError, register_processor
 from ...correction.deep_learning import (
     DeepLearningArchitecture,
     DeepLearningCorrection,
     DeepLearningExecutionGranularity,
-    DeepLearningModelAdapter,
     DeepLearningModelSpec,
     DeepLearningOutputType,
     DeepLearningPrediction,
     DeepLearningRuntime,
+    EpochContextArtifactAdapter,
+    _resample_1d,
 )
 
 
-def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
-    """Bandlimited polyphase resampling of one channel epoch to a fixed length.
-
-    Uses ``scipy.signal.resample_poly`` (FIR polyphase filter) to match the
-    resampling used when the training dataset was built. Linear interpolation
-    has a ``sinc^2`` lowpass response that attenuates the HF EPI-readout
-    content these models were trained on, so input (native -> fixed) and
-    output (fixed -> native) must use the same bandlimited resampler.
-    """
-    if values.ndim != 1:
-        raise ValueError(f"Expected 1D values, got shape {values.shape}")
-    if target_samples <= 0:
-        raise ValueError("target_samples must be positive")
-    n = len(values)
-    if n == target_samples:
-        return values.astype(np.float32, copy=False)
-    if n == 0:
-        return np.zeros(target_samples, dtype=np.float32)
-    if n == 1:
-        return np.full(target_samples, float(values[0]), dtype=np.float32)
-    g = gcd(target_samples, n)
-    up, down = target_samples // g, n // g
-    out = resample_poly(values.astype(np.float64, copy=False), up, down)
-    if out.shape[0] > target_samples:
-        out = out[:target_samples]
-    elif out.shape[0] < target_samples:
-        out = np.pad(out, (0, target_samples - out.shape[0]), mode="edge")
-    return out.astype(np.float32, copy=False)
-
-
-class DualPathwayAutoencoderAdapter(DeepLearningModelAdapter):
+class DualPathwayAutoencoderAdapter(EpochContextArtifactAdapter):
     """TorchScript adapter that runs DPAE per channel and per trigger epoch.
 
     The Niazy proof-fit dataset resamples each native trigger-to-trigger epoch
@@ -197,13 +165,6 @@ class DualPathwayAutoencoderAdapter(DeepLearningModelAdapter):
         if len(starts) == 0:
             raise ProcessorValidationError("No valid trigger epochs remain after clipping")
         return starts, stops
-
-    def _resolve_channels(self, raw: mne.io.BaseRaw) -> list[int]:
-        if self.channel_indices is not None:
-            return [int(idx) for idx in self.channel_indices]
-        if self.eeg_only:
-            return [int(idx) for idx in mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False)]
-        return list(range(len(raw.ch_names)))
 
     def _predict_segment(self, model: Any, torch: Any, segment: np.ndarray) -> np.ndarray:
         if self.demean_input:
