@@ -59,6 +59,10 @@ class TriggerExplorer(Processor):
     save_to_annotations : bool, optional
         If ``True``, write detected triggers back to the raw annotations
         (default: False).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of estimating it
+        from the selected trigger spacing. ``None`` keeps the automatic
+        estimate (default: None).
     """
 
     name = "trigger_explorer"
@@ -75,10 +79,12 @@ class TriggerExplorer(Processor):
         mode: str = "gui",
         auto_select: str | None = None,
         save_to_annotations: bool = False,
+        artifact_length: int | None = None,
     ) -> None:
         self.mode = mode
         self.auto_select = auto_select
         self.save_to_annotations = save_to_annotations
+        self.artifact_length = artifact_length
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -156,6 +162,14 @@ class TriggerExplorer(Processor):
         new_metadata.volume_gaps = artifact_meta["volume_gaps"]
         if artifact_meta.get("slices_per_volume") is not None:
             new_metadata.slices_per_volume = artifact_meta["slices_per_volume"]
+
+        if self.artifact_length is not None:
+            logger.info(
+                "Overriding estimated artifact length ({} → {} samples)",
+                new_metadata.artifact_length,
+                int(self.artifact_length),
+            )
+            new_metadata.artifact_length = int(self.artifact_length)
 
         if self.save_to_annotations:
             sfreq = raw.info["sfreq"]

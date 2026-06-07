@@ -166,7 +166,7 @@ from .evaluation import (
 )
 
 # Interactive helpers
-from .helpers import ArtifactOffsetFinder, WaitForConfirmation
+from .helpers import ArtifactOffsetFinder, TriggerEditor, WaitForConfirmation
 
 # Miscellaneous utilities
 from .misc import (
@@ -290,6 +290,7 @@ __all__ = [
     "RawPlotter",
     # Interactive helpers
     "ArtifactOffsetFinder",
+    "TriggerEditor",
     "WaitForConfirmation",
     # Miscellaneous / Synthetic Data Generation
     "EEGGenerator",

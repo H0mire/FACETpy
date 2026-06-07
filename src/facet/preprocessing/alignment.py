@@ -127,6 +127,10 @@ class TriggerAligner(Processor):
     upsample_for_alignment : bool, optional
         Temporarily upsample data before alignment for sub-sample accuracy
         (default: True).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of recomputing it
+        from the aligned trigger spacings. ``None`` keeps the automatic
+        re-estimate (default: None).
     """
 
     name = "trigger_aligner"
@@ -147,12 +151,14 @@ class TriggerAligner(Processor):
         search_window: int | None = None,
         save_to_annotations: bool = False,
         upsample_for_alignment: bool = True,
+        artifact_length: int | None = None,
     ) -> None:
         self.ref_trigger_index = ref_trigger_index
         self.ref_channel = ref_channel
         self.search_window = search_window
         self.save_to_annotations = save_to_annotations
         self.upsample_for_alignment = upsample_for_alignment
+        self.artifact_length = artifact_length
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -189,7 +195,9 @@ class TriggerAligner(Processor):
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         new_metadata.triggers = aligned_triggers
-        if len(aligned_triggers) > 1:
+        if self.artifact_length is not None:
+            new_metadata.artifact_length = int(self.artifact_length)
+        elif len(aligned_triggers) > 1:
             new_metadata.artifact_length = self._recalc_artifact_length(aligned_triggers, new_metadata.volume_gaps)
 
         if self.save_to_annotations:
@@ -368,6 +376,10 @@ class SliceAligner(TriggerAligner):
         Search window in samples (default: None).
     save_to_annotations : bool, optional
         Save aligned triggers as annotations (default: False).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of recomputing it
+        from the aligned trigger spacings. ``None`` keeps the automatic
+        re-estimate (default: None).
     """
 
     name = "slice_aligner"
@@ -387,6 +399,7 @@ class SliceAligner(TriggerAligner):
         ref_channel: int | None = None,
         search_window: int | None = None,
         save_to_annotations: bool = False,
+        artifact_length: int | None = None,
     ) -> None:
         super().__init__(
             ref_trigger_index=ref_trigger_index,
@@ -394,6 +407,7 @@ class SliceAligner(TriggerAligner):
             search_window=search_window,
             save_to_annotations=save_to_annotations,
             upsample_for_alignment=False,
+            artifact_length=artifact_length,
         )
 
 

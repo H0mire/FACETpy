@@ -39,6 +39,10 @@ class TriggerDetector(Processor):
     save_to_annotations : bool, optional
         If ``True``, write detected triggers back to the raw annotations
         (default: False).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of estimating it
+        from the median inter-trigger interval. ``None`` keeps the automatic
+        estimate (default: None).
     """
 
     name = "trigger_detector"
@@ -50,9 +54,15 @@ class TriggerDetector(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, regex: str, save_to_annotations: bool = False) -> None:
+    def __init__(
+        self,
+        regex: str,
+        save_to_annotations: bool = False,
+        artifact_length: int | None = None,
+    ) -> None:
         self.regex = regex
         self.save_to_annotations = save_to_annotations
+        self.artifact_length = artifact_length
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -87,6 +97,14 @@ class TriggerDetector(Processor):
         new_metadata.volume_gaps = artifact_meta["volume_gaps"]
         if artifact_meta.get("slices_per_volume") is not None:
             new_metadata.slices_per_volume = artifact_meta["slices_per_volume"]
+
+        if self.artifact_length is not None:
+            logger.info(
+                "Overriding estimated artifact length ({} → {} samples)",
+                new_metadata.artifact_length,
+                int(self.artifact_length),
+            )
+            new_metadata.artifact_length = int(self.artifact_length)
 
         logger.debug("Artifact length: {} samples", new_metadata.artifact_length)
         logger.debug("Volume gaps: {}", new_metadata.volume_gaps)
@@ -221,6 +239,11 @@ class QRSTriggerDetector(Processor):
     save_to_annotations : bool, optional
         If ``True``, write detected QRS peaks back to the raw annotations
         (default: False).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of deriving it from
+        half the median RR interval. When set, the artifact-to-trigger offset
+        is recomputed from it. ``None`` keeps the automatic estimate
+        (default: None).
     """
 
     name = "qrs_trigger_detector"
@@ -232,8 +255,9 @@ class QRSTriggerDetector(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, save_to_annotations: bool = False) -> None:
+    def __init__(self, save_to_annotations: bool = False, artifact_length: int | None = None) -> None:
         self.save_to_annotations = save_to_annotations
+        self.artifact_length = artifact_length
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -262,7 +286,10 @@ class QRSTriggerDetector(Processor):
         new_metadata.trigger_regex = "QRS"
         new_metadata.volume_gaps = True  # QRS peaks have variable spacing
 
-        if len(triggers) > 1:
+        if self.artifact_length is not None:
+            new_metadata.artifact_length = int(self.artifact_length)
+            new_metadata.artifact_to_trigger_offset = -new_metadata.artifact_length / (2 * sfreq)
+        elif len(triggers) > 1:
             rr_intervals = np.diff(triggers)
             median_rr = int(np.median(rr_intervals))
             new_metadata.artifact_length = median_rr // 2
@@ -798,6 +825,10 @@ class SliceTriggerGenerator(Processor):
     add_annotations : bool, optional
         If ``True`` and raw is available, generated triggers are added as
         annotations (default: False).
+    artifact_length : int or None, optional
+        Override the artifact length (in samples) instead of deriving it from
+        the generated slice-trigger spacing. ``None`` keeps the automatic
+        estimate (default: None).
     """
 
     name = "slice_trigger_generator"
@@ -815,11 +846,13 @@ class SliceTriggerGenerator(Processor):
         duration_samples: float | None = None,
         relative_position: float = 0.03,
         add_annotations: bool = False,
+        artifact_length: int | None = None,
     ) -> None:
         self.slices = int(slices)
         self.duration_samples = duration_samples
         self.relative_position = relative_position
         self.add_annotations = add_annotations
+        self.artifact_length = artifact_length
         super().__init__()
 
     def validate(self, context: ProcessingContext) -> None:
@@ -857,6 +890,9 @@ class SliceTriggerGenerator(Processor):
             else:
                 metadata.artifact_length = int(np.max(diffs))
                 metadata.volume_gaps = False
+
+        if self.artifact_length is not None:
+            metadata.artifact_length = int(self.artifact_length)
 
         metadata.custom["slice_trigger_generator"] = {
             "slices": self.slices,

@@ -64,6 +64,18 @@ class TestTriggerDetector:
         assert result.get_artifact_length() is not None
         assert result.get_artifact_length() > 0
 
+    def test_trigger_detection_artifact_length_override(self, sample_edf_file):
+        """An explicit artifact_length must override the estimate."""
+        from facet.io import Loader
+
+        context = Loader(path=str(sample_edf_file), preload=True).execute(None)
+
+        estimated = TriggerDetector(regex=r"\b1\b").execute(context).get_artifact_length()
+        overridden = TriggerDetector(regex=r"\b1\b", artifact_length=321).execute(context)
+
+        assert overridden.get_artifact_length() == 321
+        assert estimated != 321  # the override genuinely differs from the estimate
+
     def test_no_triggers_found(self, sample_raw):
         """Test behavior when no triggers are found."""
         context = ProcessingContext(raw=sample_raw)
@@ -223,6 +235,19 @@ class TestTriggerAligner:
         aligned_triggers = result.get_triggers()
 
         assert len(aligned_triggers) == len(original_triggers)
+
+    def test_alignment_artifact_length_override(self, sample_context):
+        """An explicit artifact_length must override the re-estimate."""
+        recalced = TriggerAligner(ref_trigger_index=0).execute(sample_context).get_artifact_length()
+        overridden = TriggerAligner(ref_trigger_index=0, artifact_length=137).execute(sample_context)
+
+        assert overridden.get_artifact_length() == 137
+        assert recalced != 137  # the override genuinely differs from the re-estimate
+
+    def test_slice_aligner_forwards_artifact_length_override(self, sample_context):
+        """SliceAligner must forward the override to its TriggerAligner base."""
+        result = SliceAligner(ref_trigger_index=0, artifact_length=142).execute(sample_context)
+        assert result.get_artifact_length() == 142
 
     def test_alignment_requires_triggers(self, sample_raw):
         """Test that alignment requires triggers."""
@@ -700,6 +725,17 @@ class TestMATLABTriggerParity:
         np.testing.assert_array_equal(result.get_triggers(), expected)
         assert result.metadata.slices_per_volume == 4
 
+    def test_slice_trigger_generator_artifact_length_override(self, sample_raw):
+        """An explicit artifact_length must override the spacing-derived value."""
+        metadata = ProcessingMetadata(triggers=np.array([100, 500], dtype=int), artifact_length=400, volume_gaps=True)
+        context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
+
+        result = SliceTriggerGenerator(
+            slices=4, duration_samples=50, relative_position=0.0, artifact_length=33
+        ).execute(context)
+
+        assert result.get_artifact_length() == 33
+
     def test_missing_trigger_detector_recovers_multiple_in_one_gap(self):
         """A gap several artifact-lengths wide must yield ALL missing triggers,
         not just the first one (the multi-missing-gap branch)."""
@@ -731,6 +767,186 @@ class TestMATLABTriggerParity:
         assert len(recovered) == 6, recovered
         assert any(abs(t - 180) <= 4 for t in recovered)
         assert any(abs(t - 220) <= 4 for t in recovered)
+
+
+@pytest.mark.unit
+class TestArtifactOffsetFinder:
+    """Tests for the interactive ArtifactOffsetFinder (GUI mocked out)."""
+
+    def test_validate_accepts_override_without_context_length(self, sample_context):
+        """artifact_length override lets validate pass even without a context value."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        md = sample_context.metadata.copy()
+        md.artifact_length = None
+        ctx = sample_context.with_metadata(md)
+
+        # Override present -> ok.
+        ArtifactOffsetFinder(artifact_length=100).validate(ctx)
+        # No length anywhere -> must raise.
+        with pytest.raises(ProcessorValidationError):
+            ArtifactOffsetFinder().validate(ctx)
+
+    def test_confirmed_offset_and_length_written_back(self, sample_context, monkeypatch):
+        """The confirmed (offset, length) from the GUI must land in metadata."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        sfreq = sample_context.get_sfreq()
+        finder = ArtifactOffsetFinder()
+        # Replace the blocking GUI with a fixed (offset_s, length_s) result.
+        monkeypatch.setattr(finder, "_show_interactive_plot", lambda *a, **k: (0.03, 0.25))
+
+        result = finder.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == 0.03
+        assert result.get_artifact_length() == round(0.25 * sfreq)
+
+    def test_artifact_length_param_seeds_slider_range(self, sample_context, monkeypatch):
+        """artifact_length param sizes the slider window; confirmed length is honoured."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        sfreq = sample_context.get_sfreq()
+        # Start length differs from the context value (50) so we know it took effect.
+        finder = ArtifactOffsetFinder(artifact_length=80)
+        captured = {}
+
+        def _fake_show(epochs, time_axis, ch_name, sf, start_offset, start_dur, min_len, max_len, max_off):
+            captured["start_dur"] = start_dur
+            return start_offset, start_dur  # confirm unchanged
+
+        monkeypatch.setattr(finder, "_show_interactive_plot", _fake_show)
+        result = finder.execute(sample_context)
+
+        # Slider seeded from the 80-sample override, not the 50-sample context value.
+        assert captured["start_dur"] == pytest.approx(80 / sfreq)
+        assert result.get_artifact_length() == 80
+
+    def test_view_xlim_tracks_length_slider(self):
+        """The plotted time range must widen with the length slider, stay
+        clamped to the data extent, and always include the trigger + window."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        f = ArtifactOffsetFinder
+        t_lo, t_hi, sfreq = -1.0, 1.0, 1000.0
+
+        lo_short, hi_short = f._compute_view_xlim(0.0, 0.1, t_lo, t_hi, sfreq)
+        lo_long, hi_long = f._compute_view_xlim(0.0, 0.5, t_lo, t_hi, sfreq)
+
+        # Longer artifact window -> wider plotted time range.
+        assert (hi_long - lo_long) > (hi_short - lo_short)
+        # Trigger (t=0) and the full window stay visible.
+        assert lo_short <= 0.0 <= hi_short
+        assert hi_short >= 0.1
+        # An over-long window clamps to the extracted data extent.
+        lo_clamp, hi_clamp = f._compute_view_xlim(0.0, 5.0, t_lo, t_hi, sfreq)
+        assert lo_clamp >= t_lo and hi_clamp <= t_hi
+
+    def test_length_slider_is_logarithmic_for_fine_small_control(self):
+        """A fixed log-step changes the window less (in abs) near the small end
+        than near the large end -> finer control when the window is tiny."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        f = ArtifactOffsetFinder._length_slider_to_seconds
+        sfreq = 1000.0
+
+        small = f(np.log10(0.002), sfreq)
+        small_step = f(np.log10(0.002) + 0.1, sfreq)
+        large = f(np.log10(0.2), sfreq)
+        large_step = f(np.log10(0.2) + 0.1, sfreq)
+
+        assert (small_step - small) < (large_step - large)
+        # Sample-quantised and never below a single sample.
+        assert f(np.log10(1e-9), sfreq) == pytest.approx(1.0 / sfreq)
+        assert f(np.log10(0.002), sfreq) == pytest.approx(0.002)
+
+
+@pytest.mark.unit
+class TestTriggerEditor:
+    """Tests for the comprehensive TriggerEditor (pure logic + mocked GUI)."""
+
+    def test_slice_line_positions(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        pos = TriggerEditor._slice_line_positions(0.0, 1.0, 4)
+        np.testing.assert_allclose(pos, [0.0, 0.25, 0.5, 0.75])
+        # offset shifts the whole tiling
+        pos2 = TriggerEditor._slice_line_positions(0.1, 0.4, 2)
+        np.testing.assert_allclose(pos2, [0.1, 0.3])
+
+    def test_zoom_xlim_keeps_cursor_fixed(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        lo, hi = TriggerEditor._zoom_xlim(0.0, 1.0, 0.5, 0.8)  # zoom in around centre
+        assert lo == pytest.approx(0.1) and hi == pytest.approx(0.9)
+        # cursor at an edge stays fixed
+        lo2, hi2 = TriggerEditor._zoom_xlim(0.0, 1.0, 0.0, 0.8)
+        assert lo2 == pytest.approx(0.0) and hi2 == pytest.approx(0.8)
+        # zoom out widens
+        lo3, hi3 = TriggerEditor._zoom_xlim(0.0, 1.0, 0.5, 1.25)
+        assert (hi3 - lo3) > 1.0
+
+    def test_hit_test_regions(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        ht = TriggerEditor._hit_test
+        assert ht(0.0, 0.0, 1.0, 0.05) == "left"
+        assert ht(1.0, 0.0, 1.0, 0.05) == "right"
+        assert ht(0.5, 0.0, 1.0, 0.05) == "body"
+        assert ht(2.0, 0.0, 1.0, 0.05) is None
+
+    def test_settings_save_load_roundtrip(self, tmp_path):
+        from facet.helpers.interactive import TriggerEditor
+
+        path = str(tmp_path / "settings.json")
+        ed = TriggerEditor(settings_path=path)
+        ed._save_settings(path, 0.03, 0.25, 5)
+        offset, length, count = ed._load_settings(path)
+        assert offset == pytest.approx(0.03)
+        assert length == pytest.approx(0.25)
+        assert count == 5
+        # Missing file -> None.
+        assert ed._load_settings(str(tmp_path / "nope.json")) is None
+
+    def test_confirmed_offset_and_length_written_back(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        sfreq = sample_context.get_sfreq()
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: {"offset": 0.02, "length": 0.1, "count": 1})
+
+        result = ed.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == pytest.approx(0.02)
+        assert result.get_artifact_length() == round(0.1 * sfreq)
+        # count == 1 leaves the triggers untouched
+        np.testing.assert_array_equal(result.get_triggers(), sample_context.get_triggers())
+
+    def test_slice_count_generates_subdivided_triggers(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        sfreq = sample_context.get_sfreq()
+        n_orig = len(sample_context.get_triggers())
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: {"offset": 0.0, "length": 0.1, "count": 4})
+
+        result = ed.execute(sample_context)
+
+        assert len(result.get_triggers()) == n_orig * 4
+        assert result.metadata.slices_per_volume == 4
+        assert result.metadata.artifact_to_trigger_offset == 0.0
+        assert result.get_artifact_length() == max(1, round((0.1 / 4) * sfreq))
+
+    def test_cancel_leaves_context_unchanged(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: None)  # user cancelled
+
+        result = ed.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == sample_context.metadata.artifact_to_trigger_offset
+        assert result.get_artifact_length() == sample_context.get_artifact_length()
+        np.testing.assert_array_equal(result.get_triggers(), sample_context.get_triggers())
 
 
 @pytest.mark.unit
