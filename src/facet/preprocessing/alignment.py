@@ -499,7 +499,24 @@ class SubsampleAligner(Processor):
         self.apply_to_raw = apply_to_raw
         self.interpolation_iters = max(1, int(interpolation_iters))
         self.ssa_hp_freq = ssa_hp_freq
+        # Per-channel-session shift cache (fractional modes only): the shift is
+        # estimated on the first channel of a channel-sequential pass and reused
+        # for the rest, matching MATLAB's "estimate once, apply per channel".
+        # Active only between begin/end_channel_session, so serial execution and
+        # separate sessions never reuse stale shifts.
+        self._session_active = False
+        self._session_shifts: tuple[np.ndarray, float | None] | None = None
         super().__init__()
+
+    def begin_channel_session(self) -> None:
+        """Start a channel-sequential session: enable + clear the shift cache."""
+        self._session_active = True
+        self._session_shifts = None
+
+    def end_channel_session(self) -> None:
+        """End the session: disable caching and drop any cached shifts."""
+        self._session_active = False
+        self._session_shifts = None
 
     def validate(self, context: ProcessingContext) -> None:
         super().validate(context)
@@ -537,34 +554,50 @@ class SubsampleAligner(Processor):
         # This feeds the shift ESTIMATION only — the computed shift is applied to
         # the unfiltered raw data below. ``"legacy"`` is intentionally left
         # unfiltered (unchanged original behaviour).
-        ssa_hp_applied = None
-        estimation_signal = ref_signal
-        if fractional:
-            estimation_signal, ssa_hp_applied = self._highpass_for_estimation(ref_signal, raw.info["sfreq"])
+        # Within a channel-sequential session, the shift is estimated on the
+        # first channel and reused for the rest (MATLAB AlignSubSample: estimate
+        # once, apply per channel) — this also skips the expensive SSA high-pass
+        # and quality binary search for channels 1+. Serial execution and
+        # separate sessions never hit this cache (``_session_active`` is False).
+        if fractional and self._session_active and self._session_shifts is not None:
+            shifts, ssa_hp_applied = self._session_shifts
+        else:
+            # SSA high-pass (MATLAB AlignSubSample): high-pass the reference
+            # channel before estimating the sub-sample shift so the alignment
+            # locks onto the high-frequency artifact edges, not low-frequency
+            # drift / neural signal. This feeds the shift ESTIMATION only — the
+            # computed shift is applied to the unfiltered raw data below.
+            # ``"legacy"`` is intentionally left unfiltered (original behaviour).
+            ssa_hp_applied = None
+            estimation_signal = ref_signal
+            if fractional:
+                estimation_signal, ssa_hp_applied = self._highpass_for_estimation(ref_signal, raw.info["sfreq"])
 
-        # Extract the reference epoch over the SAME extended window the per-epoch
-        # search segments use (front/back padded by ``search_radius``). If the
-        # reference were the inner window only, ``crosscorrelation`` would pad
-        # the shorter array at its end, displacing the zero-lag point by
-        # ``search_radius`` and adding a constant +search_radius bias to every
-        # computed shift (a zero-offset artifact then yields shift=search_radius
-        # instead of 0).
-        ref_epoch = _extract_epoch_with_padding(
-            estimation_signal,
-            triggers[self.ref_trigger_index] - pre_samples - search_radius,
-            window_length + 2 * search_radius,
-            n_samples,
-        )
-        shifts = self._compute_shifts(
-            estimation_signal,
-            triggers,
-            ref_epoch,
-            pre_samples,
-            window_length,
-            search_radius,
-            n_samples,
-            fractional=fractional,
-        )
+            # Extract the reference epoch over the SAME extended window the
+            # per-epoch search segments use (front/back padded by
+            # ``search_radius``). If the reference were the inner window only,
+            # ``crosscorrelation`` would pad the shorter array at its end,
+            # displacing the zero-lag point by ``search_radius`` and adding a
+            # constant +search_radius bias to every computed shift (a zero-offset
+            # artifact then yields shift=search_radius instead of 0).
+            ref_epoch = _extract_epoch_with_padding(
+                estimation_signal,
+                triggers[self.ref_trigger_index] - pre_samples - search_radius,
+                window_length + 2 * search_radius,
+                n_samples,
+            )
+            shifts = self._compute_shifts(
+                estimation_signal,
+                triggers,
+                ref_epoch,
+                pre_samples,
+                window_length,
+                search_radius,
+                n_samples,
+                fractional=fractional,
+            )
+            if fractional and self._session_active:
+                self._session_shifts = (shifts, ssa_hp_applied)
 
         # --- BUILD RESULT ---
         if fractional:

@@ -501,6 +501,55 @@ class TestAcquisitionAlignment:
             changed = [i for i in range(n_ch) if not np.allclose(before[i], after[i])]
             assert changed == list(range(n_ch)), f"{mode}: only channels {changed} were shifted"
 
+    def test_subsample_caches_shifts_within_channel_sequential_session(self):
+        """The shift is estimated once per channel-sequential session and reused
+        for the remaining channels (estimate-once/apply-per-channel), with the
+        cache scoped to the session (cleared at the end, never used serially)."""
+        from facet.core.channel_sequential import ChannelSequentialExecutor
+
+        sfreq, art_len, n, n_ch = 200.0, 40, 400, 3
+        triggers = np.array([100, 200])
+        template = np.sin(np.linspace(0, np.pi, art_len)) * 1e-6
+
+        def build():
+            data = np.zeros((n_ch, n))
+            for ch in range(n_ch):
+                data[ch, 100:140] += template
+                data[ch, 202:242] += template
+            info = mne.create_info([f"E{i}" for i in range(n_ch)], sfreq, ch_types="eeg")
+            md = ProcessingMetadata()
+            md.triggers = triggers.copy()
+            md.artifact_length = art_len
+            md.artifact_to_trigger_offset = 0.0
+            md.upsampling_factor = 1
+            return ProcessingContext(
+                raw=mne.io.RawArray(data, info, verbose=False),
+                raw_original=mne.io.RawArray(data.copy(), info, verbose=False),
+                metadata=md,
+            )
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode="quality")
+        calls = {"n": 0}
+        original = aligner._compute_shifts
+
+        def counting(*args, **kwargs):
+            calls["n"] += 1
+            return original(*args, **kwargs)
+
+        aligner._compute_shifts = counting
+
+        ctx = build()
+        before = ctx.get_raw().get_data().copy()
+        result = ChannelSequentialExecutor().execute([aligner], ctx)
+        after = result.get_raw().get_data()
+
+        # Estimated once, applied to all channels.
+        assert calls["n"] == 1
+        assert [i for i in range(n_ch) if not np.allclose(before[i], after[i])] == list(range(n_ch))
+        # Session cache torn down afterwards (no leak across sessions).
+        assert aligner._session_active is False
+        assert aligner._session_shifts is None
+
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
         # Remove artifact length

@@ -146,6 +146,24 @@ class Processor(ABC):
         """
         return None
 
+    def begin_channel_session(self) -> None:
+        """Hook called once before a channel-sequential pass starts.
+
+        The same processor instance is invoked for every channel within one
+        channel-sequential group. Processors may override this to (re)initialise
+        per-session state — e.g. to cache a result computed on the first channel
+        and reuse it for the rest of the same session. No-op by default.
+        """
+        return None
+
+    def end_channel_session(self) -> None:
+        """Hook called once after a channel-sequential pass finishes.
+
+        Counterpart to :meth:`begin_channel_session`; override to tear down any
+        per-session state so it never leaks across sessions. No-op by default.
+        """
+        return None
+
     @abstractmethod
     def process(self, context: ProcessingContext) -> ProcessingContext:
         """
