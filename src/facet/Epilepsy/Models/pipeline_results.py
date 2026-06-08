@@ -4,7 +4,6 @@ import numpy as np
 @dataclass
 class TemplateICADetection:
     template_z: np.ndarray
-    best_channel: int
     refined_times: list
     accepted_components: list  # indices of accepted ICA components
     component_timecourses: list[np.ndarray]  # timecourses of accepted components

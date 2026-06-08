@@ -3,6 +3,31 @@ from scipy.io import loadmat
 import numpy as np
 
 
+def _infer_ch_types(ch_names):
+    """Infer MNE channel types from electrode names.
+
+    Non-brain channels (heart/muscle/ear) must be typed correctly so they are
+    excluded from EEG-only steps (template channel selection, ICA).  Otherwise
+    high-amplitude channels like ECG can dominate peak-to-peak based selection
+    and corrupt the IED template.
+    """
+    types = []
+    for name in ch_names:
+        upper = str(name).upper()
+        if upper.startswith("ECG") or upper.startswith("EKG"):
+            types.append("ecg")
+        elif upper.startswith("EMG"):
+            types.append("emg")
+        elif upper.startswith("EOG"):
+            types.append("eog")
+        elif upper in {"PG1", "PG2", "A1", "A2"}:
+            # Auricular/reference electrodes — keep out of scalp EEG analysis.
+            types.append("misc")
+        else:
+            types.append("eeg")
+    return types
+
+
 def load_mat_to_mne(mat_path, sfreq=500.0):
     """
     Load EEG data from a .mat file and create an MNE Raw object.
@@ -69,18 +94,13 @@ def load_mat_to_mne(mat_path, sfreq=500.0):
                 'ECG1', 'ECG2',
                 'EMG1', 'EMG2', 'EMG3', 'EMG4'
             ]
-            # Define types
-            # First 19 are standard EEG
-            # Next 4 are auricular (PG1, PG2, A1, A2). 
-            # We set them to 'misc' because PG1/PG2 often have overlapping positions in standard montages,
-            # causing MNE plotting to crash. Also, we typically want ICA on scalp EEG only.
-            ch_types = ['eeg'] * 19 + ['misc'] * 4 + ['ecg'] * 2 + ['emg'] * 4
         else:
             # Fallback to generic names
             ch_names = [f"EEG{i+1}" for i in range(eeg.shape[0])]
-            ch_types = 'eeg'
-    else:
-        ch_types = 'eeg'
+
+    # Infer channel types from names so non-brain channels (ECG/EMG/ear) are
+    # typed correctly and excluded from EEG-only steps.
+    ch_types = _infer_ch_types(ch_names)
 
     # Build an MNE RawArray in volts (MNE expects volts)
     info = mne.create_info(ch_names, sfreq, ch_types=ch_types)

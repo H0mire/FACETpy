@@ -16,7 +16,7 @@ def run_ebrahimzadeh_pipeline(
     mat_path: str,
     sfreq: float = 500.0,
     half_win_s: float = 0.15,
-    th_raw: float = 0.60,
+    th_raw: float = 0.85,
     match_tol_s: float = 0.1,
     visualize: bool = False,
     tr: float = None,
@@ -74,7 +74,7 @@ def run_ebrahimzadeh_pipeline(
         half_win_s=half_win_s,
         th_raw=th_raw,
         match_tol_s=match_tol_s,
-        visualize=visualize
+        visualize=visualize,
     )
 
     logger.info(f"Refined/augmented spike times: {len(detection.refined_times)}")
@@ -143,7 +143,7 @@ def run_combined_pipeline(
     mat_path: str,
     sfreq: float = 500.0,
     half_win_s: float = 0.15,
-    th_raw: float = 0.60,
+    th_raw: float = 0.85,
     match_tol_s: float = 0.1,
     visualize: bool = False,
     has_fmri: bool = False,
@@ -183,7 +183,7 @@ def run_combined_pipeline(
         th_raw=th_raw,
         match_tol_s=match_tol_s,
         visualize=visualize,
-        tr=tr if has_fmri else None
+        tr=tr if has_fmri else None,
     )
 
     results = {"detection": detection_result}

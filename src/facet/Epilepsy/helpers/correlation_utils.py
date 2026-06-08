@@ -34,8 +34,13 @@ def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.)
 
 
 # ======================= Main component selection (Ebrahimzadeh) =======================
-def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3., 25.), th_raw=0.60, match_tol_s=0.1, visualize=False):
-    """Select ICA components that correlate with template at annotated IED windows."""
+def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1., 30.), th_raw=0.85, match_tol_s=0.1, visualize=False):
+    """Select ICA components that correlate with the IED template (Ebrahimzadeh 2021).
+
+    Each candidate component is accepted if a high quantile of its single-trial
+    cross-correlation with the template at the IED times reaches ``th_raw``
+    (paper-faithful Template Component Cross-Correlation).
+    """
     from loguru import logger
     sf = raw.info['sfreq']
     best_ch, template_z, _, refined = build_template(
@@ -63,6 +68,24 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
     stable_indices = match_clusters_to_ica(cluster_centroids, ica)
     logger.info(f"Stable candidate components (final ICA indices): {stable_indices}")
 
+    # Remove artifact ICs (ECG/EOG/muscle) from the candidate pool so a cardiac
+    # or muscular source cannot be mistaken for an epileptic component
+    # (Ebrahimzadeh 2021: artifact components are identified and removed first).
+    artifact_ics = find_artifact_components(ica, raw)
+    if artifact_ics:
+        kept = [i for i in stable_indices if i not in artifact_ics]
+        removed = [i for i in stable_indices if i in artifact_ics]
+        # Only apply the exclusion if at least one candidate remains, so a
+        # subject is never left with an empty candidate pool.
+        if removed and kept:
+            logger.info(f"Excluding artifact ICs from candidates: {removed}")
+            stable_indices = kept
+        elif removed and not kept:
+            logger.warning(
+                f"All stable candidates flagged as artifacts {removed}; "
+                f"keeping them to avoid an empty candidate pool."
+            )
+
     # Map cluster-level run-frequencies onto the final ICA component indices so
     # reproducibility can be reported per accepted component (run frequency = how
     # many of the ``n_ica_runs`` ICA repetitions that source appeared in).
@@ -71,24 +94,47 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
         for i in range(len(stable_indices))
     }
 
+    # Evaluate each candidate component against the template at the IED times.
     accepted = []
-    timecourses = []
-    hrf_regs = {}
-    window_corr_map = {}  # {comp_idx: [per-window max|r|]}
-
+    all_data = {}  # idx -> (comp_bp, per_window_corr, score)
     for idx in stable_indices:
         comp_tc = S[idx]
         comp_bp = filter_data(comp_tc, sf, band_comp[0], band_comp[1], verbose=False)
         logger.info(f"Checking component {idx}")
-        is_accepted, per_window_corr = check_component_acceptance(comp_bp, template_z, augmented_spikes, sf, min_corr=th_raw)
+        is_accepted, per_window_corr, score = check_component_acceptance(
+            comp_bp, template_z, augmented_spikes, sf,
+            min_corr=th_raw, half_win_s=half_win_s)
+        all_data[idx] = (comp_bp, per_window_corr, score)
         if is_accepted:
-            logger.info(f"Accepted component {idx}")
             accepted.append(idx)
-            timecourses.append(comp_bp)
-            hrf_regs[idx] = generate_hrf_regressors(comp_bp, sf)
-            window_corr_map[idx] = per_window_corr
-        else:
-            logger.info(f"Rejected component {idx}")
+        logger.info(
+            f"Component {idx}: score={score:.3f} "
+            f"({'accepted' if is_accepted else 'rejected'})"
+        )
+
+    # Guarantee at least one component per subject: if none reached the
+    # threshold, fall back to the best-scoring candidate.
+    fallback_used = False
+    if not accepted and all_data:
+        best_idx = max(all_data, key=lambda i: all_data[i][2])
+        logger.warning(
+            f"No component reached threshold {th_raw}; falling back to "
+            f"best-scoring component {best_idx} (score={all_data[best_idx][2]:.3f})"
+        )
+        accepted = [best_idx]
+        fallback_used = True
+    logger.info(f"Accepted components: {accepted} (fallback={fallback_used})")
+
+    # Build outputs for the accepted (or fallback) components
+    timecourses = []
+    hrf_regs = {}
+    window_corr_map = {}
+    component_scores = {idx: all_data[idx][2] for idx in all_data}
+    for idx in accepted:
+        comp_bp, per_window_corr, _ = all_data[idx]
+        timecourses.append(comp_bp)
+        hrf_regs[idx] = generate_hrf_regressors(comp_bp, sf)
+        window_corr_map[idx] = per_window_corr
 
     # Optional visualization: plot timecourses + averaged epochs for accepted components
     if visualize and len(accepted) > 0:
@@ -100,7 +146,6 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
 
     return TemplateICADetection(
         template_z=template_z,
-        best_channel=best_ch,
         refined_times=augmented_spikes,
         accepted_components=accepted,
         component_timecourses=timecourses,
@@ -112,6 +157,11 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(3
             'component_counts': component_counts,
             'component_lambdas': component_lambdas,
             'component_run_counts': component_run_counts,
+            'component_scores': component_scores,
+            'fallback_used': fallback_used,
+            'threshold': th_raw,
+            'template_channel': int(best_ch),
+            'artifact_ics': artifact_ics,
             'n_runs': n_ica_runs,
         },
     )
@@ -356,20 +406,78 @@ def augment_template(raw, spike_sec, template_z, best_ch, high_r_min=0.96, high_
     augmented = list(spike_sec) + [t for t in new_times if t not in spike_sec]
     return sorted(augmented)
 
-# ======================= Windowed correlation at IEDs =======================
-def check_component_acceptance(component_tc, template_z, spike_times, sfreq, window_s=1.0, min_corr=0.60):
-    """Check if component correlates >= min_corr with template at annotated IED windows.
+# ======================= Artifact IC detection =======================
+def find_artifact_components(ica, raw):
+    """Identify ECG / EOG / muscle ICA components to exclude from candidates.
 
-    Paper (Ebrahimzadeh 2021): "Components that did not have cross-correlation
-    with the templates at the times of the IED events of at least 0.85 were
-    rejected."  We lower the default to 0.60 because empirical median
-    correlations on the VEPISET dataset are substantially below 0.85
-    (typical range 0.5-0.65).  The paper does not specify whether this means
-    every single window or an aggregate.  We use the **median** of per-window
-    max |r| values so that a single noisy/artefactual window cannot veto an
-    otherwise good component.  This is documented as an interpretation decision.
+    Uses MNE's correlation/template detectors against the corresponding
+    physiological channels (ECG/EOG) plus a spectral muscle heuristic.  Each
+    detector is optional: if the required channel type is absent, that detector
+    is skipped.  Returns a sorted list of unique component indices.
+
+    Ebrahimzadeh 2021 removes eye-blink, eye-movement, cardiac, muscular,
+    swallowing and machine-vibration components before selecting epileptic
+    candidates; this is the automated analogue.
     """
     from loguru import logger
+    bad = set()
+
+    # Cardiac (needs an ECG channel — now typed correctly at load time)
+    if mne.pick_types(ica.info, ecg=True, meg=False, eeg=False).size:
+        try:
+            inds, _ = ica.find_bads_ecg(raw, method="correlation",
+                                        threshold="auto", verbose=False)
+            bad.update(inds)
+        except Exception as e:  # noqa: BLE001
+            logger.debug(f"find_bads_ecg skipped: {e}")
+
+    # Ocular (needs an EOG channel)
+    if mne.pick_types(ica.info, eog=True, meg=False, eeg=False).size:
+        try:
+            inds, _ = ica.find_bads_eog(raw, verbose=False)
+            bad.update(inds)
+        except Exception as e:  # noqa: BLE001
+            logger.debug(f"find_bads_eog skipped: {e}")
+
+    # Muscle (spectral heuristic — no extra channel required)
+    try:
+        inds, _ = ica.find_bads_muscle(raw, verbose=False)
+        bad.update(inds)
+    except Exception as e:  # noqa: BLE001
+        logger.debug(f"find_bads_muscle skipped: {e}")
+
+    return sorted(bad)
+
+
+# ======================= Windowed correlation at IEDs =======================
+def check_component_acceptance(component_tc, template_z, spike_times, sfreq,
+                               window_s=0.3, min_corr=0.85, half_win_s=0.15,
+                               single_trial_quantile=0.90):
+    """Accept a component if its IED response matches the template (Ebrahimzadeh 2021).
+
+    Paper: "Components that did not have cross-correlation with the templates at
+    the times of the IED events of at least 0.85 were rejected", using a sliding
+    window of width 0.3 s at the IED times (Eq. 1).
+
+    A 0.3 s window (``window_s``) is slid at each IED and the max |r| with the
+    template is taken per IED.  The component is accepted if a high quantile
+    (``single_trial_quantile``, default 0.90) of those per-IED correlations
+    reaches ``min_corr``.  The paper's wording ("did not have cross-correlation
+    … of at least 0.85") describes the component having such correlation at the
+    IEDs, so a high quantile is used rather than the median (which would be
+    overly pessimistic on noisy single trials).
+
+    Returns
+    -------
+    accepted : bool
+    per_window_corr : list[float]
+        Single-trial max |r| at each IED window (diagnostics).
+    score : float
+        The quantile of per-IED correlations used for the decision.
+    """
+    from loguru import logger
+
+    # Slide a 0.3 s window at each IED (paper Eq. 1) and take the best alignment.
     half_win = int(round(window_s / 2 * sfreq))
     per_window_corr = []
     for t in spike_times:
@@ -380,13 +488,16 @@ def check_component_acceptance(component_tc, template_z, spike_times, sfreq, win
         if len(window_sig) < len(template_z):
             continue  # skip if window too small
         r = sliding_template_correlation(normalize_signal(window_sig), template_z)
-        max_r = np.max(np.abs(r))
-        logger.info(f"Spike at {t:.2f}s: max correlation {max_r:.3f}")
-        per_window_corr.append(max_r)
+        per_window_corr.append(np.max(np.abs(r)))
 
-    if len(per_window_corr) == 0:
-        return False, []
-    median_corr = np.median(per_window_corr)
-    logger.info(f"Median correlation across {len(per_window_corr)} windows: {median_corr:.3f} (threshold {min_corr})")
-    return median_corr >= min_corr, per_window_corr
+    if per_window_corr:
+        score = float(np.quantile(per_window_corr, single_trial_quantile))
+    else:
+        score = 0.0
+    logger.info(
+        f"decision score {score:.3f} "
+        f"(q{single_trial_quantile:.2f} of {len(per_window_corr)} IED windows, "
+        f"threshold {min_corr})"
+    )
+    return score >= min_corr, per_window_corr, score
 

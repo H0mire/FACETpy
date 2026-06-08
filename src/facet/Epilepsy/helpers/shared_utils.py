@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import mne
 from scipy.signal import detrend
 
 def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
@@ -41,9 +42,15 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
     hw = int(round(half_win_s * sf))
     idxs = (np.asarray(spike_sec) * sf).astype(int)
 
-    # 1) Choose channel with largest cumulative P-P (fixed condition)
+    # 1) Choose channel with largest cumulative P-P (fixed condition).
+    #    Restrict to EEG channels only — otherwise high-amplitude non-brain
+    #    channels (ECG/EMG/ear) win on peak-to-peak and the template would be
+    #    built from a cardiac/muscle artefact instead of the IED.
+    eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads')
+    if len(eeg_picks) == 0:
+        eeg_picks = np.arange(raw.info['nchan'])  # fallback: no typed EEG
     pp = []
-    for ch in range(raw.info['nchan']):
+    for ch in eeg_picks:
         accum = 0.0
         for i in idxs:
             start = i - hw
@@ -52,7 +59,7 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
                 seg = raw._data[ch, start:stop]
                 accum += seg.ptp()
         pp.append(accum)
-    best_ch = int(np.argmax(pp))
+    best_ch = int(eeg_picks[int(np.argmax(pp))])
 
     segs, refined_times = [], []
     for i in idxs:

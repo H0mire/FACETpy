@@ -2,14 +2,15 @@
 
 One .mat file = one subject.
 
-Produces:
+Produces (under ``src/facet/Epilepsy/evaluation/results/``):
   results/{subject}/results_{subject}_summary.csv
   results/{subject}/results_{subject}_component_detail.csv
+  results/{subject}/arrays_{subject}.npz
   results/{subject}/fig_{subject}_acceptance.png
   results/{subject}/fig_{subject}_window_corr_distribution.png
-  results/{subject}/fig_{subject}_lambda_ranking.png
   results/{subject}/fig_{subject}_template.png
-  results/{subject}/fig_{subject}_regressor_comparison.png
+  results/{subject}/fig_{subject}_ica_topomaps.png
+  results/{subject}/fig_{subject}_grouiller_map.png
 
 Usage:
     python -m facet.Epilepsy.evaluation.evaluate_subject                    # DA00100T.mat
@@ -39,17 +40,20 @@ from facet.Epilepsy.pipeline import run_combined_pipeline
 from facet.Epilepsy.helpers.preprocessing import prepare_eeg_data
 from facet.Epilepsy.evaluation.plots import (
     plot_acceptance_summary, plot_window_corr_distribution,
-    plot_lambda_ranking, plot_template, plot_regressor_comparison,
-    plot_ica_topomaps, plot_ica_reproducibility, plot_grouiller_map,
+    plot_template, 
+    plot_ica_topomaps, plot_grouiller_map,
 )
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
 SFREQ = 500.0
 TR = 2.5
-TH_RAW = 0.60
+TH_RAW = 0.85
 HALF_WIN_S = 0.15
 MAT_DIR = os.path.join(project_root, "examples", "datasets", "MAT_Files")
+RESULTS_DIR = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "results")
+)
 
 
 # ── Subject record ──────────────────────────────────────────────────────────
@@ -61,7 +65,6 @@ class SubjectRecord:
     mat_path: str
     n_spikes_annotated: int
     n_spikes_augmented: int
-    best_channel: Optional[int]
     n_accepted_components: int
     accepted_indices: list = field(default_factory=list)
     template_z: Optional[np.ndarray] = None
@@ -95,7 +98,7 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
         return SubjectRecord(
             subject=subject, mat_path=mat_path,
             n_spikes_annotated=len(spike_sec_raw),
-            n_spikes_augmented=0, best_channel=None, n_accepted_components=0,
+            n_spikes_augmented=0, n_accepted_components=0,
         )
 
     return SubjectRecord(
@@ -106,7 +109,6 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
             if detection.original_spike_sec else len(spike_sec_raw)
         ),
         n_spikes_augmented=len(detection.refined_times),
-        best_channel=detection.best_channel,
         n_accepted_components=len(detection.accepted_components),
         accepted_indices=detection.accepted_components,
         template_z=detection.template_z,
@@ -129,6 +131,22 @@ def _eeg_channel_names(detection) -> list:
     return [raw.ch_names[i] for i in eeg_picks]
 
 
+def template_channel_info(rec: "SubjectRecord") -> tuple[Optional[str], Optional[str]]:
+    """Name and MNE type of the channel the IED template was built from.
+
+    The type lets us confirm the template came from a scalp EEG channel (not an
+    ECG/EMG/ear electrode).
+    """
+    det = rec.detection
+    raw = getattr(det, "raw", None) if det is not None else None
+    idx = rec.ica_selection_stats.get("template_channel")
+    if raw is None or idx is None or not (0 <= idx < len(raw.ch_names)):
+        return None, None
+    name = raw.ch_names[idx]
+    ch_type = raw.get_channel_types(picks=[idx])[0]
+    return name, ch_type
+
+
 def grouiller_peak_channel(rec: "SubjectRecord") -> Optional[str]:
     """Channel with the largest |value| in the epileptic map."""
     emap = rec.epileptic_map
@@ -140,17 +158,6 @@ def grouiller_peak_channel(rec: "SubjectRecord") -> Optional[str]:
     return None
 
 
-def ebrahimzadeh_best_channel_name(rec: "SubjectRecord") -> Optional[str]:
-    """Name of the Ebrahimzadeh best channel (index into raw.ch_names)."""
-    det = rec.detection
-    raw = getattr(det, "raw", None) if det is not None else None
-    if raw is None or rec.best_channel is None:
-        return None
-    if 0 <= rec.best_channel < len(raw.ch_names):
-        return raw.ch_names[rec.best_channel]
-    return None
-
-
 def grouiller_focality(rec: "SubjectRecord") -> float:
     """Focality = max(|map|) / median(|map|).  Higher = more focal."""
     emap = rec.epileptic_map
@@ -159,14 +166,6 @@ def grouiller_focality(rec: "SubjectRecord") -> float:
     a = np.abs(emap)
     med = float(np.median(a))
     return float(np.max(a) / med) if med > 0 else np.nan
-
-
-def ic_run_frequencies(rec: "SubjectRecord") -> list:
-    """Per accepted IC: (component_idx, run_count, n_runs)."""
-    counts = rec.ica_selection_stats.get("component_run_counts", {})
-    n_runs = int(rec.ica_selection_stats.get("n_runs", 0))
-    return [(idx, int(counts.get(idx, 0)), n_runs) for idx in rec.accepted_indices]
-
 
 # ── DataFrames ───────────────────────────────────────────────────────────────
 
@@ -181,21 +180,21 @@ def build_summary_dataframe(rec: SubjectRecord) -> pd.DataFrame:
         vals = lambdas.get(idx, [])
         mean_lams.append(f"{np.mean(vals):.4f}" if vals else "N/A")
 
-    ic_freqs = ic_run_frequencies(rec)
-    ic_freq_str = ";".join(f"IC{idx}:{count}/{n}" for idx, count, n in ic_freqs)
+    tmpl_ch_name, tmpl_ch_type = template_channel_info(rec)
 
     row = {
         "subject": rec.subject,
         "mat_file": os.path.basename(rec.mat_path),
         "n_spikes_annotated": rec.n_spikes_annotated,
         "n_spikes_augmented": rec.n_spikes_augmented,
-        "best_channel": rec.best_channel,
-        "best_channel_name": ebrahimzadeh_best_channel_name(rec),
+        # ── Template ──────────────────────────────────────────────────
+        "template_channel": tmpl_ch_name,
+        "template_channel_type": tmpl_ch_type,
+        # ── Component selection (TCCC, Ebrahimzadeh 2021) ─────────────
         "n_accepted_components": rec.n_accepted_components,
         "accepted_indices": ";".join(str(i) for i in rec.accepted_indices),
+        "fallback_used": bool(rec.ica_selection_stats.get("fallback_used", False)),
         "median_corr_at_IEDs": ";".join(median_corrs),
-        "mean_lambda": ";".join(mean_lams),
-        "ic_run_frequency": ic_freq_str,
         "n_ica_runs": int(rec.ica_selection_stats.get("n_runs", 0)),
         "grouiller_peak_channel": grouiller_peak_channel(rec),
         "grouiller_focality": grouiller_focality(rec),
@@ -307,7 +306,7 @@ def validate_outputs(rec: SubjectRecord) -> list[str]:
 def run_evaluation(mat_path: str):
     """Execute the full single-subject evaluation for one .mat file."""
     subject = os.path.splitext(os.path.basename(mat_path))[0]
-    out_dir = os.path.join(os.path.dirname(__file__), "results", subject)
+    out_dir = os.path.join(RESULTS_DIR, subject)
     os.makedirs(out_dir, exist_ok=True)
     print(f"Subject:          {subject}")
     print(f"Input:            {os.path.abspath(mat_path)}")
@@ -369,16 +368,10 @@ def run_evaluation(mat_path: str):
         rec, os.path.join(out_dir, f"fig_{subject}_acceptance.png"))
     plot_window_corr_distribution(
         rec, os.path.join(out_dir, f"fig_{subject}_window_corr_distribution.png"))
-    plot_lambda_ranking(
-        rec, os.path.join(out_dir, f"fig_{subject}_lambda_ranking.png"))
     plot_template(
         rec, os.path.join(out_dir, f"fig_{subject}_template.png"))
-    plot_regressor_comparison(
-        rec, os.path.join(out_dir, f"fig_{subject}_regressor_comparison.png"))
     plot_ica_topomaps(
         rec, os.path.join(out_dir, f"fig_{subject}_ica_topomaps.png"))
-    plot_ica_reproducibility(
-        rec, os.path.join(out_dir, f"fig_{subject}_ica_reproducibility.png"))
     plot_grouiller_map(
         rec, os.path.join(out_dir, f"fig_{subject}_grouiller_map.png"))
 
@@ -413,7 +406,7 @@ def main():
     )
     args = parser.parse_args()
 
-    file_name = "DA00103D.mat"
+    file_name = "DA00103K.mat"
     if args.mat_file:
         mat_file_path = _resolve_mat_path(args.mat_file)
     else:
