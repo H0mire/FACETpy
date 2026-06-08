@@ -801,8 +801,9 @@ class TriggerEditor(Processor):
     slice_count : int
         Initial number of slice triggers per field (1 = no subdivision).
     settings_path : str
-        JSON file used by the Save/Load buttons
-        (default: ``"trigger_editor_settings.json"``).
+        JSON file used by the Save/Load buttons. Defaults to
+        ``"output/trigger_editor_settings.json"`` — the gitignored ``output/``
+        directory — and the parent folder is created on save if needed.
     """
 
     name = "trigger_editor"
@@ -821,7 +822,7 @@ class TriggerEditor(Processor):
         initial_offset: float | None = None,
         artifact_length: int | None = None,
         slice_count: int = 1,
-        settings_path: str = "trigger_editor_settings.json",
+        settings_path: str = "output/trigger_editor_settings.json",
     ) -> None:
         self.channel = channel
         self.n_epochs = n_epochs
@@ -955,7 +956,10 @@ class TriggerEditor(Processor):
         return float(data["offset_s"]), float(data["length_s"]), max(1, int(data.get("slice_count", 1)))
 
     def _save_settings(self, path: str, offset: float, length: float, count: int) -> None:
-        """Write the current settings to ``path`` as JSON."""
+        """Write the current settings to ``path`` as JSON (creating the dir)."""
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(self._settings_to_dict(offset, length, count), fh, indent=2)
 
