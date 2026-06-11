@@ -1,0 +1,83 @@
+# Smoke training config for the PAPER-ACCURATE DHCT-GAN edition on the Niazy
+# proof-fit dataset. Illustrative ONLY — it is NOT executed by the pytest smoke
+# test (the test builds tiny tensors in-memory). It documents how facet-train
+# would be invoked and pins device: cpu with tiny dimensions for a few-second run.
+#
+# Dataset preparation (one-shot per worker):
+#
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Training:
+#
+#   uv run facet-train fit --config \
+#     src/facet/models/dhct_gan_paper_accurate_edition/training_niazy_proof_fit_smoke.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.dhct_gan_paper_accurate_edition.training:build_model
+  kwargs:
+    base_channels: 4
+    depth: 2
+    num_heads: 2
+    n_local_blocks: 4
+    n_lgtb: 1
+    stem_pool: false
+  loss_factory: facet.models.dhct_gan_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    lambda_feat: 1.0
+    lambda_adv: 0.1
+    disc_channels: 4
+    disc_depth: 2
+    disc_lr: 0.001
+  device: cpu
+
+data:
+  dataset_factory: facet.models.dhct_gan_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean: true
+    max_examples: 64
+  eeg_only: true
+
+training:
+  model_name: DHCTGanPaperAccurateSmoke
+  chunk_size: 64
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dhct_gan_paper_accurate.ts
+  write_inference_config: false

@@ -1,0 +1,66 @@
+# PAPER-ACCURATE ConvTasNet edition -- CUDA fleet SMOKE (1 epoch, max_examples capped).
+# Same paper-scale architecture as the full config; verifies worktree sync, dataset
+# build, CUDA uv-run, checkpoint/loss.png/TorchScript export before the long run.
+# See docs/research/run_4_paper_accurate_editions_fleet.md.
+
+model:
+  framework: pytorch
+  factory: facet.models.conv_tasnet_paper_accurate_edition.training:build_model
+  kwargs:
+    n_sources: 2
+    encoder_filters: 256
+    encoder_kernel: 16
+    encoder_activation: linear
+    bottleneck_channels: 128
+    hidden_channels: 256
+    skip_channels: 128
+    block_kernel: 3
+    n_blocks: 8
+    n_repeats: 2
+    mask_activation: sigmoid
+  loss_factory: facet.models.conv_tasnet_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+data:
+  dataset_factory: facet.models.conv_tasnet_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean_input: true
+    demean_target: true
+    max_examples: 256
+  eeg_only: true
+training:
+  model_name: ConvTasNetPaperAccurateCudaSmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 1.0e-05
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 1.0e-06
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/conv_tasnet_paper_accurate_cuda_smoke.ts
+  write_inference_config: false

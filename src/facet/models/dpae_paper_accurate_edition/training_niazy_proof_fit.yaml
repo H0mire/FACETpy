@@ -1,0 +1,67 @@
+# PAPER-ACCURATE DPAE edition -- FULL CUDA training on the Niazy proof-fit dataset.
+# Generated as the GPU-fleet counterpart of the CPU smoke config (see Run 4 plan:
+# docs/research/run_4_paper_accurate_editions_fleet.md). Paper-scale dimensions, device: cuda.
+#
+# Build the dataset once per worker (fleet --prepare-command):
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 --context-epochs 7 --output-dir output/niazy_proof_fit_context_512
+#
+# Train:
+#   uv run facet-train fit --config src/facet/models/dpae_paper_accurate_edition/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.dpae_paper_accurate_edition.training:build_model
+  kwargs:
+    base_filters: 32
+    shrink_ratio_low: 0.45
+    shrink_ratio_high: 0.75
+    pathway_layers: 4
+    pathway2_stride: 4
+    fusion_depth: 3
+  loss_factory: facet.models.dpae_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+data:
+  dataset_factory: facet.models.dpae_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    target_type: clean
+    normalize: true
+  eeg_only: true
+training:
+  model_name: DPAEPaperAccurateNiazyProofFit
+  chunk_size: 512
+  target_type: clean
+  trigger_aligned: false
+  val_ratio: 0.2
+  max_epochs: 80
+  batch_size: 128
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 15
+  min_delta: 1.0e-06
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dpae_paper_accurate.ts
+  write_inference_config: false

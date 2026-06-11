@@ -1,0 +1,75 @@
+# PAPER-ACCURATE SepFormer edition -- CUDA fleet SMOKE (1 epoch, max_examples capped).
+# Same paper-scale architecture as the full config; verifies worktree sync, dataset
+# build, CUDA uv-run, checkpoint/loss.png/TorchScript export before the long run.
+# See docs/research/run_4_paper_accurate_editions_fleet.md.
+
+model:
+  framework: pytorch
+  factory: facet.models.sepformer_paper_accurate_edition.training:build_model
+  kwargs:
+    epoch_samples: 512
+    context_epochs: 7
+    encoder_channels: 128
+    encoder_kernel: 16
+    encoder_stride: 8
+    chunk_size: 64
+    n_blocks: 2
+    intra_layers: 8
+    inter_layers: 4
+    intra_heads: 8
+    inter_heads: 8
+    d_ffn: 512
+    dropout: 0.1
+    skip_around_intra: true
+    whole_stack_residual: true
+    mask_activation: relu
+    ffn_activation: relu
+  loss_factory: facet.models.sepformer_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: si_snr
+    si_snr_max: 30.0
+  device: cuda
+data:
+  dataset_factory: facet.models.sepformer_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    target_type: artifact
+    max_examples: 256
+  eeg_only: true
+training:
+  model_name: SepFormerPaperAccurateCudaSmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 64
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 1.0e-06
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/sepformer_paper_accurate_cuda_smoke.ts
+  write_inference_config: false
