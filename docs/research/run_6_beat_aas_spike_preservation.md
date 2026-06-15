@@ -1,19 +1,30 @@
-# Run 3 — Beating AAS for Spike Preservation
+# Run 6 — Beating AAS for Spike Preservation
 
-Companion zu [`run_2_plan.md`](run_2_plan.md), [`thesis_results_report.md`](thesis_results_report.md)
-und [`architecture_catalog.md`](architecture_catalog.md).
+> **Hinweis (umnummeriert, konsolidiert).** Dies war früher „Run 3". Es ist jetzt
+> der **wissenschaftliche Zielpunkt** des Decoupling-Arcs und baut auf dem
+> entkoppelten Datensatz **Weg A** auf — die frühere „Phase A" (eigener
+> Synthetik-Datensatz) ist nach
+> [`run_3_decoupled_dataset_weg_a.md`](run_3_decoupled_dataset_weg_a.md)
+> (Spike-Injektions-Modus) verschoben und hier **nicht** mehr dupliziert.
+> Überblick: [`README.md`](README.md).
+
+Companion zu [`run_3_decoupled_dataset_weg_a.md`](run_3_decoupled_dataset_weg_a.md)
+(Daten-Fundament), [`thesis_results_report.md`](thesis_results_report.md),
+[`architecture_catalog.md`](architecture_catalog.md) und
+[`dl_training_lessons.md`](dl_training_lessons.md).
 
 **Status der Vorgänger-Phasen** (für Klarheit):
 - **Run 1** (ausgeführt): die ursprünglichen 12 parallelen Modell-Trainings + Evaluationen
 - **Unified-Holdout-Re-Evaluation** (ausgeführt): die bestehenden Run-1-Modelle wurden auf einem einheitlichen 166-Window-Holdout re-evaluiert; **kein Re-Training**
-- **Run 2** (geplant, noch nicht ausgeführt): Bugfixes für die 4 defekten Modelle aus Run 1 (vit_spectrogram, dpae, dhct_gan v1/v2)
-- **Run 3** (dieser Plan, noch nicht ausgeführt): siehe unten
+- **run_2** (SUPERSEDED): Bugfixes der Run-1-Originale — überholt durch die paper-accurate Editionen + [`run_4_paper_accurate_editions_fleet.md`](run_4_paper_accurate_editions_fleet.md); Lehren in [`dl_training_lessons.md`](dl_training_lessons.md)
+- **Daten-Fundament** (Voraussetzung): [`run_3_decoupled_dataset_weg_a.md`](run_3_decoupled_dataset_weg_a.md) (Weg A) liefert das entkoppelte Set inkl. Spike-Injektions-Modus
+- **dieser Run** (noch nicht ausgeführt): siehe unten
 
 **Frage**: Kann ein Deep-Learning-Modell **AAS schlagen**, gemessen an der
 *klinisch relevanten Metrik*: Erhaltung epileptischer Spikes, die sich unter
 fMRT-Gradient-Artefakten verstecken?
 
-Branch-Vorschlag: `feature/spike_preservation_run3`
+Branch-Vorschlag: `feature/spike_preservation`
 Erwartete Dauer: 3-4 Wochen fokussierter Arbeit.
 
 ---
@@ -89,61 +100,33 @@ lassen.
 
 ## 3. Phasen-Plan
 
-### Phase A · Dataset-Erweiterung (Woche 1)
+### Phase A · Datensatz — über Weg A, kein Eigenbau
 
-**Ziel**: einen neuen Datensatz `niazy_spike_preservation_v1.npz`, der
-clean EEG + bekannte Spikes + simuliertes fMRT-Artefakt enthält.
+**Konsolidiert.** Der Datensatz wird **nicht** mehr hier gebaut, sondern ist der
+**Spike-Injektions-Modus von Weg A**
+([`run_3_decoupled_dataset_weg_a.md`](run_3_decoupled_dataset_weg_a.md) §6):
+unabhängiges `clean_true` (synthetisch/extern) + bekannte Spikes + das
+AAS+PCA-Artefakt-Template, voll-bandbreitig, gleiches `fs`/Grid. Damit entfällt
+das AAS-Ceiling (die ursprüngliche H1) — Begründung steht in Weg A, hier nicht
+mehr dupliziert.
 
-**Datenquellen:**
-- **Spike-Library**: TUH EEG Spike Corpus oder PhysioNet-CHB-MIT, kuratiert
-  auf isolierte interictale Spikes (~500-1000 Templates)
-- **Clean EEG**: aus dem Niazy-AAS-Output entnommen — auch wenn
-  AAS-bounded, dient hier nur als Träger für injizierte Spikes
-- **Artefakt-Templates**: aus dem Niazy-Artefakt-Library
-  (`output/artifact_libraries/niazy_aas_2x_direct/`) bereits vorhanden
+**Spike-spezifische Anforderungen an den Weg-A-Spike-Modus:**
+- **Spike-Library**: TUH EEG Spike Corpus / PhysioNet-CHB-MIT, kuratiert auf
+  isolierte interictale Spikes (~500–1000 Templates); Fallback parametrisch
+  (Gauss-modulierter Half-Cycle, Lourenço et al. 2015).
+- **Injektion**: 0–3 Spikes/Beispiel, Onset ~70 % in der Center-Epoche,
+  Amplitude 30–150 μV, dipolare Topografie über ein forward-model
+  (`mne.simulate_evoked` + Dipolposition) auf das 30-Kanal-Setup.
+- **Labels**: `spike_labels` (±50 ms um den Peak) als Maske mitführen — die
+  braucht die Eval in Phase D.
+- **Validierung**: ~30 % der Beispiele mit ≥1 Spike; Median-Amplitude ~80 μV im
+  Center; dipolare Topografien plausibel.
 
-**Build-Skript**: `examples/build_spike_preservation_dataset.py`
+> Unterschied zum alten Plan: `clean` kommt **nicht** mehr aus dem AAS-Output
+> (das war AAS-bounded), sondern aus der unabhängigen Weg-A-clean-Quelle — genau
+> das hebt das Ceiling.
 
-**Pipeline**:
-```
-1. Lade clean EEG (N Beispiele × 30 Kanäle × T_native)
-2. Sample für jedes Beispiel: 0-3 zufällige Spike-Events
-   - Spike-Template aus Library
-   - Random-Onset im Sample (~70% innerhalb der Center-Epoche)
-   - Random-Amplitude im physiologischen Bereich (30-150 μV)
-   - Topografie: dipolar projiziert auf 30-Kanal-Setup über
-     forward-model (z.B. mne.simulate_evoked + dipole position)
-3. Addiere Spike(s) zum clean EEG → clean_with_spikes
-4. Sample MRT-Artefakt-Template aus Niazy-Library
-5. Addiere Artefakt → noisy_with_spikes
-6. Erzeuge spike_labels: (N, n_ch, T) binary mask
-   - 1 in Spike-Region (±50 ms um Spike-Peak)
-   - 0 sonst
-7. Speichere alle Arrays + Sfreq + Trigger als .npz
-```
-
-**Output-Schema** (`output/spike_preservation_v1/spike_preservation_v1.npz`):
-```python
-noisy_with_spikes_context:    (N, 7, 30, 512)  float32  # Input
-clean_with_spikes_context:    (N, 7, 30, 512)  float32  # Target
-clean_with_spikes_center:     (N, 30, 512)     float32  # Eval-Target
-noisy_with_spikes_center:     (N, 30, 512)     float32
-artifact_only_context:        (N, 7, 30, 512)  float32  # Pures Artefakt
-spike_labels_context:         (N, 7, 30, 512)  bool     # Spike-Mask
-spike_labels_center:          (N, 30, 512)     bool
-spike_metadata:               (N,) object              # n_spikes, onsets, channels, amplitudes
-sfreq:                        (1,) float32
-```
-
-**Validierungs-Check**:
-- 30 % der Beispiele haben mindestens 1 Spike
-- Spike-Amplitude im Center-Epoch median ~80 μV
-- Topographien plausibel (dipolar, Max an passender Elektrode)
-- Artefakt-Statistik matched Niazy-Recording
-
-**Aufwand**: 5 Tage. Risiko: Spike-Library-Qualität (kuratierte annotierte
-Spikes können knapp sein → Fallback: parametrische Spike-Generierung
-via Gauss-Modulierter Half-Cycle nach Lourenço et al. 2015).
+**Aufwand**: ~3 Tage *zusätzlich* zum Weg-A-Builder (nur Spike-Injektion + Labels).
 
 ---
 
@@ -465,7 +448,7 @@ aber **deutlich schwächer in Spike-Recall** — das ist die These.
 | Synthetisches Artefakt unrealistisch | mittel | mittel | Validiere Spektrum vs echte Niazy-Aufnahmen + diskutiere im Caveat |
 | Cross-Channel-Attention bringt nichts | gering | mittel | Ablation-Study: mit/ohne Bridge → Differenz quantifizieren |
 | AAS schlägt DL auch bei Spikes | gering | hoch | Wenn ja → echtes wissenschaftliches Resultat, Thesis erzählt warum |
-| TorchScript-Device-Baking wieder ein Problem | mittel | gering | run_2_plan §3.5 — fix bei Export |
+| TorchScript-Device-Baking wieder ein Problem | mittel | gering | [`dl_training_lessons.md`](dl_training_lessons.md) §1.5 — fix bei Export |
 | Training auf Spike-Aware-Loss instabil | mittel | mittel | Lambda-Sweep + Mixed-Loss (L1 + λ·spike), starte mit kleinem λ |
 
 ---
@@ -562,13 +545,13 @@ quantitativ aufzeigen würde.
 Bevor Phase A startet:
 
 - [ ] Decision Points §7 mit Betreuer geklärt
-- [ ] Branch `feature/spike_preservation_run3` aus
+- [ ] Branch `feature/spike_preservation` aus
   `feature/proof_fit_consolidated` erstellt
 - [ ] TUH EEG Spike Corpus heruntergeladen (oder Alternative)
 - [ ] Niazy-Artefakt-Library noch verfügbar
   (`output/artifact_libraries/niazy_aas_2x_direct/`)
 - [ ] GPU-Fleet aktiv und für Multi-Day-Training verfügbar
-- [ ] `docs/research/run_3_plan.md` (dieses Dokument) mit Betreuer
+- [ ] `docs/research/run_6_beat_aas_spike_preservation.md` (dieses Dokument) mit Betreuer
   abgestimmt
 
 ---

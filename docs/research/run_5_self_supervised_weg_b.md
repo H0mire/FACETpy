@@ -1,10 +1,10 @@
-# Run 6 — Self-supervised, AAS-freie Artefaktschätzung (Weg B)
+# Run 5 — Self-supervised, AAS-freie Artefaktschätzung (Weg B)
 
 > **Status: NÄCHSTER Run nach Weg A.** Dies ist **Weg B** der AAS-Entkopplung
 > aus der Datensatz-Diskussion (2026-06-11): Training **ganz ohne clean-Target**.
 > Setzt auf der in Weg A gebauten (7 Epochen × 3 Kanäle)-Referenz und dem
 > entkoppelten Evaluations-Setup auf —
-> [`run_5_decoupled_dataset_weg_a.md`](run_5_decoupled_dataset_weg_a.md).
+> [`run_3_decoupled_dataset_weg_a.md`](run_3_decoupled_dataset_weg_a.md).
 
 ---
 

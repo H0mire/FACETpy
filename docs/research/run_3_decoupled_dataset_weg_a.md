@@ -1,13 +1,13 @@
-# Run 5 — Von AAS entkoppelter Trainingsdatensatz (Weg A)
+# Run 3 — Von AAS entkoppelter Trainingsdatensatz (Weg A)
 
 > **Kontext:** Ergebnis der Datensatz-Diskussion (2026-06-11). Dies ist **Weg A**
 > der AAS-Entkopplung: ein semi-synthetischer, räumlich-zeitlicher
 > Referenz-Datensatz mit *unabhängiger* clean-Quelle. **Weg B**
 > (self-supervised, ganz ohne Target) ist als nächster Run in
-> [`run_6_self_supervised_weg_b.md`](run_6_self_supervised_weg_b.md)
+> [`run_5_self_supervised_weg_b.md`](run_5_self_supervised_weg_b.md)
 > dokumentiert.
 >
-> Verwandt: [`run_3_plan.md`](run_3_plan.md) (Spike-Preservation gegen AAS),
+> Verwandt: [`run_6_beat_aas_spike_preservation.md`](run_6_beat_aas_spike_preservation.md) (Spike-Preservation gegen AAS),
 > `src/facet/models/evaluation_standard.md`.
 
 ---
@@ -173,6 +173,11 @@ gleicher Mix-Block, gleicher Scale).
    `AmplitudeJitter`, `LengthJitterNoise`.
 5. **Test:** billiger CPU-Smoke (winziges synthetisches Bundle, Shapes, ein paar
    Schritte, Shift/Mix-Invarianten als pure Funktionen).
+6. **Spike-Injektions-Modus (Fundament für run_6):** optionaler clean-Modus, der
+   bekannte Spikes (Library oder parametrisch) ins `clean_true` injiziert und eine
+   `spike_labels`-Maske mitführt. Das ist die Datenbasis der Spike-Preservation-
+   Evaluation in [`run_6_beat_aas_spike_preservation.md`](run_6_beat_aas_spike_preservation.md)
+   — run_6 baut **keinen** eigenen Datensatz mehr, sondern nutzt diesen Modus.
 
 Single-recording proof-fit zuerst; Multi-Recording später (eigentliche
 Generalisierung).
@@ -196,5 +201,5 @@ bekannte Spikes, Spektralmetriken) — teils in `evaluation_standard.md`.
   sonst ist die Resample-Auflösung der wahre Low-pass, nicht die 70 Hz.
 - `clean_source=external`: gibt es outside-scanner-/clean-EEG derselben Montage?
 - Danach **Weg B** (self-supervised, ganz AAS-frei) als nächster Run —
-  [`run_6_self_supervised_weg_b.md`](run_6_self_supervised_weg_b.md). Die hier
+  [`run_5_self_supervised_weg_b.md`](run_5_self_supervised_weg_b.md). Die hier
   gebaute (7×3)-Referenz und das entkoppelte Eval sind die Voraussetzung dafür.

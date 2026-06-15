@@ -1,7 +1,7 @@
 # Run 4 — Fleet-Training der `_paper_accurate_edition`-Modelle
 
 > **Art dieses Runs:** Ops-/Trainings-Run auf der GPU-Fleet (nicht eine
-> Forschungsrichtung wie `run_3_plan.md`). Ziel ist, die 12 neuen
+> Forschungsrichtung wie [`run_6_beat_aas_spike_preservation.md`](run_6_beat_aas_spike_preservation.md)). Ziel ist, die 12 neuen
 > paper-getreuen Modell-Editionen unter denselben Bedingungen wie der letzte
 > Fleet-Run zu trainieren, zu exportieren, zu evaluieren — und **A/B gegen die
 > Originale** aus dem Run vom 10.05.2026 zu stellen.

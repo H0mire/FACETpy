@@ -1,5 +1,16 @@
 # Run 2 — Plan & Erkenntnisse aus Run 1
 
+> ⛔ **SUPERSEDED / ARCHIVIERT (nicht ausgeführt).** Der konkrete Aktionsplan
+> (die 4 defekten Run-1-Originale patchen + re-trainieren) ist überholt: die
+> **paper-accurate Editionen** (`src/facet/models/<id>_paper_accurate_edition/`)
+> bauen vit_spectrogram, dpae und dhct_gan(_v2) ohnehin korrekt neu, und ihr
+> Training läuft über [`run_4_paper_accurate_editions_fleet.md`](run_4_paper_accurate_editions_fleet.md).
+> Die zeitlosen Lehren aus §3/§5/§7 leben weiter in
+> [`dl_training_lessons.md`](dl_training_lessons.md). Dieses Dokument bleibt als
+> historischer Plan-of-record (verlinkt aus dem 2026-05-12-Status-Report)
+> erhalten — Inhalt unten unverändert. Aktueller Überblick:
+> [`README.md`](README.md).
+
 Companion zu [`thesis_results_report.md`](thesis_results_report.md) (was passiert ist)
 und [`architecture_catalog.md`](architecture_catalog.md) (welche Modellfamilien).
 Dieses Dokument: **was im zweiten Lauf konkret anders gemacht werden muss**.
