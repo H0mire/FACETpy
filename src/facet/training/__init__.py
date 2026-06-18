@@ -56,12 +56,17 @@ from .config import (
     TrainingConfig,
 )
 from .dataset import (
+    AmplitudeJitter,
+    BackgroundMix,
     ChannelDropout,
     EEGArtifactDataset,
+    LengthJitterNoise,
     NoiseScaling,
     NPZContextArtifactDataset,
+    NPZSpatioTemporalDataset,
     SignFlip,
     TriggerJitter,
+    WindowShift,
 )
 from .losses import (
     CompositeLoss,
@@ -84,10 +89,15 @@ __all__ = [
     # Dataset
     "EEGArtifactDataset",
     "NPZContextArtifactDataset",
+    "NPZSpatioTemporalDataset",
     "TriggerJitter",
     "NoiseScaling",
     "ChannelDropout",
     "SignFlip",
+    "WindowShift",
+    "BackgroundMix",
+    "AmplitudeJitter",
+    "LengthJitterNoise",
     # Wrappers
     "TrainableModelWrapper",
     "PyTorchModelWrapper",

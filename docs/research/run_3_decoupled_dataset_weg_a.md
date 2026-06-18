@@ -182,6 +182,36 @@ gleicher Mix-Block, gleicher Scale).
 Single-recording proof-fit zuerst; Multi-Recording später (eigentliche
 Generalisierung).
 
+## 6a. Stand der Umsetzung (umgesetzt 2026-06-18)
+
+Alle sechs Bausteine aus §6 sind gebaut, getestet (13 CPU-Tests, ~4 s) und
+**end-to-end auf der echten Niazy-Aufnahme** validiert:
+
+| # | Artefakt | Datei |
+|---|---|---|
+| 1 | AAS+PCA(4)-Bundle-Extractor | [`tools/dataset_building/extract_niazy_aas_pca4_artifact.py`](../../tools/dataset_building/extract_niazy_aas_pca4_artifact.py) |
+| 2 | Builder (Bibliothek) | [`src/facet/training/spatiotemporal_builder.py`](../../src/facet/training/spatiotemporal_builder.py) |
+| 2 | Builder-CLI | [`tools/dataset_building/build_spatiotemporal_reference_dataset.py`](../../tools/dataset_building/build_spatiotemporal_reference_dataset.py) |
+| 3 | `NPZSpatioTemporalDataset` | [`src/facet/training/dataset.py`](../../src/facet/training/dataset.py) |
+| 4 | `WindowShift`/`BackgroundMix`/`AmplitudeJitter`/`LengthJitterNoise` | [`src/facet/training/dataset.py`](../../src/facet/training/dataset.py) |
+| 5 | CPU-Smoke-Test | [`tests/test_spatiotemporal_reference_dataset.py`](../../tests/test_spatiotemporal_reference_dataset.py) |
+| 6 | Spike-Injektions-Modus (`--inject-spikes`, `spike_labels`) | builder + dataset (`get_spike_labels`) |
+
+**Echter Lauf (Faktor 2 → 4096 Hz):** 840 Trigger, 30 EEG-Kanäle, kombiniertes
+Artefakt mean |art| ≈ 736 µV; daraus ein Weg-A-Set `(N, 7, 3, 512)` mit
+guard-band 32 (`synthetic` clean) sowie eine Spike-Variante (`--inject-spikes`).
+
+**Bewusste Abweichungen vom §6-Wortlaut:**
+- Der Extractor ist eine **neue** Datei unter `tools/` statt einer Erweiterung
+  von `examples/dataset_building/extract_niazy_artifact_signal.py` (die
+  `examples/` gehören einem anderen Agenten und bleiben unangetastet).
+- kNN-Positionen werden **nicht** ins Bundle geschrieben, sondern downstream aus
+  `ch_names` über die `standard_1005`-Montage rekonstruiert (Alias-Map T3→T7 …,
+  identisch zu `st_gnn`). Das Bundle bleibt damit format-gleich zu den
+  AAS-Bundles.
+- Das Dataset speichert **kein** `noisy_context` — `noisy = clean + artifact`
+  wird pro Item rekonstruiert (spart ⅓ Platz/RAM und garantiert die Invariante).
+
 ## 7. Evaluation auch entkoppeln
 
 Nur gegen „passt zu AAS" zu messen kann „besser als AAS" nicht zeigen. Nötig:
@@ -195,11 +225,14 @@ bekannte Spikes, Spektralmetriken) — teils in `evaluation_standard.md`.
   voll-bandbreitig, kein 70-Hz-Low-pass** — das Artefakt wird in Gänze gelernt.
 - Builder/Eval-Pipelines dürfen **keinen** `LowPassFilter` enthalten (sonst ginge
   genau der gelernte HF-Artefaktanteil verloren).
-- **Epochen-Auflösung** prüfen: das Per-Epochen-Resample auf `target_epoch_samples`
-  ist selbst eine Bandbegrenzung (wirkt auf Artefakt *und* clean). `target_epoch_samples
-  / Epochendauer` muss hoch genug sein, dass das >300-Hz-Residual erhalten bleibt —
-  sonst ist die Resample-Auflösung der wahre Low-pass, nicht die 70 Hz.
+- **Epochen-Auflösung — geklärt (2026-06-18):** native Epoche ≈ 795 Samples
+  (≈0,194 s bei 840 Triggern). Bei `core_samples=512` ist die effektive
+  Abtastrate ≈ 2640 Hz → **Nyquist ≈ 1320 Hz**, also deutlich über 300 Hz: das
+  >300-Hz-OBS-Residual bleibt erhalten, die Resample-Auflösung ist **nicht** der
+  heimliche Low-pass. Wer mehr HF will (bis 2048 Hz beim 4096-Hz-Bundle), erhöht
+  `core_samples` (≥ native) oder den Upsample-Faktor.
 - `clean_source=external`: gibt es outside-scanner-/clean-EEG derselben Montage?
+  (weiterhin offen — Builder unterstützt `--clean-source external --external-clean`.)
 - Danach **Weg B** (self-supervised, ganz AAS-frei) als nächster Run —
   [`run_5_self_supervised_weg_b.md`](run_5_self_supervised_weg_b.md). Die hier
   gebaute (7×3)-Referenz und das entkoppelte Eval sind die Voraussetzung dafür.
