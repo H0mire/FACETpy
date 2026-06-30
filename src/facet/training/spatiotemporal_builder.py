@@ -47,7 +47,7 @@ _LEGACY_NAME_ALIAS: dict[str, str] = {
     "T6": "P8",
 }
 
-CLEAN_SOURCES = ("synthetic", "external", "aas_corrected")
+CLEAN_SOURCES = ("synthetic", "external", "aas_corrected", "niazy_pretrigger")
 
 
 # ---------------------------------------------------------------------------
@@ -75,6 +75,34 @@ def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
         pad = target_samples - out.shape[-1]
         out = np.concatenate([out, np.full(pad, out[..., -1], dtype=out.dtype)], axis=-1)
     return out.astype(np.float32, copy=False)
+
+
+def resample_and_tile(
+    clean: np.ndarray,
+    src_sfreq: float,
+    dst_sfreq: float,
+    n_samples: int,
+) -> np.ndarray:
+    """Bring a (possibly shorter) clean recording onto the artifact's grid.
+
+    Resamples ``clean`` (``n_channels, n``) from ``src_sfreq`` to ``dst_sfreq``
+    and tiles/trims it to exactly ``n_samples`` columns. Used for
+    ``clean_source='niazy_pretrigger'``: the real pre-trigger segment (~28 s) is
+    repeated to span the full artifact recording. Tiling introduces a few seams
+    and a periodicity equal to the source length — acceptable for the
+    single-recording proof-fit; a longer external corpus removes it (run_3 §3).
+    """
+    clean = np.asarray(clean, dtype=np.float64)
+    if abs(src_sfreq - dst_sfreq) > 1e-6:
+        g = gcd(int(round(dst_sfreq)), int(round(src_sfreq)))
+        up, down = int(round(dst_sfreq)) // g, int(round(src_sfreq)) // g
+        clean = resample_poly(clean, up, down, axis=-1)
+    n = clean.shape[-1]
+    if n == 0:
+        raise ValueError("clean recording is empty")
+    reps = int(np.ceil(n_samples / n))
+    tiled = np.tile(clean, (1, reps))[:, :n_samples]
+    return tiled.astype(np.float32)
 
 
 def epoch_boundaries(
@@ -266,6 +294,8 @@ def build_spatiotemporal_reference_dataset(
     k_neighbors: int = 2,
     clean_source: str = "synthetic",
     external_clean: np.ndarray | None = None,
+    pretrigger_clean: np.ndarray | None = None,
+    pretrigger_sfreq: float | None = None,
     inject_spikes_mode: bool = False,
     spike_rate_hz: float = 0.7,
     spike_amplitude_uv: float = 40.0,
@@ -316,6 +346,19 @@ def build_spatiotemporal_reference_dataset(
         clean_true = np.asarray(external_clean, dtype=np.float32)
         if clean_true.shape != artifact.shape:
             raise ValueError(f"external_clean {clean_true.shape} must match artifact {artifact.shape}")
+    elif clean_source == "niazy_pretrigger":
+        # Real in-scanner pre-trigger EEG: brain + BCG, GA-free (run_3 §3). Same
+        # Niazy montage, so channels align 1:1; resample to the bundle rate and
+        # tile to span the artifact recording. BCG rides along in situ.
+        if pretrigger_clean is None or pretrigger_sfreq is None:
+            raise ValueError("clean_source='niazy_pretrigger' requires pretrigger_clean and pretrigger_sfreq")
+        pre = np.asarray(pretrigger_clean, dtype=np.float32)
+        if pre.shape[0] != n_channels:
+            raise ValueError(
+                f"pretrigger_clean has {pre.shape[0]} channels but the artifact bundle has {n_channels}; "
+                "both must use the same Niazy montage in the same order"
+            )
+        clean_true = resample_and_tile(pre, float(pretrigger_sfreq), sfreq, n_samples)
     else:  # synthetic
         target_rms = float(np.sqrt(np.mean(corrected.astype(np.float64) ** 2))) or 1.0
         clean_true = synthetic_clean(n_channels, n_samples, sfreq, target_rms=target_rms, seed=seed)

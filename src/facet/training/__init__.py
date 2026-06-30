@@ -68,6 +68,7 @@ from .dataset import (
     TriggerJitter,
     WindowShift,
 )
+from .honesty_metrics import honesty_report, honesty_verdict
 from .losses import (
     CompositeLoss,
     TorchLossWrapper,
@@ -109,6 +110,9 @@ __all__ = [
     "snr_loss",
     "CompositeLoss",
     "TorchLossWrapper",
+    # Honesty metrics
+    "honesty_report",
+    "honesty_verdict",
     # Callbacks
     "Callback",
     "CallbackList",

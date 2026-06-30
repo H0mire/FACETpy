@@ -20,6 +20,7 @@ from facet.training import (
 )
 from facet.training.spatiotemporal_builder import (
     build_spatiotemporal_reference_dataset,
+    resample_and_tile,
     select_neighbors,
 )
 
@@ -92,6 +93,38 @@ def test_builder_synthetic_clean_is_independent_of_corrected():
     # synthetic clean is finite and not the all-zero placeholder
     assert np.isfinite(ds["clean_context"]).all()
     assert float(np.mean(np.abs(ds["clean_context"]))) > 0.0
+
+
+def test_resample_and_tile_shape_and_rate():
+    rng = np.random.default_rng(0)
+    clean = rng.standard_normal((4, 1000)).astype(np.float32)  # 4 ch, 1000 samp @ 500 Hz
+    out = resample_and_tile(clean, src_sfreq=500.0, dst_sfreq=1000.0, n_samples=5000)
+    assert out.shape == (4, 5000)  # upsampled (1000->2000) then tiled to 5000
+    assert np.isfinite(out).all()
+
+
+def test_builder_niazy_pretrigger_uses_real_clean():
+    bundle = _toy_bundle()  # 8 ch artifact bundle @ 1000 Hz
+    n_ch = bundle["artifact"].shape[0]
+    rng = np.random.default_rng(1)
+    pretrigger = (rng.standard_normal((n_ch, 600)) * 2.0).astype(np.float32)  # short real-ish clean @ 500 Hz
+    ds = build_spatiotemporal_reference_dataset(
+        bundle, context_epochs=7, core_samples=32, guard_samples=8,
+        clean_source="niazy_pretrigger", pretrigger_clean=pretrigger, pretrigger_sfreq=500.0, seed=0,
+    )
+    assert str(ds["clean_source"][0]) == "niazy_pretrigger"
+    assert np.isfinite(ds["clean_context"]).all()
+    assert float(np.mean(np.abs(ds["clean_context"]))) > 0.0
+
+
+def test_builder_niazy_pretrigger_rejects_channel_mismatch():
+    bundle = _toy_bundle()
+    bad = np.zeros((3, 600), dtype=np.float32)  # wrong channel count
+    with pytest.raises(ValueError, match="channels"):
+        build_spatiotemporal_reference_dataset(
+            bundle, context_epochs=7, core_samples=32, guard_samples=8,
+            clean_source="niazy_pretrigger", pretrigger_clean=bad, pretrigger_sfreq=500.0,
+        )
 
 
 def test_builder_spike_mode_emits_labels():
