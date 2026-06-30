@@ -20,9 +20,18 @@ from facet.training import (
 )
 from facet.training.spatiotemporal_builder import (
     build_spatiotemporal_reference_dataset,
+    inject_real_ieds,
     resample_and_tile,
     select_neighbors,
 )
+
+
+def _fake_ied_pool(names=("C3", "C4", "F3"), t=100):
+    x = np.linspace(-3, 3, t)
+    wave = (-x * np.exp(-(x**2))).astype(np.float32)   # sharp biphasic
+    wave = wave / np.max(np.abs(wave))
+    waveforms = np.stack([wave, 0.5 * wave, 0.3 * wave]).astype(np.float32)
+    return [{"waveforms": waveforms, "names": list(names)}]
 
 # Real montage names so the geodesic k-NN path is exercised.
 CH_NAMES = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"]
@@ -125,6 +134,52 @@ def test_builder_niazy_pretrigger_rejects_channel_mismatch():
             bundle, context_epochs=7, core_samples=32, guard_samples=8,
             clean_source="niazy_pretrigger", pretrigger_clean=bad, pretrigger_sfreq=500.0,
         )
+
+
+def test_inject_real_ieds_maps_by_name_and_scales():
+    rng = np.random.default_rng(0)
+    ch_names = list(CH_NAMES)                      # Fp1,Fp2,F3,F4,C3,C4,P3,P4
+    clean = (rng.standard_normal((len(ch_names), 5000)) * 1e-6).astype(np.float32)
+    pool = _fake_ied_pool(names=("C3", "C4", "F3"))
+    out, centers = inject_real_ieds(
+        clean, clean_sfreq=1000.0, ch_names=ch_names, ied_pool=pool, pool_sfreq=500.0,
+        rate_hz=20.0, amplitude_uv=100.0, seed=1,
+    )
+    assert out.shape == clean.shape
+    assert len(centers) > 0
+    # spikes land on the named channels only (C3=4, C4=5, F3=2), never elsewhere
+    hit_channels = {c for c, _ in centers}
+    assert hit_channels <= {ch_names.index(n) for n in ("C3", "C4", "F3")}
+    # focal channel amplitude ~ requested (100 uV) — far above the 1 uV background
+    assert np.max(np.abs(out)) > 50e-6
+
+
+def test_inject_real_ieds_skips_unmatched_names():
+    ch_names = list(CH_NAMES)
+    clean = np.zeros((len(ch_names), 4000), dtype=np.float32)
+    pool = _fake_ied_pool(names=("PG1", "A1", "ECG1"))   # none present in CH_NAMES
+    out, centers = inject_real_ieds(
+        clean, 1000.0, ch_names, pool, 500.0, rate_hz=50.0, amplitude_uv=100.0, seed=2,
+    )
+    assert len(centers) == 0          # nothing mapped -> nothing injected
+    assert np.allclose(out, 0.0)
+
+
+def test_builder_real_ied_on_pretrigger_clean():
+    # the key combination: REAL clean (pre-trigger surrogate) + REAL IED spikes
+    bundle = _toy_bundle(n_epochs=16)
+    n_ch = bundle["artifact"].shape[0]
+    pre = (np.random.default_rng(3).standard_normal((n_ch, 320)) * 1e-6).astype(np.float32)
+    ds = build_spatiotemporal_reference_dataset(
+        bundle, context_epochs=7, core_samples=64, guard_samples=8,
+        clean_source="niazy_pretrigger", pretrigger_clean=pre, pretrigger_sfreq=500.0,
+        inject_spikes_mode=True, spike_source="real_ied",
+        real_ied_pool=_fake_ied_pool(names=("C3", "C4", "F3")), real_ied_sfreq=500.0,
+        spike_rate_hz=12.0, spike_amplitude_uv=100.0, seed=0,
+    )
+    assert bool(ds["spikes_injected"][0]) is True
+    assert str(ds["clean_source"][0]) == "niazy_pretrigger"
+    assert float(np.sum(ds["spike_labels"])) > 0.0   # real IEDs produced ground-truth labels
 
 
 def test_builder_spike_mode_emits_labels():

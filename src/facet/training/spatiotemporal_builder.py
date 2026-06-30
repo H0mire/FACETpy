@@ -280,6 +280,67 @@ def inject_spikes(
     return out, centers
 
 
+def inject_real_ieds(
+    clean: np.ndarray,
+    clean_sfreq: float,
+    ch_names: list[str],
+    ied_pool: list[dict],
+    pool_sfreq: float,
+    *,
+    rate_hz: float,
+    amplitude_uv: float = 120.0,
+    label_frac: float = 0.3,
+    seed: int = 0,
+) -> tuple[np.ndarray, list[tuple[int, int]]]:
+    """Inject **real** annotated IEDs (run_3 §6.6 / run_6 ground truth).
+
+    Each pool entry is a real multi-channel spike-wave complex extracted at a
+    ``!`` onset of the external IED dataset, normalised so its focal peak is 1.0,
+    with the originating 10-20 electrode names. Channels are mapped to the target
+    montage **by name** (exact placement — both use the 10-20 system), preserving
+    the real morphology *and* the real cross-channel topography; the absolute
+    amplitude is rescaled to ``amplitude_uv`` so it sits realistically on the
+    clean background regardless of the source dataset's units.
+
+    Returns the spiked signal and ``(channel, peak_sample)`` centers for every
+    channel whose injected peak reaches ``label_frac`` of the focal peak — the
+    ground-truth ``spike_labels`` support.
+    """
+    if not ied_pool:
+        raise ValueError("inject_real_ieds requires a non-empty ied_pool")
+    rng = np.random.default_rng(seed)
+    out = clean.astype(np.float32).copy()
+    n_channels, n_samples = out.shape
+    name_to_idx = {_LEGACY_NAME_ALIAS.get(n, n): i for i, n in enumerate(ch_names)}
+    name_to_idx.update({n: i for i, n in enumerate(ch_names)})  # also accept raw names
+    amp_v = amplitude_uv * 1e-6
+    duration_s = n_samples / float(clean_sfreq)
+    n_spikes = int(rng.poisson(rate_hz * duration_s))
+    centers: list[tuple[int, int]] = []
+
+    for _ in range(n_spikes):
+        ied = ied_pool[int(rng.integers(len(ied_pool)))]
+        wf = np.asarray(ied["waveforms"], dtype=np.float64)  # (n_named, T) focal-normalised
+        names = list(ied["names"])
+        if abs(pool_sfreq - clean_sfreq) > 1e-6:
+            g = gcd(int(round(clean_sfreq)), int(round(pool_sfreq)))
+            wf = resample_poly(wf, int(round(clean_sfreq)) // g, int(round(pool_sfreq)) // g, axis=-1)
+        t_len = wf.shape[-1]
+        if t_len >= n_samples or t_len < 2:
+            continue
+        start = int(rng.integers(0, n_samples - t_len))
+        focal_peak = float(np.max(np.abs(wf))) or 1.0
+        for r, nm in enumerate(names):
+            idx = name_to_idx.get(_LEGACY_NAME_ALIAS.get(nm, nm), name_to_idx.get(nm))
+            if idx is None:
+                continue
+            chan_wave = (wf[r] / focal_peak) * amp_v
+            out[idx, start:start + t_len] += chan_wave.astype(np.float32)
+            if np.max(np.abs(wf[r])) >= label_frac * focal_peak:
+                centers.append((idx, start + int(np.argmax(np.abs(wf[r])))))
+    return out.astype(np.float32), centers
+
+
 # ---------------------------------------------------------------------------
 # Main builder
 # ---------------------------------------------------------------------------
@@ -297,6 +358,9 @@ def build_spatiotemporal_reference_dataset(
     pretrigger_clean: np.ndarray | None = None,
     pretrigger_sfreq: float | None = None,
     inject_spikes_mode: bool = False,
+    spike_source: str = "synthetic",
+    real_ied_pool: list[dict] | None = None,
+    real_ied_sfreq: float | None = None,
     spike_rate_hz: float = 0.7,
     spike_amplitude_uv: float = 40.0,
     spike_width_ms: float = 20.0,
@@ -332,9 +396,8 @@ def build_spatiotemporal_reference_dataset(
     offset_seconds = float(np.asarray(bundle["artifact_to_trigger_offset"]).ravel()[0])
     ch_names = [str(c) for c in np.asarray(bundle["ch_names"]).tolist()]
 
-    spikes_enabled = bool(inject_spikes_mode) and clean_source == "synthetic"
-    if inject_spikes_mode and not spikes_enabled:
-        logger.warning("inject_spikes_mode ignored: it requires clean_source='synthetic'")
+    if spike_source not in ("synthetic", "real_ied"):
+        raise ValueError(f"spike_source must be 'synthetic' or 'real_ied', got {spike_source!r}")
 
     # --- independent clean source (run_3 §3) ---
     spike_centers: list[tuple[int, int]] = []
@@ -362,14 +425,24 @@ def build_spatiotemporal_reference_dataset(
     else:  # synthetic
         target_rms = float(np.sqrt(np.mean(corrected.astype(np.float64) ** 2))) or 1.0
         clean_true = synthetic_clean(n_channels, n_samples, sfreq, target_rms=target_rms, seed=seed)
-        if spikes_enabled:
+
+    # --- spike injection, decoupled from the clean source (run_3 §6.6) ---
+    # Real IEDs (or synthetic) can be injected onto ANY clean — in particular the
+    # real niazy_pretrigger clean — so the spike-preservation ground truth (run_6)
+    # rides on a realistic background.
+    spikes_enabled = bool(inject_spikes_mode)
+    if spikes_enabled:
+        if spike_source == "real_ied":
+            if not real_ied_pool:
+                raise ValueError("spike_source='real_ied' requires real_ied_pool")
+            clean_true, spike_centers = inject_real_ieds(
+                clean_true, sfreq, ch_names, real_ied_pool, float(real_ied_sfreq or sfreq),
+                rate_hz=spike_rate_hz, amplitude_uv=spike_amplitude_uv, seed=seed + 1,
+            )
+        else:  # synthetic
             clean_true, spike_centers = inject_spikes(
-                clean_true,
-                sfreq,
-                rate_hz=spike_rate_hz,
-                amplitude=spike_amplitude_uv * 1e-6,
-                width_ms=spike_width_ms,
-                seed=seed + 1,
+                clean_true, sfreq, rate_hz=spike_rate_hz,
+                amplitude=spike_amplitude_uv * 1e-6, width_ms=spike_width_ms, seed=seed + 1,
             )
 
     spikes_by_channel: dict[int, np.ndarray] = {}

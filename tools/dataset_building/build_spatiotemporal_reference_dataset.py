@@ -71,6 +71,69 @@ def extract_pretrigger_clean(
     return clean, sfreq, names
 
 
+# Authoritative 29-channel order of the VEPISET IED dataset (github.com/vepiset/vepiset_dataset);
+# rows 0-18 are the 19 standard 10-20 EEG channels.
+VEPISET_EEG19 = [
+    "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
+    "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz",
+]
+
+
+def extract_real_ied_pool(
+    dataset_dir: Path,
+    *,
+    max_ieds: int = 300,
+    window_ms: float = 600.0,
+    hp_freq: float = 1.0,
+    sfreq: float = 500.0,
+) -> tuple[list[dict], float]:
+    """Build a pool of REAL annotated IEDs from the VEPISET dataset.
+
+    Scans the ``.mat`` recordings for ``!`` spike onsets, extracts a multi-channel
+    window over the 19 standard 10-20 EEG channels (rows 0-18), 1 Hz high-passed,
+    and normalises each to its focal peak. The real morphology *and* the real
+    cross-channel topography are preserved; channels are mapped to the target
+    montage by name at injection time (run_3 §6.6 / run_6 ground truth).
+    """
+    import scipy.io as sio  # noqa: PLC0415
+    from scipy.signal import butter, sosfiltfilt  # noqa: PLC0415
+
+    mat_dir = dataset_dir / "MAT_Files"
+    mats = sorted(mat_dir.glob("*.mat"))
+    if not mats:
+        raise SystemExit(f"No .mat files under {mat_dir}")
+    sos = butter(4, hp_freq, btype="high", fs=sfreq, output="sos")
+    half = int(0.5 * window_ms * 1e-3 * sfreq)
+    pool: list[dict] = []
+    for f in mats:
+        m = sio.loadmat(str(f), squeeze_me=True, struct_as_record=False)
+        if "events" not in m or "eeg_data" not in m:
+            continue
+        ev = np.asarray(m["events"]).reshape(-1, 3)
+        onsets = [float(str(r[0]).strip()) for r in ev if str(r[2]).strip() == "!"]
+        if not onsets:
+            continue
+        eeg = np.asarray(m["eeg_data"], dtype=np.float64)[: len(VEPISET_EEG19)]
+        eeg = sosfiltfilt(sos, eeg, axis=1)
+        for on in onsets:
+            s = int(on * sfreq)
+            a, b = s - half, s + half
+            if a < 0 or b > eeg.shape[1]:
+                continue
+            win = eeg[:, a:b]
+            focal = float(np.max(np.abs(win)))
+            if focal <= 0:
+                continue
+            pool.append({"waveforms": (win / focal).astype(np.float32), "names": list(VEPISET_EEG19)})
+            if len(pool) >= max_ieds:
+                break
+        if len(pool) >= max_ieds:
+            break
+    if not pool:
+        raise SystemExit("No IEDs with '!' markers found in the dataset")
+    return pool, sfreq
+
+
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--artifact-bundle", type=Path, required=True)
@@ -94,6 +157,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--pretrigger-guard-s", type=float, default=1.0, help="Stop the clean segment this many s before the first trigger")
     p.add_argument("--pretrigger-skip-s", type=float, default=1.0, help="Skip this many s at the start (filter edge transient)")
     p.add_argument("--inject-spikes", action="store_true", help="run_6 spike-preservation foundation")
+    p.add_argument("--spike-source", choices=["synthetic", "real_ied"], default="synthetic")
+    p.add_argument(
+        "--ied-dataset",
+        type=Path,
+        default=Path("/Volumes/JanikProSSD/DataSets/opensource-dataset"),
+        help="VEPISET IED dataset dir for --spike-source real_ied (real annotated spikes)",
+    )
+    p.add_argument("--max-ieds", type=int, default=300, help="how many real IEDs to load into the pool")
     p.add_argument("--spike-rate-hz", type=float, default=0.7)
     p.add_argument("--spike-amplitude-uv", type=float, default=40.0)
     p.add_argument("--spike-width-ms", type=float, default=20.0)
@@ -126,6 +197,12 @@ def main() -> None:
         )
         print(f"  pre-trigger clean: {pretrigger_clean.shape[0]} ch, {pretrigger_clean.shape[1] / pretrigger_sfreq:.1f}s @ {pretrigger_sfreq:.0f} Hz")
 
+    real_ied_pool = None
+    real_ied_sfreq = None
+    if args.inject_spikes and args.spike_source == "real_ied":
+        real_ied_pool, real_ied_sfreq = extract_real_ied_pool(args.ied_dataset.expanduser(), max_ieds=args.max_ieds)
+        print(f"  real IED pool: {len(real_ied_pool)} annotated spikes @ {real_ied_sfreq:.0f} Hz")
+
     dataset = build_spatiotemporal_reference_dataset(
         bundle,
         context_epochs=args.context_epochs,
@@ -137,6 +214,9 @@ def main() -> None:
         pretrigger_clean=pretrigger_clean,
         pretrigger_sfreq=pretrigger_sfreq,
         inject_spikes_mode=args.inject_spikes,
+        spike_source=args.spike_source,
+        real_ied_pool=real_ied_pool,
+        real_ied_sfreq=real_ied_sfreq,
         spike_rate_hz=args.spike_rate_hz,
         spike_amplitude_uv=args.spike_amplitude_uv,
         spike_width_ms=args.spike_width_ms,
