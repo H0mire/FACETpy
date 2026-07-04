@@ -385,16 +385,23 @@ class ANCCorrection(Processor):
         np.ndarray
             Filtered noise signal.
         """
+        # Mirror the C extension / MATLAB fastranc exactly:
+        #   - N+1 taps (filter order N → N+1 weights)
+        #   - regressor spans refs[i-N .. i] INCLUSIVE, i.e. it includes the
+        #     current reference sample refs[i] (the previous fallback used N
+        #     taps ending at refs[i-1], dropping the instantaneous sample —
+        #     a one-tap, one-sample-lag discrepancy vs. the C path).
+        #   - weight update uses 2*mu (the C code computes temp = 2*mu*out[i]).
         N = max(1, int(filter_order))
         length = len(reference)
-        w = np.zeros(N)
+        w = np.zeros(N + 1)
         y = np.zeros(length)
 
         for n in range(N, length):
-            x = reference[n - N : n][::-1]
+            x = reference[n - N : n + 1]
             y[n] = np.dot(w, x)
             e = data[n] - y[n]
-            w += mu * e * x
+            w += 2.0 * mu * e * x
 
         return y
 

@@ -23,7 +23,7 @@ from mne import verbose
 from facet import (
     AASCorrection,
     ANCCorrection,
-    ArtifactOffsetFinder,
+    TriggerEditor,
     FARMCorrection,
     MagicErasor,
     Pipeline,
@@ -112,7 +112,7 @@ steps = [
     # 4. Detect fMRI slice-onset triggers
     TriggerExplorer(),
 
-    ArtifactOffsetFinder(),
+    TriggerEditor(),
 
     ReferenceIntervalSelector(),
     # 5. High-pass filter to remove slow drifts before correction
@@ -146,7 +146,7 @@ steps = [
     ),
     # 13. BCG correction (QRS-triggered AAS on cardiac cycle)
     QRSTriggerDetector(),
-    # ArtifactOffsetFinder(channel="ECG"),
+    # TriggerEditor(channel="ECG"),
     AASCorrection(window_size=15, realign_after_averaging=True),
     ANCCorrection(use_c_extension=True) if do_anc else anc_skipped,
     MagicErasor(),

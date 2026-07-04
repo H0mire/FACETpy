@@ -103,7 +103,7 @@ def _base_steps():
         MATLABPreFilter(lp_frequency=70.0, hp_frequency=1.0, gauss_hp_frequency=1.0),
         UpSample(factor=UPSAMPLE),
         SliceAligner(ref_trigger_index=0),
-        SubsampleAligner(ref_trigger_index=0),
+        SubsampleAligner(ref_trigger_index=0, mode="quality"),
     ]
 
 

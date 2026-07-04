@@ -2,6 +2,7 @@
 Tests for evaluation processors.
 """
 
+import mne
 import numpy as np
 import pytest
 
@@ -284,15 +285,73 @@ class TestRMSResidualCalculator:
 class TestLegacySNRCalculator:
     """Tests for LegacySNRCalculator processor."""
 
-    def test_legacy_snr_calculation(self, sample_context):
-        """Test legacy SNR calculation."""
-        snr_calc = LegacySNRCalculator()
-        result = snr_calc.execute(sample_context)
+    def test_legacy_snr_calculation(self):
+        """Legacy SNR is a positive float when residual artifact remains.
 
+        Deterministic context: the reference (out-of-acquisition, original) has a
+        low variance while the corrected acquisition window carries an injected
+        residual artifact, so ``var_corrected > var_reference`` for every channel
+        and the SNR is a well-defined positive value. (With random fixture data
+        the legacy SNR can legitimately be ``None`` when every channel is
+        over-corrected — see ``test_legacy_snr_all_channels_over_corrected``.)
+        """
+        rng = np.random.RandomState(42)
+        sfreq, n, n_ch = 200.0, 2000, 4
+        triggers = np.array([700, 900, 1100, 1300])
+        artifact_length = 100
+
+        base = rng.standard_normal((n_ch, n)) * 1e-6  # clean reference level
+        ch_names = [f"E{i}" for i in range(n_ch)]
+        original = mne.io.RawArray(base.copy(), mne.create_info(ch_names, sfreq, "eeg"), verbose="ERROR")
+
+        # Residual artifact (higher variance) inside the acquisition window only.
+        acq_start, acq_end = triggers[0] - artifact_length // 2, triggers[-1] + int(artifact_length * 1.5)
+        corrected_data = base.copy()
+        corrected_data[:, acq_start:acq_end] += rng.standard_normal((n_ch, acq_end - acq_start)) * 5e-6
+        corrected = mne.io.RawArray(corrected_data, mne.create_info(ch_names, sfreq, "eeg"), verbose="ERROR")
+
+        context = ProcessingContext(raw=corrected, raw_original=original)
+        context.metadata.triggers = triggers
+        context.metadata.artifact_length = artifact_length
+
+        result = LegacySNRCalculator().execute(context)
         metrics = result.metadata.custom.get("metrics", {})
         assert "legacy_snr" in metrics
         assert isinstance(metrics["legacy_snr"], float)
         assert metrics["legacy_snr"] > 0
+
+    def test_legacy_snr_all_channels_over_corrected(self):
+        """Legacy SNR is None (n/a) when no channel has residual artifact.
+
+        Regression for the report crash: when every channel's corrected variance
+        is at or below the reference, all channels are dropped (MATLAB discards
+        negative SNRs) and the aggregate is reported as ``None`` rather than a
+        misleading clamped value — which the metrics report must render as 'n/a'
+        instead of raising ``TypeError`` on ``f"{None:.2f}"``.
+        """
+        rng = np.random.RandomState(0)
+        sfreq, n, n_ch = 200.0, 2000, 4
+        triggers = np.array([700, 900, 1100, 1300])
+        artifact_length = 100
+        ch_names = [f"E{i}" for i in range(n_ch)]
+
+        # Reference (original) noisier than the corrected signal -> var_residual<0
+        # for every channel -> all dropped -> legacy_snr None.
+        original = mne.io.RawArray(
+            rng.standard_normal((n_ch, n)) * 5e-6, mne.create_info(ch_names, sfreq, "eeg"), verbose="ERROR"
+        )
+        corrected = mne.io.RawArray(
+            rng.standard_normal((n_ch, n)) * 1e-6, mne.create_info(ch_names, sfreq, "eeg"), verbose="ERROR"
+        )
+        context = ProcessingContext(raw=corrected, raw_original=original)
+        context.metadata.triggers = triggers
+        context.metadata.artifact_length = artifact_length
+
+        result = LegacySNRCalculator().execute(context)
+        metrics = result.metadata.custom.get("metrics", {})
+        assert metrics["legacy_snr"] is None
+        # The report must not raise on the None aggregate.
+        MetricsReport().process(result)
 
     def test_legacy_snr_requires_original_raw(self, sample_context):
         """Test that legacy SNR requires original raw data."""

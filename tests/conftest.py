@@ -20,6 +20,10 @@ TEST_N_CHANNELS = 4
 TEST_DURATION = 10  # seconds
 TEST_N_TRIGGERS = 10
 TEST_ARTIFACT_LENGTH = 50  # samples
+# Fixed seed so fixture data is deterministic. Without it, metrics like SNR
+# (which legitimately becomes None when every channel is over-corrected) would
+# flip non-deterministically between runs and intermittently fail tests.
+TEST_SEED = 1234
 
 
 @pytest.fixture
@@ -35,8 +39,9 @@ def sample_raw():
     """Create a sample MNE Raw object for testing."""
     n_samples = int(TEST_SFREQ * TEST_DURATION)
 
-    # Create random data
-    data = np.random.randn(TEST_N_CHANNELS, n_samples) * 1e-6
+    # Create random data (seeded for deterministic tests)
+    rng = np.random.RandomState(TEST_SEED)
+    data = rng.randn(TEST_N_CHANNELS, n_samples) * 1e-6
 
     # Create info structure
     ch_names = [f"EEG{i + 1:03d}" for i in range(TEST_N_CHANNELS)]
@@ -54,8 +59,9 @@ def sample_raw_with_artifacts():
     """Create a sample Raw object with simulated fMRI artifacts."""
     n_samples = int(TEST_SFREQ * TEST_DURATION)
 
-    # Base EEG signal
-    data = np.random.randn(TEST_N_CHANNELS, n_samples) * 1e-6
+    # Base EEG signal (seeded for deterministic tests)
+    rng = np.random.RandomState(TEST_SEED + 1)
+    data = rng.randn(TEST_N_CHANNELS, n_samples) * 1e-6
 
     # Add simulated artifacts at regular intervals
     artifact_interval = n_samples // TEST_N_TRIGGERS

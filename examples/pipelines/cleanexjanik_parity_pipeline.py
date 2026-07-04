@@ -256,7 +256,7 @@ def build_pipeline(probe: ParityProbe) -> Pipeline:
         HighPassFilter(freq=1.0),
         UpSample(factor=UPSAMPLE),
         SliceAligner(ref_trigger_index=0),
-        SubsampleAligner(ref_trigger_index=0),
+        SubsampleAligner(ref_trigger_index=0, mode="quality"),
         probe.checkpoint("alignment", to_native=True),
         AASCorrection(
             window_size=30,

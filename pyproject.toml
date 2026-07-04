@@ -1,6 +1,6 @@
 [project]
 name = "facetpy"
-version = "2.0.2"
+version = "2.1.0"
 description = "A flexible artifact correction and evaluation toolbox to correct eeg data"
 authors = [
     { name = "Janik Michael Mueller", email = "janik.michael.mueller@gmail.com" },

@@ -1,11 +1,22 @@
 """
-Full fMRI artifact correction pipeline.
+Full fMRI artifact correction pipeline — VOLUME-TRIGGER variant.
 
-This is the reference example showing the complete, publication-quality
-correction workflow. It covers every recommended step:
+Copy of ``complete_pipeline_example_large_dataset.py`` adapted for recordings
+whose markers are VOLUME triggers (one per fMRI volume / TR) instead of slice
+triggers. It adds two MATLAB-FACET-faithful steps:
 
-  Load → Crop → Filter → Upsample → Align → AAS → PCA → Downsample
-  → ANC → Export → Evaluate → Plot
+  * ``SliceTriggerGenerator`` — expands each volume trigger into N slice
+    triggers (MATLAB ``GenerateSliceTriggers``). Must run right after trigger
+    detection, before high-pass / upsampling.
+  * ``VolumeArtifactCorrection`` — subtracts the volume-transition artifact from
+    the slices bordering each inter-volume gap and interpolates the gap itself
+    (MATLAB ``RARemoveVolumeArtifact`` / the ``'RemoveVolumeArt'`` RASequence
+    step). Runs after alignment, before AAS — exactly MATLAB's position.
+
+Pipeline:
+
+  Load → DropCh → Detect (volume) → Slice-gen → Filter → Upsample → Align
+  → RemoveVolumeArt → AAS → PCA → Downsample → ANC → Export → Evaluate → Plot
 
 For shorter introductions, see:
   quickstart.py         — minimal pipeline (load, AAS, export)
@@ -35,6 +46,7 @@ from facet import (
     DropChannels,
     AASCorrection,
     PCACorrection,
+    VolumeArtifactCorrection,
     SNRCalculator,
     LegacySNRCalculator,
     RMSCalculator,
@@ -50,7 +62,7 @@ from facet.config import set_config
 from facet.evaluation import ReferenceIntervalSelector
 from facet.evaluation.metrics import SignalIntervalSelector
 from facet.helpers.interactive import TriggerEditor
-from facet.preprocessing import TriggerExplorer
+from facet.preprocessing import TriggerExplorer, SliceTriggerGenerator
 
 import os
 
@@ -69,7 +81,7 @@ OUTPUT_FILE = str(OUTPUT_DIR / "corrected_EEGfMRI_20250519_20180312_004257.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
+TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI VOLUME (TR) trigger
 UPSAMPLE         = 5          # upsample factor for sub-sample trigger alignment
 RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
 RECORDING_END    = None        # seconds — crop end (None keeps until the end)
@@ -102,9 +114,8 @@ steps = [
     # 3. Remove unrelevant data
     # Crop(tmin=RECORDING_START, tmax=RECORDING_END),
 
-    # 4. Detect fMRI slice-onset triggers
+    # 4. Detect fMRI VOLUME (TR) triggers
     TriggerExplorer(),
-
     TriggerEditor(),
 
     ReferenceIntervalSelector(),
@@ -117,6 +128,12 @@ steps = [
     # 7. Align all triggers to a shared reference using cross-correlation
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
     SubsampleAligner(),
+
+    # 7b. Remove the volume-transition artifact (MATLAB 'RemoveVolumeArt').
+    #     Runs after alignment, before AAS — exactly MATLAB's RASequence order.
+    #     Self-skips when metadata.volume_gaps is False (no inter-volume gap),
+    #     so it is safe to keep in unconditionally.
+    VolumeArtifactCorrection(),
 
     # 8. Averaged Artifact Subtraction — the primary correction step
     AASCorrection(
@@ -166,7 +183,7 @@ steps += [
            title="Fp1 — Before vs After Correction",
        ),
 ]
-pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline")
+pipeline = Pipeline(steps, name="Full fMRI Correction Pipeline (volume→slice + RemoveVolumeArt)")
 
 
 # ---------------------------------------------------------------------------

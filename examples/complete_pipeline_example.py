@@ -4,14 +4,14 @@ Full fMRI artifact correction pipeline.
 This is the reference example showing the complete, publication-quality
 correction workflow. It covers every recommended step:
 
-  Load → DropChannels → Crop → TriggerExplorer → ArtifactOffsetFinder
+  Load → DropChannels → Crop → TriggerExplorer → TriggerEditor
   → Filter → ReferenceIntervalSelector → Upsample → Align → AAS → PCA
   → Downsample → Filter → ANC → Export → Evaluate → Plot
 
 ReferenceIntervalSelector lets you pick a clean reference interval for
 metrics. SignalIntervalSelector lets you pick the evaluated signal interval
 (acquisition) when boundaries are unclear after correction. TriggerExplorer
-discovers and selects trigger sources; ArtifactOffsetFinder aligns the artifact
+discovers and selects trigger sources; TriggerEditor aligns the artifact
 window with the data. Use auto_select with TriggerExplorer for non-interactive
 runs.
 
@@ -28,7 +28,7 @@ from pathlib import Path
 
 from facet import (
     ANCCorrection,
-    ArtifactOffsetFinder,
+    TriggerEditor,
     Crop,
     FARMCorrection,
     MagicErasor,
@@ -54,6 +54,7 @@ from facet import (
 )
 from facet.preprocessing import TriggerExplorer
 from facet.config import set_config
+from facet.preprocessing.alignment import SubsampleAligner
 
 set_config(log_level="INFO", console_mode="modern")
 
@@ -96,7 +97,7 @@ steps = [
     TriggerExplorer(),
 
     # 5. Interactively align artifact window to trigger
-    ArtifactOffsetFinder(),
+    TriggerEditor(),
 
     # Optional: pick evaluated reference interval manually if acquisition contains unhandled artifacts
     # ReferenceIntervalSelector(),
@@ -124,6 +125,7 @@ steps = [
 
     # 9. Align all triggers to a shared reference using cross-correlation
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
+    SubsampleAligner(),
 
     # 10. Averaged Artifact Subtraction — the primary correction step
     # AASCorrection(
@@ -146,7 +148,7 @@ steps = [
     # ),
 
     # 11. PCA — remove systematic residual artifact components
-    PCACorrection(n_components=0.95, hp_freq=1.0),
+    PCACorrection(n_components=0.95, hp_freq=70.0),
 
     # 12. Downsample back to the original recording rate
     DownSample(factor=UPSAMPLE),
@@ -167,7 +169,6 @@ steps += [
     # SignalIntervalSelector(),
     # 16. Compute evaluation metrics
     SNRCalculator(),
-    LegacySNRCalculator(),
     RMSCalculator(),
     RMSResidualCalculator(),
     MedianArtifactCalculator(),

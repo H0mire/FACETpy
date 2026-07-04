@@ -5,7 +5,7 @@ PCA-based artifact correction processor.
 import mne
 import numpy as np
 from loguru import logger
-from scipy.signal import butter, filtfilt
+from scipy.signal import filtfilt, firls, firwin
 
 from ..console import processor_progress
 from ..core import ProcessingContext, Processor, ProcessorValidationError, register_processor
@@ -36,8 +36,28 @@ class PCACorrection(Processor):
         retain (float in (0, 1)). Use ``"auto"`` for MATLAB-like OBS auto
         selection. Default: 0.95.
     hp_freq : float, optional
-        High-pass cutoff frequency in Hz applied before PCA. None skips
-        filtering (default: None).
+        High-pass cutoff frequency in Hz applied before PCA. This determines
+        which band the OBS basis is fitted on — and that choice is a genuine
+        safety/efficacy trade-off, **not** just drift removal:
+
+        - **High cutoff (≈ the final low-pass or above; FASTR uses 70 Hz, FACET
+          examples 300 Hz).** Keeps the EEG band *out* of the OBS, so the basis
+          can only model the high-frequency residual artifact and cannot remove
+          real EEG — safe. The flip side: if a final low-pass at/below this
+          cutoff follows, the OBS only cleans content that low-pass discards, so
+          it contributes little to the band-limited output.
+        - **Low cutoff (or ``None``, i.e. no OBS-specific filter — relying on an
+          upstream high-pass).** Lets the OBS act inside the EEG band, so it
+          *can* clean in-band residual — but it then **risks modelling and
+          subtracting real EEG**, because the brain signal lives in that band.
+          This is especially destructive with a variance-fraction
+          ``n_components`` (e.g. 0.95), which can capture the brain outright.
+          Only go low with a small *fixed* ``n_components`` (Niazy-style ~4) and
+          validate against ground truth.
+
+        Also note a low cutoff at an up-sampled rate needs a very long FIR (a
+        sharp 1 Hz high-pass at 20 kHz is ~40000 taps); high-pass once at the
+        original rate upstream instead. ``None`` skips filtering (default: None).
     hp_filter_weights : np.ndarray, optional
         Pre-computed filter weights; overrides ``hp_freq`` when provided.
     exclude_channels : list, optional
@@ -93,6 +113,21 @@ class PCACorrection(Processor):
         # --- COMPUTE ---
         hp_weights = self._resolve_hp_weights(raw.info["sfreq"])
         s_acq_start, s_acq_end = self._get_acquisition_window(context)
+
+        # The HP filter and acquisition window are identical for every channel,
+        # so decide ONCE (and log once) whether the filter can be applied. This
+        # surfaces an over-long filter as a clear warning instead of letting
+        # ``filtfilt`` raise inside the per-channel ``except`` and silently
+        # disabling the entire correction.
+        if hp_weights is not None and (s_acq_end - s_acq_start) <= len(hp_weights):
+            logger.warning(
+                "OBS high-pass filter ({} taps) is longer than the acquisition "
+                "window ({} samples); proceeding without high-pass filtering",
+                len(hp_weights),
+                s_acq_end - s_acq_start,
+            )
+            hp_weights = None
+
         # Direct _data access avoids a full array copy on large datasets
         estimated_artifacts = np.zeros(raw._data.shape)
 
@@ -113,7 +148,7 @@ class PCACorrection(Processor):
                     continue
 
                 try:
-                    residuals = self._calc_pca_residuals(
+                    fitted_artifact = self._calc_fitted_artifact(
                         raw._data[ch_idx],
                         triggers,
                         artifact_length,
@@ -121,8 +156,11 @@ class PCACorrection(Processor):
                         s_acq_end,
                         hp_weights,
                     )
-                    raw._data[ch_idx][s_acq_start:s_acq_end] -= residuals
-                    estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += residuals
+                    # Match MATLAB FACET (FACET.m:1266-1267):
+                    #   RANoiseAcq = RANoiseAcq + fitted_res
+                    #   RAEEGAcq   = RAEEGAcq   - fitted_res
+                    raw._data[ch_idx][s_acq_start:s_acq_end] -= fitted_artifact
+                    estimated_artifacts[ch_idx][s_acq_start:s_acq_end] += fitted_artifact
                     progress.advance(1, message=status_prefix)
                 except Exception as exc:
                     logger.error("PCA failed for channel {}: {}", ch_name, exc)
@@ -160,7 +198,7 @@ class PCACorrection(Processor):
             return self._create_hp_filter(sfreq)
         return None
 
-    def _calc_pca_residuals(
+    def _calc_fitted_artifact(
         self,
         ch_data: np.ndarray,
         triggers: np.ndarray,
@@ -169,7 +207,7 @@ class PCACorrection(Processor):
         s_acq_end: int,
         hp_weights: np.ndarray | None,
     ) -> np.ndarray:
-        """Calculate PCA-based artifact residuals for a single channel.
+        """Calculate the OBS-fitted artifact estimate for a single channel.
 
         Parameters
         ----------
@@ -189,20 +227,21 @@ class PCACorrection(Processor):
         Returns
         -------
         np.ndarray
-            Residual (artifact) signal of length ``s_acq_end - s_acq_start``.
+            Fitted artifact (OBS reconstruction) of length
+            ``s_acq_end - s_acq_start``, to be subtracted from the EEG.
         """
         ch_data_acq = ch_data[s_acq_start:s_acq_end]
 
-        ch_data_filtered = filtfilt(hp_weights, 1, ch_data_acq) if hp_weights is not None else ch_data_acq
+        ch_data_filtered = self._apply_hp_filter(ch_data_acq, hp_weights) if hp_weights is not None else ch_data_acq
 
         adjusted_triggers = triggers - s_acq_start
         # Small offset prevents epoch boundaries from sitting exactly on the trigger
         offset = int(artifact_length * 0.1)
 
         epochs = split_vector(ch_data_filtered, adjusted_triggers + offset, artifact_length)
-        residuals_per_epoch = self._calc_pca(epochs)
+        artifact_per_epoch = self._calc_pca(epochs)
 
-        fitted_res = np.zeros(len(ch_data_acq))
+        fitted_artifact = np.zeros(len(ch_data_acq))
         for i, trigger in enumerate(adjusted_triggers):
             start_pos = trigger + offset
             end_pos = start_pos + artifact_length
@@ -212,14 +251,20 @@ class PCACorrection(Processor):
                 epoch_length = len(ch_data_acq) - start_pos
                 if epoch_length <= 0:
                     continue
-                fitted_res[start_pos:] = residuals_per_epoch[i, :epoch_length]
+                fitted_artifact[start_pos:] = artifact_per_epoch[i, :epoch_length]
             else:
-                fitted_res[start_pos:end_pos] = residuals_per_epoch[i, :]
+                fitted_artifact[start_pos:end_pos] = artifact_per_epoch[i, :]
 
-        return fitted_res
+        return fitted_artifact
 
     def _calc_pca(self, epochs: np.ndarray) -> np.ndarray:
-        """Apply PCA to epochs and return the artifact residuals.
+        """Apply PCA to epochs and return the OBS-fitted artifact estimate.
+
+        Mirrors the MATLAB FACET OBS routine (``DoPCA.m`` + ``FitOBS.m`` +
+        ``FACET.m:1252-1267``): epochs are mean-centered per column, SVD yields
+        the optimal basis set, each epoch is projected onto the top components
+        (rank-k reconstruction = LSQ fit), and the reconstruction itself is
+        returned as the artifact estimate to be subtracted from the EEG.
 
         Parameters
         ----------
@@ -229,7 +274,8 @@ class PCACorrection(Processor):
         Returns
         -------
         np.ndarray
-            Residual (artifact) matrix of shape (n_epochs, n_times).
+            Per-epoch OBS reconstruction (artifact estimate) of shape
+            (n_epochs, n_times).
         """
         epochs_t = epochs.T
 
@@ -241,10 +287,11 @@ class PCACorrection(Processor):
             return np.zeros_like(epochs)
 
         X_valid = epochs_t[:, valid_mask]
+        # MATLAB FACET uses ``detrend('constant')`` — column-wise mean removal
+        # only. z-Score scaling would distort the variance ranking of the
+        # singular values and break the OBS auto-selection heuristic.
         mean_valid = np.mean(X_valid, axis=0)
-        std_valid = np.std(X_valid, axis=0, ddof=0)
-        std_valid = np.where(std_valid < variance_threshold, 1.0, std_valid)
-        X_centered = (X_valid - mean_valid) / std_valid
+        X_centered = X_valid - mean_valid
 
         try:
             U, S, Vt = np.linalg.svd(X_centered, full_matrices=False)
@@ -261,13 +308,22 @@ class PCACorrection(Processor):
         U_reduced = U[:, :n_components]
         S_reduced = S[:n_components]
         Vt_reduced = Vt[:n_components, :]
-        X_reconstructed_valid = ((U_reduced @ np.diag(S_reduced) @ Vt_reduced) * std_valid) + mean_valid
+        # Rank-k reconstruction in the original (mean-restored) space. This is
+        # the OBS-fitted artifact estimate — equivalent to MATLAB FACET's
+        # ``fitted_res = papc * (pinv(papc) * epoch)``. The broadcasting form
+        # ``U * S`` avoids materialising a ``diag(S)`` matrix.
+        #
+        # ``np.errstate`` suppresses a spurious "divide by zero encountered in
+        # matmul" FP flag numpy can raise for this product (it performs no
+        # division). Harmless under numpy's default "warn" mode but fatal under
+        # ``-W error`` / ``filterwarnings=error``.
+        with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+            artifact_valid = (U_reduced * S_reduced) @ Vt_reduced + mean_valid
 
-        residuals_valid = X_valid - X_reconstructed_valid
-        residuals_full = np.zeros_like(epochs_t)
-        residuals_full[:, valid_mask] = residuals_valid
+        artifact_full = np.zeros_like(epochs_t)
+        artifact_full[:, valid_mask] = artifact_valid
 
-        return residuals_full.T
+        return artifact_full.T
 
     def _select_n_components(self, singular_values: np.ndarray, max_components: int, n_samples: int) -> int:
         """Determine the number of PCA components to retain.
@@ -337,22 +393,76 @@ class PCACorrection(Processor):
         return max(1, pcs)
 
     def _create_hp_filter(self, sfreq: float) -> np.ndarray:
-        """Create Butterworth high-pass filter weights.
+        """Create FIR high-pass filter weights.
+
+        Replicates the MATLAB FACET OBS high-pass (``FACET.m:878-888``): a
+        linear-phase ``firls`` filter whose **order is derived from the cutoff
+        and a ±10 Hz transition band**::
+
+            filtorder = round(1.2 * sfreq / (OBSHPFrequency - 10))   # made even
+            f = [0, (hp-10)/nyq, (hp+10)/nyq, 1];   a = [0 0 1 1]
+
+        This keeps the filter short (~23 taps at 300 Hz / 5 kHz), so it never
+        triggers the ``filtfilt`` padlen blow-up that the previous
+        ``numtaps = max(101, 2*sfreq)`` design caused (~10001 taps at 1 Hz).
+        The transition-band formula is only defined for cutoffs above its 10 Hz
+        half-width; for ``hp_freq <= 10`` it falls back to a windowed-sinc
+        high-pass (which inherently needs a long filter at this sampling rate —
+        the call site caps the padding so it still cannot raise).
 
         Parameters
         ----------
         sfreq : float
-            Sampling frequency in Hz.
+            Sampling frequency in Hz (the current, possibly upsampled, rate).
 
         Returns
         -------
         np.ndarray
-            Filter weights for use with ``scipy.signal.filtfilt``.
+            FIR filter taps for use with ``scipy.signal.filtfilt``.
         """
         nyq = 0.5 * sfreq
-        normalized_cutoff = self.hp_freq / nyq
-        b, _ = butter(5, normalized_cutoff, btype="high")
-        return b
+        cutoff = self.hp_freq
+
+        if cutoff > 10:
+            lo = (cutoff - 10) / nyq
+            hi = (cutoff + 10) / nyq
+            if 0 < lo < hi < 1:
+                # MATLAB derives an even filter ORDER; firls taps = order + 1.
+                filtorder = int(round(1.2 * sfreq / (cutoff - 10)))
+                if filtorder % 2 != 0:
+                    filtorder += 1
+                numtaps = max(filtorder + 1, 3)
+                return firls(numtaps, [0.0, lo, hi, 1.0], [0.0, 0.0, 1.0, 1.0])
+
+        # Low cutoff (≤ 10 Hz): MATLAB's transition-band formula is undefined.
+        normalized_cutoff = cutoff / nyq
+        numtaps = max(101, int(2 * sfreq))
+        if numtaps % 2 == 0:
+            numtaps += 1
+        return firwin(numtaps, normalized_cutoff, pass_zero=False)
+
+    @staticmethod
+    def _apply_hp_filter(signal: np.ndarray, weights: np.ndarray) -> np.ndarray:
+        """Zero-phase high-pass with padding capped to the signal length.
+
+        ``scipy.signal.filtfilt`` raises when the signal is shorter than its
+        default ``padlen = 3*(len(weights)-1)``. Capping the padlen keeps a long
+        FIR (low-cutoff fallback) from crashing on short acquisition windows.
+
+        Parameters
+        ----------
+        signal : np.ndarray
+            1-D signal to filter.
+        weights : np.ndarray
+            FIR high-pass weights.
+
+        Returns
+        -------
+        np.ndarray
+            Zero-phase filtered signal (same length as ``signal``).
+        """
+        padlen = min(3 * (len(weights) - 1), len(signal) - 1)
+        return filtfilt(weights, 1.0, signal, padlen=max(padlen, 0))
 
     def _get_acquisition_window(self, context: ProcessingContext) -> tuple:
         """Return the start and end sample indices of the acquisition window.

@@ -50,8 +50,13 @@ def _top_channels(values: np.ndarray, channel_names: list[str], n: int = 3) -> t
     arr = np.asarray(values, dtype=float).ravel()
     if arr.size == 0:
         return "[]", "[]"
-    n = max(1, min(n, arr.size, len(channel_names)))
-    order = np.argsort(arr)
+    # Rank only channels with a finite metric: np.argsort sorts NaN/inf to the
+    # end, which would otherwise mis-report undefined channels as the "worst".
+    finite_idx = np.flatnonzero(np.isfinite(arr))
+    if finite_idx.size == 0:
+        return "[]", "[]"
+    n = max(1, min(n, finite_idx.size, len(channel_names)))
+    order = finite_idx[np.argsort(arr[finite_idx])]
     best_idx = order[:n]
     worst_idx = order[-n:][::-1]
     best = ", ".join(f"{channel_names[i]}={arr[i]:.3g}" for i in best_idx)
@@ -1040,28 +1045,50 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(ref_data, axis=1)
 
-        # Residual variance is the difference; clamped to avoid division by zero.
-        var_residual = np.maximum(var_corrected - var_reference, 1e-10)
-
-        snr_per_channel = np.abs(var_reference / var_residual)
-        snr_mean = np.mean(snr_per_channel)
+        # MATLAB FACET (snr_residual.m + Eval.m:296): residual = corrected -
+        # reference, SNR = reference / residual, then negative SNR values are
+        # discarded (``r = r(r >= 0)``). Over-corrected channels (corrected
+        # variance below the clean baseline) yield a negative residual and are
+        # dropped rather than clamped — clamping would manufacture a huge
+        # spurious SNR and bias the mean upward.
+        var_residual = var_corrected - var_reference
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snr_per_channel = var_reference / var_residual
+        valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
+        # When *every* channel is over-corrected there is no comparable channel
+        # left, so the SNR is undefined — return NaN rather than 0.0. A 0.0
+        # would read as "worst possible SNR" and silently corrupt comparisons;
+        # NaN lets callers distinguish "no valid channels" from "zero SNR".
+        # Stored as ``None`` in the metrics dict below to stay JSON-strict.
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else float("nan")
+        # Non-finite / dropped channels stored as NaN to keep the per-channel
+        # array JSON-clean and aligned with the channel order.
+        snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
 
         if self.verbose:
+            n_dropped = int(np.sum(~valid))
             logger.info("SNR diagnostics: var_reference {}", _dist_summary(var_reference))
             logger.info("SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
             logger.info("SNR diagnostics: var_residual {}", _dist_summary(var_residual))
-            logger.info("SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
-            worst, best = _top_channels(snr_per_channel, channel_names)
-            logger.info("SNR diagnostics: lowest channels [{}]", best)
-            logger.info("SNR diagnostics: highest channels [{}]", worst)
+            logger.info("SNR diagnostics: dropped (over-corrected) channels = {}", n_dropped)
+            if np.any(valid):
+                logger.info("SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel[valid]))
+                worst, best = _top_channels(snr_per_channel_clean, channel_names)
+                logger.info("SNR diagnostics: lowest channels [{}]", best)
+                logger.info("SNR diagnostics: highest channels [{}]", worst)
 
-        report_metric("snr", float(snr_mean), label="SNR", display=f"{snr_mean:.2f}")
+        report_metric(
+            "snr",
+            float(snr_mean),
+            label="SNR",
+            display=f"{snr_mean:.2f}" if np.isfinite(snr_mean) else "n/a",
+        )
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
-        metrics["snr"] = float(snr_mean)
-        metrics["snr_per_channel"] = snr_per_channel.tolist()
+        metrics["snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
+        metrics["snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1235,32 +1262,42 @@ class LegacySNRCalculator(Processor):
         var_corrected = np.var(corrected_data, axis=1)
         var_reference = np.var(reference_data, axis=1)
 
-        var_residual = np.maximum(var_corrected - var_reference, 1e-10)
-
-        snr_per_channel = np.abs(var_reference / var_residual)
-        snr_mean = float(np.mean(snr_per_channel))
+        # MATLAB FACET (snr_residual.m + Eval.m:296): residual = corrected -
+        # reference, SNR = reference / residual; negative SNR (over-corrected
+        # channels) are discarded, not clamped.
+        var_residual = var_corrected - var_reference
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snr_per_channel = var_reference / var_residual
+        valid = np.isfinite(snr_per_channel) & (snr_per_channel >= 0)
+        # No comparable channels (all over-corrected) -> undefined SNR, return
+        # NaN rather than 0.0 (see SNRCalculator). Stored as None below.
+        snr_mean = float(np.mean(snr_per_channel[valid])) if np.any(valid) else float("nan")
+        snr_per_channel_clean = np.where(valid, snr_per_channel, np.nan)
 
         if self.verbose:
+            n_dropped = int(np.sum(~valid))
             logger.info("Legacy SNR diagnostics: var_reference {}", _dist_summary(var_reference))
             logger.info("Legacy SNR diagnostics: var_corrected {}", _dist_summary(var_corrected))
             logger.info("Legacy SNR diagnostics: var_residual {}", _dist_summary(var_residual))
-            logger.info("Legacy SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel))
-            worst, best = _top_channels(snr_per_channel, channel_names)
-            logger.info("Legacy SNR diagnostics: lowest channels [{}]", best)
-            logger.info("Legacy SNR diagnostics: highest channels [{}]", worst)
+            logger.info("Legacy SNR diagnostics: dropped (over-corrected) channels = {}", n_dropped)
+            if np.any(valid):
+                logger.info("Legacy SNR diagnostics: snr_per_channel {}", _dist_summary(snr_per_channel[valid]))
+                worst, best = _top_channels(snr_per_channel_clean, channel_names)
+                logger.info("Legacy SNR diagnostics: lowest channels [{}]", best)
+                logger.info("Legacy SNR diagnostics: highest channels [{}]", worst)
 
         report_metric(
             "legacy_snr",
             snr_mean,
             label="Legacy SNR",
-            display=f"{snr_mean:.2f}",
+            display=f"{snr_mean:.2f}" if np.isfinite(snr_mean) else "n/a",
         )
 
         # --- BUILD RESULT ---
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
-        metrics["legacy_snr"] = snr_mean
-        metrics["legacy_snr_per_channel"] = snr_per_channel.tolist()
+        metrics["legacy_snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
+        metrics["legacy_snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
         return context.with_metadata(new_metadata)
@@ -1943,8 +1980,11 @@ class MetricsReport(Processor):
 
             if "snr" in metrics:
                 snr = metrics["snr"]
-                color = "green" if snr > 10 else ("yellow" if snr > 3 else "red")
-                table.add_row("SNR (Signal-to-Noise Ratio)", f"[{color}]{snr:.2f}[/]", "")
+                if snr is None or not np.isfinite(snr):
+                    table.add_row("SNR (Signal-to-Noise Ratio)", "[dim]n/a[/]", "all channels over-corrected")
+                else:
+                    color = "green" if snr > 10 else ("yellow" if snr > 3 else "red")
+                    table.add_row("SNR (Signal-to-Noise Ratio)", f"[{color}]{snr:.2f}[/]", "")
 
             if "rms_ratio" in metrics:
                 table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
@@ -1962,7 +2002,9 @@ class MetricsReport(Processor):
                     table.add_row("Median Artifact Ratio", f"[{color}]{r:.2f}[/]", "target: 1.0")
 
             if "legacy_snr" in metrics:
-                table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
+                ls = metrics["legacy_snr"]
+                value = f"{ls:.2f}" if ls is not None and np.isfinite(ls) else "[dim]n/a[/]"
+                table.add_row("Legacy SNR", value, "")
 
         # --- FFT Allen ---
         if "fft_allen" in metrics:
@@ -1998,7 +2040,11 @@ class MetricsReport(Processor):
         logger.info("=" * 60)
 
         if "snr" in metrics:
-            logger.info("SNR (Signal-to-Noise Ratio):     {:.2f}", metrics["snr"])
+            snr = metrics["snr"]
+            logger.info(
+                "SNR (Signal-to-Noise Ratio):     {}",
+                f"{snr:.2f}" if snr is not None and np.isfinite(snr) else "n/a (all channels over-corrected)",
+            )
 
         if "rms_ratio" in metrics:
             logger.info("RMS Ratio (improvement):         {:.2f}", metrics["rms_ratio"])
@@ -2018,7 +2064,11 @@ class MetricsReport(Processor):
                 )
 
         if "legacy_snr" in metrics:
-            logger.info("Legacy SNR:                      {:.2f}", metrics["legacy_snr"])
+            ls = metrics["legacy_snr"]
+            logger.info(
+                "Legacy SNR:                      {}",
+                f"{ls:.2f}" if ls is not None and np.isfinite(ls) else "n/a (all channels over-corrected)",
+            )
 
         if "fft_allen" in metrics:
             logger.info("FFT Allen (Diff to Ref):")
