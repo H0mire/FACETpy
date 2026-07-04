@@ -626,9 +626,7 @@ class ArtifactOffsetFinder(Processor):
             )
 
         def _refresh_label() -> None:
-            offset_text.set_text(
-                f"Offset: {state['offset'] * 1000:.2f} ms\nLength: {state['length'] * 1000:.2f} ms"
-            )
+            offset_text.set_text(f"Offset: {state['offset'] * 1000:.2f} ms\nLength: {state['length'] * 1000:.2f} ms")
 
         t_lo, t_hi = float(time_axis[0]), float(time_axis[-1])
 
@@ -850,7 +848,9 @@ class TriggerEditor(Processor):
         sfreq = context.get_sfreq()
         n_samples = raw.n_times
         base_length = self.artifact_length if self.artifact_length is not None else context.get_artifact_length()
-        start_offset = self.initial_offset if self.initial_offset is not None else context.metadata.artifact_to_trigger_offset
+        start_offset = (
+            self.initial_offset if self.initial_offset is not None else context.metadata.artifact_to_trigger_offset
+        )
 
         # --- COMPUTE ---
         ch_idx = self._resolve_channel(raw)
@@ -1079,9 +1079,7 @@ class TriggerEditor(Processor):
             if count > 1:
                 for pos in self._slice_line_positions(o, length, count):
                     state["slice_lines"].append(ax.axvline(float(pos), color="green", lw=1.0, alpha=0.7))
-            info_text.set_text(
-                f"Offset: {o * 1000:.2f} ms\nLength: {length * 1000:.2f} ms\nSlices: {count}"
-            )
+            info_text.set_text(f"Offset: {o * 1000:.2f} ms\nLength: {length * 1000:.2f} ms\nSlices: {count}")
 
         def _sync_textboxes() -> None:
             state["syncing"] = True
@@ -1106,8 +1104,12 @@ class TriggerEditor(Processor):
         )
 
         # --- Text fields ---
-        tb_offset = TextBox(fig.add_axes([0.12, 0.17, 0.08, 0.045]), "Offset(ms) ", initial=f"{state['offset'] * 1000:.2f}")
-        tb_length = TextBox(fig.add_axes([0.34, 0.17, 0.08, 0.045]), "Len(ms) ", initial=f"{state['length'] * 1000:.2f}")
+        tb_offset = TextBox(
+            fig.add_axes([0.12, 0.17, 0.08, 0.045]), "Offset(ms) ", initial=f"{state['offset'] * 1000:.2f}"
+        )
+        tb_length = TextBox(
+            fig.add_axes([0.34, 0.17, 0.08, 0.045]), "Len(ms) ", initial=f"{state['length'] * 1000:.2f}"
+        )
         tb_slices = TextBox(fig.add_axes([0.56, 0.17, 0.06, 0.045]), "Slices ", initial=str(state["count"]))
 
         def _on_offset_submit(text: str) -> None:
