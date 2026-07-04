@@ -17,7 +17,7 @@ from facet import (
     AASCorrection,
     SNRCalculator,
     MetricsReport,
-    ArtifactOffsetFinder,
+    TriggerEditor,
 )
 
 INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
@@ -31,7 +31,7 @@ INPUT_FILES = [INPUT_FILE, INPUT_FILE, INPUT_FILE]
 # ---------------------------------------------------------------------------
 pipeline = Pipeline([
     TriggerDetector(regex=r"\b1\b"),
-    ArtifactOffsetFinder(),
+    TriggerEditor(),
     HighPassFilter(freq=1.0),
     UpSample(factor=10),
     AASCorrection(window_size=30),

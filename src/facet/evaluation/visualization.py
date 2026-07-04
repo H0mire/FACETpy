@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import mne
 import numpy as np
 from loguru import logger
 from matplotlib import pyplot as plt
@@ -21,6 +22,11 @@ from scipy import signal
 from ..console import suspend_raw_mode
 from ..core import ProcessingContext, Processor, register_processor
 from ..helpers.plotting import show_matplotlib_figure
+
+# Valid signal sources for RawPlotter
+SOURCE_RAW = "raw"
+SOURCE_PREDICTION = "prediction"
+_VALID_SOURCES = (SOURCE_RAW, SOURCE_PREDICTION)
 
 
 @register_processor
@@ -44,7 +50,15 @@ class RawPlotter(Processor):
     duration : float, optional
         Duration in seconds of the snippet to plot (default: 10.0).
     overlay_original : bool, optional
-        Overlay original recording when available (default: True).
+        Overlay original recording when available (default: True). Semantics
+        depend on ``source``:
+
+        * ``source='raw'``        — overlays the **original recording** on top
+          of the current (corrected) signal: the classical before/after view.
+        * ``source='prediction'`` — overlays the **original noisy recording**
+          on top of the predicted artifact: useful for residual diagnostics —
+          where the two curves diverge is where the model's prediction misses
+          part of the artifact (= residual artifact in the corrected signal).
     scale : float, optional
         Multiplier applied to amplitude values (default: 1e6 for V → µV).
     save_path : str or Path, optional
@@ -61,6 +75,13 @@ class RawPlotter(Processor):
         Explicit channel picks for MNE plotting mode.
     title : str, optional
         Custom figure title for Matplotlib mode.
+    source : str, optional
+        Which signal to plot (default: ``'raw'``):
+
+        * ``'raw'``        — current ``context.get_raw()`` data (corrected signal).
+        * ``'prediction'`` — ``context.get_estimated_noise()`` (the predicted
+          artifact written by a ``DeepLearningCorrection`` or compatible
+          processor). Skipped with a warning if no prediction is present.
     """
 
     name = "raw_plotter"
@@ -87,6 +108,7 @@ class RawPlotter(Processor):
         mne_kwargs: dict[str, Any] | None = None,
         picks: Sequence[int | str] | None = None,
         title: str | None = None,
+        source: str = SOURCE_RAW,
     ) -> None:
         self.mode = mode.lower()
         self.channel = channel
@@ -101,6 +123,10 @@ class RawPlotter(Processor):
         self.mne_kwargs = mne_kwargs or {}
         self.picks = picks
         self.title = title
+        source_lower = source.lower()
+        if source_lower not in _VALID_SOURCES:
+            raise ValueError(f"Unsupported source '{source}'. Valid options: {list(_VALID_SOURCES)}")
+        self.source = source_lower
         super().__init__()
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
@@ -110,22 +136,61 @@ class RawPlotter(Processor):
             logger.warning("No raw data available; skipping plot generation.")
             return context
 
+        # --- RESOLVE SOURCE ---
+        data = self._resolve_source_data(context, raw)
+        if data is None:
+            return context
+
         # --- LOG ---
-        logger.info("Generating {} plot", self.mode)
+        logger.info("Generating {} plot for source='{}'", self.mode, self.source)
 
         # --- COMPUTE ---
         if self.mode == "mne":
-            self._plot_with_mne(raw)
+            self._plot_with_mne(raw, data)
         elif self.mode == "matplotlib":
-            self._plot_with_matplotlib(raw, context)
+            self._plot_with_matplotlib(raw, data, context)
         else:
             logger.error("Unknown plotting mode '{}'. Skipping plot.", self.mode)
 
         # --- RETURN ---
         return context
 
-    def _plot_with_mne(self, raw) -> None:
-        """Use mne.io.Raw.plot to visualise the data."""
+    def _resolve_source_data(self, context: ProcessingContext, raw) -> np.ndarray | None:
+        """Return the (n_channels, n_times) array to plot, or ``None`` to skip.
+
+        Centralises the ``source`` parameter so MNE and Matplotlib modes share
+        the same selection logic and skip rules.
+        """
+        if self.source == SOURCE_RAW:
+            return raw._data
+        if self.source == SOURCE_PREDICTION:
+            if not context.has_estimated_noise():
+                logger.warning(
+                    "RawPlotter source='prediction' requested but no estimated noise "
+                    "is present in the context. Place this step AFTER a "
+                    "DeepLearningCorrection (or any processor that populates "
+                    "context.get_estimated_noise()). Skipping plot."
+                )
+                return None
+            data = context.get_estimated_noise()
+            if data.shape != raw._data.shape:
+                logger.warning(
+                    "Predicted artifact shape {} does not match raw {}; skipping plot.",
+                    data.shape,
+                    raw._data.shape,
+                )
+                return None
+            return data
+        logger.error("Unknown source '{}'; skipping plot.", self.source)
+        return None
+
+    def _plot_with_mne(self, raw, data: np.ndarray) -> None:
+        """Use mne.io.Raw.plot to visualise the resolved source array."""
+        # For non-raw sources, wrap the data in a temporary RawArray that
+        # shares the channel metadata of the context's raw object.
+        if self.source != SOURCE_RAW:
+            raw = mne.io.RawArray(data, raw.info.copy(), verbose="WARNING")
+
         plot_kwargs: dict[str, Any] = dict(
             start=self.start,
             duration=self.duration,
@@ -175,29 +240,72 @@ class RawPlotter(Processor):
         elif (self.auto_close or self.save_path) and is_matplotlib_figure:
             plt.close(fig)
 
-    def _plot_with_matplotlib(self, raw, context: ProcessingContext) -> None:
-        """Use Matplotlib to create a before/after comparison plot."""
+    def _plot_with_matplotlib(self, raw, data: np.ndarray, context: ProcessingContext) -> None:
+        """Use Matplotlib to plot the resolved source array, optionally with overlay."""
         channel_idx, channel_name = self._resolve_channel(raw)
         sfreq = raw.info["sfreq"]
+        n_times = data.shape[1]
         start_sample = int(self.start * sfreq)
-        stop_sample = start_sample + int(self.duration * sfreq) if self.duration > 0 else raw.n_times
-        stop_sample = min(stop_sample, raw.n_times)
+        stop_sample = start_sample + int(self.duration * sfreq) if self.duration > 0 else n_times
+        stop_sample = min(stop_sample, n_times)
 
         if stop_sample <= start_sample:
-            stop_sample = raw.n_times
+            stop_sample = n_times
 
         times = np.arange(start_sample, stop_sample) / sfreq
-        current = raw.get_data(picks=[channel_idx], start=start_sample, stop=stop_sample)[0]
+        current = data[channel_idx, start_sample:stop_sample]
 
-        original = self._extract_original_overlay(context, channel_idx, times, sfreq)
+        # Overlay semantics:
+        # - source="raw":        overlay = original recording  (before/after view)
+        # - source="prediction": overlay = original NOISY signal (residual diagnostic)
+        original = self._extract_original_overlay(context, channel_idx, times, sfreq) if self.overlay_original else None
 
         fig_kwargs = {"figsize": (12, 4)}
         fig_kwargs.update(self.figure_kwargs)
         fig, ax = plt.subplots(**fig_kwargs)
 
-        ax.plot(times, current * self.scale, label="Corrected", alpha=0.8)
-        if original is not None:
-            ax.plot(times, original * self.scale, label="Original", alpha=0.6)
+        if self.source == SOURCE_PREDICTION:
+            current_label = "Predicted artifact"
+            current_color = "#dc2626"  # red — model output
+            current_alpha = 0.9
+            original_label = "Original noisy"
+            original_color = "#374151"  # dark gray — reference
+            original_alpha = 0.55
+        else:
+            current_label = "Corrected"
+            current_color = None  # let matplotlib choose
+            current_alpha = 0.8
+            original_label = "Original"
+            original_color = None
+            original_alpha = 0.6
+
+        # Plot original FIRST so the foreground line is on top.
+        if original is not None and self.source == SOURCE_PREDICTION:
+            ax.plot(
+                times,
+                original * self.scale,
+                label=original_label,
+                color=original_color,
+                alpha=original_alpha,
+                linewidth=1.0,
+            )
+        ax.plot(
+            times,
+            current * self.scale,
+            label=current_label,
+            color=current_color,
+            alpha=current_alpha,
+            linewidth=1.0,
+        )
+        # For source="raw" the original goes on top (preserves prior ordering).
+        if original is not None and self.source != SOURCE_PREDICTION:
+            ax.plot(
+                times,
+                original * self.scale,
+                label=original_label,
+                color=original_color,
+                alpha=original_alpha,
+            )
 
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Amplitude (uV)")
@@ -205,8 +313,14 @@ class RawPlotter(Processor):
         if original is not None:
             ax.legend(loc="upper right")
 
-        title = self.title or f"{channel_name} – {self.duration:.1f}s snippet"
-        ax.set_title(title)
+        default_title = (
+            f"{channel_name} – predicted artifact vs original ({self.duration:.1f}s)"
+            if self.source == SOURCE_PREDICTION and original is not None
+            else f"{channel_name} – predicted artifact ({self.duration:.1f}s snippet)"
+            if self.source == SOURCE_PREDICTION
+            else f"{channel_name} – {self.duration:.1f}s snippet"
+        )
+        ax.set_title(self.title or default_title)
 
         if self.save_path:
             self.save_path.parent.mkdir(parents=True, exist_ok=True)

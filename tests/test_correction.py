@@ -244,6 +244,40 @@ class TestANCCorrection:
         except ImportError:
             pytest.skip("C extension not available")
 
+    def test_anc_python_lms_matches_hand_computed_reference(self):
+        """Pin the MATLAB-faithful LMS recurrence: N+1 taps, regressor includes
+        the current sample (refs[n-N : n+1]) and a 2*mu weight update.
+
+        Hand trace for N=1, mu=0.01, w=[0,0]:
+          n=1: x=[r0,r1]=[1,2], y=0, e=20  -> w=2*mu*e*x=[0.4,0.8]
+          n=2: x=[r1,r2]=[2,3], y=0.4*2+0.8*3=3.2
+        so y == [0, 0, 3.2].  An old N-tap / mu (not 2*mu) / lagged-regressor
+        implementation would not reproduce this.
+        """
+        anc = ANCCorrection(filter_order=1, use_c_extension=False)
+        reference = np.array([1.0, 2.0, 3.0])
+        data = np.array([10.0, 20.0, 30.0])
+        y = anc._anc_python(reference, data, mu=0.01, filter_order=1)
+        np.testing.assert_allclose(y, [0.0, 0.0, 3.2], atol=1e-12)
+
+    @pytest.mark.requires_c_extension
+    def test_anc_python_fallback_matches_c_extension(self):
+        """The pure-Python LMS must be numerically identical to the fastranc C
+        extension (the whole point of the MATLAB-parity rewrite)."""
+        try:
+            from facet.helpers.fastranc import fastr_anc  # noqa: F401
+        except Exception:
+            pytest.skip("fastranc C extension not built")
+
+        rng = np.random.default_rng(0)
+        reference = rng.standard_normal(256)
+        data = rng.standard_normal(256)
+        mu, order = 1e-3, 5
+        anc = ANCCorrection(filter_order=order)
+        y_python = anc._anc_python(reference, data, mu, order)
+        y_c = anc._anc_fast(reference, data, mu, order)
+        np.testing.assert_allclose(y_python, y_c, rtol=1e-6, atol=1e-9)
+
 
 @pytest.mark.unit
 class TestPCACorrection:
@@ -315,6 +349,114 @@ class TestPCACorrection:
 
         assert start == 80
         assert end == 340
+
+    def test_pca_hp_filter_matlab_order(self):
+        """OBS high-pass at 300 Hz must be a short MATLAB-style firls filter."""
+        from scipy.signal import freqz
+
+        sfreq = 5000.0  # upsampled rate
+        nyq = sfreq / 2
+        weights = PCACorrection(hp_freq=300.0)._create_hp_filter(sfreq)
+
+        # MATLAB derives ~23 taps here (order from cutoff + ±10 Hz band), NOT
+        # the old 2*sfreq = 10001. Stays well clear of any filtfilt padlen blow-up.
+        assert len(weights) < 100
+        assert len(weights) % 2 == 1  # odd -> Type-I FIR
+
+        def gain(f):
+            _, h = freqz(weights, worN=[f / nyq * np.pi])
+            return abs(h[0])
+
+        assert gain(10) < 0.2  # low frequencies attenuated
+        assert gain(1000) > 0.8  # high frequencies passed
+
+    def test_pca_hp_filter_no_crash_on_short_upsampled_recording(self):
+        """OBS HP must not crash / silently disable PCA on short recordings.
+
+        Regression: ``numtaps = max(101, 2*sfreq)`` produced a 10001-tap filter
+        whose ``filtfilt`` padlen (~30000) exceeded short windows, raising inside
+        the per-channel ``except`` and disabling correction for every channel.
+        """
+        sfreq = 5000.0
+        n = 12000  # 2.4 s — below the old 30000-sample padlen threshold
+        art_len = 200
+        triggers = np.arange(1, 20) * 500
+
+        # O(1) amplitudes (avoid subnormal-scale FP flags) with genuine rank>1
+        # artifact structure: high-frequency content survives the 300 Hz HP and
+        # varies per epoch so the OBS basis has something to fit.
+        rng = np.random.default_rng(1)
+        data = rng.standard_normal((2, n)) * 0.05
+        t = np.arange(art_len)
+        base = (np.sin(2 * np.pi * 600 / sfreq * t) + 0.5 * np.sin(2 * np.pi * 900 / sfreq * t)) * np.hanning(art_len)
+        for i, tr in enumerate(triggers):
+            if tr + art_len < n:
+                data[:, tr : tr + art_len] += base * (1.0 + 0.1 * i)
+
+        info = mne.create_info(["C3", "C4"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = art_len
+        context = ProcessingContext(raw=raw, metadata=metadata)
+
+        before = raw.get_data().copy()
+        result = PCACorrection(n_components=2, hp_freq=300.0).process(context)
+
+        # Correction actually ran (data changed) — not silently skipped.
+        assert not np.allclose(before, result.get_raw().get_data())
+        assert result.has_estimated_noise()
+
+    def test_pca_low_cutoff_hp_apply_does_not_raise(self):
+        """The long-FIR (1 Hz) fallback must not raise on short signals."""
+        weights = PCACorrection(hp_freq=1.0)._create_hp_filter(5000.0)
+        assert len(weights) > 1000  # low cutoff inherently needs a long filter
+        # filtfilt would normally raise (signal < padlen); the capped helper must not.
+        short = np.random.default_rng(0).standard_normal(5000)
+        out = PCACorrection._apply_hp_filter(short, weights)
+        assert out.shape == short.shape
+
+    def test_pca_obs_removes_rank1_artifact(self):
+        """OBS must reconstruct and subtract a rank-1 (single-template) artifact.
+
+        Each trigger epoch is a scalar multiple of one fixed template, so the
+        artifact family is rank-1. A correct OBS basis (mean-centred, no
+        z-scoring) with a single component captures that template and subtracts
+        it, collapsing the in-epoch energy. A broken reconstruction (e.g. the
+        pre-fix code that subtracted the *residual* instead of the fitted
+        artifact) would leave the artifact essentially untouched.
+        """
+        sfreq = 1000.0
+        artifact_length = 50
+        n_epochs = 15
+        triggers = np.array([artifact_length * (i + 2) for i in range(n_epochs)], dtype=int)
+        n_samples = int(triggers[-1] + 3 * artifact_length)
+
+        rng = np.random.default_rng(0)
+        template = np.sin(np.linspace(0.0, 2.0 * np.pi, artifact_length))  # zero-mean shape
+        amps = 1.0 + 0.3 * rng.standard_normal(n_epochs)  # per-epoch scaling -> rank-1
+        data = np.zeros((1, n_samples))
+        for tr, a in zip(triggers, amps, strict=True):
+            data[0, tr : tr + artifact_length] += a * template * 1e-5
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+        result = PCACorrection(n_components=1, hp_freq=None).execute(context)
+        corrected = result.get_raw()._data[0]
+
+        def epoch_energy(sig):
+            return float(sum(np.sum(sig[tr : tr + artifact_length] ** 2) for tr in triggers))
+
+        before = epoch_energy(data[0])
+        after = epoch_energy(corrected)
+        assert before > 0
+        assert after < 0.2 * before, f"rank-1 artifact not removed: {after / before:.2%} energy remains"
 
 
 @pytest.mark.unit

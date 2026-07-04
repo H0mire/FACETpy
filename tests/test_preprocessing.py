@@ -19,6 +19,7 @@ from facet.preprocessing import (
     MagicErasor,
     MATLABPreFilter,
     MissingTriggerCompleter,
+    MissingTriggerDetector,
     SliceAligner,
     SliceTriggerGenerator,
     SubsampleAligner,
@@ -62,6 +63,18 @@ class TestTriggerDetector:
         # Check artifact length was calculated
         assert result.get_artifact_length() is not None
         assert result.get_artifact_length() > 0
+
+    def test_trigger_detection_artifact_length_override(self, sample_edf_file):
+        """An explicit artifact_length must override the estimate."""
+        from facet.io import Loader
+
+        context = Loader(path=str(sample_edf_file), preload=True).execute(None)
+
+        estimated = TriggerDetector(regex=r"\b1\b").execute(context).get_artifact_length()
+        overridden = TriggerDetector(regex=r"\b1\b", artifact_length=321).execute(context)
+
+        assert overridden.get_artifact_length() == 321
+        assert estimated != 321  # the override genuinely differs from the estimate
 
     def test_no_triggers_found(self, sample_raw):
         """Test behavior when no triggers are found."""
@@ -223,6 +236,19 @@ class TestTriggerAligner:
 
         assert len(aligned_triggers) == len(original_triggers)
 
+    def test_alignment_artifact_length_override(self, sample_context):
+        """An explicit artifact_length must override the re-estimate."""
+        recalced = TriggerAligner(ref_trigger_index=0).execute(sample_context).get_artifact_length()
+        overridden = TriggerAligner(ref_trigger_index=0, artifact_length=137).execute(sample_context)
+
+        assert overridden.get_artifact_length() == 137
+        assert recalced != 137  # the override genuinely differs from the re-estimate
+
+    def test_slice_aligner_forwards_artifact_length_override(self, sample_context):
+        """SliceAligner must forward the override to its TriggerAligner base."""
+        result = SliceAligner(ref_trigger_index=0, artifact_length=142).execute(sample_context)
+        assert result.get_artifact_length() == 142
+
     def test_alignment_requires_triggers(self, sample_raw):
         """Test that alignment requires triggers."""
         context = ProcessingContext(raw=sample_raw)
@@ -287,12 +313,12 @@ class TestAcquisitionAlignment:
         assert aligned[0] == context.get_triggers()[0]
         assert aligned[1] - context.get_triggers()[1] == 3
 
-    def test_subsample_aligner_records_shifts(self):
-        """SubsampleAligner should adjust triggers and record shift metadata."""
+    def test_subsample_aligner_legacy_moves_triggers(self):
+        """Legacy mode adjusts triggers and records shift metadata."""
         context = self._build_shifted_context(shift_samples=2)
         context = CutAcquisitionWindow().execute(context)
 
-        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5)
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode="legacy")
         result = aligner.execute(context)
 
         aligned = result.get_triggers()
@@ -303,6 +329,251 @@ class TestAcquisitionAlignment:
         assert alignment_meta is not None
         recorded_shift = alignment_meta["shifts"][1]
         assert abs(recorded_shift - 2) <= 3
+
+    def test_subsample_default_is_fast(self):
+        """Default mode ('fast') keeps triggers integer and bakes the shift into raw."""
+        context = self._build_shifted_context(shift_samples=2)
+        context = CutAcquisitionWindow().execute(context)
+        original_triggers = context.get_triggers().copy()
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5)
+        assert aligner.mode == "fast"
+        result = aligner.execute(context)
+
+        # Fast default leaves triggers integer and writes the shift into raw.
+        assert result.metadata.custom["subsample_alignment"]["applied_to"] == "raw_fractional"
+        np.testing.assert_array_equal(result.get_triggers(), original_triggers)
+        assert not np.array_equal(result.get_raw().get_data(), context.get_raw().get_data())
+
+    def test_subsample_fast_and_quality_keep_triggers_and_write_raw(self):
+        """'fast'/'quality' keep integer triggers and bake the shift into raw."""
+        for mode in ("fast", "quality"):
+            context = self._build_shifted_context(shift_samples=2)
+            context = CutAcquisitionWindow().execute(context)
+            original_triggers = context.get_triggers().copy()
+
+            aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode=mode)
+            result = aligner.execute(context)
+
+            # Triggers must stay at their original integer positions.
+            np.testing.assert_array_equal(result.get_triggers(), original_triggers)
+            meta = result.metadata.custom["subsample_alignment"]
+            assert meta["applied_to"] == "raw_fractional"
+            assert meta["mode"] == mode
+            # The raw data must have been modified (fractional shift applied).
+            assert not np.array_equal(result.get_raw().get_data(), context.get_raw().get_data()), (
+                f"{mode} did not modify raw data"
+            )
+            # Recorded shift should be a fractional estimate near the true +2.
+            recorded = meta["shifts"][1]
+            assert abs(recorded - 2) <= 3
+
+    def test_subsample_invalid_mode(self):
+        """An unknown mode is rejected at construction."""
+        with pytest.raises(ValueError):
+            SubsampleAligner(mode="bogus")
+
+    def test_subsample_invalid_ssa_hp_freq(self):
+        """A negative SSA high-pass cutoff is rejected at construction."""
+        with pytest.raises(ValueError):
+            SubsampleAligner(ssa_hp_freq=-1.0)
+
+    def _build_hp_context(self, sfreq=2000, true_shift=2):
+        """Context at a rate where the 300 Hz SSA high-pass is realisable."""
+        artifact_length = 60
+        n_samples = 2000
+        triggers = np.array([400, 900, 1400])
+
+        data = np.zeros((1, n_samples), dtype=float)
+        # High-frequency artifact template (so the SSA high-pass has signal),
+        t = np.arange(artifact_length)
+        template = np.sin(2 * np.pi * 350 / sfreq * t) * np.hanning(artifact_length) * 1e-6
+        # plus a slow drift that the high-pass should remove.
+        data[0] += 0.2e-6 * np.sin(2 * np.pi * 1.0 / sfreq * np.arange(n_samples))
+        for i, tr in enumerate(triggers):
+            start = tr + (0 if i == 0 else true_shift)
+            data[0, start : start + artifact_length] += template
+
+        info = mne.create_info(ch_names=["EEG001"], sfreq=sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, verbose=False)
+
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        metadata.upsampling_factor = 10
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_subsample_ssa_highpass_configurable(self):
+        """SSA high-pass is configurable and only active for fractional modes."""
+        # Default: 300 Hz applied for fast/quality, recorded in metadata.
+        for mode in ("fast", "quality"):
+            ctx = self._build_hp_context()
+            result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode=mode).execute(ctx)
+            assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] == 300.0
+
+        # Configurable cutoff is honoured.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="fast", ssa_hp_freq=150.0).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] == 150.0
+
+        # Disabled explicitly.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="fast", ssa_hp_freq=None).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] is None
+
+        # Legacy is never high-passed, regardless of the parameter.
+        ctx = self._build_hp_context()
+        result = SubsampleAligner(ref_trigger_index=0, search_window=20, mode="legacy", ssa_hp_freq=300.0).execute(ctx)
+        assert result.metadata.custom["subsample_alignment"]["ssa_hp_freq"] is None
+
+    def _build_fractional_context(self, true_shift):
+        """Context whose 2nd artifact is shifted by a known *sub-sample* amount."""
+        sfreq = 200
+        artifact_length = 40
+        n_samples = 400
+        triggers = np.array([100, 200])
+
+        # Half-sine template (zero at both ends -> negligible FFT-shift wrap-around).
+        base = np.sin(np.linspace(0.0, np.pi, artifact_length)) * 1e-6
+        freqs = np.fft.fftfreq(artifact_length)
+        shifted = np.real(np.fft.ifft(np.fft.fft(base) * np.exp(-2j * np.pi * freqs * true_shift)))
+
+        data = np.zeros((1, n_samples), dtype=float)
+        data[0, triggers[0] : triggers[0] + artifact_length] += base
+        data[0, triggers[1] : triggers[1] + artifact_length] += shifted
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types=["eeg"])
+        raw = mne.io.RawArray(data, info, verbose=False)
+        metadata = ProcessingMetadata()
+        metadata.triggers = triggers
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        metadata.upsampling_factor = 1
+        return ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+    def test_subsample_recovers_fractional_shift(self):
+        """fast/quality must recover a known sub-sample shift to sub-integer
+        precision. The old ``abs(recorded - 2) <= 3`` tolerance would pass for a
+        pure-integer estimate; here the true shift is 2.4 so a tolerance < 0.4
+        proves genuine sub-sample accuracy.
+        """
+        true_shift = 2.4
+        # disable the SSA high-pass: at sfreq=200 a 300 Hz cutoff is meaningless,
+        # and we want to isolate the fractional-shift estimator itself.
+        for mode, tol in (("fast", 0.35), ("quality", 0.2)):
+            context = self._build_fractional_context(true_shift)
+            context = CutAcquisitionWindow().execute(context)
+            aligner = SubsampleAligner(ref_trigger_index=0, search_window=8, mode=mode, ssa_hp_freq=None)
+            result = aligner.execute(context)
+            recorded = result.metadata.custom["subsample_alignment"]["shifts"][1]
+            assert abs(abs(recorded) - true_shift) <= tol, f"{mode}: recorded={recorded}"
+
+    def test_subsample_legacy_apply_to_raw_rolls_data_keeps_triggers(self):
+        """Legacy ``apply_to_raw=True`` bakes the shift into the raw data and
+        leaves triggers at their original positions — a regression lock for the
+        double-application fix (artifact must not be displaced twice; M11)."""
+        context = self._build_shifted_context(shift_samples=3)
+        context = CutAcquisitionWindow().execute(context)
+        original_triggers = context.get_triggers().copy()
+        before = context.get_raw().get_data().copy()
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=6, mode="legacy", apply_to_raw=True)
+        result = aligner.execute(context)
+
+        # Data rolled (shift baked in); triggers unchanged (no double application).
+        assert not np.array_equal(result.get_raw().get_data(), before)
+        np.testing.assert_array_equal(result.get_triggers(), original_triggers)
+        meta = result.metadata.custom["subsample_alignment"]
+        assert meta["applied_to"] == "raw"
+        assert abs(meta["shifts"][1] - 3) <= 3
+
+    def test_subsample_run_once_is_mode_dependent(self):
+        """Only 'legacy' (shared trigger move) is run-once; the fractional modes
+        write per-channel data and must run for every channel."""
+        assert SubsampleAligner(mode="legacy").run_once is True
+        assert SubsampleAligner(mode="fast").run_once is False
+        assert SubsampleAligner(mode="quality").run_once is False
+
+    def test_subsample_fractional_aligns_all_channels_channel_sequential(self):
+        """fast/quality must shift EVERY channel under channel-sequential
+        execution, not just the first (regression: run_once skipped channels
+        1+, leaving the fractional shift applied to channel 0 only)."""
+        from facet.core.channel_sequential import ChannelSequentialExecutor
+
+        sfreq, art_len, n, n_ch = 200.0, 40, 400, 3
+        triggers = np.array([100, 200])
+        template = np.sin(np.linspace(0, np.pi, art_len)) * 1e-6
+        for mode in ("fast", "quality"):
+            data = np.zeros((n_ch, n))
+            for ch in range(n_ch):
+                data[ch, 100:140] += template
+                data[ch, 202:242] += template  # 2nd artifact shifted by +2
+            info = mne.create_info([f"E{i}" for i in range(n_ch)], sfreq, ch_types="eeg")
+            raw = mne.io.RawArray(data, info, verbose=False)
+            metadata = ProcessingMetadata()
+            metadata.triggers = triggers.copy()
+            metadata.artifact_length = art_len
+            metadata.artifact_to_trigger_offset = 0.0
+            metadata.upsampling_factor = 1
+            context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+            before = context.get_raw().get_data().copy()
+            aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode=mode)
+            result = ChannelSequentialExecutor().execute([aligner], context)
+            after = result.get_raw().get_data()
+
+            changed = [i for i in range(n_ch) if not np.allclose(before[i], after[i])]
+            assert changed == list(range(n_ch)), f"{mode}: only channels {changed} were shifted"
+
+    def test_subsample_caches_shifts_within_channel_sequential_session(self):
+        """The shift is estimated once per channel-sequential session and reused
+        for the remaining channels (estimate-once/apply-per-channel), with the
+        cache scoped to the session (cleared at the end, never used serially)."""
+        from facet.core.channel_sequential import ChannelSequentialExecutor
+
+        sfreq, art_len, n, n_ch = 200.0, 40, 400, 3
+        triggers = np.array([100, 200])
+        template = np.sin(np.linspace(0, np.pi, art_len)) * 1e-6
+
+        def build():
+            data = np.zeros((n_ch, n))
+            for ch in range(n_ch):
+                data[ch, 100:140] += template
+                data[ch, 202:242] += template
+            info = mne.create_info([f"E{i}" for i in range(n_ch)], sfreq, ch_types="eeg")
+            md = ProcessingMetadata()
+            md.triggers = triggers.copy()
+            md.artifact_length = art_len
+            md.artifact_to_trigger_offset = 0.0
+            md.upsampling_factor = 1
+            return ProcessingContext(
+                raw=mne.io.RawArray(data, info, verbose=False),
+                raw_original=mne.io.RawArray(data.copy(), info, verbose=False),
+                metadata=md,
+            )
+
+        aligner = SubsampleAligner(ref_trigger_index=0, search_window=5, mode="quality")
+        calls = {"n": 0}
+        original = aligner._compute_shifts
+
+        def counting(*args, **kwargs):
+            calls["n"] += 1
+            return original(*args, **kwargs)
+
+        aligner._compute_shifts = counting
+
+        ctx = build()
+        before = ctx.get_raw().get_data().copy()
+        result = ChannelSequentialExecutor().execute([aligner], ctx)
+        after = result.get_raw().get_data()
+
+        # Estimated once, applied to all channels.
+        assert calls["n"] == 1
+        assert [i for i in range(n_ch) if not np.allclose(before[i], after[i])] == list(range(n_ch))
+        # Session cache torn down afterwards (no leak across sessions).
+        assert aligner._session_active is False
+        assert aligner._session_shifts is None
 
     def test_alignment_requires_artifact_length(self, sample_context):
         """Test that alignment requires artifact length."""
@@ -453,6 +724,229 @@ class TestMATLABTriggerParity:
         expected = np.array([100, 150, 200, 250, 500, 550, 600, 650], dtype=int)
         np.testing.assert_array_equal(result.get_triggers(), expected)
         assert result.metadata.slices_per_volume == 4
+
+    def test_slice_trigger_generator_artifact_length_override(self, sample_raw):
+        """An explicit artifact_length must override the spacing-derived value."""
+        metadata = ProcessingMetadata(triggers=np.array([100, 500], dtype=int), artifact_length=400, volume_gaps=True)
+        context = ProcessingContext(raw=sample_raw, raw_original=sample_raw.copy(), metadata=metadata)
+
+        result = SliceTriggerGenerator(
+            slices=4, duration_samples=50, relative_position=0.0, artifact_length=33
+        ).execute(context)
+
+        assert result.get_artifact_length() == 33
+
+    def test_missing_trigger_detector_recovers_multiple_in_one_gap(self):
+        """A gap several artifact-lengths wide must yield ALL missing triggers,
+        not just the first one (the multi-missing-gap branch)."""
+        sfreq = 200.0
+        artifact_length = 40
+        positions = [100, 140, 180, 220, 260, 300]  # regular train, spacing = L
+        n_samples = 400
+        template = np.sin(np.linspace(0.0, np.pi, artifact_length)) * 1e-6
+        # Tiny baseline noise so silent probe windows aren't all-zero (a pure
+        # zero window makes the normalised cross-correlation divide by zero);
+        # 1e-9 << the 1e-6 template, so artifact correlations stay ~1.0.
+        rng = np.random.default_rng(0)
+        data = rng.standard_normal((1, n_samples)) * 1e-9
+        for p in positions:
+            data[0, p : p + artifact_length] += template
+
+        info = mne.create_info(["EEG001"], sfreq, ch_types="eeg")
+        raw = mne.io.RawArray(data, info, verbose="ERROR")
+        metadata = ProcessingMetadata()
+        # Omit two consecutive triggers (180, 220) -> a 3*L gap between 140/260.
+        metadata.triggers = np.array([100, 140, 260, 300], dtype=int)
+        metadata.artifact_length = artifact_length
+        metadata.artifact_to_trigger_offset = 0.0
+        context = ProcessingContext(raw=raw, raw_original=raw.copy(), metadata=metadata)
+
+        result = MissingTriggerDetector(correlation_threshold=0.9).execute(context)
+        recovered = result.get_triggers().tolist()
+
+        assert len(recovered) == 6, recovered
+        assert any(abs(t - 180) <= 4 for t in recovered)
+        assert any(abs(t - 220) <= 4 for t in recovered)
+
+
+@pytest.mark.unit
+class TestArtifactOffsetFinder:
+    """Tests for the interactive ArtifactOffsetFinder (GUI mocked out)."""
+
+    def test_validate_accepts_override_without_context_length(self, sample_context):
+        """artifact_length override lets validate pass even without a context value."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        md = sample_context.metadata.copy()
+        md.artifact_length = None
+        ctx = sample_context.with_metadata(md)
+
+        # Override present -> ok.
+        ArtifactOffsetFinder(artifact_length=100).validate(ctx)
+        # No length anywhere -> must raise.
+        with pytest.raises(ProcessorValidationError):
+            ArtifactOffsetFinder().validate(ctx)
+
+    def test_confirmed_offset_and_length_written_back(self, sample_context, monkeypatch):
+        """The confirmed (offset, length) from the GUI must land in metadata."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        sfreq = sample_context.get_sfreq()
+        finder = ArtifactOffsetFinder()
+        # Replace the blocking GUI with a fixed (offset_s, length_s) result.
+        monkeypatch.setattr(finder, "_show_interactive_plot", lambda *a, **k: (0.03, 0.25))
+
+        result = finder.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == 0.03
+        assert result.get_artifact_length() == round(0.25 * sfreq)
+
+    def test_artifact_length_param_seeds_slider_range(self, sample_context, monkeypatch):
+        """artifact_length param sizes the slider window; confirmed length is honoured."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        sfreq = sample_context.get_sfreq()
+        # Start length differs from the context value (50) so we know it took effect.
+        finder = ArtifactOffsetFinder(artifact_length=80)
+        captured = {}
+
+        def _fake_show(epochs, time_axis, ch_name, sf, start_offset, start_dur, min_len, max_len, max_off):
+            captured["start_dur"] = start_dur
+            return start_offset, start_dur  # confirm unchanged
+
+        monkeypatch.setattr(finder, "_show_interactive_plot", _fake_show)
+        result = finder.execute(sample_context)
+
+        # Slider seeded from the 80-sample override, not the 50-sample context value.
+        assert captured["start_dur"] == pytest.approx(80 / sfreq)
+        assert result.get_artifact_length() == 80
+
+    def test_view_xlim_tracks_length_slider(self):
+        """The plotted time range must widen with the length slider, stay
+        clamped to the data extent, and always include the trigger + window."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        f = ArtifactOffsetFinder
+        t_lo, t_hi, sfreq = -1.0, 1.0, 1000.0
+
+        lo_short, hi_short = f._compute_view_xlim(0.0, 0.1, t_lo, t_hi, sfreq)
+        lo_long, hi_long = f._compute_view_xlim(0.0, 0.5, t_lo, t_hi, sfreq)
+
+        # Longer artifact window -> wider plotted time range.
+        assert (hi_long - lo_long) > (hi_short - lo_short)
+        # Trigger (t=0) and the full window stay visible.
+        assert lo_short <= 0.0 <= hi_short
+        assert hi_short >= 0.1
+        # An over-long window clamps to the extracted data extent.
+        lo_clamp, hi_clamp = f._compute_view_xlim(0.0, 5.0, t_lo, t_hi, sfreq)
+        assert lo_clamp >= t_lo and hi_clamp <= t_hi
+
+    def test_length_slider_is_logarithmic_for_fine_small_control(self):
+        """A fixed log-step changes the window less (in abs) near the small end
+        than near the large end -> finer control when the window is tiny."""
+        from facet.helpers.interactive import ArtifactOffsetFinder
+
+        f = ArtifactOffsetFinder._length_slider_to_seconds
+        sfreq = 1000.0
+
+        small = f(np.log10(0.002), sfreq)
+        small_step = f(np.log10(0.002) + 0.1, sfreq)
+        large = f(np.log10(0.2), sfreq)
+        large_step = f(np.log10(0.2) + 0.1, sfreq)
+
+        assert (small_step - small) < (large_step - large)
+        # Sample-quantised and never below a single sample.
+        assert f(np.log10(1e-9), sfreq) == pytest.approx(1.0 / sfreq)
+        assert f(np.log10(0.002), sfreq) == pytest.approx(0.002)
+
+
+@pytest.mark.unit
+class TestTriggerEditor:
+    """Tests for the comprehensive TriggerEditor (pure logic + mocked GUI)."""
+
+    def test_slice_line_positions(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        pos = TriggerEditor._slice_line_positions(0.0, 1.0, 4)
+        np.testing.assert_allclose(pos, [0.0, 0.25, 0.5, 0.75])
+        # offset shifts the whole tiling
+        pos2 = TriggerEditor._slice_line_positions(0.1, 0.4, 2)
+        np.testing.assert_allclose(pos2, [0.1, 0.3])
+
+    def test_zoom_xlim_keeps_cursor_fixed(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        lo, hi = TriggerEditor._zoom_xlim(0.0, 1.0, 0.5, 0.8)  # zoom in around centre
+        assert lo == pytest.approx(0.1) and hi == pytest.approx(0.9)
+        # cursor at an edge stays fixed
+        lo2, hi2 = TriggerEditor._zoom_xlim(0.0, 1.0, 0.0, 0.8)
+        assert lo2 == pytest.approx(0.0) and hi2 == pytest.approx(0.8)
+        # zoom out widens
+        lo3, hi3 = TriggerEditor._zoom_xlim(0.0, 1.0, 0.5, 1.25)
+        assert (hi3 - lo3) > 1.0
+
+    def test_hit_test_regions(self):
+        from facet.helpers.interactive import TriggerEditor
+
+        ht = TriggerEditor._hit_test
+        assert ht(0.0, 0.0, 1.0, 0.05) == "left"
+        assert ht(1.0, 0.0, 1.0, 0.05) == "right"
+        assert ht(0.5, 0.0, 1.0, 0.05) == "body"
+        assert ht(2.0, 0.0, 1.0, 0.05) is None
+
+    def test_settings_save_load_roundtrip(self, tmp_path):
+        from facet.helpers.interactive import TriggerEditor
+
+        path = str(tmp_path / "settings.json")
+        ed = TriggerEditor(settings_path=path)
+        ed._save_settings(path, 0.03, 0.25, 5)
+        offset, length, count = ed._load_settings(path)
+        assert offset == pytest.approx(0.03)
+        assert length == pytest.approx(0.25)
+        assert count == 5
+        # Missing file -> None.
+        assert ed._load_settings(str(tmp_path / "nope.json")) is None
+
+    def test_confirmed_offset_and_length_written_back(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        sfreq = sample_context.get_sfreq()
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: {"offset": 0.02, "length": 0.1, "count": 1})
+
+        result = ed.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == pytest.approx(0.02)
+        assert result.get_artifact_length() == round(0.1 * sfreq)
+        # count == 1 leaves the triggers untouched
+        np.testing.assert_array_equal(result.get_triggers(), sample_context.get_triggers())
+
+    def test_slice_count_generates_subdivided_triggers(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        sfreq = sample_context.get_sfreq()
+        n_orig = len(sample_context.get_triggers())
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: {"offset": 0.0, "length": 0.1, "count": 4})
+
+        result = ed.execute(sample_context)
+
+        assert len(result.get_triggers()) == n_orig * 4
+        assert result.metadata.slices_per_volume == 4
+        assert result.metadata.artifact_to_trigger_offset == 0.0
+        assert result.get_artifact_length() == max(1, round((0.1 / 4) * sfreq))
+
+    def test_cancel_leaves_context_unchanged(self, sample_context, monkeypatch):
+        from facet.helpers.interactive import TriggerEditor
+
+        ed = TriggerEditor()
+        monkeypatch.setattr(ed, "_run_editor", lambda *a, **k: None)  # user cancelled
+
+        result = ed.execute(sample_context)
+
+        assert result.metadata.artifact_to_trigger_offset == sample_context.metadata.artifact_to_trigger_offset
+        assert result.get_artifact_length() == sample_context.get_artifact_length()
+        np.testing.assert_array_equal(result.get_triggers(), sample_context.get_triggers())
 
 
 @pytest.mark.unit

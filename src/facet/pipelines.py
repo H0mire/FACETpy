@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .core import Pipeline
+from .core import Pipeline, Processor
 from .correction import AASCorrection
 from .evaluation import (
     FFTAllenCalculator,
@@ -17,11 +17,9 @@ from .evaluation import (
 )
 from .io import EDFExporter, Loader
 from .preprocessing import (
-    CutAcquisitionWindow,
     DownSample,
     HighPassFilter,
     LowPassFilter,
-    PasteAcquisitionWindow,
     SliceAligner,
     SubsampleAligner,
     TriggerDetector,
@@ -53,6 +51,7 @@ def create_standard_pipeline(
     upsample_factor: int = 10,
     use_anc: bool = True,
     use_pca: bool = True,
+    additional_corrections: list[Processor] | None = None,
     evaluate: bool = False,
     plot: bool = False,
     plot_kwargs: dict | None = None,
@@ -68,6 +67,10 @@ def create_standard_pipeline(
         upsample_factor: Upsampling factor for alignment
         use_anc: Whether to apply ANC correction
         use_pca: Whether to apply PCA correction
+        additional_corrections: Extra correction processors appended after
+                                AAS/PCA and before downsampling. This is the
+                                main hook for future learned correction
+                                models.
         evaluate: Append all standard evaluation metrics (SNR, RMS, Median, FFT)
                   and a MetricsReport step automatically.
         plot: Append a RawPlotter step after evaluation. Implies *evaluate=True*.
@@ -104,7 +107,6 @@ def create_standard_pipeline(
     processors = [
         Loader(path=input_path, preload=True, artifact_to_trigger_offset=artifact_to_trigger_offset),
         TriggerDetector(regex=trigger_regex),
-        CutAcquisitionWindow(),
         HighPassFilter(freq=1.0),
         UpSample(factor=upsample_factor),
         SliceAligner(ref_trigger_index=0),
@@ -112,12 +114,23 @@ def create_standard_pipeline(
         AASCorrection(window_size=30, correlation_threshold=0.975),
     ]
     if use_pca and _has_pca:
-        processors.append(PCACorrection(n_components=0.95, hp_freq=1.0))
+        # OBS high-pass = 70 Hz, matching Niazy's FASTR reference *code*
+        # (fmrib_fastr.m: hpf=70). The high-pass keeps the EEG band out of the
+        # OBS so the basis models only the high-frequency residual artifact and
+        # cannot subtract real EEG. A lower cutoff (or None) lets the OBS act in
+        # the EEG band, which risks removing brain signal — see PCACorrection's
+        # hp_freq docstring. (Caveat: with the final LowPassFilter(70) below, a
+        # 70 Hz OBS high-pass contributes little to the band-limited output;
+        # it is kept primarily as the safe, reference-faithful default.)
+        # ``hp_freq=None`` remains available for users who want full-band OBS.
+        processors.append(PCACorrection(n_components=0.95, hp_freq=70.0))
+
+    if additional_corrections:
+        processors.extend(additional_corrections)
 
     processors.extend(
         [
             DownSample(factor=upsample_factor),
-            PasteAcquisitionWindow(),
             LowPassFilter(freq=70.0),
         ]
     )

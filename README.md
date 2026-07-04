@@ -214,12 +214,12 @@ Then run from the project root:
 ```bash
 # Recommended order for new users:
 python examples/quickstart.py          # minimal pipeline
-python examples/evaluation.py          # metrics & comparison
-python examples/advanced_workflows.py  # conditional, parallel, factory
-python examples/batch_processing.py    # multiple files at once
-python examples/inline_steps.py        # custom steps & pipe operator
+python examples/pipelines/evaluation.py          # metrics & comparison
+python examples/pipelines/advanced_workflows.py  # conditional, parallel, factory
+python examples/pipelines/batch_processing.py    # multiple files at once
+python examples/pipelines/inline_steps.py        # custom steps & pipe operator
 python examples/complete_pipeline_example.py  # full clinical pipeline
-python examples/eeg_generation_visualization_example.py  # synthetic EEG
+python examples/pipelines/eeg_generation_visualization_example.py  # synthetic EEG
 ```
 
 

@@ -14,7 +14,7 @@ PrintMetric that eliminate common boilerplate lambdas.
 """
 
 from facet import (
-    ArtifactOffsetFinder,
+    TriggerEditor,
     MetricsReport,
     Pipeline,
     ProcessingContext,
@@ -57,7 +57,7 @@ pipeline = Pipeline([
     DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
 
     TriggerDetector(regex=r"\b1\b"),
-    ArtifactOffsetFinder(),
+    TriggerEditor(),
 
     # Custom def step: log sampling frequency for verification
     log_sfreq,
@@ -93,7 +93,7 @@ ctx = (
     ctx
     | HighPassFilter(1.0)
     | TriggerDetector(regex=r"\b1\b")
-    | ArtifactOffsetFinder()
+    | TriggerEditor()
     | UpSample(factor=10)
     | AASCorrection(window_size=30)
     | DownSample(factor=10)

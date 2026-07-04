@@ -109,6 +109,11 @@ class ChannelSequentialExecutor:
         handle_noise = False
         noise_data: np.ndarray | None = None
 
+        # Let processors initialise per-session state (e.g. cache a result from
+        # the first channel and reuse it for the rest of this pass).
+        for proc in processors:
+            proc.begin_channel_session()
+
         try:
             for k, ch_abs_idx in enumerate(data_idx):
                 ch_start = time.time()
@@ -160,6 +165,8 @@ class ChannelSequentialExecutor:
                 del ch_ctx
                 console.channel_completed(k, time.time() - ch_start)
         finally:
+            for proc in processors:
+                proc.end_channel_session()
             console.end_channel_batch()
 
         # --- pass-through channels (stim, misc, ...) -------------------------

@@ -192,8 +192,11 @@ class PipelineResult:
             _section("Core Metrics")
             if "snr" in metrics:
                 snr = metrics["snr"]
-                c = _color_snr(snr)
-                table.add_row("SNR (Signal-to-Noise Ratio)", f"[{c}]{snr:.2f}[/]", "")
+                if snr is None or not np.isfinite(snr):
+                    table.add_row("SNR (Signal-to-Noise Ratio)", "[dim]n/a[/]", "all channels over-corrected")
+                else:
+                    c = _color_snr(snr)
+                    table.add_row("SNR (Signal-to-Noise Ratio)", f"[{c}]{snr:.2f}[/]", "")
             if "rms_ratio" in metrics:
                 table.add_row("RMS Ratio (improvement)", f"{metrics['rms_ratio']:.2f}", "×")
             if "rms_residual" in metrics:
@@ -207,7 +210,9 @@ class PipelineResult:
                     c = "green" if abs(r - 1.0) < 0.2 else ("yellow" if abs(r - 1.0) < 0.6 else "red")
                     table.add_row("Median Artifact Ratio", f"[{c}]{r:.2f}[/]", "target: 1.0")
             if "legacy_snr" in metrics:
-                table.add_row("Legacy SNR", f"{metrics['legacy_snr']:.2f}", "")
+                ls = metrics["legacy_snr"]
+                value = f"{ls:.2f}" if ls is not None and np.isfinite(ls) else "[dim]n/a[/]"
+                table.add_row("Legacy SNR", value, "")
 
         # --- Per-channel breakdowns ---
         per_ch = {k: v for k, v in metrics.items() if k.endswith("_per_channel") and isinstance(v, list)}
@@ -651,6 +656,9 @@ class Pipeline:
         current_processor: tuple[int, Processor] | None = None
 
         try:
+            for processor in self.processors:
+                processor.validate_execution_mode(parallel=parallel, channel_sequential=channel_sequential)
+
             step_offset = 0
             for processors, mode in self._group_processors(parallel, channel_sequential):
                 current_processor = (step_offset, processors[0])
