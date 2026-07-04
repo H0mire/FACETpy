@@ -22,7 +22,7 @@ from mne import verbose
 
 from facet import (
     ANCCorrection,
-    ArtifactOffsetFinder,
+    TriggerEditor,
     MagicErasor,
     Pipeline,
     Loader,
@@ -46,13 +46,19 @@ from facet import (
     RawPlotter,
     load,
 )
+from facet.config import set_config
 from facet.evaluation import ReferenceIntervalSelector
+from facet.evaluation.metrics import SignalIntervalSelector
+from facet.helpers.interactive import TriggerEditor
 from facet.preprocessing import TriggerExplorer
 
 import os
 
+from facet.preprocessing.alignment import SubsampleAligner
+
 # Ensure that per-run log files are created by setting the FACET_LOG_FILE environment variable.
 os.environ["FACET_LOG_FILE"] = "1"
+set_config(log_level="INFO", console_mode="modern")
 
 # ---------------------------------------------------------------------------
 # Paths and shared settings — adjust these for your study
@@ -64,7 +70,7 @@ OUTPUT_FILE = str(OUTPUT_DIR / "corrected_EEGfMRI_20250519_20180312_004257.edf")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
-UPSAMPLE         = 1          # upsample factor for sub-sample trigger alignment
+UPSAMPLE         = 5          # upsample factor for sub-sample trigger alignment
 RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
 RECORDING_END    = None        # seconds — crop end (None keeps until the end)
 
@@ -99,7 +105,7 @@ steps = [
     # 4. Detect fMRI slice-onset triggers
     TriggerExplorer(),
 
-    ArtifactOffsetFinder(),
+    TriggerEditor(),
 
     ReferenceIntervalSelector(),
     # 5. High-pass filter to remove slow drifts before correction
@@ -110,6 +116,7 @@ steps = [
 
     # 7. Align all triggers to a shared reference using cross-correlation
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
+    SubsampleAligner(),
 
     # 8. Averaged Artifact Subtraction — the primary correction step
     AASCorrection(
@@ -119,7 +126,7 @@ steps = [
     ),
 
     # 9. PCA — remove systematic residual artifact components
-    PCACorrection(n_components=0.95, hp_freq=1.0),
+    PCACorrection(n_components=0.95, hp_freq=70.0),
 
     # 10. Downsample back to the original recording rate
     DownSample(factor=UPSAMPLE),
@@ -134,6 +141,8 @@ if _has_anc:
 
 steps += [
     MagicErasor(),
+
+    SignalIntervalSelector(),
     # 13. Save corrected recording
     EDFExporter(path=OUTPUT_FILE, overwrite=True),
     # 14. Compute evaluation metrics
@@ -148,9 +157,9 @@ steps += [
 
     # 15. Plot a before/after comparison for a single channel
     lambda ctx: ctx | RawPlotter(
-           mode="matplotlib",
+           mode="mne",
            channel="Fp1",
-           duration=ctx.get_raw().times[-1],  # full recording length
+           duration=20,  # full recording length
            overlay_original=False,
            save_path=str(OUTPUT_DIR / "before_after.png"),
            show=True,

@@ -5,7 +5,7 @@ Same end-to-end workflow as ``complete_pipeline_example.py`` but the
 classical AAS/FARM + PCA correction core is swapped for the trained
 ``CascadedContextDenoisingAutoencoderCorrection`` deep-learning processor:
 
-  Load → DropChannels → Crop → TriggerExplorer → ArtifactOffsetFinder
+  Load → DropChannels → Crop → TriggerExplorer → TriggerEditor
   → HighPass → Upsample → Align → Downsample → CascadedContextDAE
   → LowPass → ANC → Export → Evaluate → Plot
 
@@ -20,7 +20,7 @@ from pathlib import Path
 
 from facet import (
     ANCCorrection,
-    ArtifactOffsetFinder,
+    TriggerEditor,
     Crop,
     DownSample,
     DropChannels,
