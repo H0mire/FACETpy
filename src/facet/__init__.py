@@ -5,10 +5,10 @@ A comprehensive, modular toolbox for correcting fMRI-induced artifacts in EEG da
 
 Author: FACETpy Team
 Date: 2025-01-12
-Version: 2.0.2
+Version: 2.1.0
 """
 
-__version__ = "2.0.2"
+__version__ = "2.1.0"
 __author__ = "FACETpy Team"
 
 # Configure logging as early as possible so import-time registration logs
