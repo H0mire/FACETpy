@@ -44,6 +44,7 @@ def extract_pretrigger_clean(
     trigger_regex: str = r"\b1\b",
     skip_s: float = 1.0,
     guard_s: float = 1.0,
+    line_freq: float = 50.0,
 ) -> tuple[np.ndarray, float, list[str]]:
     """Extract the real GA-free pre-trigger clean (brain + BCG) from a Niazy EDF.
 
@@ -51,8 +52,16 @@ def extract_pretrigger_clean(
     1 Hz, and returns the EEG segment from ``skip_s`` to ``guard_s`` before the
     first trigger — in-scanner EEG with no gradient artifact yet but with the
     ballistocardiogram already present (run_3 §3 / cascade GA-model clean).
+
+    A ``line_freq`` notch (and its harmonics up to Nyquist) is applied to the
+    extracted segment so the background is free of mains hum — otherwise the
+    50 Hz line rides on the clean and buries small injected spikes. Set
+    ``line_freq=0`` to disable. The notch is applied to the isolated pre-trigger
+    segment (not the full recording), so the large post-trigger gradient artifact
+    cannot smear backwards into the clean via the filter.
     """
     import mne  # noqa: PLC0415
+    from mne.filter import notch_filter as mne_notch_filter  # noqa: PLC0415
 
     from facet import DropChannels, HighPassFilter, TriggerDetector, load  # noqa: PLC0415
 
@@ -67,8 +76,13 @@ def extract_pretrigger_clean(
     stop = first_trigger - int(guard_s * sfreq)
     if stop - start < int(sfreq):
         raise SystemExit(f"Pre-trigger segment too short ({(stop - start) / sfreq:.1f}s); first trigger at {first_trigger / sfreq:.1f}s")
-    clean = raw._data[picks, start:stop].astype(np.float32)
-    return clean, sfreq, names
+    clean = raw._data[picks, start:stop].astype(np.float64)
+    if line_freq and line_freq > 0:
+        freqs = np.arange(line_freq, sfreq / 2.0, line_freq)
+        if freqs.size:
+            clean = mne_notch_filter(clean, sfreq, freqs, verbose="ERROR")
+            print(f"  notch @ {', '.join(f'{f:.0f}' for f in freqs)} Hz applied to pre-trigger clean")
+    return clean.astype(np.float32), sfreq, names
 
 
 # Authoritative 29-channel order of the VEPISET IED dataset (github.com/vepiset/vepiset_dataset);
@@ -124,7 +138,10 @@ def extract_real_ied_pool(
             focal = float(np.max(np.abs(win)))
             if focal <= 0:
                 continue
-            pool.append({"waveforms": (win / focal).astype(np.float32), "names": list(VEPISET_EEG19)})
+            # ``marker`` = pool-sample index of the '!' onset (window centre); the
+            # clinical spike sits here, so it anchors the ground-truth label rather
+            # than the (usually larger) slow after-wave at the amplitude peak.
+            pool.append({"waveforms": (win / focal).astype(np.float32), "names": list(VEPISET_EEG19), "marker": int(half)})
             if len(pool) >= max_ieds:
                 break
         if len(pool) >= max_ieds:
@@ -156,6 +173,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--pretrigger-guard-s", type=float, default=1.0, help="Stop the clean segment this many s before the first trigger")
     p.add_argument("--pretrigger-skip-s", type=float, default=1.0, help="Skip this many s at the start (filter edge transient)")
+    p.add_argument("--line-freq", type=float, default=50.0, help="Mains notch (Hz) for the pre-trigger clean; harmonics up to Nyquist. 0 disables.")
     p.add_argument("--inject-spikes", action="store_true", help="run_6 spike-preservation foundation")
     p.add_argument("--spike-source", choices=["synthetic", "real_ied"], default="synthetic")
     p.add_argument(
@@ -166,7 +184,11 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--max-ieds", type=int, default=300, help="how many real IEDs to load into the pool")
     p.add_argument("--spike-rate-hz", type=float, default=0.7)
-    p.add_argument("--spike-amplitude-uv", type=float, default=40.0)
+    p.add_argument("--spike-amplitude-uv", type=float, default=40.0, help="Fixed focal amplitude for --spike-source synthetic")
+    p.add_argument("--spike-amp-min-uv", type=float, default=150.0, help="Min focal amplitude for --spike-source real_ied (sampled per spike)")
+    p.add_argument("--spike-amp-max-uv", type=float, default=500.0, help="Max focal amplitude for --spike-source real_ied (sampled per spike)")
+    p.add_argument("--spike-label-snr", type=float, default=3.0, help="Label a channel only if the injected peak clears this x local background robust-std")
+    p.add_argument("--spike-label-sharpness-ratio", type=float, default=3.0, help="...and its curvature (~10ms scale) clears this x background curvature (rejects the slow after-wave)")
     p.add_argument("--spike-width-ms", type=float, default=20.0)
     p.add_argument("--max-examples", type=int, default=None)
     p.add_argument("--seed", type=int, default=0)
@@ -193,7 +215,10 @@ def main() -> None:
     pretrigger_sfreq = None
     if args.clean_source == "niazy_pretrigger":
         pretrigger_clean, pretrigger_sfreq, pre_names = extract_pretrigger_clean(
-            args.niazy_edf.expanduser(), skip_s=args.pretrigger_skip_s, guard_s=args.pretrigger_guard_s
+            args.niazy_edf.expanduser(),
+            skip_s=args.pretrigger_skip_s,
+            guard_s=args.pretrigger_guard_s,
+            line_freq=args.line_freq,
         )
         print(f"  pre-trigger clean: {pretrigger_clean.shape[0]} ch, {pretrigger_clean.shape[1] / pretrigger_sfreq:.1f}s @ {pretrigger_sfreq:.0f} Hz")
 
@@ -219,6 +244,9 @@ def main() -> None:
         real_ied_sfreq=real_ied_sfreq,
         spike_rate_hz=args.spike_rate_hz,
         spike_amplitude_uv=args.spike_amplitude_uv,
+        spike_amplitude_uv_range=(args.spike_amp_min_uv, args.spike_amp_max_uv),
+        spike_label_snr=args.spike_label_snr,
+        spike_label_sharpness_ratio=args.spike_label_sharpness_ratio,
         spike_width_ms=args.spike_width_ms,
         max_examples=args.max_examples,
         seed=args.seed,

@@ -33,6 +33,25 @@ def _fake_ied_pool(names=("C3", "C4", "F3"), t=100):
     waveforms = np.stack([wave, 0.5 * wave, 0.3 * wave]).astype(np.float32)
     return [{"waveforms": waveforms, "names": list(names)}]
 
+
+def _realistic_bg(n_ch, n, sfreq=1000.0, seed=0, uv=15.0):
+    """Smooth, band-limited (1/f-like) EEG background ~``uv`` µV.
+
+    White noise has unrealistically high per-sample slope; real (highpassed,
+    notched) EEG is smooth, so the injected-spike sharpness label is exercised
+    against a background that resembles the real pre-trigger clean.
+    """
+    rng = np.random.default_rng(seed)
+    t = np.arange(n) / sfreq
+    bg = np.zeros((n_ch, n), dtype=np.float64)
+    for c in range(n_ch):
+        for f in (2.0, 6.0, 10.0, 18.0):
+            bg[c] += rng.uniform(0.3, 1.0) * np.sin(2 * np.pi * f * t + rng.uniform(0, 2 * np.pi))
+    bg += 0.05 * rng.standard_normal((n_ch, n))
+    bg = bg / np.max(np.abs(bg)) * (uv * 1e-6)
+    return bg.astype(np.float32)
+
+
 # Real montage names so the geodesic k-NN path is exercised.
 CH_NAMES = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"]
 
@@ -137,21 +156,20 @@ def test_builder_niazy_pretrigger_rejects_channel_mismatch():
 
 
 def test_inject_real_ieds_maps_by_name_and_scales():
-    rng = np.random.default_rng(0)
     ch_names = list(CH_NAMES)                      # Fp1,Fp2,F3,F4,C3,C4,P3,P4
-    clean = (rng.standard_normal((len(ch_names), 5000)) * 1e-6).astype(np.float32)
+    clean = _realistic_bg(len(ch_names), 5000, sfreq=1000.0, seed=0)  # ~15 uV smooth EEG
     pool = _fake_ied_pool(names=("C3", "C4", "F3"))
     out, centers = inject_real_ieds(
         clean, clean_sfreq=1000.0, ch_names=ch_names, ied_pool=pool, pool_sfreq=500.0,
-        rate_hz=20.0, amplitude_uv=100.0, seed=1,
+        rate_hz=20.0, amplitude_uv=300.0, seed=1,
     )
     assert out.shape == clean.shape
     assert len(centers) > 0
     # spikes land on the named channels only (C3=4, C4=5, F3=2), never elsewhere
     hit_channels = {c for c, _ in centers}
     assert hit_channels <= {ch_names.index(n) for n in ("C3", "C4", "F3")}
-    # focal channel amplitude ~ requested (100 uV) — far above the 1 uV background
-    assert np.max(np.abs(out)) > 50e-6
+    # focal channel amplitude ~ requested (300 uV) — far above the 15 uV background
+    assert np.max(np.abs(out)) > 200e-6
 
 
 def test_inject_real_ieds_skips_unmatched_names():
@@ -165,17 +183,66 @@ def test_inject_real_ieds_skips_unmatched_names():
     assert np.allclose(out, 0.0)
 
 
+def test_inject_real_ieds_label_rejects_invisible_and_smooth():
+    # Fix #1: a channel is only labelled when the injected spike is BOTH visible
+    # (clears the background) AND sharp. Build a pool with three distinct channels:
+    #   C3 = sharp, focal (labelled), C4 = tiny visible-but-negligible (rejected),
+    #   F3 = large but broad/slow spread lobe (rejected: not sharp).
+    ch_names = list(CH_NAMES)
+    clean = _realistic_bg(len(ch_names), 12000, sfreq=1000.0, seed=7, uv=20.0)
+    t = 600                                                # 600 ms window @ 1000 Hz
+    n = np.arange(t)
+    z = (n - t // 2) / 8.0                                 # narrow biphasic, ~30 ms wide
+    sharp = (-z * np.exp(-(z**2))).astype(np.float64)
+    sharp = sharp / np.max(np.abs(sharp))                 # focal, sharp, |peak|=1.0
+    broad = np.sin(np.pi * n / (t - 1)).astype(np.float64) * 0.6   # slow lobe over full 600 ms
+    tiny = sharp * 0.02                                   # sharp shape but ~2% of focal
+    waveforms = np.stack([sharp, tiny, broad]).astype(np.float32)
+    pool = [{"waveforms": waveforms, "names": ["C3", "C4", "F3"]}]
+    _, centers = inject_real_ieds(
+        clean, 1000.0, ch_names, pool, 1000.0,
+        rate_hz=20.0, amplitude_uv=300.0, label_snr=3.0, label_sharpness_ratio=3.0, seed=3,
+    )
+    labelled = {c for c, _ in centers}
+    c3, c4, f3 = (ch_names.index(n) for n in ("C3", "C4", "F3"))
+    assert c3 in labelled          # sharp focal spike -> labelled
+    assert c4 not in labelled      # ~6 uV deflection, below 3x background -> rejected
+    assert f3 not in labelled      # 180 uV but slow half-sine -> low curvature -> rejected
+
+
+def test_inject_real_ieds_variable_amplitude():
+    # Fix #2: focal amplitude is drawn per spike from the range (not fixed). Inject
+    # onto a zero background at low rate so each kept call holds a single, isolated
+    # spike whose focal peak is exactly the drawn amplitude.
+    ch_names = list(CH_NAMES)
+    pool = _fake_ied_pool(names=("C3", "C4", "F3"))       # C3 is the focal channel (|peak|=1)
+    c3 = ch_names.index("C3")
+    peaks = []
+    for sd in range(80):
+        clean = np.zeros((len(ch_names), 250), dtype=np.float32)
+        out, centers = inject_real_ieds(
+            clean, 1000.0, ch_names, pool, 1000.0,
+            rate_hz=1.5, amplitude_uv_range=(150.0, 500.0), seed=sd,
+        )
+        c3_labels = [s for ch, s in centers if ch == c3]
+        if len(c3_labels) == 1:                           # isolated single spike
+            peaks.append(abs(float(out[c3, c3_labels[0]])) * 1e6)
+    assert len(peaks) >= 10
+    assert min(peaks) >= 145.0 and max(peaks) <= 505.0    # every draw within the range
+    assert np.std(peaks) > 20.0                           # genuinely variable, not fixed
+
+
 def test_builder_real_ied_on_pretrigger_clean():
     # the key combination: REAL clean (pre-trigger surrogate) + REAL IED spikes
     bundle = _toy_bundle(n_epochs=16)
     n_ch = bundle["artifact"].shape[0]
-    pre = (np.random.default_rng(3).standard_normal((n_ch, 320)) * 1e-6).astype(np.float32)
+    pre = _realistic_bg(n_ch, 320, sfreq=500.0, seed=3)
     ds = build_spatiotemporal_reference_dataset(
         bundle, context_epochs=7, core_samples=64, guard_samples=8,
         clean_source="niazy_pretrigger", pretrigger_clean=pre, pretrigger_sfreq=500.0,
         inject_spikes_mode=True, spike_source="real_ied",
         real_ied_pool=_fake_ied_pool(names=("C3", "C4", "F3")), real_ied_sfreq=500.0,
-        spike_rate_hz=12.0, spike_amplitude_uv=100.0, seed=0,
+        spike_rate_hz=12.0, spike_amplitude_uv_range=(150.0, 500.0), seed=0,
     )
     assert bool(ds["spikes_injected"][0]) is True
     assert str(ds["clean_source"][0]) == "niazy_pretrigger"

@@ -55,6 +55,42 @@ CLEAN_SOURCES = ("synthetic", "external", "aas_corrected", "niazy_pretrigger")
 # ---------------------------------------------------------------------------
 
 
+def _robust_std(x: np.ndarray) -> float:
+    """MAD-based robust standard-deviation estimate (outlier-safe).
+
+    Used to characterise the local EEG background (and its curvature) around an
+    injected spike so the spike label reflects genuine visibility and sharpness,
+    not a fixed fraction of the focal peak. Robust so a stray BCG peak in the
+    window does not inflate the threshold.
+    """
+    x = np.asarray(x, dtype=np.float64).ravel()
+    if x.size == 0:
+        return 0.0
+    med = np.median(x)
+    return float(1.4826 * np.median(np.abs(x - med)))
+
+
+def _curvature_at(sig: np.ndarray, i: int, k: int) -> float:
+    """Second difference of ``sig`` at index ``i`` on a ``±k``-sample scale.
+
+    A pointed spike apex has a large second difference at a ~10 ms scale; the
+    peak of a broad slow wave does not. This is what separates the clinical spike
+    from the (often larger) slow after-wave that follows it.
+    """
+    n = int(sig.shape[-1])
+    a, b = max(0, i - k), min(n - 1, i + k)
+    return float(abs(sig[a] - 2.0 * sig[i] + sig[b]))
+
+
+def _background_curvature_std(bg: np.ndarray, k: int) -> float:
+    """Robust scale of the background's second difference at a ``±k`` scale."""
+    bg = np.asarray(bg, dtype=np.float64).ravel()
+    if bg.size < 2 * k + 1:
+        return 0.0
+    d2 = bg[: -2 * k] - 2.0 * bg[k:-k] + bg[2 * k:]
+    return _robust_std(d2)
+
+
 def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
     """Band-limited polyphase resampling (matches the proof-fit builder).
 
@@ -288,8 +324,11 @@ def inject_real_ieds(
     pool_sfreq: float,
     *,
     rate_hz: float,
-    amplitude_uv: float = 120.0,
-    label_frac: float = 0.3,
+    amplitude_uv: float | None = None,
+    amplitude_uv_range: tuple[float, float] = (150.0, 500.0),
+    label_snr: float = 3.0,
+    label_sharpness_ratio: float = 3.0,
+    spike_window_s: float = 0.08,
     seed: int = 0,
 ) -> tuple[np.ndarray, list[tuple[int, int]]]:
     """Inject **real** annotated IEDs (run_3 §6.6 / run_6 ground truth).
@@ -298,13 +337,29 @@ def inject_real_ieds(
     ``!`` onset of the external IED dataset, normalised so its focal peak is 1.0,
     with the originating 10-20 electrode names. Channels are mapped to the target
     montage **by name** (exact placement — both use the 10-20 system), preserving
-    the real morphology *and* the real cross-channel topography; the absolute
-    amplitude is rescaled to ``amplitude_uv`` so it sits realistically on the
-    clean background regardless of the source dataset's units.
+    the real morphology *and* the real cross-channel topography.
 
-    Returns the spiked signal and ``(channel, peak_sample)`` centers for every
-    channel whose injected peak reaches ``label_frac`` of the focal peak — the
-    ground-truth ``spike_labels`` support.
+    **Amplitude (realistic, variable).** The absolute focal amplitude is drawn
+    *per spike* from ``amplitude_uv_range`` (real IEDs span hundreds of µV), so
+    the dataset carries amplitude variance instead of one fixed value. Pass a
+    scalar ``amplitude_uv`` to force a fixed focal amplitude instead (deterministic
+    tests / back-compat). Neighbour channels keep their real fraction of the focal
+    peak, so the cross-channel topography is preserved either way.
+
+    **Label (marker-anchored, visible & sharp).** Real IEDs are a sharp spike
+    followed by a *larger* slow after-wave, so an amplitude-only label lands on
+    the smooth wave, not the spike. Instead the label is anchored to the ``!``
+    onset marker (``ied["marker"]``, the clinical annotation) and placed at the
+    most prominent extremum within ``±spike_window_s`` of it — the clinical spike
+    region, excluding the distant slow wave. A channel is only added to the
+    ground-truth ``spike_labels`` support when that extremum is both (a)
+    **visible** — it clears ``label_snr`` × the local background robust-std — and
+    (b) **sharp** — its curvature at a ~10 ms scale clears
+    ``label_sharpness_ratio`` × the background curvature. Together this replaces
+    the old ``label_frac`` (30 %-of-focal) rule, keeps every label on a genuine
+    expert-marked IED, and drops spread channels that carry only the smooth wave.
+
+    Returns the spiked signal and the ``(channel, peak_sample)`` centers.
     """
     if not ied_pool:
         raise ValueError("inject_real_ieds requires a non-empty ied_pool")
@@ -313,31 +368,54 @@ def inject_real_ieds(
     n_channels, n_samples = out.shape
     name_to_idx = {_LEGACY_NAME_ALIAS.get(n, n): i for i, n in enumerate(ch_names)}
     name_to_idx.update({n: i for i, n in enumerate(ch_names)})  # also accept raw names
-    amp_v = amplitude_uv * 1e-6
+    amp_lo, amp_hi = float(amplitude_uv_range[0]), float(amplitude_uv_range[1])
     duration_s = n_samples / float(clean_sfreq)
     n_spikes = int(rng.poisson(rate_hz * duration_s))
     centers: list[tuple[int, int]] = []
 
+    k = max(1, int(round(0.010 * clean_sfreq)))            # ~10 ms curvature scale
+    half_win = max(1, int(round(spike_window_s * clean_sfreq)))  # clinical-spike search radius
     for _ in range(n_spikes):
         ied = ied_pool[int(rng.integers(len(ied_pool)))]
         wf = np.asarray(ied["waveforms"], dtype=np.float64)  # (n_named, T) focal-normalised
         names = list(ied["names"])
+        t_pool = wf.shape[-1]
+        marker_pool = int(ied.get("marker", t_pool // 2))    # '!' onset (defaults to centre)
         if abs(pool_sfreq - clean_sfreq) > 1e-6:
             g = gcd(int(round(clean_sfreq)), int(round(pool_sfreq)))
             wf = resample_poly(wf, int(round(clean_sfreq)) // g, int(round(pool_sfreq)) // g, axis=-1)
         t_len = wf.shape[-1]
         if t_len >= n_samples or t_len < 2:
             continue
+        marker_r = int(round(marker_pool * t_len / t_pool))  # marker in resampled samples
+        w0, w1 = max(0, marker_r - half_win), min(t_len, marker_r + half_win)
+        if w1 - w0 < 2:
+            continue
         start = int(rng.integers(0, n_samples - t_len))
         focal_peak = float(np.max(np.abs(wf))) or 1.0
+        # Per-spike focal amplitude: fixed override (tests) or sampled from the range.
+        focal_uv = float(amplitude_uv) if amplitude_uv is not None else float(rng.uniform(amp_lo, amp_hi))
+        scale = (focal_uv * 1e-6) / focal_peak
         for r, nm in enumerate(names):
             idx = name_to_idx.get(_LEGACY_NAME_ALIAS.get(nm, nm), name_to_idx.get(nm))
             if idx is None:
                 continue
-            chan_wave = (wf[r] / focal_peak) * amp_v
+            chan_wave = wf[r] * scale  # real fraction of the focal peak, in volts
             out[idx, start:start + t_len] += chan_wave.astype(np.float32)
-            if np.max(np.abs(wf[r])) >= label_frac * focal_peak:
-                centers.append((idx, start + int(np.argmax(np.abs(wf[r])))))
+            # --- label anchored to the '!' marker's clinical-spike window ---
+            local = chan_wave[w0:w1]
+            peak_i = w0 + int(np.argmax(np.abs(local - np.median(local))))  # spike apex near marker
+            inj_peak = float(np.abs(chan_wave[peak_i]))
+            lo = max(0, start - t_len)
+            hi = min(n_samples, start + 2 * t_len)
+            bg = clean[idx, lo:hi].astype(np.float64)      # spike-free background
+            bg_std = _robust_std(bg)
+            bg_curv_std = _background_curvature_std(bg, k)
+            inj_curv = _curvature_at(chan_wave, peak_i, k)
+            visible = inj_peak >= label_snr * bg_std
+            sharp = inj_curv >= label_sharpness_ratio * bg_curv_std
+            if visible and sharp:
+                centers.append((idx, start + peak_i))
     return out.astype(np.float32), centers
 
 
@@ -363,6 +441,9 @@ def build_spatiotemporal_reference_dataset(
     real_ied_sfreq: float | None = None,
     spike_rate_hz: float = 0.7,
     spike_amplitude_uv: float = 40.0,
+    spike_amplitude_uv_range: tuple[float, float] = (150.0, 500.0),
+    spike_label_snr: float = 3.0,
+    spike_label_sharpness_ratio: float = 3.0,
     spike_width_ms: float = 20.0,
     spike_label_halfwidth: int = 3,
     max_examples: int | None = None,
@@ -437,7 +518,11 @@ def build_spatiotemporal_reference_dataset(
                 raise ValueError("spike_source='real_ied' requires real_ied_pool")
             clean_true, spike_centers = inject_real_ieds(
                 clean_true, sfreq, ch_names, real_ied_pool, float(real_ied_sfreq or sfreq),
-                rate_hz=spike_rate_hz, amplitude_uv=spike_amplitude_uv, seed=seed + 1,
+                rate_hz=spike_rate_hz,
+                amplitude_uv_range=spike_amplitude_uv_range,
+                label_snr=spike_label_snr,
+                label_sharpness_ratio=spike_label_sharpness_ratio,
+                seed=seed + 1,
             )
         else:  # synthetic
             clean_true, spike_centers = inject_spikes(
