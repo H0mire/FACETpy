@@ -1,31 +1,44 @@
-"""
-Quickstart — minimal fMRI artifact correction pipeline.
+"""Quickstart - minimal fMRI artifact correction pipeline.
 
-The fewest steps needed to load, correct, and export an EDF recording.
-Run this first to verify your installation.
+The fewest steps needed to correct a bundled recording in trigger-section
+chunks and export numbered EDF files. Chunking keeps large recordings from
+being loaded into memory all at once.
 """
+
+from __future__ import annotations
+
+from pathlib import Path
 
 from facet import (
+    AASCorrection,
+    DownSample,
     Pipeline,
-    Loader,
-    EDFExporter,
     TriggerDetector,
     UpSample,
-    DownSample,
-    AASCorrection,
 )
 
-INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
-OUTPUT_FILE = "./output/corrected_quickstart.edf"
+INPUT_FILE = Path("./examples/datasets/NiazyFMRI.edf")
+OUTPUT_DIR = Path("./output/quickstart_chunks")
 
-pipeline = Pipeline([
-    Loader(path=INPUT_FILE, preload=True),
-    TriggerDetector(regex=r"\b1\b"),
-    UpSample(factor=10),
-    AASCorrection(window_size=30),
-    DownSample(factor=10),
-    EDFExporter(path=OUTPUT_FILE, overwrite=True),
-], name="Quickstart")
+pipeline = Pipeline(
+    [
+        TriggerDetector(regex=r"\b1\b"),
+        UpSample(factor=10),
+        AASCorrection(window_size=30),
+        DownSample(factor=10),
+    ],
+    name="Quickstart",
+)
 
-result = pipeline.run()
+# Trigger-section chunking writes one padded output window per detected
+# scan/trigger section, not one output file per individual trigger.
+result = pipeline.run_chunked(
+    input_path=str(INPUT_FILE),
+    output_dir=str(OUTPUT_DIR),
+    output_extension=".edf",
+    trigger_section_padding_seconds=60.0,
+    trigger_section_min_triggers=31,
+    channel_sequential=True,
+)
+
 result.print_summary()

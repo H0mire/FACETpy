@@ -14,6 +14,7 @@ from facet.preprocessing import (
     CheckDataReport,
     CutAcquisitionWindow,
     DownSample,
+    DropChannelsMatching,
     HighPassFilter,
     LowPassFilter,
     MagicErasor,
@@ -85,6 +86,74 @@ class TestTriggerDetector:
         result = detector.execute(context)
 
         # Should return unchanged context
+        assert not result.has_triggers()
+
+    def test_trigger_detection_from_eeg_status_channel(self):
+        """Detect binary triggers when a Status channel is not typed as stim."""
+        sfreq = 250.0
+        n_samples = 1000
+        trigger_positions = np.array([100, 250, 400, 550, 700], dtype=int)
+        data = np.random.randn(3, n_samples) * 1e-6
+        status = np.zeros(n_samples)
+        status[trigger_positions] = 1
+        data = np.vstack([data, status])
+
+        info = mne.create_info(
+            ch_names=["EEG001", "EEG002", "EEG003", "Status"],
+            sfreq=sfreq,
+            ch_types=["eeg", "eeg", "eeg", "eeg"],
+        )
+        raw = mne.io.RawArray(data, info, verbose=False)
+        context = ProcessingContext(raw=raw)
+
+        result = TriggerDetector(regex=r"\b1\b").execute(context)
+
+        assert result.has_triggers()
+        np.testing.assert_array_equal(result.get_triggers(), trigger_positions)
+
+    def test_trigger_detection_accepts_weighted_positive_channel(self):
+        """Detect trigger channels whose pulse value is positive but not one."""
+        sfreq = 250.0
+        n_samples = 1000
+        trigger_positions = np.array([100, 250, 400, 550, 700], dtype=int)
+        data = np.random.randn(2, n_samples) * 1e-6
+        trigger_channel = np.zeros(n_samples)
+        trigger_channel[trigger_positions[:2]] = 1
+        trigger_channel[trigger_positions[2:]] = 8
+        data = np.vstack([data, trigger_channel])
+
+        info = mne.create_info(
+            ch_names=["EEG001", "EEG002", "Aux"],
+            sfreq=sfreq,
+            ch_types=["eeg", "eeg", "eeg"],
+        )
+        raw = mne.io.RawArray(data, info, verbose=False)
+        context = ProcessingContext(raw=raw)
+
+        result = TriggerDetector(regex=r"\b1\b").execute(context)
+
+        assert result.has_triggers()
+        np.testing.assert_array_equal(result.get_triggers(), trigger_positions)
+
+    def test_discrete_channel_still_respects_nonmatching_regex(self):
+        """Do not use positive fallback when the regex is not trigger-like."""
+        sfreq = 250.0
+        n_samples = 1000
+        data = np.random.randn(2, n_samples) * 1e-6
+        trigger_channel = np.zeros(n_samples)
+        trigger_channel[[100, 250, 400]] = 8
+        data = np.vstack([data, trigger_channel])
+
+        info = mne.create_info(
+            ch_names=["EEG001", "EEG002", "Status"],
+            sfreq=sfreq,
+            ch_types=["eeg", "eeg", "eeg"],
+        )
+        raw = mne.io.RawArray(data, info, verbose=False)
+        context = ProcessingContext(raw=raw)
+
+        result = TriggerDetector(regex=r"NONEXISTENT").execute(context)
+
         assert not result.has_triggers()
 
 
@@ -1081,6 +1150,30 @@ class TestRawTransform:
         proc = RawTransform("my_custom_step", lambda raw: raw.copy())
         # The name attribute is set on the instance
         assert proc.name == "my_custom_step"
+
+
+@pytest.mark.unit
+class TestDropChannelsMatching:
+    """Tests for regex-based channel removal."""
+
+    def test_drop_egi_e1_to_e128_on_copy(self):
+        """E1-E128 should be removed while non-matching channels are preserved."""
+        ch_names = ["E1", "E2", "E128", "E129", "TREV", "ECG"]
+        ch_types = ["eeg", "eeg", "eeg", "eeg", "stim", "ecg"]
+        data = np.zeros((len(ch_names), 100))
+        raw = mne.io.RawArray(
+            data,
+            mne.create_info(ch_names=ch_names, sfreq=100.0, ch_types=ch_types),
+            verbose=False,
+        )
+        context = ProcessingContext(raw=raw)
+        regex = r"^E(?:[1-9]|[1-9]\d|1[01]\d|12[0-8])$"
+
+        result = context | DropChannelsMatching(regex=regex)
+
+        assert context.get_raw().ch_names == ch_names
+        assert result.get_raw() is not context.get_raw()
+        assert result.get_raw().ch_names == ["E129", "TREV", "ECG"]
 
 
 @pytest.mark.unit
