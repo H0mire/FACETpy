@@ -40,10 +40,13 @@ def _dataset(tmp_path: Path, n=12, n_events=4) -> Path:
     """
     rng = np.random.default_rng(0)
     clean_ctx = rng.standard_normal((n, EPOCHS, CHANNELS, TOTAL)).astype(np.float32) * 1e-6
-    template_ctx = np.tile(
-        np.sin(np.linspace(0, 8 * np.pi, TOTAL, dtype=np.float32))[None, None, None, :],
-        (n, EPOCHS, CHANNELS, 1),
-    ) * 1e-4
+    template_ctx = (
+        np.tile(
+            np.sin(np.linspace(0, 8 * np.pi, TOTAL, dtype=np.float32))[None, None, None, :],
+            (n, EPOCHS, CHANNELS, 1),
+        )
+        * 1e-4
+    )
     residual_ctx = rng.standard_normal((n, EPOCHS, CHANNELS, TOTAL)).astype(np.float32) * 1e-5
     artifact_ctx = template_ctx + residual_ctx
 
@@ -52,7 +55,7 @@ def _dataset(tmp_path: Path, n=12, n_events=4) -> Path:
     artifact_c = artifact_ctx[:, EPOCHS // 2, 0:1, :].copy()
 
     spikes = np.zeros((n, 1, TOTAL), dtype=np.float32)
-    per_event = n // (2 * n_events)                      # half the rows are val
+    per_event = n // (2 * n_events)  # half the rows are val
     epoch_index = np.zeros(n, dtype=np.int64)
     split = np.zeros(n, dtype=np.int64)
     row = 0
@@ -62,24 +65,30 @@ def _dataset(tmp_path: Path, n=12, n_events=4) -> Path:
                 break
             epoch_index[row] = 100 + event
             split[row] = 1 if event >= n_events else 0
-            spikes[row, 0, GUARD + CORE // 2 - 2: GUARD + CORE // 2 + 3] = 1.0
-            clean_c[row, 0, GUARD + CORE // 2 - 2: GUARD + CORE // 2 + 3] += 5e-5
+            spikes[row, 0, GUARD + CORE // 2 - 2 : GUARD + CORE // 2 + 3] = 1.0
+            clean_c[row, 0, GUARD + CORE // 2 - 2 : GUARD + CORE // 2 + 3] += 5e-5
             row += 1
 
     path = tmp_path / "ds.npz"
     np.savez(
         path,
-        clean_context=clean_ctx, artifact_context=artifact_ctx,
+        clean_context=clean_ctx,
+        artifact_context=artifact_ctx,
         artifact_context_template=template_ctx,
-        clean_center=clean_c, artifact_center=artifact_c, artifact_center_template=template_c,
+        clean_center=clean_c,
+        artifact_center=artifact_c,
+        artifact_center_template=template_c,
         spike_labels=spikes,
         neighbor_channel_indices=np.tile(np.arange(CHANNELS)[None, :], (n, 1)).astype(np.int64),
         target_channel_index=np.zeros(n, dtype=np.int64),
         center_epoch_index=epoch_index,
         example_split=split,
-        core_samples=np.array([CORE]), guard_samples=np.array([GUARD]),
-        context_epochs=np.array([EPOCHS]), k_neighbors=np.array([CHANNELS - 1]),
-        sfreq=np.array([1024.0]), n_examples=np.array([n]),
+        core_samples=np.array([CORE]),
+        guard_samples=np.array([GUARD]),
+        context_epochs=np.array([EPOCHS]),
+        k_neighbors=np.array([CHANNELS - 1]),
+        sfreq=np.array([1024.0]),
+        n_examples=np.array([n]),
     )
     return path
 
@@ -87,25 +96,27 @@ def _dataset(tmp_path: Path, n=12, n_events=4) -> Path:
 #: A model factory the tool imports from a subprocess. It is written into the
 #: temporary directory rather than imported from the test module, because the
 #: tool runs as its own process and ``tests`` is not an installed package.
-ZERO_FACTORY = '\n'.join([
-    'import torch',
-    '',
-    '',
-    'class ZeroArtifactModel(torch.nn.Module):',
-    '    # Predicts exactly zero, so the model arm equals its own input.',
-    '    def __init__(self, input_shape=None, **_):',
-    '        super().__init__()',
-    '        self.core = int(input_shape[2]) if input_shape else 64',
-    '        self.unused = torch.nn.Parameter(torch.zeros(1))',
-    '',
-    '    def forward(self, x):',
-    '        return torch.zeros((x.shape[0], 1, self.core), dtype=x.dtype, device=x.device)',
-    '',
-    '',
-    'def build_model(input_shape=None, **kwargs):',
-    '    return ZeroArtifactModel(input_shape=input_shape, **kwargs)',
-    '',
-])
+ZERO_FACTORY = "\n".join(
+    [
+        "import torch",
+        "",
+        "",
+        "class ZeroArtifactModel(torch.nn.Module):",
+        "    # Predicts exactly zero, so the model arm equals its own input.",
+        "    def __init__(self, input_shape=None, **_):",
+        "        super().__init__()",
+        "        self.core = int(input_shape[2]) if input_shape else 64",
+        "        self.unused = torch.nn.Parameter(torch.zeros(1))",
+        "",
+        "    def forward(self, x):",
+        "        return torch.zeros((x.shape[0], 1, self.core), dtype=x.dtype, device=x.device)",
+        "",
+        "",
+        "def build_model(input_shape=None, **kwargs):",
+        "    return ZeroArtifactModel(input_shape=input_shape, **kwargs)",
+        "",
+    ]
+)
 
 
 class _Zero(torch.nn.Module):
@@ -131,9 +142,21 @@ def _checkpoint(tmp_path: Path) -> Path:
 def _run(tmp_path: Path, dataset: Path, ckpt: Path, extra: list[str]) -> dict:
     out = tmp_path / f"out{abs(hash(tuple(extra))) % 10000}"
     cmd = [
-        sys.executable, str(TOOL), "--dataset", str(dataset), "--checkpoint", str(ckpt),
-        "--model-factory", "zero_factory:build_model",
-        "--model-kwargs", "{}", "--device", "cpu", "--output-dir", str(out), *extra,
+        sys.executable,
+        str(TOOL),
+        "--dataset",
+        str(dataset),
+        "--checkpoint",
+        str(ckpt),
+        "--model-factory",
+        "zero_factory:build_model",
+        "--model-kwargs",
+        "{}",
+        "--device",
+        "cpu",
+        "--output-dir",
+        str(out),
+        *extra,
     ]
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([str(tmp_path), "src", env.get("PYTHONPATH", "")])
@@ -152,7 +175,7 @@ def test_zero_prediction_leaves_the_model_arm_equal_to_the_raw_signal(tmp_path):
         sl = slice(GUARD, GUARD + CORE)
         val = np.flatnonzero(b["example_split"] == 1)
         artifact = b["artifact_center"][val][:, 0, sl].astype(np.float64)
-    expected = float(np.sqrt(np.mean(artifact ** 2))) * 1e6
+    expected = float(np.sqrt(np.mean(artifact**2))) * 1e6
     assert meta["results"]["model"]["overall_rmse_uv"] == pytest.approx(expected, rel=1e-6)
 
 
@@ -179,7 +202,7 @@ def test_null_arm_equals_the_rms_of_the_true_clean(tmp_path):
         val = np.flatnonzero(b["example_split"] == 1)
         clean = b["clean_center"][val][:, 0, sl].astype(np.float64)
     assert meta["results"]["null_output"]["overall_rmse_uv"] == pytest.approx(
-        float(np.sqrt(np.mean(clean ** 2))) * 1e6, rel=1e-9
+        float(np.sqrt(np.mean(clean**2))) * 1e6, rel=1e-9
     )
 
 
@@ -213,9 +236,7 @@ def test_trigger_misalignment_degrades_the_template_arm(tmp_path):
     base = _run(tmp_path, ds, ck, [])
     off = _run(tmp_path, ds, ck, ["--trigger-misalign", "4"])
     assert off["trigger_misalign_samples"] == 4
-    assert off["results"]["aas_ideal"]["overall_rmse_uv"] > (
-        3.0 * base["results"]["aas_ideal"]["overall_rmse_uv"]
-    )
+    assert off["results"]["aas_ideal"]["overall_rmse_uv"] > (3.0 * base["results"]["aas_ideal"]["overall_rmse_uv"])
 
 
 @pytest.mark.unit

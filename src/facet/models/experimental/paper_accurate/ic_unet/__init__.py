@@ -7,7 +7,10 @@ frequency term, per-time-series z-score normalisation, and a clean-reconstructio
 target by default. See ``README.md`` and ``documentation/paper_accuracy_review.md``.
 """
 
-from facet.models.experimental.paper_accurate.ic_unet.processor import IcUNetPaperAccurateAdapter, IcUNetPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.ic_unet.processor import (
+    IcUNetPaperAccurateAdapter,
+    IcUNetPaperAccurateCorrection,
+)
 
 __all__ = [
     "IcUNetPaperAccurateAdapter",

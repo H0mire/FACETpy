@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import dataclasses
 import importlib
 import inspect
-import copy
 import json
 import math
 import sys

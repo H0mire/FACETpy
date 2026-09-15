@@ -7,7 +7,7 @@ Usage:
   tools/gpu_fleet/run_remote_training.sh <ssh-target> <config-path> [remote-repo-dir] [session-name] [ssh-port] [gpu-id] [prepare-command]
 
 Example:
-  tools/gpu_fleet/run_remote_training.sh root@1.2.3.4 src/facet/models/cascaded_context_dae/training.yaml /workspace/facetpy train_context 22 0
+  tools/gpu_fleet/run_remote_training.sh root@1.2.3.4 /workspace/reproduction/context.yaml /workspace/facetpy train_context 22 0
 
 Purpose:
   Start a FACETpy training job inside tmux on a RunPod. One lock per GPU prevents

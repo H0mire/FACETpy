@@ -711,7 +711,6 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "ipython" },
-    { name = "myst-parser" },
     { name = "notebook" },
     { name = "pyqt6" },
     { name = "sphinx" },
@@ -724,7 +723,6 @@ deeplearning = [
     { name = "torch" },
 ]
 docs = [
-    { name = "myst-parser" },
     { name = "sphinx" },
     { name = "sphinx-rtd-theme" },
 ]
@@ -763,8 +761,6 @@ requires-dist = [
     { name = "matplotlib", specifier = ">=3.10.3,<4.0.0" },
     { name = "mne", specifier = "==1.10.2" },
     { name = "mne-bids", specifier = ">=0.17,<0.18" },
-    { name = "myst-parser", marker = "extra == 'all'", specifier = ">=3.0.1,<4.0.0" },
-    { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3.0.1,<4.0.0" },
     { name = "neurokit2", specifier = ">=0.2.7,<0.3.0" },
     { name = "notebook", marker = "extra == 'all'", specifier = ">=7.1.2,<8.0.0" },
     { name = "notebook", marker = "extra == 'notebooks'", specifier = ">=7.1.2,<8.0.0" },
@@ -1675,18 +1671,6 @@ wheels = [
 ]
 
 [[package]]
-name = "mdit-py-plugins"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "markdown-it-py" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b2/fd/a756d36c0bfba5f6e39a1cdbdbfdd448dc02692467d83816dff4592a1ebc/mdit_py_plugins-0.5.0.tar.gz", hash = "sha256:f4918cb50119f50446560513a8e311d574ff6aaed72606ddae6d35716fe809c6", size = 44655, upload-time = "2025-08-11T07:25:49.083Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/86/dd6e5db36df29e76c7a7699123569a4a18c1623ce68d826ed96c62643cae/mdit_py_plugins-0.5.0-py3-none-any.whl", hash = "sha256:07a08422fc1936a5d26d146759e9155ea466e842f5ab2f7d2266dd084c8dab1f", size = 57205, upload-time = "2025-08-11T07:25:47.597Z" },
-]
-
-[[package]]
 name = "mdurl"
 version = "0.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1857,23 +1841,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/5b/2d2d1d522e51285bd61b1e20df8f47ae1a9d80839db0b24ea783b3832832/multidict-6.7.1-cp313-cp313t-win_amd64.whl", hash = "sha256:d54ecf9f301853f2c5e802da559604b3e95bb7a3b01a9c295c6ee591b9882de8", size = 53109, upload-time = "2026-01-26T02:45:08.044Z" },
     { url = "https://files.pythonhosted.org/packages/3d/a3/cc409ba012c83ca024a308516703cf339bdc4b696195644a7215a5164a24/multidict-6.7.1-cp313-cp313t-win_arm64.whl", hash = "sha256:5a37ca18e360377cfda1d62f5f382ff41f2b8c4ccb329ed974cc2e1643440118", size = 45573, upload-time = "2026-01-26T02:45:09.349Z" },
     { url = "https://files.pythonhosted.org/packages/81/08/7036c080d7117f28a4af526d794aab6a84463126db031b007717c1a6676e/multidict-6.7.1-py3-none-any.whl", hash = "sha256:55d97cc6dae627efa6a6e548885712d4864b81110ac76fa4e534c03819fa4a56", size = 12319, upload-time = "2026-01-26T02:46:44.004Z" },
-]
-
-[[package]]
-name = "myst-parser"
-version = "3.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "docutils" },
-    { name = "jinja2" },
-    { name = "markdown-it-py" },
-    { name = "mdit-py-plugins" },
-    { name = "pyyaml" },
-    { name = "sphinx" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/49/64/e2f13dac02f599980798c01156393b781aec983b52a6e4057ee58f07c43a/myst_parser-3.0.1.tar.gz", hash = "sha256:88f0cb406cb363b077d176b51c476f62d60604d68a8dcdf4832e080441301a87", size = 92392, upload-time = "2024-04-28T20:22:42.116Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/de/21aa8394f16add8f7427f0a1326ccd2b3a2a8a3245c9252bc5ac034c6155/myst_parser-3.0.1-py3-none-any.whl", hash = "sha256:6457aaa33a5d474aca678b8ead9b3dc298e89c68e67012e73146ea6fd54babf1", size = 83163, upload-time = "2024-04-28T20:22:39.985Z" },
 ]
 
 [[package]]

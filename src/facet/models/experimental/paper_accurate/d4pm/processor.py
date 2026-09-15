@@ -247,9 +247,7 @@ class D4PMPaperAccurateAdapter(EpochContextArtifactAdapter):
             raise ProcessorValidationError("No valid trigger epochs after clipping")
         return starts, stops
 
-    def _predict_x0(
-        self, module: Any, predictor: Any, x_t: Any, y: Any, t_int: int, torch: Any
-    ) -> Any:
+    def _predict_x0(self, module: Any, predictor: Any, x_t: Any, y: Any, t_int: int, torch: Any) -> Any:
         """One epsilon prediction -> x0 estimate via the closed form."""
         t_tensor = torch.tensor([t_int], dtype=torch.long, device=self.device)
         sqrt_abar = module.sqrt_alphas_cumprod[t_int]

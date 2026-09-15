@@ -1,0 +1,14 @@
+experiment,snr_gain_db
+deployment_cascaded_context_dae,24.303138732910156
+deployment_cascaded_dae,23.11867618560791
+deployment_conv_tasnet,24.24839973449707
+deployment_demucs,28.37904167175293
+deployment_denoise_mamba,22.339954376220703
+deployment_dhct_gan,22.962404251098633
+deployment_dhct_gan_v2,26.054112434387207
+deployment_dpae,22.680728912353516
+deployment_ic_unet,16.386747360229492
+deployment_nested_gan,26.6836576461792
+deployment_sepformer,27.07271957397461
+deployment_st_gnn,10.87716892361641
+deployment_vit_spectrogram,25.322715759277344

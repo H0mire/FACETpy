@@ -103,9 +103,7 @@ class DHCTGanPaperAccurateAdapter(EpochContextArtifactAdapter):
             raise ProcessorValidationError("epoch_samples must be positive when provided")
         triggers = np.asarray(context.get_triggers(), dtype=int)
         if len(triggers) < 2:
-            raise ProcessorValidationError(
-                f"DHCT-GAN inference requires at least two triggers, got {len(triggers)}"
-            )
+            raise ProcessorValidationError(f"DHCT-GAN inference requires at least two triggers, got {len(triggers)}")
 
     def predict(self, context: ProcessingContext) -> DeepLearningPrediction:
         raw = context.get_raw()

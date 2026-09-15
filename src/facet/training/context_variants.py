@@ -1,6 +1,6 @@
 """Give a single-epoch, single-channel model a comparison axis.
 
-``docs/research/run_7_paper_strict_rebuild.md`` states the rule: **never one
+``docs/source/thesis_reference/selected_variants.rst`` states the rule: **never one
 epoch and one channel**. At least one comparison axis has to be there, because
 without one there is nothing in the input from which the artifact could be
 separated — a model can learn the artifact's stereotyped *shape*, and an
@@ -41,7 +41,8 @@ averaging methods exploit, and a single-channel model cannot.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -70,8 +71,7 @@ class FlattenToOneDimension(nn.Module):
         epoch axis, where the wrapper slices one epoch out of a flat signal.
     """
 
-    def __init__(self, core: nn.Module, rows: int, samples: int,
-                 keep_rows: bool = True) -> None:
+    def __init__(self, core: nn.Module, rows: int, samples: int, keep_rows: bool = True) -> None:
         super().__init__()
         self.core = core
         self.rows = int(rows)
@@ -138,10 +138,15 @@ def build_context_variant(
     core_kwargs.pop("n_channels", None)
     core = core_factory(**core_kwargs)
 
-    wrapped = FlattenToOneDimension(core, rows=rows, samples=epoch_samples,
-                                    keep_rows=(axis == "channels"))
+    wrapped = FlattenToOneDimension(core, rows=rows, samples=epoch_samples, keep_rows=(axis == "channels"))
     return PackedDeploymentModel(
-        wrapped, packing=packing, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=core_output,
-        core_output_index=core_output_index, normalise=normalise,
-        identity_init=identity_init, demean_output=demean_output)
+        wrapped,
+        packing=packing,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=core_output,
+        core_output_index=core_output_index,
+        normalise=normalise,
+        identity_init=identity_init,
+        demean_output=demean_output,
+    )

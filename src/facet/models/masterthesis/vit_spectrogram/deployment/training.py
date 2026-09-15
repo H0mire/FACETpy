@@ -62,8 +62,7 @@ import torch
 from torch import nn
 
 from facet.models.masterthesis.vit_spectrogram.training import ViTSpectrogramInpainter
-from facet.training.deployment_data import (
-    build_packed_dataset, model_input_shape, single_row_target_shape)
+from facet.training.deployment_data import build_packed_dataset, model_input_shape, single_row_target_shape
 from facet.training.deployment_losses import build_deployment_loss
 from facet.training.deployment_model import PackedDeploymentModel
 
@@ -71,10 +70,22 @@ from facet.training.deployment_model import PackedDeploymentModel
 #: factory sets itself. facet-train also injects ``sfreq``, ``n_channels``,
 #: ``chunk_size``, ``input_shape`` and ``target_shape``; forwarding those to the
 #: core is a TypeError at construction, which is where the first run died.
-_CORE_KEYS = frozenset({
-    "n_fft", "hop_length", "freq_bins", "time_frames", "patch_freq", "patch_time",
-    "embed_dim", "depth", "n_heads", "mlp_ratio", "dropout", "mask_margin_patches",
-})
+_CORE_KEYS = frozenset(
+    {
+        "n_fft",
+        "hop_length",
+        "freq_bins",
+        "time_frames",
+        "patch_freq",
+        "patch_time",
+        "embed_dim",
+        "depth",
+        "n_heads",
+        "mlp_ratio",
+        "dropout",
+        "mask_margin_patches",
+    }
+)
 
 PACKING = "bt1s"
 CORE_OUTPUT = "clean"
@@ -122,9 +133,15 @@ class ComplexMaskViTSpectrogram(ViTSpectrogramInpainter):
         batch = x.shape[0]
         signal = x.reshape(batch, self.total_samples)
 
-        Z = torch.stft(signal, n_fft=self.n_fft, hop_length=self.hop_length,
-                       win_length=self.n_fft, window=self.stft_window,
-                       center=True, return_complex=True)
+        Z = torch.stft(
+            signal,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            win_length=self.n_fft,
+            window=self.stft_window,
+            center=True,
+            return_complex=True,
+        )
         full_freq_bins, full_time_frames = Z.shape[-2], Z.shape[-1]
         Z_cropped = Z[:, : self.freq_bins, : self.time_frames]
 
@@ -140,19 +157,23 @@ class ComplexMaskViTSpectrogram(ViTSpectrogramInpainter):
 
         raw = self.decoder_head(tokens)
         real = self._unpatchify(raw[..., : self.patch_pixels])
-        imag = self._unpatchify(raw[..., self.patch_pixels:])
+        imag = self._unpatchify(raw[..., self.patch_pixels :])
         bound = self.mask_bound
-        mask = torch.complex(bound * torch.tanh(real / bound),
-                             bound * torch.tanh(imag / bound))
+        mask = torch.complex(bound * torch.tanh(real / bound), bound * torch.tanh(imag / bound))
 
         complex_spec = nn.functional.pad(
-            mask * Z_cropped,
-            (0, full_time_frames - self.time_frames, 0, full_freq_bins - self.freq_bins))
+            mask * Z_cropped, (0, full_time_frames - self.time_frames, 0, full_freq_bins - self.freq_bins)
+        )
         time_signal = torch.istft(
-            complex_spec, n_fft=self.n_fft, hop_length=self.hop_length,
-            win_length=self.n_fft, window=self.stft_window, center=True,
-            length=self.total_samples)
-        centre = time_signal[:, self.center_start_sample:self.center_stop_sample]
+            complex_spec,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            win_length=self.n_fft,
+            window=self.stft_window,
+            center=True,
+            length=self.total_samples,
+        )
+        centre = time_signal[:, self.center_start_sample : self.center_stop_sample]
         return centre.unsqueeze(1)
 
 
@@ -169,17 +190,21 @@ def build_model(
     # accepts its own named arguments, so filter rather than forward blindly.
     core_kwargs = {k: v for k, v in core_kwargs.items() if k in _CORE_KEYS}
     core = ComplexMaskViTSpectrogram(
-        mask_bound=mask_bound, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, **core_kwargs)
+        mask_bound=mask_bound, context_epochs=context_epochs, epoch_samples=epoch_samples, **core_kwargs
+    )
     return PackedDeploymentModel(
-        core, packing=PACKING, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=CORE_OUTPUT,
+        core,
+        packing=PACKING,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=CORE_OUTPUT,
         normalise=normalise,
         # Off on purpose: the complex mask is initialised to 1 + 0i, so the core
         # is already the identity. Adding the wrapper's skip would add the centre
         # epoch twice and make the untrained model predict *minus* the signal.
         identity_init=False,
-        demean_output=demean_output)
+        demean_output=demean_output,
+    )
 
 
 def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
@@ -192,6 +217,13 @@ def build_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -
     return build_packed_dataset(path, PACKING, max_examples=max_examples)
 
 
-__all__ = ["CORE_OUTPUT", "PACKING", "ComplexMaskViTSpectrogram",
-           "build_dataset", "build_loss", "build_model",
-           "model_input_shape", "single_row_target_shape"]
+__all__ = [
+    "CORE_OUTPUT",
+    "PACKING",
+    "ComplexMaskViTSpectrogram",
+    "build_dataset",
+    "build_loss",
+    "build_model",
+    "model_input_shape",
+    "single_row_target_shape",
+]

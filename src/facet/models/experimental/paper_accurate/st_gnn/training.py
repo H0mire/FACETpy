@@ -437,10 +437,7 @@ class SpatiotemporalGNN(nn.Module):
         # projection. The paper collapses time to a single forecast step;
         # here the head is length-preserving because the target is a full
         # 512-sample waveform (documented EEG-fMRI deviation).
-        if causal:
-            out_pad = (0, 0)
-        else:
-            out_pad = (0, time_kernel // 2)
+        out_pad = (0, 0) if causal else (0, time_kernel // 2)
         self.out_temporal = nn.Conv2d(
             hidden_channels,
             hidden_channels,

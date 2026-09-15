@@ -794,8 +794,7 @@ def test_run_summary_records_what_the_model_says_about_itself(tmp_path):
     pytest.importorskip("torch")
     module_name = "cli_training_summary_describe"
     (tmp_path / f"{module_name}.py").write_text(
-        ADVERSARIAL_MODULE_SOURCE
-        + "\n\ndef _describe(self):\n"
+        ADVERSARIAL_MODULE_SOURCE + "\n\ndef _describe(self):\n"
         "    return {'n_channels': self.n_channels, 'paper_mode': self.n_channels == 1}\n"
         "\n\nGenerator.describe = _describe\n",
         encoding="utf-8",

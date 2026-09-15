@@ -1,0 +1,90 @@
+{
+  "scope": "Synthetic 30-channel, 4000-sample input, original vs relocated adapters through DeepLearningCorrection; not numerical MA-result reproduction.",
+  "relative_rms_tolerance": 0.0001,
+  "comparisons": [
+    {
+      "experiment": "deployment_cascaded_context_dae",
+      "artifact": "deployment_cascaded_context_dae_cascaded_context_dae_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_cascaded_dae",
+      "artifact": "deployment_cascaded_dae_cascaded_dae_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_conv_tasnet",
+      "artifact": "deployment_conv_tasnet_conv_tasnet_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_demucs",
+      "artifact": "deployment_demucs_demucs_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_denoise_mamba",
+      "artifact": "deployment_denoise_mamba_denoise_mamba_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_dhct_gan",
+      "artifact": "deployment_dhct_gan_dhct_gan_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_dhct_gan_v2",
+      "artifact": "deployment_dhct_gan_v2_dhct_gan_v2_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_dpae",
+      "artifact": "deployment_dpae_dpae_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_ic_unet",
+      "artifact": "deployment_ic_unet_ic_unet_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_nested_gan",
+      "artifact": "deployment_nested_gan_nested_gan_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_sepformer",
+      "artifact": "deployment_sepformer_sepformer_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_st_gnn",
+      "artifact": "deployment_st_gnn_st_gnn_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "deployment_vit_spectrogram",
+      "artifact": "deployment_vit_spectrogram_vit_spectrogram_deployment_ts",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    },
+    {
+      "experiment": "legacy_fc_dae",
+      "artifact": "legacy_fc_dae_legacy_dl_cascade_pt",
+      "maximum_absolute_difference": 0.0,
+      "relative_rms_difference": 0.0
+    }
+  ]
+}

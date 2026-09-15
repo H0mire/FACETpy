@@ -1,0 +1,131 @@
+{
+  "source": "backup_2_citations_resolved_references_fixed.docx",
+  "references": [
+    {
+      "title": "Cascaded DAE",
+      "docname": "thesis_reference/models/cascaded_dae",
+      "html_path": "thesis_reference/models/cascaded_dae.html",
+      "anchors": [
+        "cascaded-dae"
+      ],
+      "original_source_sha256": "5f86835788c5c3692f7fedb1e6ef1840d004c88258eddc42dffa070e4b32399c"
+    },
+    {
+      "title": "Context DAE",
+      "docname": "thesis_reference/models/context_dae",
+      "html_path": "thesis_reference/models/context_dae.html",
+      "anchors": [
+        "context-dae"
+      ],
+      "original_source_sha256": "678d60094064595d5781e8daa04618e59fbe5d584a165463d291b201d181fc35"
+    },
+    {
+      "title": "Conv-TasNet",
+      "docname": "thesis_reference/models/conv_tasnet",
+      "html_path": "thesis_reference/models/conv_tasnet.html",
+      "anchors": [
+        "conv-tasnet"
+      ],
+      "original_source_sha256": "d569ef600b2f9180aa192e0586f99bcc66c708384f1f8a05809b1042c6073b27"
+    },
+    {
+      "title": "D4PM",
+      "docname": "thesis_reference/models/d4pm",
+      "html_path": "thesis_reference/models/d4pm.html",
+      "anchors": [
+        "d4pm"
+      ],
+      "original_source_sha256": "9436fe95216677d5b35cfa99ee2fe627a2507cdc98fd11e87228586447c900d4"
+    },
+    {
+      "title": "Demucs",
+      "docname": "thesis_reference/models/demucs",
+      "html_path": "thesis_reference/models/demucs.html",
+      "anchors": [
+        "demucs"
+      ],
+      "original_source_sha256": "22d16d47402679f9ee3858ccb7e16aaa4d025c59de831262f0a8d2affe6069d7"
+    },
+    {
+      "title": "DenoiseMamba",
+      "docname": "thesis_reference/models/denoise_mamba",
+      "html_path": "thesis_reference/models/denoise_mamba.html",
+      "anchors": [
+        "denoisemamba"
+      ],
+      "original_source_sha256": "2fa863eddd2aa58f47d55b008c0a6b177a3f220d9d92ba9139a45e9c59655ad1"
+    },
+    {
+      "title": "DHCT-GAN",
+      "docname": "thesis_reference/models/dhct_gan",
+      "html_path": "thesis_reference/models/dhct_gan.html",
+      "anchors": [
+        "dhct-gan"
+      ],
+      "original_source_sha256": "01d402490bc8d8745927e084576e2820790922e6ead0af6b9db723736694040f"
+    },
+    {
+      "title": "DPAE",
+      "docname": "thesis_reference/models/dpae",
+      "html_path": "thesis_reference/models/dpae.html",
+      "anchors": [
+        "dpae"
+      ],
+      "original_source_sha256": "c348b8bd740cfb4e6e5bfaba6d2786a5de4696800ea632b5d6e8fd207c5843a5"
+    },
+    {
+      "title": "IC-U-Net",
+      "docname": "thesis_reference/models/ic_unet",
+      "html_path": "thesis_reference/models/ic_unet.html",
+      "anchors": [
+        "ic-u-net"
+      ],
+      "original_source_sha256": "bf71051b68b624d2692db0fa86ddbdee97d10c67a5bd0d8daa474f0279ec330b"
+    },
+    {
+      "title": "Multichannel Demucs extension",
+      "docname": "thesis_reference/models/multichannel_demucs",
+      "html_path": "thesis_reference/models/multichannel_demucs.html",
+      "anchors": [
+        "multichannel-demucs-extension"
+      ],
+      "original_source_sha256": "972de1c62c2ac727ad62f37113cc99f5724b05d744243ee9a462262408cb6243"
+    },
+    {
+      "title": "Nested GAN",
+      "docname": "thesis_reference/models/nested_gan",
+      "html_path": "thesis_reference/models/nested_gan.html",
+      "anchors": [
+        "nested-gan"
+      ],
+      "original_source_sha256": "11e9a4c222539c34c690a112f9540f636722cd1e9afc9fd5f3a7606a363c8140"
+    },
+    {
+      "title": "SepFormer",
+      "docname": "thesis_reference/models/sepformer",
+      "html_path": "thesis_reference/models/sepformer.html",
+      "anchors": [
+        "sepformer"
+      ],
+      "original_source_sha256": "e6700df5722e7ca8b616127b11a2aaf757627431a9b4e8d6a21b828a1fd67d56"
+    },
+    {
+      "title": "ST-GNN",
+      "docname": "thesis_reference/models/st_gnn",
+      "html_path": "thesis_reference/models/st_gnn.html",
+      "anchors": [
+        "st-gnn"
+      ],
+      "original_source_sha256": "a164da5639c65aab7e4c9f45e5b28466c0e298931b95357e5b6f11d1fd553ef9"
+    },
+    {
+      "title": "ViT-Spectrogram",
+      "docname": "thesis_reference/models/vit_spectrogram",
+      "html_path": "thesis_reference/models/vit_spectrogram.html",
+      "anchors": [
+        "vit-spectrogram"
+      ],
+      "original_source_sha256": "79516e0d8644ebc4780d6a91e8db97bf00c313ac85a14ff08f6aba0f19b8906d"
+    }
+  ]
+}

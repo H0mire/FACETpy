@@ -13,8 +13,8 @@ def _case(n=4, t=400, spike_at=200, spike_amp=300e-6, seed=0):
     clean = (rng.standard_normal((n, t)) * 5e-6).astype(np.float64)
     labels = np.zeros((n, t), dtype=bool)
     for i in range(n):
-        clean[i, spike_at - 3:spike_at + 4] += spike_amp
-        labels[i, spike_at - 3:spike_at + 4] = True
+        clean[i, spike_at - 3 : spike_at + 4] += spike_amp
+        labels[i, spike_at - 3 : spike_at + 4] = True
     return clean, labels
 
 
@@ -31,7 +31,7 @@ def test_expand_mask_widens_symmetrically():
 def test_perfect_reconstruction_is_ideal():
     clean, labels = _case()
     m = compute_spike_metrics(clean.copy(), clean, labels, neighborhood_samples=50)
-    assert np.isinf(m["spike_neighborhood_snr_db"])      # zero error
+    assert np.isinf(m["spike_neighborhood_snr_db"])  # zero error
     assert m["spike_amplitude_ratio"] == pytest.approx(1.0)
     assert m["spike_morphology_corr"] == pytest.approx(1.0)
     assert m["spike_peak_latency_drift_samples"] == pytest.approx(0.0)
@@ -42,7 +42,7 @@ def test_residual_around_spike_lowers_neighbourhood_snr_and_contrast():
     """The discriminator: same spike, but one estimate leaves residual around it."""
     clean, labels = _case()
     rng = np.random.default_rng(1)
-    residual = rng.standard_normal(clean.shape) * 40e-6      # leftover artifact
+    residual = rng.standard_normal(clean.shape) * 40e-6  # leftover artifact
     dirty = clean + residual
 
     good = compute_spike_metrics(clean.copy(), clean, labels, neighborhood_samples=50)
@@ -96,7 +96,7 @@ def test_spike_weighted_loss_reduces_to_mse_when_no_spike():
     loss = SpikeWeightedMSELoss(spike_weight=20.0)
     pred = torch.randn(3, 1, 16)
     target = torch.zeros(3, 2, 16)
-    target[:, 0] = torch.randn(3, 16)          # artifact, no spike anywhere
+    target[:, 0] = torch.randn(3, 16)  # artifact, no spike anywhere
     expected = torch.nn.functional.mse_loss(pred, target[:, :1])
     assert float(loss(pred, target)) == pytest.approx(float(expected), rel=1e-5)
 
@@ -107,11 +107,11 @@ def test_spike_weighted_loss_penalises_spike_region_harder():
 
     loss = SpikeWeightedMSELoss(spike_weight=10.0)
     target = torch.zeros(1, 2, 10)
-    target[0, 1, 4:6] = 1.0                    # spike on 2 of 10 samples
+    target[0, 1, 4:6] = 1.0  # spike on 2 of 10 samples
     err_in = torch.zeros(1, 1, 10)
-    err_in[0, 0, 4:6] = 1.0                    # error only on the spike
+    err_in[0, 0, 4:6] = 1.0  # error only on the spike
     err_out = torch.zeros(1, 1, 10)
-    err_out[0, 0, 0:2] = 1.0                   # same-size error elsewhere
+    err_out[0, 0, 0:2] = 1.0  # same-size error elsewhere
     assert float(loss(err_in, target)) > float(loss(err_out, target))
 
 
@@ -151,7 +151,8 @@ def test_residual_mode_feeds_farm_corrected_input_and_residual_target(tmp_path):
     path = tmp_path / "resid.npz"
     np.savez_compressed(
         path,
-        clean_context=clean, artifact_context=artifact,
+        clean_context=clean,
+        artifact_context=artifact,
         artifact_context_template=template,
         clean_center=clean[:, ep // 2, 0:1],
         artifact_center=artifact[:, ep // 2, 0:1],
@@ -161,11 +162,15 @@ def test_residual_mode_feeds_farm_corrected_input_and_residual_target(tmp_path):
         target_channel_index=np.zeros(n, np.int64),
         center_epoch_index=np.arange(n, dtype=np.int64),
         example_split=np.array([0, 0, 1, 1], dtype=np.int64),
-        core_samples=np.asarray([core]), guard_samples=np.asarray([guard]),
-        context_epochs=np.asarray([ep]), k_neighbors=np.asarray([ch - 1]),
-        sfreq=np.asarray([1000.0]), ch_names=np.asarray(["C3", "C4"], dtype=object),
+        core_samples=np.asarray([core]),
+        guard_samples=np.asarray([guard]),
+        context_epochs=np.asarray([ep]),
+        k_neighbors=np.asarray([ch - 1]),
+        sfreq=np.asarray([1000.0]),
+        ch_names=np.asarray(["C3", "C4"], dtype=object),
         clean_source=np.asarray(["synthetic"], dtype=object),
-        spikes_injected=np.asarray([False]), n_examples=np.asarray([n]),
+        spikes_injected=np.asarray([False]),
+        n_examples=np.asarray([n]),
     )
 
     plain = NPZSpatioTemporalDataset(path, max_shift=0)
@@ -176,7 +181,7 @@ def test_residual_mode_feeds_farm_corrected_input_and_residual_target(tmp_path):
     # the residual input is far smaller than the raw one — that is the whole point
     assert np.abs(noisy_resid).mean() < 0.2 * np.abs(noisy_plain).mean()
     # and the target is the residual, not the full artifact
-    expected = (artifact - template)[0, ep // 2, 0:1, guard:guard + core]
+    expected = (artifact - template)[0, ep // 2, 0:1, guard : guard + core]
     np.testing.assert_allclose(target_resid, expected, rtol=1e-4, atol=1e-12)
     assert np.abs(target_resid).mean() < 0.2 * np.abs(target_plain).mean()
 
@@ -200,11 +205,15 @@ def test_residual_mode_requires_the_template(tmp_path):
         neighbor_channel_indices=np.zeros((n, ch), np.int64),
         target_channel_index=np.zeros(n, np.int64),
         center_epoch_index=np.arange(n, dtype=np.int64),
-        core_samples=np.asarray([core]), guard_samples=np.asarray([guard]),
-        context_epochs=np.asarray([ep]), k_neighbors=np.asarray([ch - 1]),
-        sfreq=np.asarray([1000.0]), ch_names=np.asarray(["C3", "C4"], dtype=object),
+        core_samples=np.asarray([core]),
+        guard_samples=np.asarray([guard]),
+        context_epochs=np.asarray([ep]),
+        k_neighbors=np.asarray([ch - 1]),
+        sfreq=np.asarray([1000.0]),
+        ch_names=np.asarray(["C3", "C4"], dtype=object),
         clean_source=np.asarray(["synthetic"], dtype=object),
-        spikes_injected=np.asarray([False]), n_examples=np.asarray([n]),
+        spikes_injected=np.asarray([False]),
+        n_examples=np.asarray([n]),
     )
     with pytest.raises(ValueError, match="residual_mode requires"):
         NPZSpatioTemporalDataset(path, residual_mode=True)

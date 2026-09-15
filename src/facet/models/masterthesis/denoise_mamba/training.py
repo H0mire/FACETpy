@@ -1,7 +1,7 @@
 """Training factories for the DenoiseMamba (ConvSSD) gradient artifact denoiser.
 
 DenoiseMamba is a Section 6.2 architecture from
-``docs/research/dl_eeg_gradient_artifacts.pdf``. It stacks ConvSSD blocks that
+``docs/source/thesis_reference/models/denoise_mamba.rst``. It stacks ConvSSD blocks that
 combine a local 1D convolution with a Mamba-style selective state space layer.
 The selective scan is implemented in pure PyTorch so the model is portable to
 CPU for tests and trains on the GPU fleet without depending on the

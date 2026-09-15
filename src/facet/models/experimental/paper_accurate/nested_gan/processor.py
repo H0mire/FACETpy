@@ -53,8 +53,7 @@ class NestedGANPaperAccurateAdapter(EpochContextArtifactAdapter):
         supports_multichannel=False,
         uses_triggers=True,
         description=(
-            "Paper-accurate Nested-GAN generator: hierarchical inner spectrogram "
-            "Restormer + outer time-domain refiner."
+            "Paper-accurate Nested-GAN generator: hierarchical inner spectrogram Restormer + outer time-domain refiner."
         ),
         tags=(
             "nested_gan",

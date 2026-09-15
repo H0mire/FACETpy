@@ -22,37 +22,7 @@ except ModuleNotFoundError:  # pragma: no cover - depends on caller environment.
     yaml = None
 
 
-def _resolve_main_worktree() -> Path:
-    """Return the main repo worktree path so all linked worktrees share state.
-
-    Without this, Path(__file__).parents[2] would point at whichever worktree
-    fleet.py was invoked from, causing each agent worktree to keep its own
-    .facet_gpu_fleet/queue.json that the central dispatcher never sees.
-    """
-    here = Path(__file__).resolve()
-    fallback = here.parents[2]
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-            cwd=here.parent,
-            check=True,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return fallback
-    git_common = Path(result.stdout.strip())
-    # git_common typically points at <main>/.git (or .git/worktrees/... for
-    # linked worktrees that have ever been bare). Walk up until we find the
-    # parent directory that contains a tools/gpu_fleet directory.
-    candidate = git_common.parent
-    if (candidate / "tools" / "gpu_fleet").exists():
-        return candidate
-    return fallback
-
-
-REPO_ROOT = _resolve_main_worktree()
+REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = REPO_ROOT / "tools" / "gpu_fleet" / "workers.local.yaml"
 DEFAULT_STATE = REPO_ROOT / ".facet_gpu_fleet" / "queue.json"
 SESSION_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]+$")

@@ -27,9 +27,9 @@ def _state(train: float | None = 0.5, val: float | None = 0.25) -> TrainingState
 @pytest.mark.parametrize(
     ("monitor", "expected"),
     [
-        ("val_loss", 0.25),    # prefixed — the name users see in training.jsonl
-        ("train_loss", 0.5),   # prefixed
-        ("loss", 0.25),        # bare: val wins, preserving the old merge order
+        ("val_loss", 0.25),  # prefixed — the name users see in training.jsonl
+        ("train_loss", 0.5),  # prefixed
+        ("loss", 0.25),  # bare: val wins, preserving the old merge order
     ],
 )
 def test_resolve_monitored_accepts_both_spellings(monitor, expected):
@@ -58,6 +58,6 @@ def test_early_stopping_triggers_on_prefixed_monitor():
     assert not state.stop_training
     for epoch in (2, 3):
         state.epoch = epoch
-        state.val_metrics = {"loss": 2.0}   # worse every time
+        state.val_metrics = {"loss": 2.0}  # worse every time
         cb.on_epoch_end(state)
     assert state.stop_training

@@ -117,17 +117,13 @@ class _ConvPathway(nn.Module):
         in_ch = 1
         pad = self.kernel_size // 2
         for out_ch, st in zip(widths, strides, strict=True):
-            layers.append(
-                nn.Conv1d(in_ch, out_ch, kernel_size=self.kernel_size, stride=st, padding=pad)
-            )
+            layers.append(nn.Conv1d(in_ch, out_ch, kernel_size=self.kernel_size, stride=st, padding=pad))
             layers.append(_selu())
             in_ch = out_ch
         self.layers = nn.Sequential(*layers)
 
     @staticmethod
-    def _build_widths(
-        base_filters: int, shrink_ratio: float, expand_first: bool, n_layers: int
-    ) -> list[int]:
+    def _build_widths(base_filters: int, shrink_ratio: float, expand_first: bool, n_layers: int) -> list[int]:
         widths: list[int] = []
         width = float(base_filters)
         if expand_first:
@@ -221,9 +217,7 @@ class _Decoder(nn.Module):
         # Decompose the upsampling factor into stride-2 transposed convs.
         while factor > 1:
             step = 2 if factor % 2 == 0 else factor
-            layers.append(
-                nn.ConvTranspose1d(in_ch, f, kernel_size=2 * step, stride=step, padding=step // 2)
-            )
+            layers.append(nn.ConvTranspose1d(in_ch, f, kernel_size=2 * step, stride=step, padding=step // 2))
             layers.append(_selu())
             in_ch = f
             factor //= step

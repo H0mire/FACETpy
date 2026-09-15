@@ -6,7 +6,10 @@ than ``facet.models.masterthesis.conv_tasnet`` -- linear encoder default, explic
 the FACETpy training and inference contracts and CPU-cheap for EEG-fMRI.
 """
 
-from facet.models.experimental.paper_accurate.conv_tasnet.processor import ConvTasNetPaperAccurateAdapter, ConvTasNetPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.conv_tasnet.processor import (
+    ConvTasNetPaperAccurateAdapter,
+    ConvTasNetPaperAccurateCorrection,
+)
 
 __all__ = [
     "ConvTasNetPaperAccurateAdapter",

@@ -23,9 +23,19 @@ torch = pytest.importorskip("torch")
 from facet.training.deployment_data import model_input_shape  # noqa: E402
 
 EDITIONS = [
-    "ic_unet", "vit_spectrogram", "denoise_mamba", "st_gnn", "demucs",
-    "conv_tasnet", "sepformer", "nested_gan", "cascaded_dae",
-    "cascaded_context_dae", "dpae", "dhct_gan_v2", "dhct_gan",
+    "ic_unet",
+    "vit_spectrogram",
+    "denoise_mamba",
+    "st_gnn",
+    "demucs",
+    "conv_tasnet",
+    "sepformer",
+    "nested_gan",
+    "cascaded_dae",
+    "cascaded_context_dae",
+    "dpae",
+    "dhct_gan_v2",
+    "dhct_gan",
 ]
 S, T, C = 512, 7, 30
 
@@ -33,11 +43,11 @@ S, T, C = 512, 7, 30
 def _build(family: str):
     name = "dhct_gan.v2" if family == "dhct_gan_v2" else family
     module = importlib.import_module(f"facet.models.masterthesis.{name}.deployment.training")
-    cfg = yaml.safe_load(
-        open(f"tests/fixtures/deployment_configs/{family}_deployment_edition.yaml"))
+    with open(f"tests/fixtures/deployment_configs/{family}_deployment_edition.yaml") as stream:
+        cfg = yaml.safe_load(stream)
     kwargs = dict(cfg["model"].get("kwargs") or {})
     kwargs.pop("dataset_path", None)
-    kwargs["fit_ica"] = False                       # no ICA fit without the bundle
+    kwargs["fit_ica"] = False  # no ICA fit without the bundle
     return module, module.build_model(**kwargs).eval(), cfg
 
 
@@ -108,11 +118,8 @@ def test_config_points_at_the_edition_and_monitors_validation(family):
 def test_the_registry_and_the_editions_agree_on_which_families_exist():
     """A spec without an edition cannot be trained; an edition without a spec
     cannot be run through a pipeline. Either way the mismatch is silent."""
-    import sys
-    from pathlib import Path
 
-    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools" / "pipeline_demo"))
-    from family_adapters import DEPLOYMENT_SPECS
+    from facet.models.masterthesis.adapters import DEPLOYMENT_SPECS
 
     assert {k.removesuffix("_deployment") for k in DEPLOYMENT_SPECS} == set(EDITIONS)
     for key, spec in DEPLOYMENT_SPECS.items():

@@ -375,9 +375,7 @@ class DHCTGanV2PaperAccurateGenerator(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() != 3:
-            raise ValueError(
-                f"DHCTGanV2PaperAccurateGenerator expects (B, C, T), got shape {tuple(x.shape)}"
-            )
+            raise ValueError(f"DHCTGanV2PaperAccurateGenerator expects (B, C, T), got shape {tuple(x.shape)}")
         outputs = self._compute_outputs(x)
         # Subtractive-correction contract: export the artifact derived from the
         # FULL dual-branch + gating machinery, so the gate influences inference.
@@ -397,17 +395,13 @@ class DHCTGanV2PaperAccurateGenerator(nn.Module):
 
         clean_feat = feat
         artifact_feat = feat
-        for i, (clean_dec, artifact_dec) in enumerate(
-            zip(self.clean_decoder, self.artifact_decoder, strict=True)
-        ):
+        for i, (clean_dec, artifact_dec) in enumerate(zip(self.clean_decoder, self.artifact_decoder, strict=True)):
             skip = skips[-(i + 1)]
             clean_feat = clean_dec(clean_feat, skip)
             artifact_feat = artifact_dec(artifact_feat, skip)
 
         clean_feat = F.interpolate(clean_feat, size=x.shape[-1], mode="linear", align_corners=False)
-        artifact_feat = F.interpolate(
-            artifact_feat, size=x.shape[-1], mode="linear", align_corners=False
-        )
+        artifact_feat = F.interpolate(artifact_feat, size=x.shape[-1], mode="linear", align_corners=False)
 
         clean_pred = self.clean_head(clean_feat)  # Y1
         artifact_pred = self.artifact_head(artifact_feat)  # Y2 (noise branch)
@@ -457,8 +451,9 @@ class DHCTGanV2PaperAccurateDiscriminator(nn.Module):
         # shrink it (base_channels small -> tiny widths) while preserving the
         # paper's doubling-every-two-layers shape.
         scale = float(base_channels) / 64.0
-        widths = [max(1, int(round(self._PAPER_WIDTHS[min(i, len(self._PAPER_WIDTHS) - 1)] * scale)))
-                  for i in range(depth)]
+        widths = [
+            max(1, int(round(self._PAPER_WIDTHS[min(i, len(self._PAPER_WIDTHS) - 1)] * scale))) for i in range(depth)
+        ]
 
         blocks: list[nn.Module] = []
         ch = in_channels

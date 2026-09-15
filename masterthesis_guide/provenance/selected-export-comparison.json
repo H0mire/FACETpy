@@ -1,0 +1,27 @@
+{
+  "scope": "Best checkpoint vs retained CPU reexport, two fixed-seed synthetic seven-epoch single-channel inputs; not numerical MA-result reproduction.",
+  "relative_rms_tolerance": 0.0001,
+  "comparisons": [
+    {
+      "experiment": "spike_aware_demucs",
+      "checkpoint": "spike_aware_demucs_epoch0002_val_loss13_2668_pt",
+      "export": "spike_aware_demucs_best_checkpoint_cpu_ts",
+      "relative_rms_difference": 0.0,
+      "maximum_absolute_difference": 0.0
+    },
+    {
+      "experiment": "spike_aware_nested_gan",
+      "checkpoint": "spike_aware_nested_gan_epoch0079_val_loss1_5766_pt",
+      "export": "spike_aware_nested_gan_best_checkpoint_cpu_ts",
+      "relative_rms_difference": 0.0,
+      "maximum_absolute_difference": 0.0
+    },
+    {
+      "experiment": "spike_aware_vit_spectrogram",
+      "checkpoint": "spike_aware_vit_spectrogram_epoch0058_val_loss4_2328_pt",
+      "export": "spike_aware_vit_spectrogram_best_checkpoint_cpu_ts",
+      "relative_rms_difference": 0.0,
+      "maximum_absolute_difference": 0.0
+    }
+  ]
+}

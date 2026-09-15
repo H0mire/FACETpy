@@ -1,0 +1,18 @@
+{
+  "comparison": "fixed seed, identical input, CPU, eval, 512 samples",
+  "max_absolute_difference": {
+    "ic_unet": 0.0,
+    "vit_spectrogram": 0.0,
+    "denoise_mamba": 0.0,
+    "st_gnn": 0.0,
+    "demucs": 0.0,
+    "conv_tasnet": 0.0,
+    "sepformer": 0.0,
+    "nested_gan": 0.0,
+    "cascaded_dae": 0.0,
+    "cascaded_context_dae": 0.0,
+    "dpae": 0.0,
+    "dhct_gan_v2": 0.0,
+    "dhct_gan": 0.0
+  }
+}

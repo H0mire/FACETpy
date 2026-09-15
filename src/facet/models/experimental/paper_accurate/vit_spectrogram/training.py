@@ -262,7 +262,9 @@ def _build_2d_sincos_pos_embed(n_freq_patches: int, n_time_patches: int, embed_d
     return pos.unsqueeze(0)
 
 
-def _patchify(log_mag: torch.Tensor, n_freq_patches: int, n_time_patches: int, patch_freq: int, patch_time: int) -> torch.Tensor:
+def _patchify(
+    log_mag: torch.Tensor, n_freq_patches: int, n_time_patches: int, patch_freq: int, patch_time: int
+) -> torch.Tensor:
     """``(B, freq_bins, time_frames) -> (B, n_patches, patch_pixels)``."""
     batch = log_mag.shape[0]
     reshaped = log_mag.reshape(batch, n_freq_patches, patch_freq, n_time_patches, patch_time)
@@ -270,7 +272,9 @@ def _patchify(log_mag: torch.Tensor, n_freq_patches: int, n_time_patches: int, p
     return reshaped.reshape(batch, n_freq_patches * n_time_patches, patch_freq * patch_time)
 
 
-def _unpatchify(patches: torch.Tensor, n_freq_patches: int, n_time_patches: int, patch_freq: int, patch_time: int) -> torch.Tensor:
+def _unpatchify(
+    patches: torch.Tensor, n_freq_patches: int, n_time_patches: int, patch_freq: int, patch_time: int
+) -> torch.Tensor:
     """``(B, n_patches, patch_pixels) -> (B, freq_bins, time_frames)``."""
     batch = patches.shape[0]
     reshaped = patches.reshape(batch, n_freq_patches, n_time_patches, patch_freq, patch_time)
@@ -577,9 +581,7 @@ class ViTSpectrogramMAEInpainter(torch.nn.Module):
         # patches come from the decoder. We splice the predicted masked patches
         # into the original (visible) patch grid in log-magnitude space.
         recon_patches = patches.clone()
-        masked_index = self.masked_index.view(1, -1, 1).expand(
-            patches.shape[0], self._n_masked, self.patch_pixels
-        )
+        masked_index = self.masked_index.view(1, -1, 1).expand(patches.shape[0], self._n_masked, self.patch_pixels)
         pred_masked = pred_patches_full.index_select(1, self.masked_index)
         recon_patches = recon_patches.scatter(1, masked_index, pred_masked)
 
@@ -700,17 +702,11 @@ class MaskedPatchMagnitudeLoss(torch.nn.Module):
             return_complex=True,
         )
         log_mag = torch.log1p(Z[:, : self.freq_bins, : self.time_frames].abs())
-        patches = _patchify(
-            log_mag, self.n_freq_patches, self.n_time_patches, self.patch_freq, self.patch_time
-        )
+        patches = _patchify(log_mag, self.n_freq_patches, self.n_time_patches, self.patch_freq, self.patch_time)
         return patches.index_select(1, self.masked_index)
 
     def forward(self, prediction: Any, target: torch.Tensor) -> torch.Tensor:
-        if isinstance(prediction, dict):
-            pred_masked = prediction["pred_masked_patches"]
-        else:
-            # Defensive: allow a model that already returns masked patches.
-            pred_masked = prediction
+        pred_masked = prediction["pred_masked_patches"] if isinstance(prediction, dict) else prediction
         target_masked = self._target_masked_patches(target)
 
         if self.normalize_target:

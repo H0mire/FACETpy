@@ -40,7 +40,9 @@ fi
 ssh "${SSH_ARGS[@]}" "$SSH_TARGET" "mkdir -p '$REMOTE_REPO'"
 rsync -az --delete --no-owner --no-group \
   -e "$RSYNC_SSH" \
-  --exclude '.git/' \
+  --exclude '.git' \
+  --exclude 'artifacts/' \
+  --exclude 'examples/datasets/' \
   --exclude '.venv/' \
   --exclude '.coverage*' \
   --exclude '.facet_gpu_fleet/' \

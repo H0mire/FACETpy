@@ -54,8 +54,7 @@ from torch import nn
 
 from facet.models.masterthesis.denoise_mamba.training import SelectiveSSM
 from facet.models.masterthesis.denoise_mamba.training import build_model as _build_core
-from facet.training.deployment_data import (
-    build_packed_dataset, model_input_shape, single_row_target_shape)
+from facet.training.deployment_data import build_packed_dataset, model_input_shape, single_row_target_shape
 from facet.training.deployment_losses import build_deployment_loss
 from facet.training.deployment_model import PackedDeploymentModel
 
@@ -131,8 +130,7 @@ class ParallelScanSSM(SelectiveSSM):
 
     def _scan(self, a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
         if self.checkpoint_scan and torch.is_grad_enabled() and self.training:
-            return torch.utils.checkpoint.checkpoint(
-                parallel_affine_scan, a, b, use_reentrant=False)
+            return torch.utils.checkpoint.checkpoint(parallel_affine_scan, a, b, use_reentrant=False)
         return parallel_affine_scan(a, b)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -141,15 +139,14 @@ class ParallelScanSSM(SelectiveSSM):
             raise ValueError(f"expected d_inner={self.d_inner}, got {d_inner}")
 
         x_dbl = self.x_proj(x)
-        delta_unproj, B, C = torch.split(
-            x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
+        delta_unproj, B, C = torch.split(x_dbl, [self.dt_rank, self.d_state, self.d_state], dim=-1)
         delta = nn.functional.softplus(self.dt_proj(delta_unproj))
 
         A = -torch.exp(self.A_log.float())
         delta_a_exp = torch.exp(torch.einsum("bld,dn->bldn", delta, A))
         delta_b_x = torch.einsum("bld,bln,bld->bldn", delta, B, x)
 
-        states = self._scan(delta_a_exp, delta_b_x)                # (B, L, D, N)
+        states = self._scan(delta_a_exp, delta_b_x)  # (B, L, D, N)
         y = torch.einsum("bldn,bln->bld", states, C)
         return y + x * self.D
 
@@ -165,8 +162,7 @@ def _swap_in_parallel_scan(core: nn.Module, checkpoint_scan: bool = True) -> nn.
     replaced = 0
     for block in core.blocks:
         old = block.mamba.ssm
-        new = ParallelScanSSM(d_inner=old.d_inner, d_state=old.d_state,
-                              checkpoint_scan=checkpoint_scan)
+        new = ParallelScanSSM(d_inner=old.d_inner, d_state=old.d_state, checkpoint_scan=checkpoint_scan)
         new.load_state_dict(old.state_dict(), strict=True)
         block.mamba.ssm = new
         replaced += 1
@@ -194,19 +190,25 @@ def build_model(
     core_kwargs.setdefault("context_epochs", context_epochs)
     n_channels = int(core_kwargs.setdefault("n_channels", 30) or 30)
     core_kwargs.setdefault("chunk_size", epoch_samples)
-    core_kwargs.setdefault("input_shape", model_input_shape(
-        PACKING, n_channels=n_channels, context_epochs=context_epochs,
-        epoch_samples=epoch_samples))
-    core_kwargs["target_shape"] = single_row_target_shape(
-        PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
+    core_kwargs.setdefault(
+        "input_shape",
+        model_input_shape(PACKING, n_channels=n_channels, context_epochs=context_epochs, epoch_samples=epoch_samples),
+    )
+    core_kwargs["target_shape"] = single_row_target_shape(PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
 
     core = _build_core(**core_kwargs)
     if parallel_scan:
         core = _swap_in_parallel_scan(core, checkpoint_scan=checkpoint_scan)
     return PackedDeploymentModel(
-        core, packing=PACKING, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=CORE_OUTPUT,
-        normalise=normalise, identity_init=identity_init, demean_output=demean_output)
+        core,
+        packing=PACKING,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=CORE_OUTPUT,
+        normalise=normalise,
+        identity_init=identity_init,
+        demean_output=demean_output,
+    )
 
 
 def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
@@ -218,14 +220,21 @@ def build_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -
     return build_packed_dataset(path, PACKING, max_examples=max_examples)
 
 
-__all__ = ["CORE_OUTPUT", "PACKING", "ParallelScanSSM", "build_dataset",
-           "build_loss", "build_model", "parallel_affine_scan"]
+__all__ = [
+    "CORE_OUTPUT",
+    "PACKING",
+    "ParallelScanSSM",
+    "build_dataset",
+    "build_loss",
+    "build_model",
+    "parallel_affine_scan",
+]
 
 # ---------------------------------------------------------------------------
 # Context variants: the rule is never one epoch *and* one channel
 # ---------------------------------------------------------------------------
 #
-# docs/research/run_7_paper_strict_rebuild.md states it: at least one comparison
+# docs/source/thesis_reference/selected_variants.rst states it: at least one comparison
 # axis has to be present, or there is nothing in the input from which the
 # artifact could be separated. This edition inherited a single-epoch,
 # single-channel contract from its base edition; these two factories give it each
@@ -236,8 +245,9 @@ __all__ = ["CORE_OUTPUT", "PACKING", "ParallelScanSSM", "build_dataset",
 # caveat that comes with the cheap construction (seams at the joins).
 
 
-def build_axis_model(axis: str = "channels", *, parallel_scan: bool = True,
-                     checkpoint_scan: bool = True, **kwargs: Any) -> Any:
+def build_axis_model(
+    axis: str = "channels", *, parallel_scan: bool = True, checkpoint_scan: bool = True, **kwargs: Any
+) -> Any:
     """The base network with one comparison axis. ``axis`` is epochs|channels.
 
     The scan swap has to be repeated here. :func:`build_model` applies it to the
@@ -253,6 +263,7 @@ def build_axis_model(axis: str = "channels", *, parallel_scan: bool = True,
     so they would be accepted and silently ignored.
     """
     from facet.training.context_variants import build_context_variant
+
     kwargs.pop("input_shape", None)
     kwargs.pop("target_shape", None)
     kwargs.pop("chunk_size", None)
@@ -267,7 +278,6 @@ def build_axis_model(axis: str = "channels", *, parallel_scan: bool = True,
     return build_context_variant(_core, axis, core_output=CORE_OUTPUT, **kwargs)
 
 
-def build_axis_dataset(path: str | Path, axis: str = "channels",
-                       max_examples: int | None = None, **_: Any) -> Any:
+def build_axis_dataset(path: str | Path, axis: str = "channels", max_examples: int | None = None, **_: Any) -> Any:
     packing = "b1ts" if axis == "epochs" else "bcs"
     return build_packed_dataset(path, packing, max_examples=max_examples)

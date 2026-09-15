@@ -33,7 +33,7 @@ def _fake_ied_pool(names=("C3", "C4", "F3"), t=100, focal_uv=300.0):
     matching ``extract_real_ied_pool`` after run_3 §6.6.
     """
     x = np.linspace(-3, 3, t)
-    wave = (-x * np.exp(-(x**2))).astype(np.float64)   # sharp biphasic
+    wave = (-x * np.exp(-(x**2))).astype(np.float64)  # sharp biphasic
     wave = wave / np.max(np.abs(wave)) * (focal_uv * 1e-6)
     waveforms = np.stack([wave, 0.5 * wave, 0.3 * wave]).astype(np.float32)
     return [{"waveforms": waveforms, "names": list(names), "marker": t // 2}]
@@ -101,8 +101,13 @@ def test_builder_shapes_and_guard_band():
     bundle = _toy_bundle()
     core, guard, ctx = 32, 8, 7
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=ctx, core_samples=core, guard_samples=guard,
-        k_neighbors=2, clean_source="aas_corrected", seed=0,
+        bundle,
+        context_epochs=ctx,
+        core_samples=core,
+        guard_samples=guard,
+        k_neighbors=2,
+        clean_source="aas_corrected",
+        seed=0,
     )
     out_len = core + 2 * guard
     n = int(ds["n_examples"][0])
@@ -119,8 +124,12 @@ def test_builder_shapes_and_guard_band():
 def test_builder_synthetic_clean_is_independent_of_corrected():
     bundle = _toy_bundle()
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=32, guard_samples=8,
-        clean_source="synthetic", seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=32,
+        guard_samples=8,
+        clean_source="synthetic",
+        seed=0,
     )
     assert str(ds["clean_source"][0]) == "synthetic"
     # synthetic clean is finite and not the all-zero placeholder
@@ -142,8 +151,14 @@ def test_builder_niazy_pretrigger_uses_real_clean():
     rng = np.random.default_rng(1)
     pretrigger = (rng.standard_normal((n_ch, 600)) * 2.0).astype(np.float32)  # short real-ish clean @ 500 Hz
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=32, guard_samples=8,
-        clean_source="niazy_pretrigger", pretrigger_clean=pretrigger, pretrigger_sfreq=500.0, seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=32,
+        guard_samples=8,
+        clean_source="niazy_pretrigger",
+        pretrigger_clean=pretrigger,
+        pretrigger_sfreq=500.0,
+        seed=0,
     )
     assert str(ds["clean_source"][0]) == "niazy_pretrigger"
     assert np.isfinite(ds["clean_context"]).all()
@@ -155,33 +170,43 @@ def test_builder_niazy_pretrigger_rejects_channel_mismatch():
     bad = np.zeros((3, 600), dtype=np.float32)  # wrong channel count
     with pytest.raises(ValueError, match="channels"):
         build_spatiotemporal_reference_dataset(
-            bundle, context_epochs=7, core_samples=32, guard_samples=8,
-            clean_source="niazy_pretrigger", pretrigger_clean=bad, pretrigger_sfreq=500.0,
+            bundle,
+            context_epochs=7,
+            core_samples=32,
+            guard_samples=8,
+            clean_source="niazy_pretrigger",
+            pretrigger_clean=bad,
+            pretrigger_sfreq=500.0,
         )
 
 
 def test_inject_real_ieds_maps_by_name():
-    ch_names = list(CH_NAMES)                      # Fp1,Fp2,F3,F4,C3,C4,P3,P4
+    ch_names = list(CH_NAMES)  # Fp1,Fp2,F3,F4,C3,C4,P3,P4
     clean = _realistic_bg(len(ch_names), 5000, sfreq=1000.0, seed=0)  # ~15 uV smooth EEG
     pool = _fake_ied_pool(names=("C3", "C4", "F3"), focal_uv=300.0)
     out, centers = inject_real_ieds(
-        clean, clean_sfreq=1000.0, ch_names=ch_names, ied_pool=pool, pool_sfreq=500.0,
-        rate_hz=20.0, seed=1,
+        clean,
+        clean_sfreq=1000.0,
+        ch_names=ch_names,
+        ied_pool=pool,
+        pool_sfreq=500.0,
+        rate_hz=20.0,
+        seed=1,
     )
     assert out.shape == clean.shape
     assert len(centers) > 0
     # spikes land on the named channels only (C3=4, C4=5, F3=2), never elsewhere
     hit_channels = {c for c, _ in centers}
     assert hit_channels <= {ch_names.index(n) for n in ("C3", "C4", "F3")}
-    assert np.max(np.abs(out)) > 200e-6             # the 300 uV IED is there
+    assert np.max(np.abs(out)) > 200e-6  # the 300 uV IED is there
 
 
 def test_inject_real_ieds_skips_unmatched_names():
     ch_names = list(CH_NAMES)
     clean = np.zeros((len(ch_names), 4000), dtype=np.float32)
-    pool = _fake_ied_pool(names=("PG1", "A1", "ECG1"))   # none present in CH_NAMES
+    pool = _fake_ied_pool(names=("PG1", "A1", "ECG1"))  # none present in CH_NAMES
     out, centers = inject_real_ieds(clean, 1000.0, ch_names, pool, 500.0, rate_hz=50.0, seed=2)
-    assert len(centers) == 0          # nothing mapped -> nothing injected
+    assert len(centers) == 0  # nothing mapped -> nothing injected
     assert np.allclose(out, 0.0)
 
 
@@ -190,7 +215,7 @@ def test_inject_real_ieds_preserves_real_amplitude_and_topography():
     ch_names = list(CH_NAMES)
     pool = _fake_ied_pool(names=("C3", "C4", "F3"), focal_uv=300.0)  # ratios 1.0 / 0.5 / 0.3
     c3, c4, f3 = (ch_names.index(n) for n in ("C3", "C4", "F3"))
-    clean = np.zeros((len(ch_names), 4000), dtype=np.float32)        # isolate the injection
+    clean = np.zeros((len(ch_names), 4000), dtype=np.float32)  # isolate the injection
     # Take the first seed that injects exactly one event (3 channels x 1 spike), so
     # the amplitude/ratio checks are not confounded by two overlapping IEDs.
     out = None
@@ -201,7 +226,7 @@ def test_inject_real_ieds_preserves_real_amplitude_and_topography():
             break
     assert out is not None, "no seed produced a single isolated IED"
     peak_c3 = float(np.max(np.abs(out[c3]))) * 1e6
-    assert 250.0 < peak_c3 < 305.0                                    # ~300 uV, not rescaled
+    assert 250.0 < peak_c3 < 305.0  # ~300 uV, not rescaled
     # real topography preserved (taper/baseline shift the values only marginally)
     assert np.isclose(np.max(np.abs(out[c4])) / np.max(np.abs(out[c3])), 0.5, atol=0.05)
     assert np.isclose(np.max(np.abs(out[f3])) / np.max(np.abs(out[c3])), 0.3, atol=0.05)
@@ -214,7 +239,7 @@ def test_inject_real_ieds_labels_every_injected_event_even_when_masked():
     deleted, which is the opposite of spike preservation (run_3 §6.6).
     """
     ch_names = list(CH_NAMES)
-    pool = _fake_ied_pool(names=("C3", "C4", "F3"), focal_uv=20.0)   # small IED
+    pool = _fake_ied_pool(names=("C3", "C4", "F3"), focal_uv=20.0)  # small IED
     huge_bg = _realistic_bg(len(ch_names), 6000, sfreq=1000.0, seed=5, uv=400.0)  # masks it
     _, centers = inject_real_ieds(huge_bg, 1000.0, ch_names, pool, 1000.0, rate_hz=3.0, seed=6)
     labelled = {c for c, _ in centers}
@@ -228,8 +253,9 @@ def test_inject_real_ieds_does_not_add_a_step():
     # A waveform sitting on a large DC pedestal — untreated it would inject a step.
     wave = np.full(t, 500e-6)
     wave[t // 2] = 900e-6
-    pool = [{"waveforms": np.stack([wave, wave, wave]).astype(np.float32),
-             "names": ["C3", "C4", "F3"], "marker": t // 2}]
+    pool = [
+        {"waveforms": np.stack([wave, wave, wave]).astype(np.float32), "names": ["C3", "C4", "F3"], "marker": t // 2}
+    ]
     clean = np.zeros((len(ch_names), 3000), dtype=np.float32)
     out, _ = inject_real_ieds(clean, 1000.0, ch_names, pool, 1000.0, rate_hz=0.4, seed=9)
     c3 = ch_names.index("C3")
@@ -244,15 +270,23 @@ def test_builder_real_ied_on_pretrigger_clean():
     n_ch = bundle["artifact"].shape[0]
     pre = _realistic_bg(n_ch, 800, sfreq=500.0, seed=3)
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=64, guard_samples=8,
-        clean_source="niazy_pretrigger", pretrigger_clean=pre, pretrigger_sfreq=500.0,
-        inject_spikes_mode=True, spike_source="real_ied",
-        real_ied_pool=_fake_ied_pool(names=("C3", "C4", "F3")), real_ied_sfreq=500.0,
-        spike_rate_hz=12.0, seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=64,
+        guard_samples=8,
+        clean_source="niazy_pretrigger",
+        pretrigger_clean=pre,
+        pretrigger_sfreq=500.0,
+        inject_spikes_mode=True,
+        spike_source="real_ied",
+        real_ied_pool=_fake_ied_pool(names=("C3", "C4", "F3")),
+        real_ied_sfreq=500.0,
+        spike_rate_hz=12.0,
+        seed=0,
     )
     assert bool(ds["spikes_injected"][0]) is True
     assert str(ds["clean_source"][0]) == "niazy_pretrigger"
-    assert float(np.sum(ds["spike_labels"])) > 0.0   # real IEDs produced ground-truth labels
+    assert float(np.sum(ds["spike_labels"])) > 0.0  # real IEDs produced ground-truth labels
 
 
 def test_failure_modes_enrich_the_artifact_beyond_the_template():
@@ -270,27 +304,42 @@ def test_failure_modes_enrich_the_artifact_beyond_the_template():
     stops = bundle["triggers"][1:]
 
     enriched = apply_artifact_failure_modes(
-        artifact, sfreq, starts, stops,
-        epoch_amplitude_jitter=0.05, epoch_timing_jitter_samples=0.5,
-        motion_drift_depth=0.05, motion_drift_hz=0.5,
-        helium_pump_uv=2.0, helium_pump_hz=46.0, seed=0,
+        artifact,
+        sfreq,
+        starts,
+        stops,
+        epoch_amplitude_jitter=0.05,
+        epoch_timing_jitter_samples=0.5,
+        motion_drift_depth=0.05,
+        motion_drift_hz=0.5,
+        helium_pump_uv=2.0,
+        helium_pump_hz=46.0,
+        seed=0,
     )
     assert enriched.shape == artifact.shape
-    assert not np.allclose(enriched, artifact)          # something actually changed
+    assert not np.allclose(enriched, artifact)  # something actually changed
 
     # The template is epoch-periodic; the enriched artifact must NOT be, otherwise
     # epoch-averaging (i.e. AAS) could still remove it completely.
     ep = 64
+
     def _epoch_var(sig):
         blocks = sig[0, : (sig.shape[1] // ep) * ep].reshape(-1, ep)
         return float(np.mean(np.var(blocks, axis=0)))
+
     assert _epoch_var(enriched) > 10.0 * _epoch_var(artifact)
 
     # Disabling every mode is a no-op.
     same = apply_artifact_failure_modes(
-        artifact, sfreq, starts, stops,
-        epoch_amplitude_jitter=0.0, epoch_timing_jitter_samples=0.0,
-        motion_drift_depth=0.0, helium_pump_uv=0.0, seed=0,
+        artifact,
+        sfreq,
+        starts,
+        stops,
+        epoch_amplitude_jitter=0.0,
+        epoch_timing_jitter_samples=0.0,
+        motion_drift_depth=0.0,
+        helium_pump_uv=0.0,
+        seed=0,
     )
     np.testing.assert_allclose(same, artifact, rtol=1e-5, atol=1e-8)
 
@@ -300,15 +349,20 @@ def test_builder_emits_leakage_free_split():
     must separate the overlapping 7-epoch contexts."""
     bundle = _toy_bundle(n_epochs=60, epoch_len=40)
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=32, guard_samples=8,
-        clean_source="synthetic", val_fraction=0.2, seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=32,
+        guard_samples=8,
+        clean_source="synthetic",
+        val_fraction=0.2,
+        seed=0,
     )
     split = ds["example_split"]
     epochs = ds["center_epoch_index"]
     assert set(np.unique(split).tolist()) == {0, 1}
     train_ep = set(epochs[split == 0].tolist())
     val_ep = set(epochs[split == 1].tolist())
-    assert not (train_ep & val_ep)                       # no shared centre epoch
+    assert not (train_ep & val_ep)  # no shared centre epoch
     # guard: the 7-epoch contexts of the two sides must not overlap either
     assert min(val_ep) - max(train_ep) > 7 // 2
 
@@ -322,9 +376,16 @@ def test_builder_partitions_pretrigger_clean_disjointly():
     pre = np.ones((n_ch, 400), dtype=np.float32) * 1e-6
     pre[:, 200:] *= -1.0
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=32, guard_samples=8,
-        clean_source="niazy_pretrigger", pretrigger_clean=pre, pretrigger_sfreq=500.0,
-        val_fraction=0.5, failure_modes=False, seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=32,
+        guard_samples=8,
+        clean_source="niazy_pretrigger",
+        pretrigger_clean=pre,
+        pretrigger_sfreq=500.0,
+        val_fraction=0.5,
+        failure_modes=False,
+        seed=0,
     )
     split = ds["example_split"]
     clean_center = ds["clean_center"][:, 0, :]
@@ -337,9 +398,15 @@ def test_builder_partitions_pretrigger_clean_disjointly():
 def test_builder_spike_mode_emits_labels():
     bundle = _toy_bundle(n_epochs=16)
     ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=64, guard_samples=8,
-        clean_source="synthetic", inject_spikes_mode=True,
-        spike_rate_hz=5.0, spike_amplitude_uv=80.0, seed=0,
+        bundle,
+        context_epochs=7,
+        core_samples=64,
+        guard_samples=8,
+        clean_source="synthetic",
+        inject_spikes_mode=True,
+        spike_rate_hz=5.0,
+        spike_amplitude_uv=80.0,
+        seed=0,
     )
     assert bool(ds["spikes_injected"][0]) is True
     assert ds["spike_labels"].shape == ds["artifact_center"].shape
@@ -371,7 +438,7 @@ def test_window_shift_zero_is_exact_center_crop():
     out = WindowShift(core_samples=core, max_shift=0)(sample)
     assert out["noisy"].shape == (7, 3, core)
     # δ=0 must equal the exact center slice [guard:guard+core], no interpolation
-    np.testing.assert_array_equal(out["noisy"], sample["noisy"][..., guard:guard + core])
+    np.testing.assert_array_equal(out["noisy"], sample["noisy"][..., guard : guard + core])
 
 
 def test_window_shift_integer_offset_matches_slice():
@@ -383,7 +450,7 @@ def test_window_shift_integer_offset_matches_slice():
     noisy = sample["noisy"]
     found = None
     for start in range(0, noisy.shape[-1] - core + 1):
-        if np.array_equal(out["noisy"], noisy[..., start:start + core]):
+        if np.array_equal(out["noisy"], noisy[..., start : start + core]):
             found = start
             break
     assert found is not None, "integer WindowShift must yield an exact contiguous crop"
@@ -426,9 +493,7 @@ def _write_dataset(tmp_path, **kwargs) -> str:
     # Enough epochs that the contiguous train/val split has a non-empty side even
     # after the 7-epoch guard band is dropped.
     bundle = _toy_bundle(n_epochs=40)
-    ds = build_spatiotemporal_reference_dataset(
-        bundle, context_epochs=7, core_samples=32, guard_samples=8, **kwargs
-    )
+    ds = build_spatiotemporal_reference_dataset(bundle, context_epochs=7, core_samples=32, guard_samples=8, **kwargs)
     path = tmp_path / "spatiotemporal.npz"
     np.savez_compressed(path, **ds)
     return str(path)

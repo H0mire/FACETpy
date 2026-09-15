@@ -4,6 +4,12 @@ See :mod:`facet.models.masterthesis.nested_gan.deployment.training` for what cha
 ``facet.models.masterthesis.nested_gan`` and why.
 """
 
-from facet.models.masterthesis.nested_gan.deployment.training import CORE_OUTPUT, PACKING, build_dataset, build_loss, build_model
+from facet.models.masterthesis.nested_gan.deployment.training import (
+    CORE_OUTPUT,
+    PACKING,
+    build_dataset,
+    build_loss,
+    build_model,
+)
 
 __all__ = ["CORE_OUTPUT", "PACKING", "build_dataset", "build_loss", "build_model"]

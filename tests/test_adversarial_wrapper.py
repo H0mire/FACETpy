@@ -326,7 +326,7 @@ def test_micro_batching_reproduces_the_full_batch_gradient():
     noisy, target = _batch(n=6, t=32)
 
     full = _wrapper()
-    chunked = _wrapper(micro_batch_size=4)   # 6 = 4 + 2, deliberately uneven
+    chunked = _wrapper(micro_batch_size=4)  # 6 = 4 + 2, deliberately uneven
     for name, param in chunked.model.named_parameters():
         param.data.copy_(dict(full.model.named_parameters())[name].data)
     for d, disc in chunked.objective.discriminators.items():
@@ -338,9 +338,7 @@ def test_micro_batching_reproduces_the_full_batch_gradient():
 
     assert m_chunked["loss"] == pytest.approx(m_full["loss"], rel=1e-4)
     for name, param in full.model.named_parameters():
-        torch.testing.assert_close(
-            param, dict(chunked.model.named_parameters())[name], rtol=1e-4, atol=1e-6
-        )
+        torch.testing.assert_close(param, dict(chunked.model.named_parameters())[name], rtol=1e-4, atol=1e-6)
 
 
 @pytest.mark.unit

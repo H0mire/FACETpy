@@ -6,7 +6,10 @@ optional 2x resampling trick (Sec 4.1), the test-time shift trick (Sec 4.4),
 paper-exact init weight rescaling (Sec 4.3), and principled auto-depth.
 """
 
-from facet.models.experimental.paper_accurate.demucs.processor import DemucsPaperAccurateAdapter, DemucsPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.demucs.processor import (
+    DemucsPaperAccurateAdapter,
+    DemucsPaperAccurateCorrection,
+)
 
 __all__ = [
     "DemucsPaperAccurateAdapter",

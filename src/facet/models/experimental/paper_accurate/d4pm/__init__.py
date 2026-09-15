@@ -7,7 +7,10 @@ blocks per path, Dual-FiLM with class conditioning, an optional second
 sampler. See README.md and documentation/paper_accuracy_review.md.
 """
 
-from facet.models.experimental.paper_accurate.d4pm.processor import D4PMPaperAccurateAdapter, D4PMPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.d4pm.processor import (
+    D4PMPaperAccurateAdapter,
+    D4PMPaperAccurateCorrection,
+)
 
 __all__ = [
     "D4PMPaperAccurateAdapter",

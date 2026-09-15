@@ -5,7 +5,7 @@ Why this model exists
 Run 6 phases C-E established that the limit is the *error floor*, not the loss:
 the 248k-parameter baseline leaves a ~44 µV residual while a typical injected IED
 peaks at ~23 µV, so the spike drowns in the model's own error and every
-spike-local metric collapses (``docs/research/run_6_results.md``). Reweighting the
+spike-local metric collapses (``docs/source/thesis_reference/phase_3_grid_search.rst``). Reweighting the
 loss moved morphology correlation from -0.018 to +0.167 and no further. Only a
 model that reconstructs the artifact more accurately can change that, which is
 what phase B asks for.
@@ -101,10 +101,10 @@ class CrossUnitAttention(torch.nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, C, F, T) -> attend over C independently per time step
         b, u, f, t = x.shape
-        h = x.permute(0, 3, 1, 2).reshape(b * t, u, f)   # (B*T, U, F)
+        h = x.permute(0, 3, 1, 2).reshape(b * t, u, f)  # (B*T, U, F)
         h_norm = self.norm(h)
         attended, _ = self.attn(h_norm, h_norm, h_norm, need_weights=False)
-        h = h + attended                                  # residual
+        h = h + attended  # residual
         return h.reshape(b, t, u, f).permute(0, 2, 3, 1)  # back to (B, U, F, T)
 
 
@@ -208,23 +208,23 @@ class MultichannelDemucs(torch.nn.Module):
         # is long enough (7 x 512 = 3584) that `stride**depth` downsampling still
         # leaves a usable bottleneck.
         full = t * ep
-        seq_in = x.permute(0, 2, 1, 3).reshape(b, ch, full)     # (B, C, epochs*T)
+        seq_in = x.permute(0, 2, 1, 3).reshape(b, ch, full)  # (B, C, epochs*T)
 
         span = self.stride**self.depth
         t_pad = int(math.ceil(full / span) * span)
-        h = self._fit(seq_in, t_pad).unsqueeze(2)               # (B, C, 1, T)
+        h = self._fit(seq_in, t_pad).unsqueeze(2)  # (B, C, 1, T)
 
         skips: list[torch.Tensor] = []
         for enc, attn in zip(self.encoder, self.channel_attn, strict=True):
             flat = h.reshape(b * ch, h.shape[2], h.shape[3])
             enc_out = enc(flat)
             h = enc_out.reshape(b, ch, enc_out.shape[1], enc_out.shape[2])
-            h = attn(h)                                          # across channels
+            h = attn(h)  # across channels
             skips.append(h)
 
         # BiLSTM over time at the bottleneck, weights shared across channels.
         bc, f, tb = b * ch, h.shape[2], h.shape[3]
-        seq = h.reshape(bc, f, tb).transpose(1, 2)               # (B*C, T, F)
+        seq = h.reshape(bc, f, tb).transpose(1, 2)  # (B*C, T, F)
         seq, _ = self.bilstm(seq)
         h = self.lstm_proj(seq).transpose(1, 2).reshape(b, ch, f, tb)
 
@@ -237,8 +237,8 @@ class MultichannelDemucs(torch.nn.Module):
 
         # (B, C, 1, T) -> the centre epoch of the reconstructed waveform, then mix
         # the channels down to the target channel's artifact.
-        out = self._fit(h.squeeze(2), full)                      # (B, C, epochs*T)
-        centre = out[..., (ep // 2) * t : (ep // 2 + 1) * t]     # (B, C, T)
+        out = self._fit(h.squeeze(2), full)  # (B, C, epochs*T)
+        centre = out[..., (ep // 2) * t : (ep // 2 + 1) * t]  # (B, C, T)
         return self.head(centre)
 
 
@@ -311,6 +311,4 @@ def build_loss(name: str = "mse", spike_weight: float = 20.0, mse_weight: float 
         return SpikeWeightedMSELoss(spike_weight=spike_weight)
     if normalized in {"recovered_clean", "si_sdr_clean"}:
         return RecoveredCleanLoss(mse_weight=mse_weight, spike_weight=spike_weight)
-    raise ValueError(
-        f"Unsupported loss '{name}'. Use one of: mse, l1, smooth_l1, spike_mse, recovered_clean."
-    )
+    raise ValueError(f"Unsupported loss '{name}'. Use one of: mse, l1, smooth_l1, spike_mse, recovered_clean.")

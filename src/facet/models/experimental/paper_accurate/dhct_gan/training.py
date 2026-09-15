@@ -411,9 +411,7 @@ class DHCTGanGeneratorPA(nn.Module):
 
         clean_feat = feat
         artifact_feat = feat
-        for i, (clean_dec, artifact_dec) in enumerate(
-            zip(self.clean_decoder, self.artifact_decoder, strict=True)
-        ):
+        for i, (clean_dec, artifact_dec) in enumerate(zip(self.clean_decoder, self.artifact_decoder, strict=True)):
             skip = skips[-(i + 1)]
             clean_feat = clean_dec(clean_feat, skip)
             artifact_feat = artifact_dec(artifact_feat, skip)
@@ -559,9 +557,7 @@ class DHCTGanLossPA(nn.Module):
         self.disc_fused.to(device)
         # Paper discriminator Adam betas 0.9 / 0.999.
         self._opt_clean = torch.optim.Adam(self.disc_clean.parameters(), lr=self.disc_lr, betas=(0.9, 0.999))
-        self._opt_artifact = torch.optim.Adam(
-            self.disc_artifact.parameters(), lr=self.disc_lr, betas=(0.9, 0.999)
-        )
+        self._opt_artifact = torch.optim.Adam(self.disc_artifact.parameters(), lr=self.disc_lr, betas=(0.9, 0.999))
         self._opt_fused = torch.optim.Adam(self.disc_fused.parameters(), lr=self.disc_lr, betas=(0.9, 0.999))
         self._initialized_device = device
 

@@ -8,14 +8,17 @@
 
 import os
 import sys
+from pathlib import Path
+
+REPOSITORY = Path(__file__).resolve().parents[2]
 
 # Keep MNE config/cache inside the docs workspace during builds.
-_mne_home = os.path.abspath('../.mne')
+_mne_home = str(REPOSITORY / 'docs/.mne')
 os.makedirs(_mne_home, exist_ok=True)
 os.environ.setdefault("MNE_HOME", _mne_home)
 os.environ.setdefault("MNE_DONTWRITE_HOME", "true")
 
-sys.path.insert(0, os.path.abspath('../../src/'))
+sys.path.insert(0, str(REPOSITORY / 'src'))
 
 project = 'FACETpy'
 copyright = '2025, FACETpy Team'
@@ -33,7 +36,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
-    'myst_parser',  # For markdown support
 ]
 
 # Autosummary settings
@@ -98,12 +100,7 @@ intersphinx_mapping = {
     'mne': ('https://mne.tools/stable/', None),
 }
 
-# MyST parser settings
-myst_enable_extensions = [
-    "colon_fence",
-    "deflist",
-    "tasklist",
-]
+source_suffix = {'.rst': 'restructuredtext'}
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -125,3 +122,9 @@ html_theme_options = {
 
 # -- Options for todo extension ----------------------------------------------
 todo_include_todos = True
+
+
+def setup(app):
+    sys.path.insert(0, str(REPOSITORY))
+    from masterthesis_guide.reproduce import generate_indexes
+    generate_indexes(root=REPOSITORY)

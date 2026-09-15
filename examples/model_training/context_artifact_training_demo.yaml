@@ -10,7 +10,7 @@
 #
 # Training:
 #
-#   uv run facet-train fit --config src/facet/models/experimental/examples/demo01/training.yaml
+#   uv run facet-train fit --config examples/model_training/context_artifact_training_demo.yaml
 
 model:
   framework: pytorch

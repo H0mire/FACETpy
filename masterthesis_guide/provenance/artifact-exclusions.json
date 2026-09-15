@@ -1,0 +1,80 @@
+[
+  {
+    "id": "spike_aware_demucs_demucs_phase3_spike_aware_ts",
+    "source": "output/phase3_spike_aware_comparison/retrieved/demucs/training_output/phase3demucswegaspikeaware_20260914_122757/exports/demucs_phase3_spike_aware.ts",
+    "owner": "spike_aware_demucs",
+    "kind": "export",
+    "role": "training_export",
+    "bytes": 66363109,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "11e557105f207369692e7e43fc2534e681816d92a112fdced0538b3b94df83c9",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/demucs_phase3_spike_aware.ts"
+  },
+  {
+    "id": "spike_aware_demucs_epoch0013_val_loss16_1795_pt",
+    "source": "output/phase3_spike_aware_comparison/retrieved/demucs/training_output/phase3demucswegaspikeaware_20260914_122757/checkpoints/epoch0013_val_loss16.1795.pt",
+    "owner": "spike_aware_demucs",
+    "kind": "checkpoint",
+    "role": "retained_training_checkpoint",
+    "bytes": 198913162,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "fd94d9f1f1f95d288326bfaa1dbc93e7492715efa80dd6654d185db1b974c6fa",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/epoch0013_val_loss16.1795.pt"
+  },
+  {
+    "id": "spike_aware_nested_gan_nested_gan_phase3_spike_aware_ts",
+    "source": "output/phase3_spike_aware_comparison/retrieved/nested_gan/training_output/phase3nestedganwegaspikeaware_20260914_121744/exports/nested_gan_phase3_spike_aware.ts",
+    "owner": "spike_aware_nested_gan",
+    "kind": "export",
+    "role": "training_export",
+    "bytes": 4845592,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "70020d85f69e8b9669fed92131a38375a391bef48eca9ae06d5c2ed7c33c79aa",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/exports/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/nested_gan_phase3_spike_aware.ts"
+  },
+  {
+    "id": "spike_aware_nested_gan_epoch0078_val_loss1_6260_pt",
+    "source": "output/phase3_spike_aware_comparison/retrieved/nested_gan/training_output/phase3nestedganwegaspikeaware_20260914_121744/checkpoints/epoch0078_val_loss1.6260.pt",
+    "owner": "spike_aware_nested_gan",
+    "kind": "checkpoint",
+    "role": "retained_training_checkpoint",
+    "bytes": 14126446,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "659504169fc1c1e7b72e33950839a41c681bf200c0185320fe5354cb27055b1f",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/epoch0078_val_loss1.6260.pt"
+  },
+  {
+    "id": "spike_aware_vit_spectrogram_vit_spectrogram_phase3_spike_aware_ts",
+    "source": "output/phase3_spike_aware_comparison/retrieved/vit_spectrogram/training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/exports/vit_spectrogram_phase3_spike_aware.ts",
+    "owner": "spike_aware_vit_spectrogram",
+    "kind": "export",
+    "role": "training_export",
+    "bytes": 11022110,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "d7d1e4061b913b26ce42004bab9c976ffc8ada934bc998c34aad80691b130134",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/exports/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/vit_spectrogram_phase3_spike_aware.ts"
+  },
+  {
+    "id": "spike_aware_vit_spectrogram_epoch0060_val_loss4_2376_pt",
+    "source": "output/phase3_spike_aware_comparison/retrieved/vit_spectrogram/training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/checkpoints/epoch0060_val_loss4.2376.pt",
+    "owner": "spike_aware_vit_spectrogram",
+    "kind": "checkpoint",
+    "role": "retained_training_checkpoint",
+    "bytes": 32644330,
+    "availability": "external_original_retained",
+    "identity": "explicit_source_reference",
+    "sha256": "57c7395dcc2e5cd2e4a010ff65f09fd1aea1debc34ba5a9d9f9ec15177c41ddc",
+    "reason": "The completed spike-aware comparisons used the explicitly selected best checkpoint; this intermediate checkpoint or final training export was not evaluated there.",
+    "former_repository_path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/epoch0060_val_loss4.2376.pt"
+  }
+]

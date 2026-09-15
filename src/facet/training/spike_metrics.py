@@ -104,8 +104,7 @@ def compute_spike_metrics_per_example(
                 # minus infinity. Computing it as log10(0) is arithmetically the
                 # same answer but raises a divide-by-zero warning, which under a
                 # warnings-as-errors test run is a crash rather than a result.
-                out["contrast_db"][k] = (20.0 * np.log10(p_peak / resid)
-                                         if p_peak > 0 else float("-inf"))
+                out["contrast_db"][k] = 20.0 * np.log10(p_peak / resid) if p_peak > 0 else float("-inf")
                 out["peak_over_residual"][k] = t_peak / resid
         out["latency_drift_samples"][k] = float(np.argmax(np.abs(p_win)) - np.argmax(np.abs(t_win)))
         if t_win.size > 1 and np.std(t_win) > 0 and np.std(p_win) > 0:
@@ -148,7 +147,7 @@ def compute_spike_metrics(
 
     has_spike = spike.any(axis=1)
     neighborhood = expand_mask(spike, neighborhood_samples)
-    ring = neighborhood & ~spike            # around the spike, excluding it
+    ring = neighborhood & ~spike  # around the spike, excluding it
     non_spike = ~spike
 
     err = pred - target
@@ -181,7 +180,7 @@ def compute_spike_metrics(
                 if resid <= 0:
                     contrast_db.append(float("inf"))
                 elif p_peak <= 0:
-                    contrast_db.append(float("-inf"))    # spike deleted; see above
+                    contrast_db.append(float("-inf"))  # spike deleted; see above
                 else:
                     contrast_db.append(20.0 * np.log10(p_peak / resid))
         latency_ms.append(float(np.argmax(np.abs(p_win)) - np.argmax(np.abs(t_win))))

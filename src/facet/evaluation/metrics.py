@@ -1099,8 +1099,7 @@ class SNRCalculator(Processor, ReferenceDataMixin):
         metrics = new_metadata.custom.setdefault("metrics", {})
         metrics["snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
         metrics["snr_variance_ratio"] = ratio_median if np.isfinite(ratio_median) else None
-        metrics["snr_excess_variance_pct"] = (
-            100.0 * (ratio_median - 1.0) if np.isfinite(ratio_median) else None)
+        metrics["snr_excess_variance_pct"] = 100.0 * (ratio_median - 1.0) if np.isfinite(ratio_median) else None
         metrics["snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---
@@ -1321,8 +1320,7 @@ class LegacySNRCalculator(Processor):
         metrics = new_metadata.custom.setdefault("metrics", {})
         metrics["legacy_snr"] = float(snr_mean) if np.isfinite(snr_mean) else None
         metrics["legacy_snr_variance_ratio"] = ratio_median if np.isfinite(ratio_median) else None
-        metrics["legacy_snr_excess_variance_pct"] = (
-            100.0 * (ratio_median - 1.0) if np.isfinite(ratio_median) else None)
+        metrics["legacy_snr_excess_variance_pct"] = 100.0 * (ratio_median - 1.0) if np.isfinite(ratio_median) else None
         metrics["legacy_snr_per_channel"] = [None if not np.isfinite(v) else float(v) for v in snr_per_channel_clean]
 
         # --- RETURN ---

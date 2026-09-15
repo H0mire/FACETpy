@@ -1,4 +1,5 @@
 """Run one catalogued model in the recorded FACETpy pipeline."""
+
 from __future__ import annotations
 
 import argparse
@@ -25,8 +26,14 @@ def main(argv=None):
         model._load_model()
     else:
         model._load()
-    result = pipeline.build(args.edf, correctors=[DeepLearningCorrection(model=model)],
-                            include_pca=not args.without_pca, name=args.experiment).run()
+    result = pipeline.build(
+        args.edf,
+        correctors=[DeepLearningCorrection(model=model)],
+        include_pca=not args.without_pca,
+        name=args.experiment,
+    ).run()
+    if not result.success:
+        raise RuntimeError(result.error)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     result.get_raw().save(args.out, overwrite=False)
 

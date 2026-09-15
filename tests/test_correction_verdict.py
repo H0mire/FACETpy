@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 from facet.evaluation.correction_verdict import (
-    FARM_UV,
     UNCORRECTED_UV,
     Verdict,
     verdict,
@@ -26,15 +25,14 @@ RUN6 = Path("output/pipeline_demo/family_stack/arm_diagnosis.json")
 @pytest.mark.unit
 def test_no_learned_family_was_farm_comparable_in_run6():
     """The claim the images support: three reduced the artifact, none corrected."""
-    for residual, band, seam in [(11.88, 0.87, 2.22), (12.69, 1.61, 1.28),
-                                 (15.87, 1.78, 1.97)]:
+    for residual, band, seam in [(11.88, 0.87, 2.22), (12.69, 1.61, 1.28), (15.87, 1.78, 1.97)]:
         assert not verdict(residual, band, seam).farm_comparable
 
 
 @pytest.mark.unit
 def test_the_reference_arms_are_farm_comparable():
-    assert verdict(4.62, 1.00, 1.38).farm_comparable      # FARM itself
-    assert verdict(5.05, 1.20, 0.96).farm_comparable      # the Weg-A cascade
+    assert verdict(4.62, 1.00, 1.38).farm_comparable  # FARM itself
+    assert verdict(5.05, 1.20, 0.96).farm_comparable  # the Weg-A cascade
 
 
 @pytest.mark.unit
@@ -111,16 +109,24 @@ def test_against_the_stored_run6_diagnosis():
     rows = json.loads(RUN6.read_text())["rows"]
     by_arm = {r["arm"]: r for r in rows}
     corrects = {
-        arm for arm, r in by_arm.items()
-        if verdict(r["comb_rms_uv"], r["eeg_band_rel_farm"],
-                   r["epoch_boundary_step_ratio"]).artifact_reduced
+        arm
+        for arm, r in by_arm.items()
+        if verdict(r["comb_rms_uv"], r["eeg_band_rel_farm"], r["epoch_boundary_step_ratio"]).artifact_reduced
     }
-    learned = corrects - {"farm", "farm_pca4", "wega_cascade", "cascade_spk0",
-                          "cascade_spk1", "wega_direct", "uncorrected", "legacy_dl"}
+    learned = corrects - {
+        "farm",
+        "farm_pca4",
+        "wega_cascade",
+        "cascade_spk0",
+        "cascade_spk1",
+        "wega_direct",
+        "uncorrected",
+        "legacy_dl",
+    }
     assert learned == {"ic_unet", "demucs", "conv_tasnet"}
-    assert verdict(*[by_arm["farm"][k] for k in
-                     ("comb_rms_uv", "eeg_band_rel_farm",
-                      "epoch_boundary_step_ratio")]).farm_comparable
+    assert verdict(
+        *[by_arm["farm"][k] for k in ("comb_rms_uv", "eeg_band_rel_farm", "epoch_boundary_step_ratio")]
+    ).farm_comparable
 
 
 @pytest.mark.unit

@@ -28,13 +28,13 @@ class _StubModel(DeploymentArtifactModel):
         torch.nn.init.constant_(self.core.weight, gain)
 
     def centre_of(self, x):
-        return x[..., CENTRE * S:(CENTRE + 1) * S]
+        return x[..., CENTRE * S : (CENTRE + 1) * S]
 
     def core_clean(self, x):
         out = self.core(x)
         if self.identity_init:
             out = out + x
-        return out[..., CENTRE * S:(CENTRE + 1) * S]
+        return out[..., CENTRE * S : (CENTRE + 1) * S]
 
 
 def _input(scale: float = 1.0, seed: int = 0):
@@ -55,7 +55,7 @@ def test_identity_initialisation_changes_nothing():
     with torch.no_grad():
         assert float(with_skip(x).abs().max()) == pytest.approx(0.0, abs=1e-5)
 
-        centre = x[..., CENTRE * S:(CENTRE + 1) * S]
+        centre = x[..., CENTRE * S : (CENTRE + 1) * S]
         centre = centre - centre.mean(-1, keepdim=True)
         predicted = without(x)
         recovered = centre - predicted
@@ -107,11 +107,14 @@ def test_a_flat_channel_does_not_blow_up():
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize("packing,shape", [
-    ("bcs", (2, 6, S)),
-    ("bcts", (2, 6, T * S)),
-    ("btcs", (2, T, 6, S)),
-])
+@pytest.mark.parametrize(
+    "packing,shape",
+    [
+        ("bcs", (2, 6, S)),
+        ("bcts", (2, 6, T * S)),
+        ("btcs", (2, T, 6, S)),
+    ],
+)
 def test_channel_packings_keep_the_inter_channel_gain(packing, shape):
     """The core must still see which electrode carries more artifact.
 
@@ -133,12 +136,12 @@ def test_channel_packings_keep_the_inter_channel_gain(packing, shape):
     dims = list(_CONTEXT_DIMS[packing])
     normed = (x - x.mean(dim=dims, keepdim=True)) / x.std(dim=dims, keepdim=True)
 
-    rms = normed.pow(2).mean(
-        dim=[i for i in range(len(shape)) if i not in (0, channel_axis)]).sqrt()
+    rms = normed.pow(2).mean(dim=[i for i in range(len(shape)) if i not in (0, channel_axis)]).sqrt()
     spread = float((rms.max(dim=-1).values / rms.min(dim=-1).values).median())
     assert spread > 4.0, (
         f"{packing}: after normalising over {dims} the channels differ by only "
-        f"{spread:.2f}x, so the per-channel gain was divided out")
+        f"{spread:.2f}x, so the per-channel gain was divided out"
+    )
 
 
 @pytest.mark.unit

@@ -6,7 +6,7 @@ layout, and a target that carries the clean and noisy signals so
 *recovered* EEG rather than the predicted artifact.
 
 The layouts themselves were already written down once, in
-``tools/pipeline_demo/family_adapters.py``, for **inference**. Writing them a
+``src/facet/models/masterthesis/adapters.py``, for **inference**. Writing them a
 second time for training is how the two drift apart, and a packing mismatch does
 not raise — it produces a plausible-looking prediction of the wrong thing. So the
 names here are the same names, ``tests/test_deployment_data.py`` asserts this
@@ -39,24 +39,25 @@ PER_CHANNEL_PACKINGS = frozenset({"b1s", "bt1s", "bts", "b1ts"})
 def _pack_context(ctx: np.ndarray, packing: str) -> np.ndarray:
     """``ctx`` is ``(T, S)`` for a single channel or ``(T, C, S)`` multichannel."""
     if packing == "b1s":
-        return ctx[ctx.shape[0] // 2][np.newaxis, :]            # (1, S), centre only
+        return ctx[ctx.shape[0] // 2][np.newaxis, :]  # (1, S), centre only
     if packing == "bcs":
-        return ctx[ctx.shape[0] // 2]                           # (C, S), centre only
+        return ctx[ctx.shape[0] // 2]  # (C, S), centre only
     if packing == "bt1s":
-        return ctx[:, np.newaxis, :]                            # (T, 1, S)
+        return ctx[:, np.newaxis, :]  # (T, 1, S)
     if packing == "bts":
-        return ctx                                              # (T, S)
+        return ctx  # (T, S)
     if packing == "b1ts":
-        return ctx.reshape(1, -1)                               # (1, T*S)
+        return ctx.reshape(1, -1)  # (1, T*S)
     if packing == "bcts":
         return ctx.transpose(1, 0, 2).reshape(ctx.shape[1], -1)  # (C, T*S)
     if packing == "btcs":
-        return ctx                                              # (T, C, S)
+        return ctx  # (T, C, S)
     raise ValueError(f"unknown packing {packing!r}; known: {sorted(PACKINGS)}")
 
 
-def model_input_shape(packing: str, n_channels: int = 30, context_epochs: int = 7,
-                      epoch_samples: int = 512) -> tuple[int, ...]:
+def model_input_shape(
+    packing: str, n_channels: int = 30, context_epochs: int = 7, epoch_samples: int = 512
+) -> tuple[int, ...]:
     """Per-example input shape for a packing — what facet-train injects as ``input_shape``.
 
     Spelled out so an edition can be built without the CLI: a probe script, a
@@ -74,8 +75,7 @@ def model_input_shape(packing: str, n_channels: int = 30, context_epochs: int = 
     }[packing]
 
 
-def single_row_target_shape(packing: str, n_channels: int = 30,
-                            epoch_samples: int = 512) -> tuple[int, ...]:
+def single_row_target_shape(packing: str, n_channels: int = 30, epoch_samples: int = 512) -> tuple[int, ...]:
     """Shape of **one** target row, i.e. what the model actually returns.
 
     facet-train injects ``target_shape`` into ``build_model`` straight from the
@@ -115,8 +115,7 @@ class PackedDeploymentDataset:
         noisy, target = ds[0]        # (7, 1, 512) and (3, 1, 512)
     """
 
-    def __init__(self, base_dataset: Any, packing: str,
-                 max_examples: int | None = None) -> None:
+    def __init__(self, base_dataset: Any, packing: str, max_examples: int | None = None) -> None:
         if packing not in PACKINGS:
             raise ValueError(f"unknown packing {packing!r}; known: {sorted(PACKINGS)}")
         first_noisy, first_target = base_dataset[0]
@@ -125,7 +124,8 @@ class PackedDeploymentDataset:
         if first_target.ndim != 3:
             raise ValueError(
                 "base target must be (rows, channels, samples) — build the base dataset "
-                "with target_extras=('clean', 'noisy')")
+                "with target_extras=('clean', 'noisy')"
+            )
 
         self.base_dataset = base_dataset
         self.packing = packing
@@ -138,8 +138,7 @@ class PackedDeploymentDataset:
         self.target_type = "artifact"
         self.trigger_aligned = True
         self.sfreq = float(getattr(base_dataset, "sfreq", float("nan")))
-        self.target_rows = tuple(getattr(base_dataset, "target_rows",
-                                         ("artifact", "clean", "noisy")))
+        self.target_rows = tuple(getattr(base_dataset, "target_rows", ("artifact", "clean", "noisy")))
 
         total = len(base_dataset) * (self.n_channels if self.per_channel else 1)
         self._length = total if max_examples is None else max(0, min(int(max_examples), total))
@@ -152,14 +151,16 @@ class PackedDeploymentDataset:
         if self.per_channel:
             base_idx, channel = divmod(idx, self.n_channels)
             ctx, target = self.base_dataset[base_idx]
-            ctx = ctx[:, channel]                                    # (T, S)
-            target = target[:, channel]                              # (rows, S)
+            ctx = ctx[:, channel]  # (T, S)
+            target = target[:, channel]  # (rows, S)
             if self.packing != "bts":
-                target = target[:, np.newaxis, :]                    # (rows, 1, S)
+                target = target[:, np.newaxis, :]  # (rows, 1, S)
         else:
-            ctx, target = self.base_dataset[idx]                     # (T, C, S), (rows, C, S)
-        return (_pack_context(ctx, self.packing).astype(np.float32, copy=True),
-                np.ascontiguousarray(target, dtype=np.float32))
+            ctx, target = self.base_dataset[idx]  # (T, C, S), (rows, C, S)
+        return (
+            _pack_context(ctx, self.packing).astype(np.float32, copy=True),
+            np.ascontiguousarray(target, dtype=np.float32),
+        )
 
     @property
     def input_shape(self) -> tuple[int, ...]:
@@ -167,8 +168,7 @@ class PackedDeploymentDataset:
 
     @property
     def target_shape(self) -> tuple[int, ...]:
-        return (self.n_rows, *single_row_target_shape(self.packing, self.n_channels,
-                                                      self.epoch_samples))
+        return (self.n_rows, *single_row_target_shape(self.packing, self.n_channels, self.epoch_samples))
 
     @property
     def n_chunks(self) -> int:
@@ -205,14 +205,13 @@ class _Subset:
         return self._parent[self._indices[idx]]
 
 
-def build_packed_dataset(path: str | Path, packing: str,
-                         max_examples: int | None = None,
-                         target_key: str = "artifact_center",
-                         **_: Any) -> PackedDeploymentDataset:
+def build_packed_dataset(
+    path: str | Path, packing: str, max_examples: int | None = None, target_key: str = "artifact_center", **_: Any
+) -> PackedDeploymentDataset:
     """facet-train dataset factory shared by every deployment edition."""
     base = NPZContextArtifactDataset(
-        path, target_key=target_key, demean_input=True, demean_target=True,
-        target_extras=("clean", "noisy"))
+        path, target_key=target_key, demean_input=True, demean_target=True, target_extras=("clean", "noisy")
+    )
     return PackedDeploymentDataset(base, packing=packing, max_examples=max_examples)
 
 
@@ -239,12 +238,12 @@ class _WegABasis:
         from facet.training.dataset import NPZSpatioTemporalDataset
 
         extras = ("clean", "spike") if include_spike else ("clean",)
-        self._inner = NPZSpatioTemporalDataset(
-            path, target_key="artifact_center", target_extras=extras, **kwargs)
+        self._inner = NPZSpatioTemporalDataset(path, target_key="artifact_center", target_extras=extras, **kwargs)
         self.sfreq = float(getattr(self._inner, "sfreq", float("nan")))
         self.include_spike = bool(include_spike)
-        self.target_rows = (("artifact", "clean", "noisy", "spike")
-                            if self.include_spike else ("artifact", "clean", "noisy"))
+        self.target_rows = (
+            ("artifact", "clean", "noisy", "spike") if self.include_spike else ("artifact", "clean", "noisy")
+        )
         probe, _ = self._inner[0]
         self.context_epochs, self.n_channels, self.epoch_samples = (int(v) for v in probe.shape)
 
@@ -274,8 +273,7 @@ class WegAPackedDataset(PackedDeploymentDataset):
 
     TRAINING, SELEKTION, GESPERRT, VERWORFEN = 0, 1, 2, -1
 
-    def __init__(self, base_dataset: Any, packing: str, split: np.ndarray,
-                 max_examples: int | None = None) -> None:
+    def __init__(self, base_dataset: Any, packing: str, split: np.ndarray, max_examples: int | None = None) -> None:
         super().__init__(base_dataset, packing, max_examples=max_examples)
         self._split = np.asarray(split, dtype=np.int64)
 
@@ -294,16 +292,20 @@ class WegAPackedDataset(PackedDeploymentDataset):
             raise ValueError(
                 f"eingefrorener Split liefert {len(train)} Trainings- und {len(val)} "
                 f"Selektionsbeispiele; Werte im Archiv: "
-                f"{dict(zip(*[a.tolist() for a in np.unique(self._split, return_counts=True)]))}")
+                f"{dict(zip(*[a.tolist() for a in np.unique(self._split, return_counts=True)], strict=False))}"
+            )
         return _Subset(self, train), _Subset(self, val)
 
 
-def build_weg_a_packed_dataset(path: str | Path, packing: str,
-                               max_examples: int | None = None,
-                               max_shift: int | None = None,
-                               background_mix_prob: float = 0.0,
-                               include_spike: bool = False,
-                               **_: Any) -> WegAPackedDataset:
+def build_weg_a_packed_dataset(
+    path: str | Path,
+    packing: str,
+    max_examples: int | None = None,
+    max_shift: int | None = None,
+    background_mix_prob: float = 0.0,
+    include_spike: bool = False,
+    **_: Any,
+) -> WegAPackedDataset:
     """Datensatzfabrik für Weg A, nutzbar von jeder Deployment-Edition.
 
     ``max_shift`` und ``background_mix_prob`` sind die Augmentierungen des
@@ -318,8 +320,14 @@ def build_weg_a_packed_dataset(path: str | Path, packing: str,
     einer Meldung ab, statt stillschweigend ohne Validierung zu laufen. Für einen
     kurzen Probelauf lieber ``max_epochs`` verkleinern.
     """
-    basis = _WegABasis(path, max_shift=max_shift, background_mix_prob=background_mix_prob,
-                       demean_input=True, demean_target=True, include_spike=include_spike)
+    basis = _WegABasis(
+        path,
+        max_shift=max_shift,
+        background_mix_prob=background_mix_prob,
+        demean_input=True,
+        demean_target=True,
+        include_spike=include_spike,
+    )
     with np.load(Path(path).expanduser(), allow_pickle=True) as b:
         split = b["example_split"]
     return WegAPackedDataset(basis, packing=packing, split=split, max_examples=max_examples)

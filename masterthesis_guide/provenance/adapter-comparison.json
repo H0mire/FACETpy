@@ -1,0 +1,91 @@
+{
+  "device": "cpu",
+  "windows": [
+    0,
+    2
+  ],
+  "rtol_rms": 0.0001,
+  "rows": [
+    {
+      "family": "dpae",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "cascaded_dae",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "dhct_gan",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "denoise_mamba",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "conv_tasnet",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "sepformer",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "nested_gan",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "cascaded_context_dae",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "vit_spectrogram",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "dhct_gan_v2",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "demucs",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "ic_unet",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    },
+    {
+      "family": "st_gnn",
+      "relative_rms_difference": 0.0,
+      "max_absolute_difference": 0.0,
+      "matches": true
+    }
+  ],
+  "excluded": {
+    "d4pm": "Stochastic reverse diffusion is a separate sampler verification."
+  }
+}

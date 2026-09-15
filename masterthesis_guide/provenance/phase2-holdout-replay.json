@@ -1,0 +1,55 @@
+{
+  "scope": "New CPU rerun on all 166 saved proof-fit holdout windows with the 13 retained primary deployment artifacts; not the missing original Figure-27 CSV. SNR uses global signal/error power, not a median across windows.",
+  "date_utc": "2026-09-15T22:28:14.459185+00:00",
+  "protocol": "unified_holdout",
+  "dataset_sha256": "5ba609289301643a61ef61813dbbcee63860245c2333510324f34590decc2774",
+  "split_sha256": "e0e3bb21315a4eeff9a121652cf2c32f2dacc01967f9bd570875b3f8319b8259",
+  "python": "3.13",
+  "torch": "2.11.0",
+  "numpy": "2.1.3",
+  "device": "cpu",
+  "threads": 2,
+  "result": "masterthesis_guide/results/phase2_holdout_replay/metrics.csv",
+  "metric": "clean_snr_improvement_db",
+  "experiments": {
+    "deployment_cascaded_context_dae": [
+      "deployment_cascaded_context_dae_cascaded_context_dae_deployment_ts"
+    ],
+    "deployment_cascaded_dae": [
+      "deployment_cascaded_dae_cascaded_dae_deployment_ts"
+    ],
+    "deployment_conv_tasnet": [
+      "deployment_conv_tasnet_conv_tasnet_deployment_ts"
+    ],
+    "deployment_demucs": [
+      "deployment_demucs_demucs_deployment_ts"
+    ],
+    "deployment_denoise_mamba": [
+      "deployment_denoise_mamba_denoise_mamba_deployment_ts"
+    ],
+    "deployment_dhct_gan": [
+      "deployment_dhct_gan_dhct_gan_deployment_ts"
+    ],
+    "deployment_dhct_gan_v2": [
+      "deployment_dhct_gan_v2_dhct_gan_v2_deployment_ts"
+    ],
+    "deployment_dpae": [
+      "deployment_dpae_dpae_deployment_ts"
+    ],
+    "deployment_ic_unet": [
+      "deployment_ic_unet_ic_unet_deployment_ts"
+    ],
+    "deployment_nested_gan": [
+      "deployment_nested_gan_nested_gan_deployment_ts"
+    ],
+    "deployment_sepformer": [
+      "deployment_sepformer_sepformer_deployment_ts"
+    ],
+    "deployment_st_gnn": [
+      "deployment_st_gnn_st_gnn_deployment_ts"
+    ],
+    "deployment_vit_spectrogram": [
+      "deployment_vit_spectrogram_vit_spectrogram_deployment_ts"
+    ]
+  }
+}

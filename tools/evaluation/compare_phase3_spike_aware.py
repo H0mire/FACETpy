@@ -45,7 +45,7 @@ def main() -> None:
     config = yaml.safe_load(args.config.read_text())
     # The original Demucs trace embeds CPU LSTM hidden-state tensors.
     baseline_device = args.baseline_device or (
-        "cpu" if ".demucs_deployment_edition." in config["model"]["factory"] else args.device
+        "cpu" if ".demucs.deployment." in config["model"]["factory"] else args.device
     )
     dataset = build_weg_a_packed_dataset(
         args.dataset, packing=config["data"]["kwargs"]["packing"],

@@ -183,25 +183,25 @@ class SSDLayer(nn.Module):
             s = c * self.chunk_size
             e = min(s + self.chunk_size, length)
             cl = e - s
-            a_c = a[:, s:e]               # (B, cl, H)
-            dt_c = dt[:, s:e]             # (B, cl, H, 1)
-            B_c = B[:, s:e]               # (B, cl, N)
-            C_c = C[:, s:e]               # (B, cl, N)
-            x_c = xh[:, s:e]              # (B, cl, H, head_dim)
+            a_c = a[:, s:e]  # (B, cl, H)
+            dt_c = dt[:, s:e]  # (B, cl, H, 1)
+            B_c = B[:, s:e]  # (B, cl, N)
+            C_c = C[:, s:e]  # (B, cl, N)
+            x_c = xh[:, s:e]  # (B, cl, H, head_dim)
 
             # Cumulative log-decay within the chunk for the semiseparable mask.
-            log_a = torch.log(a_c.clamp_min(1e-20))      # (B, cl, H)
-            cumlog = torch.cumsum(log_a, dim=1)          # (B, cl, H)
+            log_a = torch.log(a_c.clamp_min(1e-20))  # (B, cl, H)
+            cumlog = torch.cumsum(log_a, dim=1)  # (B, cl, H)
 
             # --- Inter-chunk contribution: previous state propagated forward ---
             # decay_to_t = exp(cumlog) gives a_{s+1}*...*a_t for each position.
-            decay_to_t = torch.exp(cumlog)               # (B, cl, H)
+            decay_to_t = torch.exp(cumlog)  # (B, cl, H)
             # y_prev[t] = C_t . (decay_to_t * state)  over state dim N.
             # state: (B, H, head_dim, N); C_t: (B, cl, N).
             # Scale state by decay then contract with C.
             # (B, cl, H, head_dim, N) is large; instead contract C with state once
             # per position using einsum with the per-position decay applied to C.
-            C_dec = C_c.unsqueeze(2) * decay_to_t.unsqueeze(-1)   # (B, cl, H, N)
+            C_dec = C_c.unsqueeze(2) * decay_to_t.unsqueeze(-1)  # (B, cl, H, N)
             y_prev = torch.einsum("bchn,bhdn->bchd", C_dec, state)  # (B, cl, H, head_dim)
 
             # --- Intra-chunk contribution: lower-triangular semiseparable mask ---
@@ -209,22 +209,22 @@ class SSDLayer(nn.Module):
             # Build per-head (cl, cl) decay matrix.
             cl_idx = torch.arange(cl, device=x.device)
             # diff[t, s'] = cumlog_t - cumlog_{s'}; valid (and applied) for s' <= t.
-            diff = cumlog.unsqueeze(2) - cumlog.unsqueeze(1)        # (B, cl_t, cl_s, H)
+            diff = cumlog.unsqueeze(2) - cumlog.unsqueeze(1)  # (B, cl_t, cl_s, H)
             tril = (cl_idx.unsqueeze(1) >= cl_idx.unsqueeze(0)).float()  # (cl_t, cl_s)
             decay_mat = torch.exp(diff) * tril.unsqueeze(0).unsqueeze(-1)  # (B,cl_t,cl_s,H)
             # State-readout coupling: g[t, s'] = (C_t . B_{s'}) over N.
             cb = torch.einsum("btn,bsn->bts", C_c, B_c).unsqueeze(-1)  # (B,cl_t,cl_s,1)
             # weights w[t,s',H] = decay_mat * (C_t.B_s') * dt_{s'}.
-            w = decay_mat * cb * dt_c.squeeze(-1).unsqueeze(1)        # (B,cl_t,cl_s,H)
+            w = decay_mat * cb * dt_c.squeeze(-1).unsqueeze(1)  # (B,cl_t,cl_s,H)
             # y_intra[t] = sum_{s'<=t} w[t,s'] * x_{s'}.
-            y_intra = torch.einsum("btsh,bshd->bthd", w, x_c)         # (B, cl, H, head_dim)
+            y_intra = torch.einsum("btsh,bshd->bthd", w, x_c)  # (B, cl, H, head_dim)
 
             y_c = y_prev + y_intra
             outputs.append(y_c.reshape(batch, cl, self.d_inner))
 
             # --- Update running state for the next chunk ---
             # state_new = a_total * state + sum_{s'} (a_{cl}...a_{s'+1}) dt_{s'} B_{s'} x_{s'}.
-            a_total = torch.exp(cumlog[:, -1])                       # (B, H)
+            a_total = torch.exp(cumlog[:, -1])  # (B, H)
             # decay_from_s' to chunk end: exp(cumlog_end - cumlog_s').
             decay_end = torch.exp(cumlog[:, -1:].clamp_min(-50.0) - cumlog)  # (B, cl, H)
             bx = torch.einsum(
@@ -234,7 +234,7 @@ class SSDLayer(nn.Module):
             )  # (B, cl, H, head_dim, N)
             state = state * a_total.unsqueeze(-1).unsqueeze(-1) + bx.sum(dim=1)
 
-        y = torch.cat(outputs, dim=1)                               # (B, L, d_inner)
+        y = torch.cat(outputs, dim=1)  # (B, L, d_inner)
         return y + x * self.D
 
 
@@ -367,7 +367,7 @@ class ConvSSDBlock(nn.Module):
 
         y_ssd = self.ssd_branch(x_ssd.transpose(1, 2)).transpose(1, 2)  # (B, c_ssd, L)
 
-        fused = torch.cat([y_conv * self.r1, y_ssd * self.r2], dim=1)   # (B, C, L)
+        fused = torch.cat([y_conv * self.r1, y_ssd * self.r2], dim=1)  # (B, C, L)
         out = self.pw(self.dw(fused))
         return out + x  # residual keeps gradients healthy in the deep U-Net
 
@@ -414,11 +414,11 @@ class ProjectionHead(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, C, L)
-        pooled = x.mean(dim=-1)                       # GAP -> (B, C)
+        pooled = x.mean(dim=-1)  # GAP -> (B, C)
         s = self.gap_out(self.gap_norm(self.gap_act(self.gap_linear(pooled))))  # (B, C)
         # Inject the global summary as a per-channel additive bias.
-        h = x + s.unsqueeze(-1)                       # (B, C, L)
-        return self.out_conv(h)                       # (B, 1, L)
+        h = x + s.unsqueeze(-1)  # (B, C, L)
+        return self.out_conv(h)  # (B, 1, L)
 
 
 # ---------------------------------------------------------------------------
@@ -458,7 +458,7 @@ class PaperAccurateDenoiseMamba(nn.Module):
         self.epoch_samples = int(epoch_samples)
         self.base_channels = int(base_channels)
         self.n_stages = int(n_stages)
-        self.divisor = 2 ** self.n_stages
+        self.divisor = 2**self.n_stages
 
         self.embedding = SignalEmbedding(self.base_channels)
 
@@ -511,23 +511,21 @@ class PaperAccurateDenoiseMamba(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.dim() != 3 or x.shape[1] != 1:
-            raise ValueError(
-                f"PaperAccurateDenoiseMamba expects shape (batch, 1, samples); got {tuple(x.shape)}"
-            )
+            raise ValueError(f"PaperAccurateDenoiseMamba expects shape (batch, 1, samples); got {tuple(x.shape)}")
         orig_len = x.shape[-1]
         x, pad = self._pad_to_divisor(x)
 
         h = self.embedding(x)
 
         skips: list[torch.Tensor] = []
-        for block, down in zip(self.enc_blocks, self.downs):
+        for block, down in zip(self.enc_blocks, self.downs, strict=False):
             h = block(h)
             skips.append(h)
             h = down(h)
 
         h = self.bottleneck(h)
 
-        for up, fuse, block, skip in zip(self.ups, self.fuse, self.dec_blocks, reversed(skips)):
+        for up, fuse, block, skip in zip(self.ups, self.fuse, self.dec_blocks, reversed(skips), strict=False):
             h = up(h)
             # Guard against off-by-one length mismatches from odd pooling.
             if h.shape[-1] != skip.shape[-1]:
@@ -551,7 +549,7 @@ class PaperAccurateDenoiseMamba(nn.Module):
 
 
 class _SubsetDataset:
-    def __init__(self, parent: "ChannelWiseCenterDataset", indices: list[int]) -> None:
+    def __init__(self, parent: ChannelWiseCenterDataset, indices: list[int]) -> None:
         self._parent = parent
         self._indices = indices
 

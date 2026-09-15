@@ -40,13 +40,12 @@ from typing import Any
 from torch import nn
 
 from facet.models.masterthesis.st_gnn.training import build_model as _build_core
-from facet.training.deployment_data import (
-    build_packed_dataset, model_input_shape, single_row_target_shape)
+from facet.training.deployment_data import build_packed_dataset, model_input_shape, single_row_target_shape
 from facet.training.deployment_losses import build_deployment_loss
 from facet.training.deployment_model import PackedDeploymentModel
 
 #: The base edition's tensor layout and output meaning. Changing either here
-#: without changing ``tools/pipeline_demo/family_adapters.py`` breaks inference
+#: without changing ``src/facet/models/masterthesis/adapters.py`` breaks inference
 #: silently, which is why the test compares the two.
 PACKING = "btcs"
 CORE_OUTPUT = "artifact"
@@ -70,19 +69,25 @@ def build_model(
     # not need one.
     n_channels = int(core_kwargs.setdefault("n_channels", 30))
     core_kwargs.setdefault("chunk_size", epoch_samples)
-    core_kwargs.setdefault("input_shape", model_input_shape(
-        PACKING, n_channels=n_channels, context_epochs=context_epochs,
-        epoch_samples=epoch_samples))
+    core_kwargs.setdefault(
+        "input_shape",
+        model_input_shape(PACKING, n_channels=n_channels, context_epochs=context_epochs, epoch_samples=epoch_samples),
+    )
     # facet-train injects the *stacked* target shape, whose leading axis is the
     # loss's extra rows. A core that sizes its output head from it builds a head
     # as many times too wide as there are rows.
-    core_kwargs["target_shape"] = single_row_target_shape(
-        PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
+    core_kwargs["target_shape"] = single_row_target_shape(PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
     core = _build_core(**core_kwargs)
     return PackedDeploymentModel(
-        core, packing=PACKING, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=CORE_OUTPUT,
-        normalise=normalise, identity_init=identity_init, demean_output=demean_output)
+        core,
+        packing=PACKING,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=CORE_OUTPUT,
+        normalise=normalise,
+        identity_init=identity_init,
+        demean_output=demean_output,
+    )
 
 
 def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
@@ -90,6 +95,5 @@ def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
     return build_deployment_loss(name, **kwargs)
 
 
-def build_dataset(path: str | Path, max_examples: int | None = None,
-                  **_: Any) -> Any:
+def build_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -> Any:
     return build_packed_dataset(path, PACKING, max_examples=max_examples)

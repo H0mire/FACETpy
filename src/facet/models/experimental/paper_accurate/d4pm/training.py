@@ -481,9 +481,7 @@ class D4PMArtifactDataset:
                 f"noisy_center and artifact_center must match; got {self.noisy.shape} vs {self.artifact.shape}"
             )
         if self.clean is not None and self.clean.shape != self.noisy.shape:
-            raise ValueError(
-                f"clean_center must match noisy_center; got {self.clean.shape} vs {self.noisy.shape}"
-            )
+            raise ValueError(f"clean_center must match noisy_center; got {self.clean.shape} vs {self.noisy.shape}")
 
         self.n_examples = int(self.noisy.shape[0])
         self.n_channels = int(self.noisy.shape[1])

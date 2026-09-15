@@ -13,15 +13,21 @@ from facet.core import Pipeline
 from facet.correction import FARMCorrection, PCACorrection
 from facet.io import Loader
 from facet.preprocessing import (
-    Crop, DownSample, DropChannels, HighPassFilter, LowPassFilter,
-    TriggerAligner, TriggerDetector, UpSample,
+    Crop,
+    DownSample,
+    DropChannels,
+    HighPassFilter,
+    LowPassFilter,
+    TriggerAligner,
+    TriggerDetector,
+    UpSample,
 )
 from facet.preprocessing.alignment import SubsampleAligner
 
 #: Read from examples/complete_pipeline_example.py — do not edit that file.
-ARTIFACT_TO_TRIGGER_OFFSET = -0.005      # s; the artifact starts before the trigger
+ARTIFACT_TO_TRIGGER_OFFSET = -0.005  # s; the artifact starts before the trigger
 NON_EEG_CHANNELS = ["EKG", "EMG", "EOG", "ECG"]
-CROP = (0, 162)                          # s
+CROP = (0, 162)  # s
 UPSAMPLE = 10
 FARM_KWARGS = dict(window_size=30, correlation_threshold=0.975, realign_after_averaging=True)
 PCA_KWARGS = dict(n_components=0.95, hp_freq=70.0)
@@ -40,8 +46,7 @@ TRIGGER_REGEX = r"\b1\b"
 def preprocessing(input_path: str | Path, *, trigger_regex: str = TRIGGER_REGEX) -> list:
     """Everything up to and including sub-sample trigger alignment."""
     return [
-        Loader(path=str(input_path), preload=True,
-               artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET),
+        Loader(path=str(input_path), preload=True, artifact_to_trigger_offset=ARTIFACT_TO_TRIGGER_OFFSET),
         DropChannels(channels=NON_EEG_CHANNELS, on_missing="ignore"),
         Crop(tmin=CROP[0], tmax=CROP[1]),
         HighPassFilter(freq=HIGHPASS_HZ),
@@ -67,9 +72,15 @@ def postprocessing(*, include_pca: bool = True, include_lowpass: bool = True) ->
     return steps
 
 
-def build(input_path: str | Path, *, correctors: list | None = None,
-          include_pca: bool = True, name: str = "reference",
-          trigger_regex: str = TRIGGER_REGEX, include_lowpass: bool = True) -> Pipeline:
+def build(
+    input_path: str | Path,
+    *,
+    correctors: list | None = None,
+    include_pca: bool = True,
+    name: str = "reference",
+    trigger_regex: str = TRIGGER_REGEX,
+    include_lowpass: bool = True,
+) -> Pipeline:
     """Full chain with the given correction stages between pre- and postprocessing.
 
     ``correctors=[]`` gives the uncorrected reference through an otherwise
@@ -92,5 +103,4 @@ def cascade_template_stage() -> list:
     signal reaching the model is the one it was trained on. The two differ in
     both stages, not only in the added PCA.
     """
-    return [FARMCorrection(**TRAINING_FARM_KWARGS),
-            PCACorrection(**TRAINING_PCA_KWARGS)]
+    return [FARMCorrection(**TRAINING_FARM_KWARGS), PCACorrection(**TRAINING_PCA_KWARGS)]

@@ -54,7 +54,6 @@ import torch.nn.functional as F
 
 from facet.training.dataset import NPZContextArtifactDataset
 
-
 # ---------------------------------------------------------------------------
 # Restormer primitives (faithful to Zamir et al. 2022)
 # ---------------------------------------------------------------------------
@@ -140,9 +139,7 @@ class _GDFN(torch.nn.Module):
         super().__init__()
         hidden = max(1, int(channels * expansion))
         self.project_in = torch.nn.Conv2d(channels, hidden * 2, kernel_size=1, bias=False)
-        self.dwconv = torch.nn.Conv2d(
-            hidden * 2, hidden * 2, kernel_size=3, padding=1, groups=hidden * 2, bias=False
-        )
+        self.dwconv = torch.nn.Conv2d(hidden * 2, hidden * 2, kernel_size=3, padding=1, groups=hidden * 2, bias=False)
         self.project_out = torch.nn.Conv2d(hidden, channels, kernel_size=1, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -304,7 +301,7 @@ class HierarchicalSpectrogramRestormer(torch.nn.Module):
             raise ValueError(f"head_counts needs {levels + 1} entries (levels + bottleneck)")
 
         # Channel widths per level: base, 2x, 4x, ...
-        widths = [base_channels * (2 ** i) for i in range(levels + 1)]
+        widths = [base_channels * (2**i) for i in range(levels + 1)]
 
         # Input projection (degraded spectrogram -> features).
         self.input_proj = torch.nn.Conv2d(self.in_channels, base_channels, kernel_size=3, padding=1, bias=False)
@@ -440,7 +437,7 @@ class HierarchicalSpectrogramRestormer(torch.nn.Module):
         x = self.input_proj(spec_image)
 
         # Pad spatial dims to a multiple of 2**levels for clean pixel-(un)shuffle.
-        x, orig_h, orig_w = _pad_to_multiple(x, 2 ** self.levels)
+        x, orig_h, orig_w = _pad_to_multiple(x, 2**self.levels)
 
         skips: list[torch.Tensor] = []
         for lvl in range(self.levels):

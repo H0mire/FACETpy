@@ -97,10 +97,15 @@ class GradientArtifactResidualCalculator(Processor):
     modifies_raw = False
     parallel_safe = False
 
-    def __init__(self, fmax: float = 70.0, tolerance_bins: float = 1.5,
-                 background_bins: float = 12.0,
-                 tmin: float | None = None, tmax: float | None = None,
-                 verbose: bool = False) -> None:
+    def __init__(
+        self,
+        fmax: float = 70.0,
+        tolerance_bins: float = 1.5,
+        background_bins: float = 12.0,
+        tmin: float | None = None,
+        tmax: float | None = None,
+        verbose: bool = False,
+    ) -> None:
         self.fmax = float(fmax)
         self.tolerance_bins = float(tolerance_bins)
         self.background_bins = float(background_bins)
@@ -113,15 +118,13 @@ class GradientArtifactResidualCalculator(Processor):
         super().validate(context)
         triggers = context.get_triggers()
         if triggers is None or len(triggers) < 2:
-            raise ProcessorValidationError(
-                "Need at least two triggers to determine the epoch repetition rate.")
+            raise ProcessorValidationError("Need at least two triggers to determine the epoch repetition rate.")
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
         raw = context.get_raw()
         sfreq = float(raw.info["sfreq"])
         triggers = np.asarray(context.get_triggers(), dtype=np.int64)
-        picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
-                               exclude="bads")
+        picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
         if len(picks) == 0:
             logger.warning("No EEG channels found; skipping gradient-artifact residual")
             return context
@@ -170,7 +173,7 @@ class GradientArtifactResidualCalculator(Processor):
 
         total = float(psd.sum())
         share = excess / max(total, 1e-30)
-        rms = float(np.sqrt(np.mean(data ** 2)))
+        rms = float(np.sqrt(np.mean(data**2)))
         result = {
             "comb_rms_uv": rms * float(np.sqrt(share)),
             "comb_share_pct": 100.0 * share,
@@ -183,13 +186,18 @@ class GradientArtifactResidualCalculator(Processor):
             "window_s": [i0 / sfreq, i1 / sfreq],
             "n_channels": int(len(picks)),
         }
-        logger.info("Residual gradient artifact: {:.2f} µV ({:.2f} % of {:.2f} µV RMS), "
-                    "{} harmonics of {:.4f} Hz",
-                    result["comb_rms_uv"], result["comb_share_pct"], rms,
-                    n_harmonics, f_epoch)
+        logger.info(
+            "Residual gradient artifact: {:.2f} µV ({:.2f} % of {:.2f} µV RMS), {} harmonics of {:.4f} Hz",
+            result["comb_rms_uv"],
+            result["comb_share_pct"],
+            rms,
+            n_harmonics,
+            f_epoch,
+        )
         if self.verbose:
-            logger.info("Gradient-artifact diagnostics: window {}, channels {}",
-                        result["window_s"], result["n_channels"])
+            logger.info(
+                "Gradient-artifact diagnostics: window {}, channels {}", result["window_s"], result["n_channels"]
+            )
 
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})
@@ -238,8 +246,7 @@ class EpochSeamStepCalculator(Processor):
     #: and the metric reports NaN rather than a number nobody should trust.
     MIN_SEAMS = 8
 
-    def __init__(self, tmin: float | None = None, tmax: float | None = None,
-                 verbose: bool = False) -> None:
+    def __init__(self, tmin: float | None = None, tmax: float | None = None, verbose: bool = False) -> None:
         self.tmin = tmin
         self.tmax = tmax
         self.verbose = verbose
@@ -249,8 +256,7 @@ class EpochSeamStepCalculator(Processor):
         raw = context.get_raw()
         sfreq = float(raw.info["sfreq"])
         triggers = np.asarray(context.get_triggers(), dtype=np.int64)
-        picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
-                               exclude="bads")
+        picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude="bads")
         if len(picks) == 0:
             logger.warning("No EEG channels found; skipping epoch-seam step")
             return context
@@ -261,9 +267,13 @@ class EpochSeamStepCalculator(Processor):
 
         seams = triggers[(triggers > i0) & (triggers < i1 - 1)] - i0
         if seams.size < self.MIN_SEAMS:
-            result = {"ratio": float("nan"), "seam_step_uv": float("nan"),
-                      "sample_step_uv": float("nan"), "n_seams": int(seams.size),
-                      "note": f"fewer than {self.MIN_SEAMS} seams in the window"}
+            result = {
+                "ratio": float("nan"),
+                "seam_step_uv": float("nan"),
+                "sample_step_uv": float("nan"),
+                "n_seams": int(seams.size),
+                "note": f"fewer than {self.MIN_SEAMS} seams in the window",
+            }
         else:
             seam_step = float(np.median(np.abs(data[:, seams] - data[:, seams - 1])))
             sample_step = float(np.median(np.abs(np.diff(data, axis=1))))
@@ -275,9 +285,13 @@ class EpochSeamStepCalculator(Processor):
                 "window_s": [i0 / sfreq, i1 / sfreq],
                 "n_channels": int(len(picks)),
             }
-            logger.info("Epoch-seam step: {:.2f} µV against {:.2f} µV per sample "
-                        "-> ratio {:.2f} over {} seams",
-                        seam_step, sample_step, result["ratio"], seams.size)
+            logger.info(
+                "Epoch-seam step: {:.2f} µV against {:.2f} µV per sample -> ratio {:.2f} over {} seams",
+                seam_step,
+                sample_step,
+                result["ratio"],
+                seams.size,
+            )
 
         new_metadata = context.metadata.copy()
         metrics = new_metadata.custom.setdefault("metrics", {})

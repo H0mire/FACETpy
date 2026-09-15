@@ -257,7 +257,9 @@ class DemucsPaperAccurateCorrection(DeepLearningCorrection):
     """Pipeline processor for paper-accurate Demucs gradient-artifact inference."""
 
     name = "demucs_paper_accurate_correction"
-    description = "Paper-accurate time-domain Demucs (U-Net + BiLSTM + shift trick) channel-wise gradient-artifact correction"
+    description = (
+        "Paper-accurate time-domain Demucs (U-Net + BiLSTM + shift trick) channel-wise gradient-artifact correction"
+    )
     version = "0.1.0"
 
     requires_raw = True

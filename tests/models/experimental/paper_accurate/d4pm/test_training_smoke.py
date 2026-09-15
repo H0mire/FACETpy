@@ -190,7 +190,6 @@ def test_processor_registers_unique_name():
     # Importing the processor module must register the UNIQUE name without
     # colliding with the original 'd4pm_correction'.
     from facet.core import get_processor
-
     from facet.models.experimental.paper_accurate.d4pm.processor import D4PMPaperAccurateCorrection
 
     assert D4PMPaperAccurateCorrection.name == "d4pm_paper_accurate_correction"

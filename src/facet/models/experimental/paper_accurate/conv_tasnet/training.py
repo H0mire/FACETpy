@@ -166,9 +166,7 @@ class ConvTasNetSeparator(torch.nn.Module):
         self.mask_activation = mask_activation
 
         if self.encoder_activation not in {"linear", "identity", "none", "relu"}:
-            raise ValueError(
-                f"Unsupported encoder_activation '{encoder_activation}'. Expected 'linear' or 'relu'."
-            )
+            raise ValueError(f"Unsupported encoder_activation '{encoder_activation}'. Expected 'linear' or 'relu'.")
 
         self.encoder_stride = self.encoder_kernel // 2
         self.encoder = torch.nn.Conv1d(
@@ -218,9 +216,7 @@ class ConvTasNetSeparator(torch.nn.Module):
 
     def forward(self, mixture: torch.Tensor) -> torch.Tensor:
         if mixture.dim() != 3 or mixture.shape[1] != 1:
-            raise ValueError(
-                f"ConvTasNetSeparator expects shape (batch, 1, samples), got {tuple(mixture.shape)}"
-            )
+            raise ValueError(f"ConvTasNetSeparator expects shape (batch, 1, samples), got {tuple(mixture.shape)}")
         n_samples = mixture.shape[-1]
         latent = self._encode(mixture)
         bottleneck = self.bottleneck(self.pre_norm(latent))
@@ -458,9 +454,7 @@ class _ConsistencyMSE(torch.nn.Module):
         target_mix = target[:, 0] + target[:, 1]
         consistency = torch.nn.functional.mse_loss(pred_mix, target_mix)
         return (
-            self.clean_weight * clean_mse
-            + self.artifact_weight * artifact_mse
-            + self.consistency_weight * consistency
+            self.clean_weight * clean_mse + self.artifact_weight * artifact_mse + self.consistency_weight * consistency
         )
 
 
@@ -540,9 +534,7 @@ def build_loss(
         )
     if normalized in {"si_sdr_neg", "neg_si_sdr", "si_sdr"}:
         return _NegSISDR()
-    raise ValueError(
-        f"Unsupported loss name '{name}'. Use one of: mse, l1, weighted_mse, consistency_mse, si_sdr_neg."
-    )
+    raise ValueError(f"Unsupported loss name '{name}'. Use one of: mse, l1, weighted_mse, consistency_mse, si_sdr_neg.")
 
 
 def build_dataset(

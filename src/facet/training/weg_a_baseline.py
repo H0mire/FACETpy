@@ -62,8 +62,7 @@ class SpatioTemporalArtifactNet(torch.nn.Module):
             pad = dilation * (kernel_size - 1) // 2
             self.blocks.append(
                 torch.nn.Sequential(
-                    torch.nn.Conv1d(hidden_channels, hidden_channels, kernel_size,
-                                    padding=pad, dilation=dilation),
+                    torch.nn.Conv1d(hidden_channels, hidden_channels, kernel_size, padding=pad, dilation=dilation),
                     torch.nn.GELU(),
                     torch.nn.Conv1d(hidden_channels, hidden_channels, kernel_size=1),
                     torch.nn.GELU(),
@@ -73,13 +72,11 @@ class SpatioTemporalArtifactNet(torch.nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if x.ndim != 4:
-            raise ValueError(
-                f"Expected (batch, context_epochs, channels, samples), got {tuple(x.shape)}"
-            )
+            raise ValueError(f"Expected (batch, context_epochs, channels, samples), got {tuple(x.shape)}")
         batch, context_epochs, n_channels, samples = x.shape
         h = self.stem(x.reshape(batch, context_epochs * n_channels, samples))
         for block in self.blocks:
-            h = h + block(h)          # residual: the stack refines, it does not restart
+            h = h + block(h)  # residual: the stack refines, it does not restart
         return self.head(h)
 
 
@@ -178,7 +175,7 @@ class RecoveredCleanLoss(torch.nn.Module):
     every model actually trained against that objective (26.8 and 43.6 µV). The
     optimum of MSE-on-artifact is a model that preserves nothing, and the trained
     models drifted towards it: a 101 µV IED came back as 4 µV
-    (``docs/research/run_6_results.md`` §3b).
+    (``docs/source/thesis_reference/phase_3_grid_search.rst`` §3b).
 
     The fix is to evaluate ``clean_hat = noisy - prediction`` and to include a
     **scale-invariant** term. SI-SDR of an all-zero estimate is -inf, so deletion
@@ -214,7 +211,7 @@ class RecoveredCleanLoss(torch.nn.Module):
         artifact = target[..., :1, :]
         clean = target[..., 1:2, :]
         mask = (target[..., 2:3, :] > 0).to(prediction.dtype)
-        clean_hat = (artifact + clean) - prediction        # what the clinician sees
+        clean_hat = (artifact + clean) - prediction  # what the clinician sees
 
         est = clean_hat.reshape(clean_hat.shape[0], -1)
         ref = clean.reshape(clean.shape[0], -1)
@@ -257,6 +254,4 @@ def build_loss(name: str = "mse", spike_weight: float = 20.0, mse_weight: float 
         return SpikeWeightedMSELoss(spike_weight=spike_weight)
     if normalized in {"recovered_clean", "si_sdr_clean"}:
         return RecoveredCleanLoss(mse_weight=mse_weight, spike_weight=spike_weight)
-    raise ValueError(
-        f"Unsupported loss '{name}'. Use one of: mse, l1, smooth_l1, spike_mse, recovered_clean."
-    )
+    raise ValueError(f"Unsupported loss '{name}'. Use one of: mse, l1, smooth_l1, spike_mse, recovered_clean.")

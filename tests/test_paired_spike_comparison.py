@@ -59,7 +59,7 @@ def test_per_example_averages_match_the_aggregate():
 @pytest.mark.unit
 def test_per_example_indices_identify_the_rows():
     clean, labels = _case(n=6)
-    labels[2] = False          # example 2 carries no spike
+    labels[2] = False  # example 2 carries no spike
     labels[4] = False
     per = compute_spike_metrics_per_example(clean, clean, labels, neighborhood_samples=50)
     assert per["example_index"].tolist() == [0, 1, 3, 5]
@@ -136,14 +136,21 @@ def test_bootstrap_ci_brackets_the_effect():
 def test_paired_run_reports_shared_examples_and_exclusions(tmp_path):
     """Arms must be matched by example index, with the mismatch reported."""
     path = tmp_path / "per_example.csv"
-    keys = ["amplitude_ratio", "morphology_corr", "contrast_db",
-            "latency_drift_samples", "neighborhood_snr_db", "peak_over_residual", "rmse_uv"]
+    keys = [
+        "amplitude_ratio",
+        "morphology_corr",
+        "contrast_db",
+        "latency_drift_samples",
+        "neighborhood_snr_db",
+        "peak_over_residual",
+        "rmse_uv",
+    ]
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["arm", "example_index", *keys])
         for i in range(12):
             w.writerow(["model", i, 1.1, 0.4, 9.0, 0.2, 8.0, 3.0, 10.0])
-        for i in range(2, 12):                      # arm b lacks examples 0 and 1
+        for i in range(2, 12):  # arm b lacks examples 0 and 1
             w.writerow(["aas_ideal", i, 1.4, 0.2, 5.0, 0.9, 2.0, 5.0, 40.0])
 
     data, clusters = psc.load(path)
@@ -166,8 +173,15 @@ def _write_clustered(path, n_events, per_event, effect=2.0):
     anti-conservative: the information content is ``n_events``, not
     ``n_events * per_event``.
     """
-    keys = ["amplitude_ratio", "morphology_corr", "contrast_db",
-            "latency_drift_samples", "neighborhood_snr_db", "peak_over_residual", "rmse_uv"]
+    keys = [
+        "amplitude_ratio",
+        "morphology_corr",
+        "contrast_db",
+        "latency_drift_samples",
+        "neighborhood_snr_db",
+        "peak_over_residual",
+        "rmse_uv",
+    ]
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["arm", "example_index", "spike_event_id", "target_channel", *keys])
@@ -175,10 +189,10 @@ def _write_clustered(path, n_events, per_event, effect=2.0):
         for event in range(n_events):
             for ch in range(per_event):
                 wobble = 0.01 * ch
-                w.writerow(["model", idx, f"e{event}", ch,
-                            1.1, 0.4 + wobble, 9.0, 0.2, 8.0 + effect + wobble, 3.0, 10.0])
-                w.writerow(["aas_ideal", idx, f"e{event}", ch,
-                            1.4, 0.2 + wobble, 5.0, 0.9, 8.0 + wobble, 5.0, 40.0])
+                w.writerow(
+                    ["model", idx, f"e{event}", ch, 1.1, 0.4 + wobble, 9.0, 0.2, 8.0 + effect + wobble, 3.0, 10.0]
+                )
+                w.writerow(["aas_ideal", idx, f"e{event}", ch, 1.4, 0.2 + wobble, 5.0, 0.9, 8.0 + wobble, 5.0, 40.0])
                 idx += 1
     return path
 
@@ -200,8 +214,19 @@ def test_event_level_collapses_replicates(tmp_path, capsys):
     """n reported is the event count, not the row count."""
     path = _write_clustered(tmp_path / "pe.csv", n_events=8, per_event=5)
     out = tmp_path / "out"
-    sys.argv = ["paired", "--per-example", str(path), "--arm-a", "model",
-                "--arm-b", "aas_ideal", "--out", str(out), "--bootstrap", "200"]
+    sys.argv = [
+        "paired",
+        "--per-example",
+        str(path),
+        "--arm-a",
+        "model",
+        "--arm-b",
+        "aas_ideal",
+        "--out",
+        str(out),
+        "--bootstrap",
+        "200",
+    ]
     psc.main()
     rows = list(csv.DictReader((out / "paired_model_vs_aas_ideal.csv").open()))
     by_metric = {r["metric"]: r for r in rows}
@@ -217,8 +242,19 @@ def test_too_few_events_is_reported_as_untestable(tmp_path):
     """Two events must not borrow significance from their electrode replicates."""
     path = _write_clustered(tmp_path / "pe.csv", n_events=2, per_event=19)
     out = tmp_path / "out"
-    sys.argv = ["paired", "--per-example", str(path), "--arm-a", "model",
-                "--arm-b", "aas_ideal", "--out", str(out), "--bootstrap", "200"]
+    sys.argv = [
+        "paired",
+        "--per-example",
+        str(path),
+        "--arm-a",
+        "model",
+        "--arm-b",
+        "aas_ideal",
+        "--out",
+        str(out),
+        "--bootstrap",
+        "200",
+    ]
     psc.main()
     rows = list(csv.DictReader((out / "paired_model_vs_aas_ideal.csv").open()))
     row = next(r for r in rows if r["metric"] == "neighborhood_snr_db")
@@ -245,8 +281,21 @@ def test_cluster_column_is_selectable(tmp_path):
                 w.writerow(["null_output", idx, f"ep{epoch}", ch, 30.0 + 0.1 * ch, 0.0, 0])
                 idx += 1
     out = tmp_path / "out"
-    sys.argv = ["paired", "--per-example", str(path), "--cluster-column", "epoch_id",
-                "--arm-a", "model", "--arm-b", "null_output", "--out", str(out), "--bootstrap", "200"]
+    sys.argv = [
+        "paired",
+        "--per-example",
+        str(path),
+        "--cluster-column",
+        "epoch_id",
+        "--arm-a",
+        "model",
+        "--arm-b",
+        "null_output",
+        "--out",
+        str(out),
+        "--bootstrap",
+        "200",
+    ]
     psc.main()
     written = out / "paired_model_vs_null_output_epoch_id.csv"
     assert written.exists(), "the cluster column must not overwrite the spike-level output"

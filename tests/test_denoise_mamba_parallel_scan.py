@@ -34,7 +34,7 @@ def test_scan_matches_the_sequential_recurrence(length):
     """Non-powers of two included: the shift's identity fill is what makes those
     exact, and an off-by-one there would only show up at the boundaries."""
     torch.manual_seed(0)
-    a = torch.rand(3, length, 5, 4) * 0.99 + 0.005      # the model's range: (0, 1)
+    a = torch.rand(3, length, 5, 4) * 0.99 + 0.005  # the model's range: (0, 1)
     b = torch.randn(3, length, 5, 4)
     expected = _sequential(a, b)
     got = parallel_affine_scan(a, b)
@@ -46,7 +46,7 @@ def test_scan_matches_the_sequential_recurrence(length):
 @pytest.mark.unit
 def test_scan_gradients_match_too():
     torch.manual_seed(1)
-    a = (torch.rand(2, 32, 3, 4) * 0.9 + 0.05)
+    a = torch.rand(2, 32, 3, 4) * 0.9 + 0.05
     b = torch.randn(2, 32, 3, 4)
     grads = []
     for fn in (_sequential, parallel_affine_scan):
@@ -98,6 +98,7 @@ def test_checkpointing_changes_neither_output_nor_gradients():
     forwards otherwise draw different masks — which is what this test caught the
     first time it was written.
     """
+
     def make(checkpoint: bool):
         torch.manual_seed(0)
         model = build_model(parallel_scan=True, checkpoint_scan=checkpoint).train()
@@ -113,8 +114,7 @@ def test_checkpointing_changes_neither_output_nor_gradients():
         out = model(x)
         out.square().sum().backward()
         outputs.append(out.detach().clone())
-        grads.append(torch.cat([p.grad.reshape(-1) for p in model.parameters()
-                                if p.grad is not None]))
+        grads.append(torch.cat([p.grad.reshape(-1) for p in model.parameters() if p.grad is not None]))
 
     assert torch.allclose(outputs[0], outputs[1], atol=1e-5)
     assert torch.allclose(grads[0], grads[1], atol=1e-4, rtol=1e-3)

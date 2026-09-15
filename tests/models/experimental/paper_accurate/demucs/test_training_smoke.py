@@ -152,8 +152,8 @@ def test_demucs_paper_accurate_torchscript_trace_roundtrip(tmp_path):
 
 def test_demucs_paper_accurate_processor_registered():
     """The correction must register under the unique paper-accurate name."""
-    from facet.core import get_processor
     import facet.models.experimental.paper_accurate.demucs.processor  # noqa: F401
+    from facet.core import get_processor
 
     cls = get_processor("demucs_paper_accurate_correction")
     assert cls is not None

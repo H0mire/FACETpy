@@ -1,0 +1,774 @@
+{
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "before_count": 108,
+  "retained_count": 38,
+  "files": [
+    {
+      "source": "tools/pipeline_demo/verify_family_adapters.py",
+      "sha256_before_consolidation": "8754a75828a771726efd1434223f1f64df0fcb78b5a589e18d1b3d063657c411",
+      "action": "consolidate",
+      "destination": "masterthesis_guide/provenance/pipeline-adapter-comparison.json",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/offset_and_chain_check.py",
+      "sha256_before_consolidation": "ec3065c63f1860de08e664c0f1d082f0e95208de135d8d048c43278b7771441e",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/pipeline_demo/cascade_adapter.py",
+      "sha256_before_consolidation": "f67de2259c124f222a7a05bd78efb3b7ea93c0de4eccaa1b54c87086dd666337",
+      "action": "relocate",
+      "destination": "src/facet/models/experimental/v2/demucs_mc/cascade_adapter.py",
+      "reason": "Runtime behavior belongs to its installed model/library owner."
+    },
+    {
+      "source": "tools/pipeline_demo/run_cascade_pipeline.py",
+      "sha256_before_consolidation": "89bda1f576b006056a1cc247241b08d07be78da847f58e3b11540c9ac5d17cae",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/pipeline_demo/look_at_arms.py",
+      "sha256_before_consolidation": "9f8528c3fec921c6087a9f8e86d710cd5f15143341afd3acc1068f8feea97b64",
+      "action": "consolidate",
+      "destination": "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/family_adapters.py",
+      "sha256_before_consolidation": "2970b640a46f98dbfba27908f0c847bdc71ef556acfec3210d7465e89437aee5",
+      "action": "relocate",
+      "destination": "src/facet/models/masterthesis/adapters.py",
+      "reason": "Runtime behavior belongs to its installed model/library owner."
+    },
+    {
+      "source": "tools/pipeline_demo/plot_family_pipelines.py",
+      "sha256_before_consolidation": "76c5b5e03cf114e5609dca4176a7829b2960a465be06c8d63c7f76e8d81dcbe6",
+      "action": "consolidate",
+      "destination": "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/plot_farm_vs_model.py",
+      "sha256_before_consolidation": "a5135300838a6cc59588185e01241cb2df3746b57336b9c5349c883b647eddbc",
+      "action": "consolidate",
+      "destination": "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/direct_adapter.py",
+      "sha256_before_consolidation": "ab01ef35ded9ce6cfff1e415a6d605692acabfa901277817c00fb80db2dc4dcd",
+      "action": "relocate",
+      "destination": "src/facet/models/experimental/v2/demucs_mc/direct_adapter.py",
+      "reason": "Runtime behavior belongs to its installed model/library owner."
+    },
+    {
+      "source": "tools/pipeline_demo/collect_deployment_results.py",
+      "sha256_before_consolidation": "ecaf94f9df3e0c342b0829f2cc972d0cb1660997ed38ddcc38c3c32167fe91f1",
+      "action": "consolidate",
+      "destination": "masterthesis_guide/catalog.yaml",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/reference_chain.py",
+      "sha256_before_consolidation": "c61fb738b51028f101657f44de114896eb3583114590cc3be8778e7dd6831962",
+      "action": "relocate",
+      "destination": "src/facet/models/masterthesis/pipeline.py",
+      "reason": "Runtime behavior belongs to its installed model/library owner."
+    },
+    {
+      "source": "tools/pipeline_demo/run_deployment_editions_parallel.sh",
+      "sha256_before_consolidation": "ac8d702a0bbe243d33f99cc5b6c9dbf3f1a10ede794409aa1013a6de26f8def3",
+      "action": "consolidate",
+      "destination": "tools/pipeline_demo/run_arms.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/run_deployment_editions.sh",
+      "sha256_before_consolidation": "a13b1a89145d2d1760f1c877a18d6f4069129c0d3d9736b8c7ed0e36cc701585",
+      "action": "consolidate",
+      "destination": "tools/pipeline_demo/run_arms.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/compare_against_legacy.py",
+      "sha256_before_consolidation": "f2363e84e100c8a0017b3c44a9c78add8ad3d8b47039ba74e5ca453a0061a886",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/pipeline_demo/legacy_dl_adapter.py",
+      "sha256_before_consolidation": "8605d44fa81a89db956f3c724d4f702b56db2faa9b93da3e2ae91d13c58f56a7",
+      "action": "relocate",
+      "destination": "src/facet/models/masterthesis/legacy_cascaded_dae/processor.py",
+      "reason": "Runtime behavior belongs to its installed model/library owner."
+    },
+    {
+      "source": "tools/pipeline_demo/measure_arms.py",
+      "sha256_before_consolidation": "a20fdc7f7888bd75997773955cc0e02b3ee0eb6b54d9e95f45a7909883cd73ba",
+      "action": "retain",
+      "destination": "tools/pipeline_demo/measure_arms.py",
+      "reason": "Measure residual artifact and seam validity under the recorded pipeline protocol."
+    },
+    {
+      "source": "tools/pipeline_demo/plot_run_7_training_curves.py",
+      "sha256_before_consolidation": "f08ac4dae01b2ce9f775b2ef0f103e6e30df3353599384ff3f0afe02ae0840c9",
+      "action": "consolidate",
+      "destination": "tools/plotting/training_histories.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/measure_spike_preservation.py",
+      "sha256_before_consolidation": "1b9a22179662d854cd09271cd1dbc41bd632ebffee04f902890e8c65e56f49bb",
+      "action": "retain",
+      "destination": "tools/pipeline_demo/measure_spike_preservation.py",
+      "reason": "Measure the difference between matched injected/non-injected pipeline arms."
+    },
+    {
+      "source": "tools/pipeline_demo/run_tuned_arms.py",
+      "sha256_before_consolidation": "a50f582ef57dcd1e94957926a1c73f83f00aac8a56350d670b7f97c8155e81b1",
+      "action": "consolidate",
+      "destination": "tools/pipeline_demo/run_arms.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/plot_epoch_with_input.py",
+      "sha256_before_consolidation": "4ba8e706f8735700191a38712dbb9e357efd6ee7db92d978039c4657fc57b7c5",
+      "action": "consolidate",
+      "destination": "tools/plotting/plot_phase2_family_artifact_window_fast.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/pipeline_demo/inject_spikes.py",
+      "sha256_before_consolidation": "726cc8205f2f9eba19d86c5568416602ccbdc3a61fc05186ae9411e93177e93f",
+      "action": "retain",
+      "destination": "tools/pipeline_demo/inject_spikes.py",
+      "reason": "Create the four matched 100-microvolt pipeline injections and their truth record."
+    },
+    {
+      "source": "tools/pipeline_demo/diagnose_family_arms.py",
+      "sha256_before_consolidation": "9badca6b933946f737d183e2b73c22088742678a8f76c909e279f8f39674fa8d",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/pipeline_demo/run_farm_reference_arm.py",
+      "sha256_before_consolidation": "ef867eb348c6748b90a53d065c48b37c88bfa3f1c1ed35f673c52314fb8f1b39",
+      "action": "consolidate",
+      "destination": "tools/pipeline_demo/run_arms.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/dataset_building/extract_niazy_aas_pca4_artifact.py",
+      "sha256_before_consolidation": "f70d71c9f296a4782ccbd317e8da75cfa978b29e2794fa3af0ac967880623557",
+      "action": "retain",
+      "destination": "tools/dataset_building/extract_niazy_aas_pca4_artifact.py",
+      "reason": "Recover the recorded FARM/PCA artifact library from Niazy."
+    },
+    {
+      "source": "tools/dataset_building/derive_single_channel_weg_a.py",
+      "sha256_before_consolidation": "6b9bbe2f9d0c6a7c6af14ed3620872c5e4ad6c18884a200308564ccf48bc2cc0",
+      "action": "retain",
+      "destination": "tools/dataset_building/derive_single_channel_weg_a.py",
+      "reason": "Derive the single-channel locked Weg-A input without changing split membership."
+    },
+    {
+      "source": "tools/dataset_building/build_spatiotemporal_reference_dataset.py",
+      "sha256_before_consolidation": "790ac26c95036db3c56429ff65dccdecda1046f43c0216a16105ef862216c5e8",
+      "action": "retain",
+      "destination": "tools/dataset_building/build_spatiotemporal_reference_dataset.py",
+      "reason": "Build the independent-reference Weg-A dataset with recorded augmentation settings."
+    },
+    {
+      "source": "tools/dataset_building/lock_holdout_split.py",
+      "sha256_before_consolidation": "d4aebff3ad9e5555f222838666abd97688d0fd41d678c6e0a95396cadc698d4d",
+      "action": "retain",
+      "destination": "tools/dataset_building/lock_holdout_split.py",
+      "reason": "Persist the selection/holdout partition used by the locked Weg-A protocol."
+    },
+    {
+      "source": "tools/dataset_building/edf_to_external_clean.py",
+      "sha256_before_consolidation": "5a02923b0ae10af987e8026b51574ff36b47a16966d43ca631bafae4937fe654",
+      "action": "retain",
+      "destination": "tools/dataset_building/edf_to_external_clean.py",
+      "reason": "Prepare explicit external clean-reference recordings for dataset construction."
+    },
+    {
+      "source": "tools/dataset_building/export_channel_subset.py",
+      "sha256_before_consolidation": "a8487eec0e313443907dc9b1f5f449893f66697d667090e9fa8560079cfe4e83",
+      "action": "retain",
+      "destination": "tools/dataset_building/export_channel_subset.py",
+      "reason": "Preserve a specified EEG channel subset and its order."
+    },
+    {
+      "source": "tools/reporting/prepare_phase_results_pack.py",
+      "sha256_before_consolidation": "61a29600d8b0940250d03cd4169014be4ff7fc93e5f99aace2c58b496fed9732",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/export_chapter_text.py",
+      "sha256_before_consolidation": "44cd45e0298e8d114e5b8f34a57f711b618dca381f7e51e864d5f6d5d3423a5e",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/generate_status_report_figures.py",
+      "sha256_before_consolidation": "4e73fd3c8dcbf5ef82b7d98e91ed0e873d620b96db33ea4e0ae6e8f30292d578",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/build_bibliography.py",
+      "sha256_before_consolidation": "4ad70e20c1ac8ea3e6526475a2b6aaa680ac7fea1d26aea3215fdd62aedd48f2",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/prepare_checkpoint_spike_comparison.py",
+      "sha256_before_consolidation": "dd792b0c201498abef187ea04f151a8c8b7baf0aaa90e3c492dc0d5b23649aae",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/prepare_legacy_spike_preservation_pack.py",
+      "sha256_before_consolidation": "df7d9d9b89b9ea7d0c4cb4e8adae937b6ca83f9a17c2accdc287a63a8b7866a7",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/reporting/render_status_report.py",
+      "sha256_before_consolidation": "64bac3fe614e0258f7a1f39bf05e633cebe987230a2d9d0cbe6f142d9b81a03d",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/infra/setup_runpod.sh",
+      "sha256_before_consolidation": "be0bf0bde73fb1d6bcb8969b59475b6506d4110831e644483a5ad669ef83698c",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/infra/transfer_to_pod.sh",
+      "sha256_before_consolidation": "0a0d60ac0a79ec1131143f92bfb3975d9061bc55b1dfbb8b43456e3e1e0897c0",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/run_wega_grid.sh",
+      "sha256_before_consolidation": "5d2da4d43b6ebe37463da42995b7915b423973250f26a6ac9d5cecedaec78fda",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/grid_status.sh",
+      "sha256_before_consolidation": "97eaa0088132a525160fe209648194504cfdeafac9f7f8ae9c2ec699b6897e43",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/derive_wega_loss_weights.py",
+      "sha256_before_consolidation": "b650b400e483bdc392f1d6cc91c3ce9499c30a8e60338fcd48dbd1cd08d15c4c",
+      "action": "retain",
+      "destination": "tools/training/derive_wega_loss_weights.py",
+      "reason": "Derive the recorded Weg-A objective scaling from the selected dataset."
+    },
+    {
+      "source": "tools/training/setup_grid_pod.sh",
+      "sha256_before_consolidation": "050b23c4e0ddfa1bd8aab306eb42a7c22689d68f30b8af6ef1362be1303ddbe8",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/grid_search_run7.py",
+      "sha256_before_consolidation": "6fbc48caf8d65f9888263a157af56d808122ead976da53446bc97d9055c5bc86",
+      "action": "retain",
+      "destination": "tools/training/grid_search_run7.py",
+      "reason": "Run the recorded proof-fit/Weg-A screening and confirmation protocols."
+    },
+    {
+      "source": "tools/training/grid_search.py",
+      "sha256_before_consolidation": "bba3151642cb0bd11131455cab88f47c7c7b9c28c4823121ae50280a32e39b13",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/sweep_recovered_clean.py",
+      "sha256_before_consolidation": "caee42b1c875e526daae8f75d3187d55c9f63d208ac5926c75ab00c6de7bda03",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/run_grid_pod.sh",
+      "sha256_before_consolidation": "7d47b73ac7f211e9e5495dc8953e2e642951bf00697eb0f93915e9ce00f6762a",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/training/run_wega_pod.sh",
+      "sha256_before_consolidation": "a2d9910cb820f9a3568c0481b92038c478f8972d10606c05d3e4da91c42844ab",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_selected_variants.py",
+      "sha256_before_consolidation": "0723a0d67ce86a7add2f0c3972d1e0b6783f0bbaeb0bf950098b1cf845cd085a",
+      "action": "retain",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "Draw the actual selected model variants from catalog configurations and canonical results."
+    },
+    {
+      "source": "tools/diagrams/build_chapter42_7epochs_a.py",
+      "sha256_before_consolidation": "1f44cab0472253ccc1165016025821a45a94435e3cfceb3b5e80487c214f9632",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_ic_unet.py",
+      "sha256_before_consolidation": "39e3db93420ab113c398824965a48c170b8c77a13d93d39f1802b2d095f2e8ea",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_dpae.py",
+      "sha256_before_consolidation": "aca2f7d8edeedb37f9c52279c58534945564ca7a72b828a768e39165506e7718",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_run7_compact_b.py",
+      "sha256_before_consolidation": "5764182813fac640b44f169f6fb4e6c48944b6792e32740435af0cae89e29cec",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_demucs_pa.py",
+      "sha256_before_consolidation": "9ddf4a1d5f3c38160af41cc82b1375ffce8ffc13b7bea2e15b91b3bd6ca5470f",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_run7_compact_c.py",
+      "sha256_before_consolidation": "1be06ec94fbafe8c454ee22590917eb439913c8638ae18c997a2190c0dcf3da7",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_st_gnn_pa.py",
+      "sha256_before_consolidation": "a0efa2a02530f4aa93eb993b7eef39b774b364b985b0615a30aada929b28d564",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_conv_tasnet_pa.py",
+      "sha256_before_consolidation": "4848f73d5b32adb7c4b5f86f3653380618be3ce77277bb7f3e336e264c3198b1",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_chapter42_7epochs_c.py",
+      "sha256_before_consolidation": "c4275e4976939a809c336c08fd659e97ea376d3242a9ae55af3972dac840f627",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_chapter42_7epochs_b.py",
+      "sha256_before_consolidation": "bd462f23233eb8a249b19df495d8f10243c4bf6be55599134143b6d44a7d9fbe",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_sepformer_pa.py",
+      "sha256_before_consolidation": "f0db47801e0852450d7c04fd1944b758f53a45c0521bc15b5c165b88bbbb043b",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_run7_compact_a.py",
+      "sha256_before_consolidation": "4d8dd1038f3cb6a1eb93ce8edf0cf4545f28342936c61f17eb8494c67c378bec",
+      "action": "consolidate",
+      "destination": "tools/diagrams/build_selected_variants.py",
+      "reason": "The catalog selects the current thesis variant; superseded diagram layouts are redundant."
+    },
+    {
+      "source": "tools/diagrams/build_nested_gan_pa.py",
+      "sha256_before_consolidation": "92a4b6a301e0353974fd63b766aa70050b366fbe3df96274b5923319d8e7ea12",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_cascaded_dae_v1_v2.py",
+      "sha256_before_consolidation": "52dd38a045bd2167bfa1a7441433934c4532979c8cb0498e568df1bf99366450",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_dhct_gan_pa.py",
+      "sha256_before_consolidation": "676b9e4019e680f76ff8036d486d88d74e5396e96c097ab85380c932235774bb",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_vit_spectrogram_pa.py",
+      "sha256_before_consolidation": "5ca945308b9caddb060f4542600139b8d036f2452b176ce739e7bfbc9172f867",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/diagrams/build_d4pm_pa.py",
+      "sha256_before_consolidation": "7df49372614d30fa1996e80720813f259f13d585a227875bfb4363cc2d014f43",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evidence_pack/build_pack.py",
+      "sha256_before_consolidation": "17f82cc27010ea20b1b928b6de23ba247856d1e205c10c9e737d0013f60f75c3",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evidence_pack/__init__.py",
+      "sha256_before_consolidation": "c10d952c3c1fced501d3c771c2a4c41c05f79e1b1c21bb02ef4ea99b56e2b88d",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evidence_pack/common.py",
+      "sha256_before_consolidation": "1262a752c0f19c2984ca3f8e2b85f72889d571c698ff5d06911383ea991b8672",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evidence_pack/figures.py",
+      "sha256_before_consolidation": "033010e59557cf4ca034674b17debfa79c1bde138849709eaa974d4d268fdf76",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evidence_pack/usage.py",
+      "sha256_before_consolidation": "1031ee64ffe73d8096959911944ae86b76548f38e988d0eac909c052cf0c2127",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/audit/probe_context_usage.py",
+      "sha256_before_consolidation": "f8653a92699c53bc61fd0bd16e544ab3ec19b7bd62428ba833df8627f88a0218",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/audit/measure_training_memory.py",
+      "sha256_before_consolidation": "bf0218cc5eb36e7ec017e3651e7f27a73cc8e172af76bada26b79e783e73065c",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/plotting/plot_phase2_prefilter_artifact.py",
+      "sha256_before_consolidation": "a578c93bf410f68623e45ba3cf6cf76b5fcd75102b8cb8e8c69dea45f90413d2",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/plotting/plot_run7_training_targets.py",
+      "sha256_before_consolidation": "ed3c1168d4397a7ef048180ce96eb4449d6385cba60fe92f7383f6593cc0bda3",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/plotting/plot_phase2_training_curves.py",
+      "sha256_before_consolidation": "6c2896e014f1acb8225f025a296df1b57608849c23d712ec0f8709c29a977afe",
+      "action": "consolidate",
+      "destination": "tools/plotting/training_histories.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/plotting/plot_denoisemamba_training_curves.py",
+      "sha256_before_consolidation": "f6750cae5cc68443960b8f71b413387358d4507775e3c9949efce04256eda801",
+      "action": "consolidate",
+      "destination": "tools/plotting/training_histories.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/plotting/plot_phase1_training_curves.py",
+      "sha256_before_consolidation": "c708c41fe06066c296a6a2b43a9eec9102cdbba3abfe0e50c5da36437908be9e",
+      "action": "consolidate",
+      "destination": "tools/plotting/training_histories.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/plotting/plot_phase2_family_artifact_window_fast.py",
+      "sha256_before_consolidation": "480b906882d72de0f19ef55f05d9793e349e6334959449818755534c856d768f",
+      "action": "retain",
+      "destination": "tools/plotting/plot_phase2_family_artifact_window_fast.py",
+      "reason": "Render selected model corrections over one aligned artifact epoch (Figure 28)."
+    },
+    {
+      "source": "tools/plotting/plot_phase0_signal_comparison.py",
+      "sha256_before_consolidation": "e2961157736d5358490d4992117814a5f0920ad2bc2762d8d495cb26c333177b",
+      "action": "retain",
+      "destination": "tools/plotting/plot_phase0_signal_comparison.py",
+      "reason": "Render the distinct delivery-run and earlier Phase-0 diagnostics (Figures 21\u201323)."
+    },
+    {
+      "source": "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+      "sha256_before_consolidation": "e3e2e3e27402b60e68c6e19458bce0fd82b4ec7be9593c79ee3eb3182311ecfb",
+      "action": "retain",
+      "destination": "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+      "reason": "Render matched primary deployment arms and their five-best comparison (Figure 30)."
+    },
+    {
+      "source": "tools/plotting/plot_phase2_prefilter_family_overview.py",
+      "sha256_before_consolidation": "573d491f63175b73581a6565c9dcd5409f61c74b044865f36e683d822f94dd77",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/plotting/plot_phase1_holdout_signal_comparison.py",
+      "sha256_before_consolidation": "d8832f556be803ff767919f2dc300b1acdb078a6bab02d4a3cc060b232d2e29c",
+      "action": "retain",
+      "destination": "tools/plotting/plot_phase1_holdout_signal_comparison.py",
+      "reason": "Render one shared holdout epoch from original prediction arrays (Figure 25)."
+    },
+    {
+      "source": "tools/benchmarks/benchmark_inference_clean.py",
+      "sha256_before_consolidation": "6ef5846f1bca502cacad06d0cb3b89101ea902a89cd0e183376fe7e1e3370aec",
+      "action": "consolidate",
+      "destination": "tools/refactoring_comparison/benchmark_models.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/refactoring_comparison/fidelity_register.py",
+      "sha256_before_consolidation": "c676b95c82ba16c537d4e4bfb9d8f05ab54c966384fa367c3d5e31b64b1e231e",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/refactoring_comparison/benchmark_models.py",
+      "sha256_before_consolidation": "3bd0ebd5a480d37870a133cb74a9c276ec68331527b0405898fa94a5a6f10a3b",
+      "action": "retain",
+      "destination": "tools/refactoring_comparison/benchmark_models.py",
+      "reason": "Measure Phase-1 inference cost with fresh-process repetitions and the saved holdout."
+    },
+    {
+      "source": "tools/refactoring_comparison/engineering_indicators.py",
+      "sha256_before_consolidation": "9bd7c820ed93afbf85c1a8e04c36fb091bee19dc618733526c75238c2cd33da3",
+      "action": "retain",
+      "destination": "tools/refactoring_comparison/engineering_indicators.py",
+      "reason": "Measure the fixed source-scope engineering indicators used by the thesis."
+    },
+    {
+      "source": "tools/refactoring_comparison/benchmark_legacy_vs_v2.py",
+      "sha256_before_consolidation": "75e9adc412db5cafd26cbd0222d06e2f28e12fdaf9dbc7d8b40d378e28ffdefd",
+      "action": "retain",
+      "destination": "tools/refactoring_comparison/benchmark_legacy_vs_v2.py",
+      "reason": "Compare matched classical pipelines in separate legacy/current interpreters."
+    },
+    {
+      "source": "tools/evaluation/eval_unified_holdout.py",
+      "sha256_before_consolidation": "659b232962a76c39507076697655659db30661dca0332a2117c1d00d93f4b4c7",
+      "action": "consolidate",
+      "destination": "masterthesis_guide/examples/evaluate_model.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/evaluation/aggregate_unified_holdout.py",
+      "sha256_before_consolidation": "e96cf2e5079ccd679a113cf17fc1a84162380f3fd0906141f76f324c4f8796a4",
+      "action": "consolidate",
+      "destination": "masterthesis_guide/catalog.yaml",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/evaluation/holdout_uncertainty.py",
+      "sha256_before_consolidation": "a30f317aa4ad5a8aeb8c924f150d7b383f4b7c8e56d2adf6c178c90b5204b6f7",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evaluation/pipeline_trigger_jitter.py",
+      "sha256_before_consolidation": "be9a930d6fc6dd090ebe58cc70982bf16841cf63c89a2cc4494e325d92273c71",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evaluation/paired_spike_comparison.py",
+      "sha256_before_consolidation": "ae0eac51c39e92199cec24819bc4bfce291748a43f1d60d189e415960b5d205c",
+      "action": "retain",
+      "destination": "tools/evaluation/paired_spike_comparison.py",
+      "reason": "Compare matching examples while preserving event-level dependence."
+    },
+    {
+      "source": "tools/evaluation/template_jitter_sweep.py",
+      "sha256_before_consolidation": "ceba4acf6a3d3262b2d2f5a93ba29ee67cfa193ae54df97e9e8a62baaffb0e6f",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/evaluation/eval_run6_spike_preservation.py",
+      "sha256_before_consolidation": "1b2bce5fc8a5806f1c74a6b9ac6a056916b5a6a6a29adff3bb3ca742ac311798",
+      "action": "retain",
+      "destination": "tools/evaluation/eval_run6_spike_preservation.py",
+      "reason": "Evaluate waveform fidelity on labelled spike examples with per-example outputs."
+    },
+    {
+      "source": "tools/evaluation/eval_phase2_snr_gain.py",
+      "sha256_before_consolidation": "66e97772de97cff27e7f35f112c39be03885dada91c6ae61b5d8918c88b15b36",
+      "action": "consolidate",
+      "destination": "masterthesis_guide/examples/evaluate_model.py",
+      "reason": "Use one maintained owner for the retained reproduction task."
+    },
+    {
+      "source": "tools/evaluation/compare_phase3_spike_aware.py",
+      "sha256_before_consolidation": "e129224b176d05ba8f25f31522f77abe51fdced3326af26069200cb5dfad64b7",
+      "action": "retain",
+      "destination": "tools/evaluation/compare_phase3_spike_aware.py",
+      "reason": "Compare original and retrained models on the same locked holdout and labelled spikes."
+    },
+    {
+      "source": "tools/evaluation/dump_spike_examples.py",
+      "sha256_before_consolidation": "aca6d481d53005346eaeca9ea6714941ce4afb48ea33e408ec10f9c99f76fbd4",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/fetch_runpod_results.sh",
+      "sha256_before_consolidation": "37dc90facdce10fcf9d0c1f8f188b068e2daebf417eb5f599a07b2aaf51159bd",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/fetch_runpod_results.sh",
+      "reason": "Retrieve selected completed job records from an explicitly selected worker."
+    },
+    {
+      "source": "tools/gpu_fleet/fetch_run8_results.sh",
+      "sha256_before_consolidation": "edb8a3164539bb8cc402745543e2feb4a59ec432f9ead14576a83f9201d70118",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/run_remote_training.sh",
+      "sha256_before_consolidation": "dd761e6a696a36db9f848455a723f6c2ad9c482cae76ca69b3d43f71ae584650",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/run_remote_training.sh",
+      "reason": "Run one configuration under a per-GPU lock and retain logs/exit status."
+    },
+    {
+      "source": "tools/gpu_fleet/fleet.py",
+      "sha256_before_consolidation": "13d2cefcdf0e53d946a8023b1d58050b6727981354c9561f15d5e9bbe3a0e023",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/fleet.py",
+      "reason": "Schedule independent single-GPU training jobs with a local queue."
+    },
+    {
+      "source": "tools/gpu_fleet/stop_when_done.sh",
+      "sha256_before_consolidation": "933ffa27f86fa6b7f4d3e297e9c3045ed36d16118f75545b2349177d6da46d89",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/sync_dataset_to_runpod.sh",
+      "sha256_before_consolidation": "2960c93ebdf8ee83590ee9e2283eb98565761934ce34c1b9c290a8548a45d5ae",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/sync_worktree_to_runpod.sh",
+      "sha256_before_consolidation": "50dcb85efcee31d3a41c1352a6e5532d439f0baddddf077f7c5ec4707be57721",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/sync_worktree_to_runpod.sh",
+      "reason": "Transfer a selected checkout to an explicitly selected worker, excluding large data and artifacts."
+    },
+    {
+      "source": "tools/gpu_fleet/remote_status.sh",
+      "sha256_before_consolidation": "36ec7ef6ce2e7c052ad7ed35e9f5b9d4e083ac453b6b3130e83500cae3425d63",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/bootstrap_runpod.sh",
+      "sha256_before_consolidation": "0ba370979c057c147395083583d1ef78f512628d2d3def7ca982e4c4bfa74837",
+      "action": "remove",
+      "reason": "No unique required thesis reproduction step remains here; interim diagnostics, alternate reports, host-specific wrappers and uncited architecture drawings remain in the source snapshot."
+    },
+    {
+      "source": "tools/gpu_fleet/workers.example.yaml",
+      "sha256_before_consolidation": "13a5e2ee5a49d18917ce9162e80021e1e710eaf6d81691ea784e4f67027c3d56",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/workers.example.yaml",
+      "reason": "Document the minimal worker configuration without personal hosts or credentials."
+    },
+    {
+      "source": "tools/gpu_fleet/check_torch.py",
+      "sha256_before_consolidation": "f9be97bc778a292e84186998d44456f3dca00756fe341f8f3b669be3f4e7eddd",
+      "action": "retain",
+      "destination": "tools/gpu_fleet/check_torch.py",
+      "reason": "Validate the training backend on an explicitly selected worker."
+    },
+    {
+      "source": null,
+      "destination": "tools/pipeline_demo/run_arms.py",
+      "action": "add",
+      "reason": "Generate matched FARM, uncorrected and selected model arms through the shared library pipeline."
+    },
+    {
+      "source": null,
+      "destination": "tools/plotting/artifact_amplitude.py",
+      "action": "add",
+      "reason": "Render the fixed proof-fit example used in thesis Figure 1."
+    },
+    {
+      "source": null,
+      "destination": "tools/plotting/spike_waveforms.py",
+      "action": "add",
+      "reason": "Render original/retrained/FARM/reference responses to the four injections (Figure 33)."
+    },
+    {
+      "source": null,
+      "destination": "tools/plotting/thesis_figures.py",
+      "action": "add",
+      "reason": "Render rankings and grid landscapes from canonical CSV evidence (Figures 24, 31, 32 and Weg-A)."
+    },
+    {
+      "source": null,
+      "destination": "tools/plotting/training_histories.py",
+      "action": "add",
+      "reason": "Render the original phase-specific training histories (Figures 26 and 29)."
+    },
+    {
+      "source": null,
+      "destination": "tools/diagrams/facetpy_svg.py",
+      "action": "add",
+      "reason": "Shared SVG primitives required by retained thesis diagram generators."
+    },
+    {
+      "source": null,
+      "destination": "tools/diagrams/build_facetpy_clean_reference_dataset.py",
+      "action": "add",
+      "reason": "Draw the independent-reference dataset construction flow."
+    },
+    {
+      "source": null,
+      "destination": "tools/diagrams/build_facetpy_dl_framework.py",
+      "action": "add",
+      "reason": "Draw the configuration-driven training and inference framework."
+    },
+    {
+      "source": null,
+      "destination": "tools/diagrams/build_facetpy_proof_fit_dataset.py",
+      "action": "add",
+      "reason": "Draw the AAS-derived proof-fit construction and run artifacts."
+    },
+    {
+      "source": null,
+      "destination": "tools/diagrams/build_facetpy_training_to_deployment.py",
+      "action": "add",
+      "reason": "Draw training orchestration and correction integration with explicit model ownership."
+    }
+  ]
+}

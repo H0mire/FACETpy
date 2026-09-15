@@ -39,10 +39,7 @@ _TAGS = (
     "torchscript",
     "artifact_prediction",
 )
-_DESCRIPTION = (
-    "Paper-accurate MAE-style asymmetric ViT spectrogram inpainter for fMRI "
-    "gradient artifact removal."
-)
+_DESCRIPTION = "Paper-accurate MAE-style asymmetric ViT spectrogram inpainter for fMRI gradient artifact removal."
 
 
 class ViTSpectrogramMAEAdapter(EpochContextArtifactAdapter):

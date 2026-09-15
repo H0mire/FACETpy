@@ -89,9 +89,7 @@ class IcUNetPaperAccurateAdapter(EpochContextArtifactAdapter):
         self._model: Any | None = None
         self._torch: Any | None = None
 
-        spec_output = (
-            DeepLearningOutputType.CLEAN if self.output_type == "clean" else DeepLearningOutputType.ARTIFACT
-        )
+        spec_output = DeepLearningOutputType.CLEAN if self.output_type == "clean" else DeepLearningOutputType.ARTIFACT
         self.spec = DeepLearningModelSpec(
             name="IcUNetPaperAccurateAdapter",
             architecture=DeepLearningArchitecture.UNET,

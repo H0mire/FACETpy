@@ -1,6 +1,6 @@
 """Build the AAS-decoupled spatio-temporal reference dataset (Run 3 / Weg A).
 
-This is the data foundation of ``docs/research/run_3_decoupled_dataset_weg_a.md``.
+This is the data foundation of ``docs/source/thesis_reference/datasets_evaluation.rst``.
 It turns a *single* artifact bundle (e.g. ``niazy_aas_pca4_direct`` produced by
 ``tools/dataset_building/extract_niazy_aas_pca4_artifact.py``) into a
 ``(N, context_epochs, 3, S+2G)`` training set where every example is one
@@ -150,7 +150,7 @@ def _guard_window(
     a, b = start - guard_native, stop + guard_native
     left_pad = max(0, -a)
     right_pad = max(0, b - n)
-    seg = signal[max(0, a):min(n, b)]
+    seg = signal[max(0, a) : min(n, b)]
     if left_pad or right_pad:
         seg = np.pad(seg, (left_pad, right_pad), mode="edge")
     return _resample_1d(seg, out_len)
@@ -275,7 +275,7 @@ def inject_spikes(
             center = int(rng.integers(half, n_samples - half))
             sign = 1.0 if rng.random() < 0.5 else -1.0
             scale = amplitude * (0.6 + 0.8 * rng.random())
-            out[ch, center - half: center + half + 1] += sign * scale * kernel
+            out[ch, center - half : center + half + 1] += sign * scale * kernel
             centers.append((ch, center))
     return out, centers
 
@@ -337,7 +337,7 @@ def inject_real_ieds(
         wf = np.asarray(ied["waveforms"], dtype=np.float64)  # (n_named, T) in volts
         names = list(ied["names"])
         t_pool = wf.shape[-1]
-        marker_pool = int(ied.get("marker", t_pool // 2))    # '!' onset (defaults to centre)
+        marker_pool = int(ied.get("marker", t_pool // 2))  # '!' onset (defaults to centre)
         if abs(pool_sfreq - clean_sfreq) > 1e-6:
             g = gcd(int(round(clean_sfreq)), int(round(pool_sfreq)))
             wf = resample_poly(wf, int(round(clean_sfreq)) // g, int(round(pool_sfreq)) // g, axis=-1)
@@ -360,8 +360,8 @@ def inject_real_ieds(
             slope, intercept = np.polyfit(edge_idx, wave[edge_idx], 1)
             wave = wave - (intercept + slope * grid)
             wave[:edge] *= ramp
-            wave[t_len - edge:] *= ramp[::-1]
-            out[idx, start:start + t_len] += wave.astype(np.float32)
+            wave[t_len - edge :] *= ramp[::-1]
+            out[idx, start : start + t_len] += wave.astype(np.float32)
             centers.append((idx, start + marker_r))
     return out.astype(np.float32), centers
 
@@ -413,7 +413,7 @@ def apply_artifact_failure_modes(
     n_channels, n_samples = art.shape
     rng = np.random.default_rng(seed)
     t = np.arange(n_samples, dtype=np.float64)
-    centres = ((np.asarray(starts, dtype=np.float64) + np.asarray(stops, dtype=np.float64)) / 2.0)
+    centres = (np.asarray(starts, dtype=np.float64) + np.asarray(stops, dtype=np.float64)) / 2.0
     n_epochs = centres.size
     if n_epochs < 2:
         return art.astype(np.float32)
@@ -435,11 +435,15 @@ def apply_artifact_failure_modes(
         g = gain_t
         if motion_drift_depth > 0:
             # Per-channel phase: motion modulates electrodes differently.
-            g = g * (1.0 + motion_drift_depth * np.sin(2.0 * np.pi * motion_drift_hz * t / sfreq + rng.uniform(0, 2 * np.pi)))
+            g = g * (
+                1.0 + motion_drift_depth * np.sin(2.0 * np.pi * motion_drift_hz * t / sfreq + rng.uniform(0, 2 * np.pi))
+            )
         out[c] = warped * g
         if helium_pump_uv > 0:
-            out[c] += (helium_pump_uv * 1e-6) * rng.uniform(0.5, 1.5) * np.sin(
-                2.0 * np.pi * helium_pump_hz * t / sfreq + rng.uniform(0, 2 * np.pi)
+            out[c] += (
+                (helium_pump_uv * 1e-6)
+                * rng.uniform(0.5, 1.5)
+                * np.sin(2.0 * np.pi * helium_pump_hz * t / sfreq + rng.uniform(0, 2 * np.pi))
             )
     return out.astype(np.float32)
 
@@ -557,9 +561,7 @@ def build_spatiotemporal_reference_dataset(
         pre_cut = int(round(pre.shape[1] * (1.0 - val_fraction)))
         pre_cut = int(np.clip(pre_cut, 1, pre.shape[1] - 1))
         clean_true = np.empty((n_channels, n_samples), dtype=np.float32)
-        clean_true[:, :split_sample] = resample_and_tile(
-            pre[:, :pre_cut], float(pretrigger_sfreq), sfreq, split_sample
-        )
+        clean_true[:, :split_sample] = resample_and_tile(pre[:, :pre_cut], float(pretrigger_sfreq), sfreq, split_sample)
         clean_true[:, split_sample:] = resample_and_tile(
             pre[:, pre_cut:], float(pretrigger_sfreq), sfreq, n_samples - split_sample
         )
@@ -577,7 +579,11 @@ def build_spatiotemporal_reference_dataset(
             if not real_ied_pool:
                 raise ValueError("spike_source='real_ied' requires real_ied_pool")
             clean_true, spike_centers = inject_real_ieds(
-                clean_true, sfreq, ch_names, real_ied_pool, float(real_ied_sfreq or sfreq),
+                clean_true,
+                sfreq,
+                ch_names,
+                real_ied_pool,
+                float(real_ied_sfreq or sfreq),
                 rate_hz=spike_rate_hz,
                 amplitude_scale=spike_amplitude_scale,
                 taper_s=spike_taper_s,
@@ -585,8 +591,12 @@ def build_spatiotemporal_reference_dataset(
             )
         else:  # synthetic
             clean_true, spike_centers = inject_spikes(
-                clean_true, sfreq, rate_hz=spike_rate_hz,
-                amplitude=spike_amplitude_uv * 1e-6, width_ms=spike_width_ms, seed=seed + 1,
+                clean_true,
+                sfreq,
+                rate_hz=spike_rate_hz,
+                amplitude=spike_amplitude_uv * 1e-6,
+                width_ms=spike_width_ms,
+                seed=seed + 1,
             )
 
     spikes_by_channel: dict[int, np.ndarray] = {}
@@ -610,7 +620,10 @@ def build_spatiotemporal_reference_dataset(
     artifact_template = artifact
     if failure_modes:
         artifact = apply_artifact_failure_modes(
-            artifact, sfreq, starts, stops,
+            artifact,
+            sfreq,
+            starts,
+            stops,
             epoch_amplitude_jitter=epoch_amplitude_jitter,
             epoch_timing_jitter_samples=epoch_timing_jitter_samples,
             motion_drift_depth=motion_drift_depth,
@@ -710,7 +723,8 @@ def build_spatiotemporal_reference_dataset(
     if n_guard_dropped:
         logger.info(
             "Dropped %d examples in the train/val guard band (%d epochs at the seam)",
-            n_guard_dropped, 2 * radius,
+            n_guard_dropped,
+            2 * radius,
         )
 
     # noisy is derivable (clean + artifact) and recomputed post-augmentation, so

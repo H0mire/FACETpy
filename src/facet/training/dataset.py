@@ -137,7 +137,7 @@ class WindowShift:
 
     @staticmethod
     def _crop(arr: np.ndarray, start: int, length: int) -> np.ndarray:
-        return arr[..., start:start + length]
+        return arr[..., start : start + length]
 
     @staticmethod
     def _gather(arr: np.ndarray, start_float: float, length: int) -> np.ndarray:
@@ -352,19 +352,18 @@ class NPZContextArtifactDataset:
         # :mod:`facet.training.deployment_losses` -- can only reach the clean and
         # noisy signals if they ride along as extra target rows. Default is the
         # empty tuple, so every existing config keeps its exact contract.
-        _EXTRA_KEYS = {"clean": "clean_center", "noisy": "noisy_center",
-                       "artifact": "artifact_center"}
+        _EXTRA_KEYS = {"clean": "clean_center", "noisy": "noisy_center", "artifact": "artifact_center"}
         for extra in target_extras:
             if extra not in _EXTRA_KEYS:
-                raise ValueError(
-                    f"target_extras entries must be one of {sorted(_EXTRA_KEYS)}, got {extra!r}")
+                raise ValueError(f"target_extras entries must be one of {sorted(_EXTRA_KEYS)}, got {extra!r}")
         self.target_extras = tuple(target_extras)
 
         with np.load(self.path, allow_pickle=False) as bundle:
             self.noisy = bundle[input_key].astype(np.float32, copy=False)
             self.target = bundle[target_key].astype(np.float32, copy=False)
-            self.extras = {name: bundle[_EXTRA_KEYS[name]].astype(np.float32, copy=False)
-                           for name in self.target_extras}
+            self.extras = {
+                name: bundle[_EXTRA_KEYS[name]].astype(np.float32, copy=False) for name in self.target_extras
+            }
             self.sfreq = float(bundle["sfreq"][0]) if "sfreq" in bundle else float("nan")
 
         if self.noisy.shape[0] != self.target.shape[0]:
@@ -430,8 +429,9 @@ class NPZContextArtifactDataset:
         ``rows=dataset.target_rows`` cannot disagree with the dataset about which
         row is which.
         """
-        primary = {"artifact_center": "artifact", "clean_center": "clean",
-                   "noisy_center": "noisy"}.get(self.target_key, self.target_type)
+        primary = {"artifact_center": "artifact", "clean_center": "clean", "noisy_center": "noisy"}.get(
+            self.target_key, self.target_type
+        )
         return (primary, *self.target_extras)
 
     @property
@@ -536,9 +536,7 @@ class NPZSpatioTemporalDataset:
             self.center_epoch_index = b["center_epoch_index"].astype(np.int64, copy=False)
             # Builder-supplied leakage-free split (0=train, 1=val); absent in
             # datasets built before run_3 §7.
-            self.example_split = (
-                b["example_split"].astype(np.int64, copy=False) if "example_split" in b else None
-            )
+            self.example_split = b["example_split"].astype(np.int64, copy=False) if "example_split" in b else None
             # AAS/FARM-removable part of the artifact, per context epoch and centre
             # epoch; present in datasets built after run_6 §3c.
             self.template_ctx = (
@@ -633,7 +631,9 @@ class NPZSpatioTemporalDataset:
         if self.background_mix_prob > 0.0 and self.target_key == "clean_center":
             logger.warning("background_mix disabled: it is incompatible with target_key='clean_center'")
             self.background_mix_prob = 0.0
-        self._bg_mix = BackgroundMix(prob=self.background_mix_prob, seed=seed + 1) if self.background_mix_prob > 0 else None
+        self._bg_mix = (
+            BackgroundMix(prob=self.background_mix_prob, seed=seed + 1) if self.background_mix_prob > 0 else None
+        )
         self._bg_rng = np.random.default_rng(seed + 2)
         self._alt_groups = self._build_alt_groups() if self._bg_mix is not None else {}
         self._window_shift = WindowShift(
@@ -701,7 +701,7 @@ class NPZSpatioTemporalDataset:
     def get_spike_labels(self, idx: int) -> np.ndarray:
         """Center-cropped spike mask ``(1, core_samples)`` for run_6 eval."""
         start = self.guard_samples
-        return self.spike[idx][..., start:start + self.core_samples].copy()
+        return self.spike[idx][..., start : start + self.core_samples].copy()
 
     @property
     def n_channels(self) -> int:

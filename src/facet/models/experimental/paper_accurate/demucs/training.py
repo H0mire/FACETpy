@@ -101,7 +101,9 @@ def _build_kaiser_sinc_kernel(zeros: int, factor: int, rolloff: float = 0.945) -
     alpha = (idx.numel() - 1) / 2.0
     ratio = (n - alpha) / alpha
     ratio = torch.clamp(ratio, -1.0, 1.0)
-    window = torch.special.i0(beta * torch.sqrt(1.0 - ratio**2)) / torch.special.i0(torch.tensor(beta, dtype=torch.float64))
+    window = torch.special.i0(beta * torch.sqrt(1.0 - ratio**2)) / torch.special.i0(
+        torch.tensor(beta, dtype=torch.float64)
+    )
     kernel = sinc * window
     kernel = kernel / kernel.sum()
     return kernel.to(torch.float32)

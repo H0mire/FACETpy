@@ -1,0 +1,92 @@
+import copy
+import importlib.util
+from pathlib import Path
+
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location("thesis_reproduce", ROOT / "masterthesis_guide/reproduce.py")
+reproduce = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(reproduce)
+
+
+def test_catalog_associations_are_valid():
+    assert reproduce.validate(reproduce.load_catalog()) == []
+
+
+def test_catalog_rejects_duplicate_keys(tmp_path):
+    path = tmp_path / "catalog.yaml"
+    path.write_text("models: {}\nmodels: {}\n")
+    with pytest.raises(ValueError, match="Duplicate"):
+        reproduce.load_catalog(path)
+
+
+def test_catalog_rejects_dangling_artifact_reference():
+    catalog = copy.deepcopy(reproduce.load_catalog())
+    catalog["experiments"]["holdout_demucs"]["artifacts"].append("nonexistent")
+    assert any("unknown artifact" in error for error in reproduce.validate(catalog))
+
+
+def test_resolver_rejects_symlink_escape(tmp_path):
+    root = tmp_path / "checkout"
+    root.mkdir()
+    (root / "outside").symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(ValueError, match="escapes"):
+        reproduce.repository_path("outside/file", root)
+
+
+def test_protected_reference_titles_are_preserved():
+    import json
+
+    fixture = json.loads((ROOT / "tests/fixtures/thesis_references.json").read_text())
+    for reference in fixture["references"]:
+        source = ROOT / "docs/source" / (reference["docname"] + ".rst")
+        assert source.read_text().splitlines()[0] == reference["title"]
+
+
+def test_explicit_evaluated_checkpoint_precedes_another_export(tmp_path, monkeypatch):
+    """The final training export must not displace the recorded best checkpoint."""
+    checkpoint = tmp_path / "best.pt"
+    checkpoint.write_bytes(b"recorded evaluated weights")
+    export = tmp_path / "last.ts"
+    export.write_bytes(b"different last-epoch weights")
+    monkeypatch.setattr(reproduce, "repository_path", lambda path: tmp_path / path)
+    catalog = {
+        "experiments": {
+            "run": {"model": "demucs_deployment_edition", "artifacts": ["last", "best"], "inference_artifact": "best"}
+        },
+        "artifacts": {
+            name: {
+                "path": path.name,
+                "kind": kind,
+                "role": role,
+                "bytes": path.stat().st_size,
+                "sha256": reproduce.sha256(path),
+            }
+            for name, path, kind, role in [
+                ("last", export, "export", "cpu_export"),
+                ("best", checkpoint, "checkpoint", "evaluated_best_checkpoint"),
+            ]
+        },
+    }
+    assert reproduce.selected_artifact("run", catalog) == ("best", checkpoint)
+
+
+def test_guide_preserves_the_selected_dhct_context_axis(tmp_path, monkeypatch):
+    monkeypatch.setattr(reproduce, "selected_artifact", lambda *args, **kwargs: ("fixture", tmp_path / "fixture.pt"))
+    catalog = reproduce.load_catalog()
+    primary = reproduce.adapter("deployment_dhct_gan", catalog)
+    selected = reproduce.adapter("run8_dhct_gan_lr0_0001_bc8_sisdr0_s42", catalog)
+    assert primary.packing.packing == "b1s"
+    assert primary.packing.context == "single"
+    assert selected.packing.packing == "b1ts"
+    assert selected.packing.context == "stack"
+
+
+def test_lfs_pointer_fails_before_model_loading(tmp_path):
+    from facet.models.masterthesis.adapters import require_artifact
+
+    pointer = tmp_path / "model.pt"
+    pointer.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:" + "0" * 64 + "\nsize 10\n")
+    with pytest.raises(FileNotFoundError, match="Git LFS pointer"):
+        require_artifact(pointer)

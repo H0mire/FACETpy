@@ -71,9 +71,13 @@ class DeploymentArtifactModel(nn.Module):
     context on its own axis, pass that axis in ``normalise_dims``.
     """
 
-    def __init__(self, normalise: bool = True, identity_init: bool = True,
-                 demean_output: bool = True,
-                 normalise_dims: tuple[int, ...] = (-1,)) -> None:
+    def __init__(
+        self,
+        normalise: bool = True,
+        identity_init: bool = True,
+        demean_output: bool = True,
+        normalise_dims: tuple[int, ...] = (-1,),
+    ) -> None:
         super().__init__()
         self.normalise = bool(normalise)
         self.identity_init = bool(identity_init)
@@ -133,7 +137,7 @@ class DeploymentArtifactModel(nn.Module):
 
 
 #: Input layouts the fourteen families use, and where the centre epoch lives in
-#: each. Copied from ``tools/pipeline_demo/family_adapters.py`` deliberately: the
+#: each. Copied from ``src/facet/models/masterthesis/adapters.py`` deliberately: the
 #: training-time packing and the inference-time packing have to agree, and the
 #: verification script asserts they do.
 PACKINGS = {
@@ -164,8 +168,15 @@ PACKINGS = {
 #: whole recording, and the two TensorFlow variants used dataset-level
 #: per-channel constants -- fixed numbers a channel-attention block can learn
 #: back, unlike a per-example rescaling, which leaves nothing to learn.
-_CONTEXT_DIMS = {"b1s": (-1,), "bcs": (1, -1), "bt1s": (1, -1), "bts": (1, -1),
-                 "b1ts": (-1,), "bcts": (1, -1), "btcs": (1, 2, -1)}
+_CONTEXT_DIMS = {
+    "b1s": (-1,),
+    "bcs": (1, -1),
+    "bt1s": (1, -1),
+    "bts": (1, -1),
+    "b1ts": (-1,),
+    "bcts": (1, -1),
+    "btcs": (1, 2, -1),
+}
 
 
 class PackedDeploymentModel(DeploymentArtifactModel):
@@ -214,9 +225,16 @@ class PackedDeploymentModel(DeploymentArtifactModel):
         artifact = model(torch.randn(4, 7, 1, 512))
     """
 
-    def __init__(self, core: nn.Module, packing: str, context_epochs: int,
-                 epoch_samples: int, core_output: str = "clean",
-                 core_output_index: int = 1, **kwargs) -> None:
+    def __init__(
+        self,
+        core: nn.Module,
+        packing: str,
+        context_epochs: int,
+        epoch_samples: int,
+        core_output: str = "clean",
+        core_output_index: int = 1,
+        **kwargs,
+    ) -> None:
         if packing not in PACKINGS:
             raise ValueError(f"unknown packing {packing!r}; known: {sorted(PACKINGS)}")
         if core_output not in {"clean", "artifact", "sources"}:
@@ -245,7 +263,7 @@ class PackedDeploymentModel(DeploymentArtifactModel):
             return tensor[:, self.centre_index] if tensor.shape[1] == self.context_epochs else tensor
         # b1ts / bcts: the context is concatenated along time.
         if tensor.shape[-1] == self.context_epochs * self.epoch_samples:
-            return tensor[..., self.centre_start:self.centre_stop]
+            return tensor[..., self.centre_start : self.centre_stop]
         return tensor
 
     def centre_of(self, x: torch.Tensor) -> torch.Tensor:
@@ -256,15 +274,15 @@ class PackedDeploymentModel(DeploymentArtifactModel):
         if self.core_output == "sources":
             if out.dim() < 3 or out.shape[1] <= self.core_output_index:
                 raise RuntimeError(
-                    f"core returned {tuple(out.shape)}; expected sources on axis 1 with "
-                    f"index {self.core_output_index}")
+                    f"core returned {tuple(out.shape)}; expected sources on axis 1 with index {self.core_output_index}"
+                )
             out = out[:, self.core_output_index]
         centre_noisy = self.centre_of(x)
         centre = self._read_centre(out)
         if centre.numel() != centre_noisy.numel():
             raise RuntimeError(
-                f"core output {tuple(out.shape)} does not reduce to the centre epoch "
-                f"{tuple(centre_noisy.shape)}")
+                f"core output {tuple(out.shape)} does not reduce to the centre epoch {tuple(centre_noisy.shape)}"
+            )
         centre = centre.reshape(centre_noisy.shape)
         if self.core_output in ("artifact", "sources"):
             # forward() computes centre - core_clean, so hand back what makes

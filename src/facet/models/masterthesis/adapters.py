@@ -19,12 +19,11 @@ from facet.correction.deep_learning import (
     DeepLearningExecutionGranularity,
     DeepLearningModelSpec,
     DeepLearningOutputType,
-    DeepLearningRuntime,
     DeepLearningPrediction,
+    DeepLearningRuntime,
     EpochContextArtifactAdapter,
     _resample_1d,
 )
-
 
 
 @dataclass(frozen=True)
@@ -33,70 +32,148 @@ class PackingSpec:
 
     model_id: str
     family: str
-    context: str            # "single" | "stack"
-    packing: str            # see predict_from_context
-    demean: str             # "per_segment" | "per_epoch" | "single_mean" | "per_channel" | "none"
-    output: str             # "artifact" | "clean" | "sources"
+    context: str  # "single" | "stack"
+    packing: str  # see predict_from_context
+    demean: str  # "per_segment" | "per_epoch" | "single_mean" | "per_channel" | "none"
+    output: str  # "artifact" | "clean" | "sources"
     multichannel: bool = False
     slice_centre: bool = False
     remove_prediction_dc: bool = False
-    loader: str = "torchscript"     # "torchscript" | "python_source" | "d4pm"
-    sampler: str = ""               # "" = plain forward; "d4pm" = DDPM reverse loop
+    loader: str = "torchscript"  # "torchscript" | "python_source" | "d4pm"
+    sampler: str = ""  # "" = plain forward; "d4pm" = DDPM reverse loop
     batch_size: int = 32
     note: str = ""
 
 
 FAMILY_SPECS: dict[str, PackingSpec] = {
     "dpae": PackingSpec(
-        "dpae", "Discriminative", "single", "b1s", "per_segment", "artifact",
-        remove_prediction_dc=True, batch_size=128,
-        note="(B,1,S) in, (B,1,S) artifact out."),
+        "dpae",
+        "Discriminative",
+        "single",
+        "b1s",
+        "per_segment",
+        "artifact",
+        remove_prediction_dc=True,
+        batch_size=128,
+        note="(B,1,S) in, (B,1,S) artifact out.",
+    ),
     "cascaded_dae": PackingSpec(
-        "cascaded_dae", "Autoencoder (cascaded MLP)", "single", "b1s", "per_segment",
-        "artifact", remove_prediction_dc=True, batch_size=256,
-        note="Identical contract to DPAE."),
+        "cascaded_dae",
+        "Autoencoder (cascaded MLP)",
+        "single",
+        "b1s",
+        "per_segment",
+        "artifact",
+        remove_prediction_dc=True,
+        batch_size=256,
+        note="Identical contract to DPAE.",
+    ),
     "dhct_gan": PackingSpec(
-        "dhct_gan", "GAN (single-epoch)", "single", "b1s", "per_segment", "artifact",
-        remove_prediction_dc=True, batch_size=128,
-        note="Single epoch, no context — kept for completeness."),
+        "dhct_gan",
+        "GAN (single-epoch)",
+        "single",
+        "b1s",
+        "per_segment",
+        "artifact",
+        remove_prediction_dc=True,
+        batch_size=128,
+        note="Single epoch, no context — kept for completeness.",
+    ),
     "denoise_mamba": PackingSpec(
-        "denoise_mamba", "SSM", "single", "b1s", "per_segment", "artifact",
-        remove_prediction_dc=True, loader="python_source", batch_size=128,
-        note="TorchScript has a CUDA device baked into the SSM scan; rebuilt from source."),
+        "denoise_mamba",
+        "SSM",
+        "single",
+        "b1s",
+        "per_segment",
+        "artifact",
+        remove_prediction_dc=True,
+        loader="python_source",
+        batch_size=128,
+        note="TorchScript has a CUDA device baked into the SSM scan; rebuilt from source.",
+    ),
     "conv_tasnet": PackingSpec(
-        "conv_tasnet", "Audio (TCN)", "single", "b1s", "per_segment", "sources",
-        batch_size=64, note="(B,n_sources,S) out; source 1 is the artifact."),
+        "conv_tasnet",
+        "Audio (TCN)",
+        "single",
+        "b1s",
+        "per_segment",
+        "sources",
+        batch_size=64,
+        note="(B,n_sources,S) out; source 1 is the artifact.",
+    ),
     "d4pm": PackingSpec(
-        "d4pm", "Diffusion", "single", "b1s", "per_segment", "artifact",
-        loader="d4pm", sampler="d4pm", batch_size=64,
-        note="DDPM reverse loop; the shipped .ts is a stub. Slow."),
+        "d4pm",
+        "Diffusion",
+        "single",
+        "b1s",
+        "per_segment",
+        "artifact",
+        loader="d4pm",
+        sampler="d4pm",
+        batch_size=64,
+        note="DDPM reverse loop; the shipped .ts is a stub. Slow.",
+    ),
     "sepformer": PackingSpec(
-        "sepformer", "Audio (Transformer)", "stack", "bt1s", "per_epoch", "artifact",
-        batch_size=32),
-    "nested_gan": PackingSpec(
-        "nested_gan", "GAN (TF+Time)", "stack", "bt1s", "per_epoch", "artifact",
-        batch_size=32),
+        "sepformer", "Audio (Transformer)", "stack", "bt1s", "per_epoch", "artifact", batch_size=32
+    ),
+    "nested_gan": PackingSpec("nested_gan", "GAN (TF+Time)", "stack", "bt1s", "per_epoch", "artifact", batch_size=32),
     "cascaded_context_dae": PackingSpec(
-        "cascaded_context_dae", "Autoencoder (context MLP)", "stack", "bt1s", "per_epoch",
-        "artifact", batch_size=128),
+        "cascaded_context_dae", "Autoencoder (context MLP)", "stack", "bt1s", "per_epoch", "artifact", batch_size=128
+    ),
     "vit_spectrogram": PackingSpec(
-        "vit_spectrogram", "Vision (MAE)", "stack", "bt1s", "per_epoch", "clean",
-        batch_size=32, note="Predicts the CLEAN centre epoch, not the artifact."),
+        "vit_spectrogram",
+        "Vision (MAE)",
+        "stack",
+        "bt1s",
+        "per_epoch",
+        "clean",
+        batch_size=32,
+        note="Predicts the CLEAN centre epoch, not the artifact.",
+    ),
     "dhct_gan_v2": PackingSpec(
-        "dhct_gan_v2", "GAN (hybrid CNN+Transformer)", "stack", "bts", "per_epoch",
-        "artifact", batch_size=64, note="Flat (B,T,S) packing, not (B,T,1,S)."),
+        "dhct_gan_v2",
+        "GAN (hybrid CNN+Transformer)",
+        "stack",
+        "bts",
+        "per_epoch",
+        "artifact",
+        batch_size=64,
+        note="Flat (B,T,S) packing, not (B,T,1,S).",
+    ),
     "demucs": PackingSpec(
-        "demucs", "Audio (U-Net+LSTM)", "stack", "b1ts", "single_mean", "artifact",
-        slice_centre=True, batch_size=16,
-        note="Seven epochs concatenated; one mean over the whole stack; centre sliced."),
+        "demucs",
+        "Audio (U-Net+LSTM)",
+        "stack",
+        "b1ts",
+        "single_mean",
+        "artifact",
+        slice_centre=True,
+        batch_size=16,
+        note="Seven epochs concatenated; one mean over the whole stack; centre sliced.",
+    ),
     "ic_unet": PackingSpec(
-        "ic_unet", "Discriminative + ICA", "stack", "bcts", "per_channel", "artifact",
-        multichannel=True, slice_centre=True, batch_size=8,
-        note="All channels at once, epochs concatenated along time."),
+        "ic_unet",
+        "Discriminative + ICA",
+        "stack",
+        "bcts",
+        "per_channel",
+        "artifact",
+        multichannel=True,
+        slice_centre=True,
+        batch_size=8,
+        note="All channels at once, epochs concatenated along time.",
+    ),
     "st_gnn": PackingSpec(
-        "st_gnn", "Graph (GNN)", "stack", "btcs", "per_epoch", "artifact",
-        multichannel=True, batch_size=8,
-        note="Full multichannel context; channel order is load-bearing."),
+        "st_gnn",
+        "Graph (GNN)",
+        "stack",
+        "btcs",
+        "per_epoch",
+        "artifact",
+        multichannel=True,
+        batch_size=8,
+        note="Full multichannel context; channel order is load-bearing.",
+    ),
 }
 
 
@@ -116,18 +193,17 @@ DEPLOYMENT_SPECS: dict[str, PackingSpec] = {
         context=spec.context,
         packing=spec.packing,
         demean="none",
-        output="artifact",              # every edition returns the artifact
+        output="artifact",  # every edition returns the artifact
         multichannel=spec.multichannel,
-        slice_centre=False,             # the model slices its own centre
+        slice_centre=False,  # the model slices its own centre
         remove_prediction_dc=False,
         loader="torchscript",
         sampler="",
         batch_size=spec.batch_size,
         note=f"Deployment edition of {model_id}: same network, recovered-clean objective.",
-
     )
     for model_id, spec in FAMILY_SPECS.items()
-    if model_id != "d4pm"               # the diffusion sampler is not wired here
+    if model_id != "d4pm"  # the diffusion sampler is not wired here
 }
 
 
@@ -153,6 +229,7 @@ def _forward(model, batch: np.ndarray, device: str) -> np.ndarray:
     not an optimisation — without it the whole adapter is CPU-only.
     """
     import torch
+
     x = torch.as_tensor(np.ascontiguousarray(batch, dtype=np.float32), device=device)
     with torch.no_grad():
         out = model(x)
@@ -161,8 +238,8 @@ def _forward(model, batch: np.ndarray, device: str) -> np.ndarray:
 
 def _batched(model, arr: np.ndarray, batch_size: int, device: str) -> np.ndarray:
     return np.concatenate(
-        [_forward(model, arr[i:i + batch_size], device) for i in range(0, arr.shape[0], batch_size)],
-        axis=0)
+        [_forward(model, arr[i : i + batch_size], device) for i in range(0, arr.shape[0], batch_size)], axis=0
+    )
 
 
 #: D4PM sampler settings, taken from ``tools/evaluation/eval_unified_holdout.py:infer_d4pm``
@@ -191,11 +268,12 @@ def _d4pm_sample(module, arr: np.ndarray, batch_size: int, device: str) -> np.nd
     with torch.no_grad():
         for start in range(0, arr.shape[0], batch_size):
             noisy_y = torch.as_tensor(
-                np.ascontiguousarray(arr[start:start + batch_size], dtype=np.float32),
-                dtype=torch.float32, device=device)
+                np.ascontiguousarray(arr[start : start + batch_size], dtype=np.float32),
+                dtype=torch.float32,
+                device=device,
+            )
             h_t = torch.randn_like(noisy_y)
-            step_indices = torch.linspace(
-                module.num_steps - 1, 0, D4PM_SAMPLE_STEPS, device=device).long()
+            step_indices = torch.linspace(module.num_steps - 1, 0, D4PM_SAMPLE_STEPS, device=device).long()
             for step_idx, t_int in enumerate(step_indices.tolist()):
                 t_tensor = torch.full((noisy_y.shape[0],), t_int, dtype=torch.long, device=device)
                 noise_level = module.sqrt_alphas_cumprod[t_tensor]
@@ -209,14 +287,19 @@ def _d4pm_sample(module, arr: np.ndarray, batch_size: int, device: str) -> np.nd
                     h_t = h0_pred
                     break
                 t_prev = step_indices[step_idx + 1].item()
-                h_t = (module.sqrt_alphas_cumprod[t_prev] * h0_pred
-                       + module.sqrt_one_minus_alphas_cumprod[t_prev] * torch.randn_like(h_t))
+                h_t = module.sqrt_alphas_cumprod[t_prev] * h0_pred + module.sqrt_one_minus_alphas_cumprod[
+                    t_prev
+                ] * torch.randn_like(h_t)
             out.append(h_t.detach().cpu().float().numpy())
     return np.concatenate(out, axis=0)
 
 
 def predict_from_context(
-    spec: PackingSpec, model: Any, ctx: np.ndarray, *, device: str,
+    spec: PackingSpec,
+    model: Any,
+    ctx: np.ndarray,
+    *,
+    device: str,
     batch_size: int | None = None,
 ) -> np.ndarray:
     """Artifact estimate of the centre epoch for every channel.
@@ -228,19 +311,18 @@ def predict_from_context(
     verification script call it, so the two can never disagree.
     """
     if spec.sampler and spec.multichannel:
-        raise NotImplementedError(
-            f"{spec.model_id}: samplers are only wired for the single-channel path")
+        raise NotImplementedError(f"{spec.model_id}: samplers are only wired for the single-channel path")
     n, t, c, s = ctx.shape
     centre = t // 2
     bs = batch_size or spec.batch_size
     ctx = ctx.astype(np.float32, copy=True)
 
     if spec.multichannel:
-        if spec.packing == "bcts":                      # (N, C, T*S)
+        if spec.packing == "bcts":  # (N, C, T*S)
             x = _demean(ctx.transpose(0, 2, 1, 3).reshape(n, c, t * s), spec.demean)
-        elif spec.packing == "btcs":                    # (N, T, C, S)
+        elif spec.packing == "btcs":  # (N, T, C, S)
             x = _demean(ctx, spec.demean)
-        elif spec.packing == "bcs":                     # (N, C, S), centre epoch only
+        elif spec.packing == "bcs":  # (N, C, S), centre epoch only
             # Every electrode, one epoch. The contract the FACETpy 0.1.0 DAE had,
             # and the one the single-epoch families were missing entirely.
             x = _demean(ctx[:, centre], spec.demean)
@@ -250,7 +332,7 @@ def predict_from_context(
         if out.ndim != 3 or out.shape[1] != c:
             raise RuntimeError(f"{spec.model_id}: unexpected output {out.shape}")
         if out.shape[2] == t * s:
-            out = out[:, :, centre * s:(centre + 1) * s]
+            out = out[:, :, centre * s : (centre + 1) * s]
         elif out.shape[2] != s:
             raise RuntimeError(f"{spec.model_id}: time dim {out.shape[2]} is neither {s} nor {t * s}")
         if spec.remove_prediction_dc:
@@ -264,17 +346,16 @@ def predict_from_context(
             flat = ctx[:, centre].transpose(0, 1, 2).reshape(n * c, 1, s)
             x = _demean(flat, spec.demean)
         else:
-            stack = ctx.transpose(0, 2, 1, 3).reshape(n * c, t, s)    # (N*C, T, S)
+            stack = ctx.transpose(0, 2, 1, 3).reshape(n * c, t, s)  # (N*C, T, S)
             if spec.packing == "bt1s":
-                x = _demean(stack[:, :, None, :], spec.demean)        # (N*C, T, 1, S)
+                x = _demean(stack[:, :, None, :], spec.demean)  # (N*C, T, 1, S)
             elif spec.packing == "bts":
                 x = _demean(stack, spec.demean)
             elif spec.packing == "b1ts":
                 x = _demean(stack, spec.demean).reshape(n * c, 1, t * s)
             else:
                 raise ValueError(f"{spec.model_id}: unknown packing {spec.packing!r}")
-        out = (_d4pm_sample(model, x, bs, device) if spec.sampler == "d4pm"
-               else _batched(model, x, bs, device))
+        out = _d4pm_sample(model, x, bs, device) if spec.sampler == "d4pm" else _batched(model, x, bs, device)
         if spec.output == "sources":
             if out.ndim != 3 or out.shape[1] < 2:
                 raise RuntimeError(f"{spec.model_id}: expected sources, got {out.shape}")
@@ -286,7 +367,7 @@ def predict_from_context(
         if out.ndim != 2:
             raise RuntimeError(f"{spec.model_id}: unexpected output {out.shape}")
         if spec.slice_centre and out.shape[-1] == t * s:
-            out = out[:, centre * s:(centre + 1) * s]
+            out = out[:, centre * s : (centre + 1) * s]
         out = out[:, -s:]
         if spec.remove_prediction_dc:
             out = out - out.mean(axis=-1, keepdims=True)
@@ -295,13 +376,14 @@ def predict_from_context(
     if spec.output == "clean":
         # The model predicts the clean centre epoch in demeaned space, so the
         # artifact is what is left of the demeaned noisy centre.
-        noisy_centre = ctx[:, centre].transpose(0, 1, 2)              # (N, C, S)
+        noisy_centre = ctx[:, centre].transpose(0, 1, 2)  # (N, C, S)
         noisy_centre = noisy_centre - noisy_centre.mean(axis=-1, keepdims=True)
         pred = noisy_centre - pred
     return pred.astype(np.float32, copy=False)
 
 
 # ------------------------------------------------------------------ loading
+
 
 def require_artifact(path: str | Path) -> Path:
     """Reject missing weights and Git LFS pointers before backend loading."""
@@ -313,15 +395,21 @@ def require_artifact(path: str | Path) -> Path:
     if header.startswith(b"version https://git-lfs.github.com/spec/v1"):
         raise FileNotFoundError(
             f"{path} is a Git LFS pointer. Materialize this artifact with Git LFS "
-            "or supply its local binary file before loading the model.")
+            "or supply its local binary file before loading the model."
+        )
     if not header:
         raise ValueError(f"Model artifact is empty: {path}")
     return path
 
 
-def load_model(model_id: str, device: str = "cpu", *,
-               checkpoint: str | Path, model_factory=None,
-               model_kwargs: dict[str, Any] | None = None):
+def load_model(
+    model_id: str,
+    device: str = "cpu",
+    *,
+    checkpoint: str | Path,
+    model_factory=None,
+    model_kwargs: dict[str, Any] | None = None,
+):
     """Load an explicit export or a strict state dictionary.
 
     TorchScript exports load on CPU before conversion to the requested device.
@@ -330,6 +418,7 @@ def load_model(model_id: str, device: str = "cpu", *,
     Callers select CPU-compatible exports explicitly; no alternative is searched.
     """
     import importlib
+
     import torch
 
     path = require_artifact(checkpoint)
@@ -340,15 +429,40 @@ def load_model(model_id: str, device: str = "cpu", *,
     if model_factory is None:
         if model_id == "denoise_mamba":
             from facet.models.masterthesis.denoise_mamba.training import build_model
+
             model_factory = build_model
-            kwargs = dict(epoch_samples=512, d_model=64, d_state=16, expand=2,
-                          d_conv=4, n_blocks=4, dropout=0.1, input_kernel_size=7) | kwargs
+            kwargs = (
+                dict(
+                    epoch_samples=512,
+                    d_model=64,
+                    d_state=16,
+                    expand=2,
+                    d_conv=4,
+                    n_blocks=4,
+                    dropout=0.1,
+                    input_kernel_size=7,
+                )
+                | kwargs
+            )
         elif model_id == "d4pm":
             from facet.models.masterthesis.d4pm.training import D4PMTrainingModule
+
             model_factory = D4PMTrainingModule
-            kwargs = dict(epoch_samples=512, num_steps=200, beta_start=1e-4,
-                          beta_end=0.02, feats=64, d_model=128, d_ff=512,
-                          n_heads=2, n_layers=2, embed_dim=128) | kwargs
+            kwargs = (
+                dict(
+                    epoch_samples=512,
+                    num_steps=200,
+                    beta_start=1e-4,
+                    beta_end=0.02,
+                    feats=64,
+                    d_model=128,
+                    d_ff=512,
+                    n_heads=2,
+                    n_layers=2,
+                    embed_dim=128,
+                )
+                | kwargs
+            )
         else:
             raise ValueError("State dictionaries require model_factory and the recorded model_kwargs.")
     if isinstance(model_factory, str):
@@ -376,9 +490,36 @@ def load_model(model_id: str, device: str = "cpu", *,
 #: differently ordered montage produces a plausible-looking but wrong result, so
 #: the order is asserted rather than assumed.
 TRAINING_CHANNEL_ORDER = [
-    "Fp1", "Fp2", "F7", "F3", "Fz", "F4", "F8", "T3", "C3", "Cz",
-    "C4", "T4", "T5", "P3", "Pz", "P4", "T6", "O1", "O2", "AF4",
-    "AF3", "FC2", "FC1", "CP1", "CP2", "PO3", "PO4", "FC6", "FC5", "CP5",
+    "Fp1",
+    "Fp2",
+    "F7",
+    "F3",
+    "Fz",
+    "F4",
+    "F8",
+    "T3",
+    "C3",
+    "Cz",
+    "C4",
+    "T4",
+    "T5",
+    "P3",
+    "Pz",
+    "P4",
+    "T6",
+    "O1",
+    "O2",
+    "AF4",
+    "AF3",
+    "FC2",
+    "FC1",
+    "CP1",
+    "CP2",
+    "PO3",
+    "PO4",
+    "FC6",
+    "FC5",
+    "CP5",
 ]
 
 
@@ -404,6 +545,7 @@ class FamilyAdapter(EpochContextArtifactAdapter):
         checkpoint: str | Path | None = None,
         model_factory=None,
         model_kwargs: dict[str, Any] | None = None,
+        packing_spec: PackingSpec | None = None,
         device: str = "cpu",
         batch_size: int | None = None,
         context_epochs: int = 7,
@@ -445,14 +587,14 @@ class FamilyAdapter(EpochContextArtifactAdapter):
         """
         registry = {**FAMILY_SPECS, **DEPLOYMENT_SPECS}
         if model_id not in registry:
-            raise ValueError(f"unknown model family {model_id!r}; "
-                             f"known: {sorted(registry)}")
+            raise ValueError(f"unknown model family {model_id!r}; known: {sorted(registry)}")
         if dc_mode not in ("as_evaluated", "reconcile", "segment_mean"):
             raise ValueError(f"unknown dc_mode {dc_mode!r}")
         self.dc_mode = dc_mode
-        self.packing = registry[model_id]
+        self.packing = packing_spec or registry[model_id]
         if dc_mode in ("reconcile", "segment_mean"):
             import dataclasses
+
             self.packing = dataclasses.replace(self.packing, remove_prediction_dc=True)
         self.model_id = model_id
         self.checkpoint = checkpoint
@@ -492,8 +634,8 @@ class FamilyAdapter(EpochContextArtifactAdapter):
         triggers = np.asarray(context.get_triggers(), dtype=int)
         if len(triggers) < self.context_epochs + 1:
             raise ProcessorValidationError(
-                f"{self.model_id}: need at least {self.context_epochs + 1} triggers, "
-                f"got {len(triggers)}")
+                f"{self.model_id}: need at least {self.context_epochs + 1} triggers, got {len(triggers)}"
+            )
         if self.packing.multichannel:
             raw = context.get_raw()
             names = [raw.ch_names[i] for i in self._resolve_channels(raw)]
@@ -501,18 +643,24 @@ class FamilyAdapter(EpochContextArtifactAdapter):
                 raise ProcessorValidationError(
                     f"{self.model_id} consumes all channels at once and was trained on a "
                     f"fixed montage order. A different order silently corrects the wrong "
-                    f"channels.\nExpected: {TRAINING_CHANNEL_ORDER}\nGot:      {names}")
+                    f"channels.\nExpected: {TRAINING_CHANNEL_ORDER}\nGot:      {names}"
+                )
 
     # ------------------------------------------------------------------ model
 
     def _load_model(self):
         import torch
+
         if self._model is None:
             if self.checkpoint is None:
                 raise ValueError("Provide an explicit checkpoint path to FamilyAdapter.")
             self._model = load_model(
-                self.model_id, self.device, checkpoint=self.checkpoint,
-                model_factory=self.model_factory, model_kwargs=self.model_kwargs)
+                self.model_id,
+                self.device,
+                checkpoint=self.checkpoint,
+                model_factory=self.model_factory,
+                model_kwargs=self.model_kwargs,
+            )
         return self._model, torch
 
     # ------------------------------------------------------------ prediction
@@ -527,8 +675,7 @@ class FamilyAdapter(EpochContextArtifactAdapter):
                 out.append(j)
                 continue
             mirrored = centre - offset
-            out.append(mirrored if 0 <= mirrored < n_epochs
-                       else int(min(max(j, 0), n_epochs - 1)))
+            out.append(mirrored if 0 <= mirrored < n_epochs else int(min(max(j, 0), n_epochs - 1)))
         return out
 
     def predict(self, context):
@@ -543,21 +690,22 @@ class FamilyAdapter(EpochContextArtifactAdapter):
         n_epochs = len(starts)
         # Resample every epoch once per channel — the same epoch is read by up to
         # context_epochs different centres.
-        resampled = np.stack([
-            np.stack([_resample_1d(data[ch, a:b], target_samples) for a, b in zip(starts, stops)])
-            for ch in channels
-        ], axis=1)                                            # (n_epochs, n_channels, samples)
+        resampled = np.stack(
+            [
+                np.stack([_resample_1d(data[ch, a:b], target_samples) for a, b in zip(starts, stops, strict=False)])
+                for ch in channels
+            ],
+            axis=1,
+        )  # (n_epochs, n_channels, samples)
 
         estimated = np.zeros_like(data)
         index_table = [self._context_indices(c, n_epochs, radius) for c in range(n_epochs)]
         # Batch over centres: the model already batches internally over channels.
-        stride = max(1, self.batch_size // max(1, len(channels))) if not self.packing.multichannel \
-            else self.batch_size
+        stride = max(1, self.batch_size // max(1, len(channels))) if not self.packing.multichannel else self.batch_size
         for begin in range(0, n_epochs, stride):
             block = list(range(begin, min(begin + stride, n_epochs)))
-            ctx = np.stack([resampled[index_table[c]] for c in block])   # (B, T, C, S)
-            pred = predict_from_context(self.packing, model, ctx,
-                                        device=self.device, batch_size=self.batch_size)
+            ctx = np.stack([resampled[index_table[c]] for c in block])  # (B, T, C, S)
+            pred = predict_from_context(self.packing, model, ctx, device=self.device, batch_size=self.batch_size)
             for row, centre in enumerate(block):
                 lo, hi = starts[centre], stops[centre]
                 for k, ch in enumerate(channels):
@@ -579,8 +727,7 @@ class FamilyAdapter(EpochContextArtifactAdapter):
             "edge_mode": self.edge_mode,
             "dc_mode": self.dc_mode,
             "channels": [raw.ch_names[i] for i in channels],
-            "contract_verified_against":
-                "tools/evaluation/eval_unified_holdout.py:INFERENCE_FUNCS (bit-identical, "
-                "output/model_evaluations/family_adapters/adapter_verification.json)",
+            "contract_verified_against": "tools/evaluation/eval_unified_holdout.py:INFERENCE_FUNCS (bit-identical, "
+            "output/model_evaluations/family_adapters/adapter_verification.json)",
         }
         return DeepLearningPrediction(artifact_data=estimated, metadata=metadata)

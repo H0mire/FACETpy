@@ -21,7 +21,6 @@ import pytest
 from facet.models.experimental.paper_accurate.vit_spectrogram.training import (
     ChannelWiseSpectrogramDataset,
     MaskedPatchMagnitudeLoss,
-    ViTSpectrogramMAEInpainter,
     build_dataset,
     build_loss,
     build_model,
@@ -112,9 +111,7 @@ def test_masked_patch_loss_decreases():
     assert isinstance(loss_fn, MaskedPatchMagnitudeLoss)
 
     rng = np.random.default_rng(0)
-    noisy = torch.as_tensor(
-        rng.standard_normal((BATCH, CONTEXT_EPOCHS, 1, EPOCH_SAMPLES)).astype(np.float32) * 1e-3
-    )
+    noisy = torch.as_tensor(rng.standard_normal((BATCH, CONTEXT_EPOCHS, 1, EPOCH_SAMPLES)).astype(np.float32) * 1e-3)
     target = torch.as_tensor(rng.standard_normal((BATCH, 1, EPOCH_SAMPLES)).astype(np.float32) * 1e-3)
 
     opt = torch.optim.AdamW(model.parameters(), lr=3e-3, weight_decay=0.05)

@@ -9,7 +9,10 @@ refiner are preserved; the GAN/nesting structure could not be verified against
 the paywalled primary paper. See README.md and documentation/.
 """
 
-from facet.models.experimental.paper_accurate.nested_gan.processor import NestedGANPaperAccurateAdapter, NestedGANPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.nested_gan.processor import (
+    NestedGANPaperAccurateAdapter,
+    NestedGANPaperAccurateCorrection,
+)
 
 __all__ = [
     "NestedGANPaperAccurateAdapter",

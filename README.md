@@ -164,7 +164,7 @@ uv sync --locked
 
 Optional contributor extras:
 ```text
-uv sync --extra deeplearning     # TensorFlow-based models
+uv sync --extra deeplearning     # TensorFlow and PyTorch models
 uv sync --extra notebooks        # Jupyter notebook support
 uv sync --extra gui              # PyQt6 GUI components
 uv sync --extra docs             # Sphinx documentation toolchain
@@ -265,8 +265,8 @@ python -m webbrowser docs/build/index.html
 
 Full online documentation: https://facetpy.readthedocs.io/
 
-For comprehensive build instructions, theme configuration, and contribution guidelines see [`docs/README.md`](docs/README.md).
-For PyPI release steps, see [`RELEASING.md`](RELEASING.md).
+For development instructions, see the [Sphinx contributor guide](docs/source/development/contributing.rst).
+For PyPI release steps, see [the release guide](docs/source/development/releasing.rst).
 
 
 ## Contributing
@@ -332,3 +332,10 @@ Tasks are defined in `.vscode/tasks.json` and can be run via **Ctrl+Shift+P** �
 GPLv3 — see `LICENSE` for details.
 
 Author: Janik Michael Mueller
+
+## Thesis experiments
+
+The [masterthesis guide](masterthesis_guide/README.md) links Phase 0–3 experiments,
+recorded results, configurations and selected Git LFS weights. Large datasets and
+prediction arrays remain external. See the [deep-learning user guide](docs/source/user_guide/deep_learning.rst)
+for installed-package usage with explicit artifact paths.

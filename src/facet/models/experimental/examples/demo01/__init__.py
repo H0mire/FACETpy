@@ -5,6 +5,9 @@ are intentionally not imported here to avoid loading ``facet.training`` during
 ``facet.correction`` initialization.
 """
 
-from facet.models.experimental.examples.demo01.processor import Demo01EpochContextTorchScriptAdapter, EpochContextDeepLearningCorrection
+from facet.models.experimental.examples.demo01.processor import (
+    Demo01EpochContextTorchScriptAdapter,
+    EpochContextDeepLearningCorrection,
+)
 
 __all__ = ["Demo01EpochContextTorchScriptAdapter", "EpochContextDeepLearningCorrection"]

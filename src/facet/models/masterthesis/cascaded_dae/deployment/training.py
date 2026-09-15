@@ -38,13 +38,12 @@ import torch
 from torch import nn
 
 from facet.models.masterthesis.cascaded_dae.training import build_model as _build_core
-from facet.training.deployment_data import (
-    build_packed_dataset, model_input_shape, single_row_target_shape)
+from facet.training.deployment_data import build_packed_dataset, model_input_shape, single_row_target_shape
 from facet.training.deployment_losses import build_deployment_loss
 from facet.training.deployment_model import PackedDeploymentModel
 
 #: The base edition's tensor layout and output meaning. Changing either here
-#: without changing ``tools/pipeline_demo/family_adapters.py`` breaks inference
+#: without changing ``src/facet/models/masterthesis/adapters.py`` breaks inference
 #: silently, which is why the test compares the two.
 PACKING = "b1s"
 CORE_OUTPUT = "artifact"
@@ -68,19 +67,25 @@ def build_model(
     # not need one.
     n_channels = int(core_kwargs.setdefault("n_channels", 30))
     core_kwargs.setdefault("chunk_size", epoch_samples)
-    core_kwargs.setdefault("input_shape", model_input_shape(
-        PACKING, n_channels=n_channels, context_epochs=context_epochs,
-        epoch_samples=epoch_samples))
+    core_kwargs.setdefault(
+        "input_shape",
+        model_input_shape(PACKING, n_channels=n_channels, context_epochs=context_epochs, epoch_samples=epoch_samples),
+    )
     # facet-train injects the *stacked* target shape, whose leading axis is the
     # loss's extra rows. A core that sizes its output head from it builds a head
     # as many times too wide as there are rows.
-    core_kwargs["target_shape"] = single_row_target_shape(
-        PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
+    core_kwargs["target_shape"] = single_row_target_shape(PACKING, n_channels=n_channels, epoch_samples=epoch_samples)
     core = _build_core(**core_kwargs)
     return PackedDeploymentModel(
-        core, packing=PACKING, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=CORE_OUTPUT,
-        normalise=normalise, identity_init=identity_init, demean_output=demean_output)
+        core,
+        packing=PACKING,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=CORE_OUTPUT,
+        normalise=normalise,
+        identity_init=identity_init,
+        demean_output=demean_output,
+    )
 
 
 def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
@@ -88,9 +93,9 @@ def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
     return build_deployment_loss(name, **kwargs)
 
 
-def build_dataset(path: str | Path, max_examples: int | None = None,
-                  **_: Any) -> Any:
+def build_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -> Any:
     return build_packed_dataset(path, PACKING, max_examples=max_examples)
+
 
 # ---------------------------------------------------------------------------
 # All-channel variant: the contract the FACETpy 0.1.0 DAE actually had
@@ -160,26 +165,34 @@ def build_all_channel_model(
     if hidden is None:
         outer = int(core_kwargs.pop("outer_units", 8))
         hidden = [outer, int(bottleneck), outer]
-    core = _build_core(input_shape=(1, n_channels * epoch_samples),
-                       chunk_size=n_channels * epoch_samples,
-                       hidden_units=list(hidden),
-                       dropout_rate=float(core_kwargs.pop("dropout_rate", 0.2)))
+    core = _build_core(
+        input_shape=(1, n_channels * epoch_samples),
+        chunk_size=n_channels * epoch_samples,
+        hidden_units=list(hidden),
+        dropout_rate=float(core_kwargs.pop("dropout_rate", 0.2)),
+    )
     wrapped = FlattenChannels(core, n_channels=n_channels, epoch_samples=epoch_samples)
     return PackedDeploymentModel(
-        wrapped, packing=ALL_CHANNEL_PACKING, context_epochs=context_epochs,
-        epoch_samples=epoch_samples, core_output=CORE_OUTPUT,
-        normalise=normalise, identity_init=identity_init, demean_output=demean_output)
+        wrapped,
+        packing=ALL_CHANNEL_PACKING,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        core_output=CORE_OUTPUT,
+        normalise=normalise,
+        identity_init=identity_init,
+        demean_output=demean_output,
+    )
 
 
-def build_all_channel_dataset(path: str | Path, max_examples: int | None = None,
-                              **_: Any) -> Any:
+def build_all_channel_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -> Any:
     return build_packed_dataset(path, ALL_CHANNEL_PACKING, max_examples=max_examples)
+
 
 # ---------------------------------------------------------------------------
 # Context variants: the rule is never one epoch *and* one channel
 # ---------------------------------------------------------------------------
 #
-# docs/research/run_7_paper_strict_rebuild.md states it: at least one comparison
+# docs/source/thesis_reference/selected_variants.rst states it: at least one comparison
 # axis has to be present, or there is nothing in the input from which the
 # artifact could be separated. This edition inherited a single-epoch,
 # single-channel contract from its base edition; these two factories give it each
@@ -193,6 +206,7 @@ def build_all_channel_dataset(path: str | Path, max_examples: int | None = None,
 def build_axis_model(axis: str = "channels", **kwargs: Any) -> Any:
     """The base network with one comparison axis. ``axis`` is epochs|channels."""
     from facet.training.context_variants import build_context_variant
+
     kwargs.pop("input_shape", None)
     kwargs.pop("target_shape", None)
     kwargs.pop("chunk_size", None)
@@ -200,7 +214,6 @@ def build_axis_model(axis: str = "channels", **kwargs: Any) -> Any:
     return build_context_variant(_build_core, axis, core_output=CORE_OUTPUT, **kwargs)
 
 
-def build_axis_dataset(path: str | Path, axis: str = "channels",
-                       max_examples: int | None = None, **_: Any) -> Any:
+def build_axis_dataset(path: str | Path, axis: str = "channels", max_examples: int | None = None, **_: Any) -> Any:
     packing = "b1ts" if axis == "epochs" else "bcs"
     return build_packed_dataset(path, packing, max_examples=max_examples)

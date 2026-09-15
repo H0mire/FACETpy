@@ -1,6 +1,6 @@
 """Extract the *combined* AAS + PCA/OBS artifact estimate (Run 3 / Weg A, Hebel 1).
 
-This is the bundle producer for ``docs/research/run_3_decoupled_dataset_weg_a.md``
+This is the bundle producer for ``docs/source/thesis_reference/datasets_evaluation.rst``
 §2/§6.1. It mirrors ``examples/dataset_building/extract_niazy_artifact_signal.py``
 but inserts one extra step after AAS:
 

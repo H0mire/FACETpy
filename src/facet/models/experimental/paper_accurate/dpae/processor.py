@@ -139,9 +139,7 @@ class DPAEPaperAccurateAdapter(EpochContextArtifactAdapter):
                         # Network output is the normalised artifact (a diff: only
                         # the scale applies, the std shift cancels).
                         artifact_resampled = prediction * scale if self.normalize else prediction
-                        artifact_native = _resample_1d(artifact_resampled, epoch_len).astype(
-                            data.dtype, copy=False
-                        )
+                        artifact_native = _resample_1d(artifact_resampled, epoch_len).astype(data.dtype, copy=False)
                         estimated_artifacts[ch_idx, epoch_start:epoch_stop] += artifact_native
                 corrected_epochs += 1
 
@@ -196,9 +194,7 @@ class DPAEPaperAccurateAdapter(EpochContextArtifactAdapter):
             raise ProcessorValidationError("No valid trigger epochs remain after clipping")
         return starts, stops
 
-    def _predict_segment(
-        self, model: Any, torch: Any, segment: np.ndarray
-    ) -> tuple[np.ndarray, float, float]:
+    def _predict_segment(self, model: Any, torch: Any, segment: np.ndarray) -> tuple[np.ndarray, float, float]:
         std = 0.0
         scale = 1.0
         if self.normalize:

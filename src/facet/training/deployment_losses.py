@@ -175,7 +175,8 @@ class RecoveredCleanObjective(nn.Module):
         if prediction_is == "artifact" and "noisy" not in rows:
             raise ValueError(
                 "rows must contain 'noisy' when the model predicts the artifact — "
-                "clean_hat = noisy - prediction cannot be formed otherwise")
+                "clean_hat = noisy - prediction cannot be formed otherwise"
+            )
         self.prediction_is = prediction_is
         self.rows = tuple(rows)
         self._row_index = {name: i for i, name in enumerate(rows)}
@@ -215,8 +216,7 @@ class RecoveredCleanObjective(nn.Module):
         est = torch.fft.rfft(estimate, dim=-1).abs()
         ref = torch.fft.rfft(reference, dim=-1).abs()
         if self.sfreq is not None:
-            freqs = torch.fft.rfftfreq(estimate.shape[-1], d=1.0 / self.sfreq,
-                                       device=estimate.device)
+            freqs = torch.fft.rfftfreq(estimate.shape[-1], d=1.0 / self.sfreq, device=estimate.device)
             band = (freqs >= self.freq_band[0]) & (freqs <= self.freq_band[1])
             if bool(band.any()):
                 est, ref = est[..., band], ref[..., band]
@@ -235,8 +235,9 @@ class RecoveredCleanObjective(nn.Module):
         # ratio is unit-free. A fixed epsilon would cap SI-SDR at whatever the
         # data's absolute scale happens to make it.
         floor = _REL_FLOOR * ref_energy.squeeze(-1)
-        sdr = 10.0 * torch.log10(torch.clamp(proj.pow(2).sum(-1), min=floor)
-                                 / torch.clamp(noise.pow(2).sum(-1), min=floor))
+        sdr = 10.0 * torch.log10(
+            torch.clamp(proj.pow(2).sum(-1), min=floor) / torch.clamp(noise.pow(2).sum(-1), min=floor)
+        )
         return torch.clamp(sdr, max=self.si_sdr_max).mean()
 
     # ---------------------------------------------------------------- forward
@@ -246,7 +247,8 @@ class RecoveredCleanObjective(nn.Module):
             raise ValueError(
                 f"target has {target.shape[1]} rows on axis 1 but the loss was configured "
                 f"for {len(self.rows)}: {self.rows}. Build the dataset with "
-                f"target_extras matching this layout.")
+                f"target_extras matching this layout."
+            )
         clean = target[:, self._row_index["clean"]]
         if self.prediction_is == "artifact":
             noisy = target[:, self._row_index["noisy"]]
@@ -256,8 +258,8 @@ class RecoveredCleanObjective(nn.Module):
             clean_hat = prediction
         if clean_hat.shape != clean.shape:
             raise ValueError(
-                f"prediction shape {tuple(prediction.shape)} does not line up with the "
-                f"clean row {tuple(clean.shape)}")
+                f"prediction shape {tuple(prediction.shape)} does not line up with the clean row {tuple(clean.shape)}"
+            )
 
         weight = None
         if self.spike_weight != 1.0 and "spike" in self._row_index:
@@ -269,24 +271,28 @@ class RecoveredCleanObjective(nn.Module):
             terms["amplitude"] = self._normalised_mse(clean_hat, clean, weight)
         if self.velocity_weight:
             terms["velocity"] = self._normalised_mse(
-                _finite_difference(clean_hat, 1), _finite_difference(clean, 1), None)
+                _finite_difference(clean_hat, 1), _finite_difference(clean, 1), None
+            )
         if self.acceleration_weight:
             terms["acceleration"] = self._normalised_mse(
-                _finite_difference(clean_hat, 2), _finite_difference(clean, 2), None)
+                _finite_difference(clean_hat, 2), _finite_difference(clean, 2), None
+            )
         if self.frequency_weight:
             terms["frequency"] = self._frequency_term(clean_hat, clean)
         if self.si_sdr_weight:
             terms["si_sdr"] = -self._si_sdr(clean_hat, clean) / self.si_sdr_max
         if self.identity_weight:
-            artifact = (target[:, self._row_index["artifact"]] if "artifact" in self._row_index
-                        else noisy - clean)
+            artifact = target[:, self._row_index["artifact"]] if "artifact" in self._row_index else noisy - clean
             ratio = _safe_ratio(prediction.abs().mean(), artifact.abs().mean())
             terms["identity"] = torch.clamp(ratio - 1.0, min=0.0) if self.identity_hinge else ratio
 
         weights = {
-            "amplitude": self.amplitude_weight, "velocity": self.velocity_weight,
-            "acceleration": self.acceleration_weight, "frequency": self.frequency_weight,
-            "si_sdr": self.si_sdr_weight, "identity": self.identity_weight,
+            "amplitude": self.amplitude_weight,
+            "velocity": self.velocity_weight,
+            "acceleration": self.acceleration_weight,
+            "frequency": self.frequency_weight,
+            "si_sdr": self.si_sdr_weight,
+            "identity": self.identity_weight,
         }
         total = sum(weights[k] * v for k, v in terms.items())
 
@@ -295,7 +301,8 @@ class RecoveredCleanObjective(nn.Module):
             # Reported whatever the weights are: this is the number that would
             # have made the four deletion failures visible during training.
             self.last_terms["energy_ratio"] = float(
-                _safe_ratio(clean_hat.pow(2).mean().sqrt(), clean.pow(2).mean().sqrt()).detach())
+                _safe_ratio(clean_hat.pow(2).mean().sqrt(), clean.pow(2).mean().sqrt()).detach()
+            )
         return total
 
 
@@ -305,11 +312,24 @@ class RecoveredCleanObjective(nn.Module):
 #: loss arguments it has never heard of and the run dies at construction.
 #: Filtering against a named set keeps ``sfreq``, the one injected value the
 #: frequency term actually needs, and drops the rest.
-LOSS_KEYS = frozenset({
-    "prediction_is", "rows", "amplitude_weight", "velocity_weight",
-    "acceleration_weight", "frequency_weight", "si_sdr_weight", "si_sdr_max",
-    "identity_weight", "identity_hinge", "sfreq", "freq_band", "spike_weight", "eps",
-})
+LOSS_KEYS = frozenset(
+    {
+        "prediction_is",
+        "rows",
+        "amplitude_weight",
+        "velocity_weight",
+        "acceleration_weight",
+        "frequency_weight",
+        "si_sdr_weight",
+        "si_sdr_max",
+        "identity_weight",
+        "identity_hinge",
+        "sfreq",
+        "freq_band",
+        "spike_weight",
+        "eps",
+    }
+)
 
 
 def build_deployment_loss(name: str = "recovered_clean", **kwargs) -> nn.Module:

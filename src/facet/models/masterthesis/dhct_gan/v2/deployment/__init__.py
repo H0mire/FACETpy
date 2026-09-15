@@ -4,6 +4,12 @@ See :mod:`facet.models.masterthesis.dhct_gan.v2.deployment.training` for what ch
 ``facet.models.masterthesis.dhct_gan.v2`` and why.
 """
 
-from facet.models.masterthesis.dhct_gan.v2.deployment.training import CORE_OUTPUT, PACKING, build_dataset, build_loss, build_model
+from facet.models.masterthesis.dhct_gan.v2.deployment.training import (
+    CORE_OUTPUT,
+    PACKING,
+    build_dataset,
+    build_loss,
+    build_model,
+)
 
 __all__ = ["CORE_OUTPUT", "PACKING", "build_dataset", "build_loss", "build_model"]

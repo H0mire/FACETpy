@@ -8,7 +8,10 @@ tanh gating networks, and a paper-faithful Local-Global Transformer Block
 (8-block local self-attention + per-attention feedforward + repeated LGTB).
 """
 
-from facet.models.experimental.paper_accurate.dhct_gan_v2.processor import DHCTGanV2PaperAccurateAdapter, DHCTGanV2PaperAccurateCorrection
+from facet.models.experimental.paper_accurate.dhct_gan_v2.processor import (
+    DHCTGanV2PaperAccurateAdapter,
+    DHCTGanV2PaperAccurateCorrection,
+)
 
 __all__ = [
     "DHCTGanV2PaperAccurateAdapter",

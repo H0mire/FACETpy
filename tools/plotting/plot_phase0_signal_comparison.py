@@ -12,10 +12,28 @@ OUT = ROOT / "output/thesis_results_by_phase/phase_0_legacy_feasibility/figure_p
 METRIC_SOURCE = ROOT / "output/legacy_dl_delivery/aas_vs_dae_metrics.json"
 METRIC_OUT = ROOT / "output/thesis_results_by_phase/phase_0_legacy_feasibility/figure_phase0_legacy_metrics.png"
 NATIVE_SOURCE = ROOT / "output/legacy_dl/legacy_native.npz"
-ARTIFACT_OUT = ROOT / "output/thesis_results_by_phase/phase_0_legacy_feasibility/figure_phase0_estimated_artifact_comparison.png"
+ARTIFACT_OUT = (
+    ROOT / "output/thesis_results_by_phase/phase_0_legacy_feasibility/figure_phase0_estimated_artifact_comparison.png"
+)
 
 
 def main() -> None:
+    import argparse
+
+    global SOURCE, NATIVE_SOURCE, OUT, METRIC_OUT, ARTIFACT_OUT, METRIC_SOURCE
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-root", type=Path, required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    args = parser.parse_args()
+    SOURCE = args.data_root / "output/legacy_dl_delivery/aas_vs_dae_signals.npz"
+    NATIVE_SOURCE = args.data_root / "output/legacy_dl/legacy_native.npz"
+    METRIC_SOURCE = (
+        ROOT
+        / "masterthesis_guide/experiments/phase_0/legacy_delivery/provenance/legacy_dl_delivery_aas_vs_dae_metrics.json"
+    )
+    OUT = args.out_dir / "figure_phase0_signal_comparison.png"
+    METRIC_OUT = args.out_dir / "figure_phase0_legacy_metrics.png"
+    ARTIFACT_OUT = args.out_dir / "figure_phase0_estimated_artifact_comparison.png"
     data = np.load(SOURCE, allow_pickle=True)
     sfreq = float(data["sfreq"])
     channel_names = list(data["ch_names"])
@@ -68,8 +86,14 @@ def main() -> None:
         axis.set_axisbelow(True)
         axis.tick_params(axis="x", labelrotation=0)
         for bar, value in zip(bars, values, strict=True):
-            axis.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f"{value:.2f}",
-                      ha="center", va="bottom", fontsize=11)
+            axis.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height(),
+                f"{value:.2f}",
+                ha="center",
+                va="bottom",
+                fontsize=11,
+            )
     fig.savefig(METRIC_OUT, dpi=300, bbox_inches="tight", facecolor="white")
 
     native = np.load(NATIVE_SOURCE, allow_pickle=True)

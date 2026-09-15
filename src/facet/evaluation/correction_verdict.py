@@ -118,9 +118,13 @@ class Verdict:
         return self.farm_comparable
 
     def __str__(self) -> str:
-        label = ("FARM-vergleichbar" if self.farm_comparable
-                 else "Artefakt reduziert, aber sichtbare Reste" if self.artifact_reduced
-                 else "korrigiert nicht")
+        label = (
+            "FARM-vergleichbar"
+            if self.farm_comparable
+            else "Artefakt reduziert, aber sichtbare Reste"
+            if self.artifact_reduced
+            else "korrigiert nicht"
+        )
         return f"{label}: {'; '.join(self.reasons)}"
 
 
@@ -169,7 +173,8 @@ def verdict(
     removed = residual_uv <= limit
     reasons.append(
         f"Artefaktrest {residual_uv:.2f} µV "
-        f"{'≤' if removed else '>'} {limit:.2f} µV ({REMOVED_FRACTION:.0%} von unkorrigiert)")
+        f"{'≤' if removed else '>'} {limit:.2f} µV ({REMOVED_FRACTION:.0%} von unkorrigiert)"
+    )
 
     kept = BAND_MIN <= eeg_band_rel_farm <= BAND_MAX
     if eeg_band_rel_farm < BAND_MIN:
@@ -182,9 +187,7 @@ def verdict(
     # A NaN seam ratio means too few seams to form a median, which is a missing
     # measurement, not a passing one.
     continuous = seam_step_ratio == seam_step_ratio and seam_step_ratio <= SEAM_MAX
-    reasons.append(
-        f"Nahtverhältnis {seam_step_ratio:.2f} "
-        f"{'≤' if continuous else '>'} {SEAM_MAX}")
+    reasons.append(f"Nahtverhältnis {seam_step_ratio:.2f} {'≤' if continuous else '>'} {SEAM_MAX}")
 
     reduced = bool(removed and kept and continuous)
     return Verdict(

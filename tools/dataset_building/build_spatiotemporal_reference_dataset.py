@@ -185,7 +185,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--ied-dataset",
         type=Path,
-        default=Path("/Volumes/JanikProSSD/DataSets/opensource-dataset"),
+        default=None,
         help="VEPISET IED dataset dir for --spike-source real_ied (real annotated spikes)",
     )
     p.add_argument("--max-ieds", type=int, default=None, help="cap the IED pool (default: load ALL, for full patient diversity)")
@@ -248,6 +248,8 @@ def main() -> None:
     real_ied_pool = None
     real_ied_sfreq = None
     if args.inject_spikes and args.spike_source == "real_ied":
+        if args.ied_dataset is None:
+            raise ValueError("Supply --ied-dataset for the real_ied spike source")
         real_ied_pool, real_ied_sfreq = extract_real_ied_pool(args.ied_dataset.expanduser(), max_ieds=args.max_ieds)
         print(f"  real IED pool: {len(real_ied_pool)} annotated spikes @ {real_ied_sfreq:.0f} Hz")
 

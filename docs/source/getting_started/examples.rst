@@ -175,7 +175,7 @@ Get quality metrics:
        print(f"Per-channel SNR: {metrics['snr_per_channel']}")
 
 Manual Trigger Specification
------------------------------
+----------------------------
 
 Provide triggers manually instead of detecting:
 
@@ -197,7 +197,7 @@ Provide triggers manually instead of detecting:
    context = aas.execute(context)
 
 Working with Different File Formats
-------------------------------------
+-----------------------------------
 
 BIDS Format
 ~~~~~~~~~~~
@@ -242,7 +242,7 @@ GDF Format
    ])
 
 Converting Between Formats
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Use the convenience functions :func:`facet.load` and :func:`facet.export` to
 convert between supported formats (for example EDF, BDF, BrainVision, EEGLAB,
@@ -270,7 +270,7 @@ Parallel Processing
    result = pipeline.run(parallel=True, n_jobs=-1)
 
 Memory-Efficient Processing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -294,7 +294,7 @@ Check Processing History
            print(f"  Parameters: {entry.parameters}")
 
 Save Intermediate Results
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
@@ -333,3 +333,18 @@ See the ``examples/`` directory in the repository for more complete examples:
 * ``memory_efficient_pipeline.py`` - Streaming-style workflow for large recordings
 * ``quickstart.py`` - Minimal runnable correction example
 * ``eeg_generation_visualization_example.py`` - Synthetic EEG generation and plotting
+
+MATLAB stage comparison
+-----------------------
+
+``examples/pipelines/cleanexjanik_parity_pipeline.py`` compares matching stages with the
+external MATLAB reference exports. Set the ``Status`` channel to STIM before
+trigger detection when the source SET file classifies it as EEG. Preserve artifact
+length in the current sampling units after resampling. The resampling regression
+tests cover this conversion.
+
+Compare alignment, AAS, PCA, low-pass and ANC outputs separately: trigger
+heuristics and filtering details can differ between implementations. Compile
+FastRANC before measuring ANC runtime. The required recordings and MATLAB outputs
+are external inputs; this example does not establish an identical original
+Phase-0 environment.

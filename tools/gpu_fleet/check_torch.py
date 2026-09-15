@@ -6,18 +6,20 @@ with a clear message instead of silently falling back to CPU.
 
 from __future__ import annotations
 
+import argparse
 import sys
 
 
 def main() -> int:
+    argparse.ArgumentParser(description=__doc__).parse_args()
     try:
         import torch
     except ImportError as exc:
         print(f"ERROR: torch import failed: {exc}", file=sys.stderr)
         print(
             "The .venv on this pod may have lost access to the system PyTorch. "
-            "Re-run tools/gpu_fleet/bootstrap_runpod.sh to rebuild the venv with "
-            "--system-site-packages.",
+            "Check the worker environment and its CUDA-enabled PyTorch installation; "
+            "use the worker’s intended interpreter and dependency setup.",
             file=sys.stderr,
         )
         return 1
@@ -29,7 +31,7 @@ def main() -> int:
         )
         print(
             "Either the venv shadowed the CUDA-enabled system torch, or the pod "
-            "has no GPU exposed. Re-run tools/gpu_fleet/bootstrap_runpod.sh and "
+            "has no GPU exposed. Check the worker environment and "
             "verify nvidia-smi works on this pod.",
             file=sys.stderr,
         )

@@ -113,8 +113,9 @@ class D4PMWaveformModule(D4PMTrainingModule):
         deployment edition makes structurally.
     """
 
-    def __init__(self, *args: Any, waveform_t_fraction: float = WAVEFORM_T_FRACTION,
-                 demean_output: bool = True, **kwargs: Any) -> None:
+    def __init__(
+        self, *args: Any, waveform_t_fraction: float = WAVEFORM_T_FRACTION, demean_output: bool = True, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.waveform_t_fraction = float(waveform_t_fraction)
         self.demean_output = bool(demean_output)
@@ -153,7 +154,7 @@ class D4PMWaveformModule(D4PMTrainingModule):
         sqrt_alpha = self.sqrt_alphas_cumprod[t].view(-1, 1, 1)
         sqrt_one_minus = self.sqrt_one_minus_alphas_cumprod[t].view(-1, 1, 1)
         h0_hat = (h_t - sqrt_one_minus * pred_noise) / sqrt_alpha
-        h0_hat = h0_hat * scale                     # back into volts
+        h0_hat = h0_hat * scale  # back into volts
         if self.demean_output:
             h0_hat = h0_hat - h0_hat.mean(dim=-1, keepdim=True)
 
@@ -179,23 +180,21 @@ class D4PMDeploymentLoss(nn.Module):
         Weight of the recovered-clean objective.
     """
 
-    def __init__(self, eps_weight: float = 1.0, waveform_weight: float = 1.0,
-                 **objective_kwargs: Any) -> None:
+    def __init__(self, eps_weight: float = 1.0, waveform_weight: float = 1.0, **objective_kwargs: Any) -> None:
         super().__init__()
         self.eps_weight = float(eps_weight)
         self.waveform_weight = float(waveform_weight)
         objective_kwargs = {k: v for k, v in objective_kwargs.items() if k in LOSS_KEYS}
         objective_kwargs.setdefault("prediction_is", "artifact")
-        objective_kwargs["rows"] = tuple(objective_kwargs.get(
-            "rows", ("artifact", "clean", "noisy")))
+        objective_kwargs["rows"] = tuple(objective_kwargs.get("rows", ("artifact", "clean", "noisy")))
         self.objective = RecoveredCleanObjective(**objective_kwargs)
         self.last_terms: dict[str, float] = {}
 
     def forward(self, prediction: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         if prediction.shape[1] != 4:
             raise ValueError(
-                f"expected [h0_hat, pred_noise, noise, mask] on axis 1, got "
-                f"{prediction.shape[1]} channels")
+                f"expected [h0_hat, pred_noise, noise, mask] on axis 1, got {prediction.shape[1]} channels"
+            )
         # The epsilon terms keep the model's full length: scoring them on the
         # centre epoch alone would train the diffusion on a seventh of its own
         # input and stop being D4PM. Only the waveform row is reduced.
@@ -209,14 +208,13 @@ class D4PMDeploymentLoss(nn.Module):
             rows = h0_hat.shape[-1] // target_len
             if rows * target_len != h0_hat.shape[-1]:
                 raise ValueError(
-                    f"prediction length {h0_hat.shape[-1]} is not a whole number of "
-                    f"target epochs of {target_len}")
+                    f"prediction length {h0_hat.shape[-1]} is not a whole number of target epochs of {target_len}"
+                )
             reshaped = h0_hat.reshape(h0_hat.shape[0], rows, target_len)
             # One target row means the context axis was epochs and only the centre
             # one is scored; many rows means it was channels and every electrode
             # has its own target.
-            h0_hat = (reshaped[:, rows // 2:rows // 2 + 1] if target_rows == 1
-                      else reshaped)
+            h0_hat = reshaped[:, rows // 2 : rows // 2 + 1] if target_rows == 1 else reshaped
 
         total = self.eps_weight * eps_loss
         terms = {"eps": float(eps_loss.detach())}
@@ -260,9 +258,9 @@ class D4PMDeploymentDataset:
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         base_idx, channel = divmod(int(idx), self.n_channels)
         ctx, target = self.base_dataset[base_idx]
-        target = target[:, channel]                                    # (3, S)
-        noisy = ctx[self.centre, channel]                              # (S,)
-        packed = np.stack([noisy, target[0]], axis=0)                  # [noisy, artifact]
+        target = target[:, channel]  # (3, S)
+        noisy = ctx[self.centre, channel]  # (S,)
+        packed = np.stack([noisy, target[0]], axis=0)  # [noisy, artifact]
         return packed.astype(np.float32), target[:, np.newaxis, :].astype(np.float32)
 
     @property
@@ -281,7 +279,7 @@ class D4PMDeploymentDataset:
         n_base = len(self.base_dataset)
         rng = np.random.default_rng(seed)
         order = rng.permutation(n_base)
-        val_base = set(order[:max(1, int(n_base * val_ratio))].tolist())
+        val_base = set(order[: max(1, int(n_base * val_ratio))].tolist())
         train = [i for i in range(len(self)) if (i // self.n_channels) not in val_base]
         val = [i for i in range(len(self)) if (i // self.n_channels) in val_base]
         return _Subset(self, train), _Subset(self, val)
@@ -300,9 +298,22 @@ class _Subset:
 
 # --------------------------------------------------------------- facet-train
 
-_MODULE_KEYS = frozenset({"epoch_samples", "num_steps", "beta_start", "beta_end",
-                          "feats", "d_model", "d_ff", "n_heads", "n_layers",
-                          "embed_dim", "waveform_t_fraction", "demean_output"})
+_MODULE_KEYS = frozenset(
+    {
+        "epoch_samples",
+        "num_steps",
+        "beta_start",
+        "beta_end",
+        "feats",
+        "d_model",
+        "d_ff",
+        "n_heads",
+        "n_layers",
+        "embed_dim",
+        "waveform_t_fraction",
+        "demean_output",
+    }
+)
 
 
 def build_model(**kwargs: Any) -> D4PMWaveformModule:
@@ -321,16 +332,23 @@ def build_loss(name: str = "d4pm_deployment", **kwargs: Any) -> nn.Module:
     return D4PMDeploymentLoss(eps_weight=eps_weight, waveform_weight=waveform_weight, **kwargs)
 
 
-def build_dataset(path: str | Path, max_examples: int | None = None,
-                  **_: Any) -> D4PMDeploymentDataset:
+def build_dataset(path: str | Path, max_examples: int | None = None, **_: Any) -> D4PMDeploymentDataset:
     base = NPZContextArtifactDataset(
-        path, target_key="artifact_center", demean_input=True, demean_target=True,
-        target_extras=("clean", "noisy"))
+        path, target_key="artifact_center", demean_input=True, demean_target=True, target_extras=("clean", "noisy")
+    )
     return D4PMDeploymentDataset(base, max_examples=max_examples)
 
 
-__all__ = ["CORE_OUTPUT", "PACKING", "D4PMDeploymentDataset", "D4PMDeploymentLoss",
-           "D4PMWaveformModule", "build_dataset", "build_loss", "build_model"]
+__all__ = [
+    "CORE_OUTPUT",
+    "PACKING",
+    "D4PMDeploymentDataset",
+    "D4PMDeploymentLoss",
+    "D4PMWaveformModule",
+    "build_dataset",
+    "build_loss",
+    "build_model",
+]
 
 # ---------------------------------------------------------------------------
 # Context variants: never one epoch and one channel
@@ -358,9 +376,13 @@ class D4PMContextDataset(D4PMDeploymentDataset):
         ``(2, 30*S)`` per window.
     """
 
-    def __init__(self, base_dataset: Any, axis: str = "channels",
-                 max_examples: int | None = None,
-                 artifact_context: np.ndarray | None = None) -> None:
+    def __init__(
+        self,
+        base_dataset: Any,
+        axis: str = "channels",
+        max_examples: int | None = None,
+        artifact_context: np.ndarray | None = None,
+    ) -> None:
         if axis not in ("epochs", "channels"):
             raise ValueError(f"axis must be epochs|channels, got {axis!r}")
         super().__init__(base_dataset, max_examples=None)
@@ -380,16 +402,16 @@ class D4PMContextDataset(D4PMDeploymentDataset):
         if self.axis == "epochs":
             base_idx, channel = divmod(idx, self.n_channels)
             ctx, target = self.base_dataset[base_idx]
-            noisy = ctx[:, channel]                                   # (T, S)
-            art_rows = self.artifact_context[base_idx][:, channel]     # (T, S)
+            noisy = ctx[:, channel]  # (T, S)
+            art_rows = self.artifact_context[base_idx][:, channel]  # (T, S)
             art_rows = art_rows - art_rows.mean(axis=-1, keepdims=True)
             packed = np.stack([noisy.reshape(-1), art_rows.reshape(-1)], axis=0)
-            tgt = target[:, channel][:, np.newaxis, :]                # (3, 1, S)
+            tgt = target[:, channel][:, np.newaxis, :]  # (3, 1, S)
         else:
             ctx, target = self.base_dataset[idx]
-            centre = ctx[self.centre]                                 # (C, S)
+            centre = ctx[self.centre]  # (C, S)
             packed = np.stack([centre.reshape(-1), target[0].reshape(-1)], axis=0)
-            tgt = target                                              # (3, C, S)
+            tgt = target  # (3, C, S)
         return packed.astype(np.float32), np.ascontiguousarray(tgt, dtype=np.float32)
 
     @property
@@ -401,9 +423,13 @@ class D4PMContextDataset(D4PMDeploymentDataset):
         return (3, 1 if self.axis == "epochs" else self.n_channels, self.epoch_samples)
 
 
-def build_context_model(axis: str = "channels", n_channels: int = 30,
-                        context_epochs: int = CONTEXT_EPOCHS,
-                        epoch_samples: int = EPOCH_SAMPLES, **kwargs: Any):
+def build_context_model(
+    axis: str = "channels",
+    n_channels: int = 30,
+    context_epochs: int = CONTEXT_EPOCHS,
+    epoch_samples: int = EPOCH_SAMPLES,
+    **kwargs: Any,
+):
     """D4PM over a context axis: the same module, a longer input."""
     rows = context_epochs if axis == "epochs" else n_channels
     kwargs = {k: v for k, v in kwargs.items() if k in _MODULE_KEYS}
@@ -416,14 +442,12 @@ def build_context_model(axis: str = "channels", n_channels: int = 30,
     return module
 
 
-def build_context_dataset(path: str | Path, axis: str = "channels",
-                          max_examples: int | None = None, **_: Any):
+def build_context_dataset(path: str | Path, axis: str = "channels", max_examples: int | None = None, **_: Any):
     base = NPZContextArtifactDataset(
-        path, target_key="artifact_center", demean_input=True, demean_target=True,
-        target_extras=("clean", "noisy"))
+        path, target_key="artifact_center", demean_input=True, demean_target=True, target_extras=("clean", "noisy")
+    )
     art_ctx = None
     if axis == "epochs":
         with np.load(Path(path).expanduser(), allow_pickle=False) as bundle:
             art_ctx = bundle["artifact_context"].astype(np.float32, copy=False)
-    return D4PMContextDataset(base, axis=axis, max_examples=max_examples,
-                              artifact_context=art_ctx)
+    return D4PMContextDataset(base, axis=axis, max_examples=max_examples, artifact_context=art_ctx)

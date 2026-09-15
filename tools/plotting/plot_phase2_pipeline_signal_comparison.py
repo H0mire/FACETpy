@@ -22,7 +22,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 ARMS = ROOT / "output/pipeline_demo/deployment_first/arms"
-TABLE = ROOT / "output/thesis_results_by_phase/phase_2_pipeline_deployment/table_phase2_pipeline_results.csv"
+TABLE = ROOT / "masterthesis_guide/results/table_phase2_pipeline_results/metrics.csv"
 OUT = ROOT / "output/thesis_results_by_phase/phase_2_pipeline_deployment"
 
 MODELS = [
@@ -43,7 +43,11 @@ MODELS = [
 
 
 def load_arm(name: str) -> tuple[np.ndarray, list[str], float, tuple[float, float]]:
-    with np.load(ARMS / f"{name}.npz", allow_pickle=True) as packet:
+    path = ARMS / f"{name}.npz"
+    if not path.exists() and name.endswith("_deployment"):
+        eid = "deployment_" + name.removesuffix("_deployment")
+        path = ARMS / f"{eid}.npz"
+    with np.load(path, allow_pickle=True) as packet:
         return (
             packet["data"],
             [str(x) for x in packet["ch_names"]],
@@ -58,11 +62,23 @@ def residuals() -> dict[str, float]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--epoch-matched", action="store_true",
-                        help="Plot one 125-ms trigger-aligned epoch, matching the Phase-1 time span.")
+    global ARMS, OUT
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--arm-dir", type=Path, required=True)
+    parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument(
+        "--top", type=int, choices=[5], help="Plot the five best valid primary arms, as in thesis Figure 30"
+    )
+    parser.add_argument(
+        "--epoch-matched",
+        action="store_true",
+        help="Plot one 125-ms trigger-aligned epoch, matching the Phase-1 time span.",
+    )
     args = parser.parse_args()
+    ARMS, OUT = args.arm_dir, args.out_dir
     OUT.mkdir(parents=True, exist_ok=True)
+    if args.top and args.epoch_matched:
+        parser.error("--top and --epoch-matched describe different figure scopes")
     raw, names, sfreq, window = load_arm("uncorrected")
     farm, _, _, _ = load_arm("farm")
     channel = names.index("Fp1") if "Fp1" in names else 0
@@ -76,7 +92,7 @@ def main() -> None:
         absolute_stop = absolute_start + 512 / 4096
     else:
         # Same three-second segment for every arm in the artifact-present interval.
-        absolute_start, absolute_stop = 31.0, 34.0
+        absolute_start, absolute_stop = (29.0, 35.0) if args.top else (31.0, 34.0)
     start = int((absolute_start - window[0]) * sfreq)
     stop = int((absolute_stop - window[0]) * sfreq)
     time = np.arange(start, stop) / sfreq + window[0]
@@ -87,10 +103,22 @@ def main() -> None:
     limit = np.quantile(np.abs(raw_seg), 0.997) * 1.10
     ga_residual = residuals()
 
-    fig, axes = plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
+    if args.top:
+        chosen = [(arm, label) for arm, label in MODELS if arm not in {"ic_unet_deployment", "st_gnn_deployment"}]
+        chosen.sort(key=lambda pair: ga_residual[pair[0]])
+        chosen = [("farm", "FARM reference"), *chosen[: args.top]]
+    else:
+        chosen = MODELS
+    fig, axes = (
+        plt.subplots(len(chosen), 1, figsize=(12, 11), sharex=True, sharey=True)
+        if args.top
+        else plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
+    )
     axes = axes.ravel()
-    for ax, (arm, label) in zip(axes, MODELS):
-        data, _, _, _ = load_arm(arm)
+    for ax, (arm, label) in zip(axes, chosen):
+        data, arm_names, arm_sfreq, arm_window = load_arm(arm)
+        if arm_names != names or arm_sfreq != sfreq or arm_window != window or data.shape != raw.shape:
+            raise ValueError(f"Mismatched channels, sampling, crop or shape in {arm}")
         corrected = data[channel, start:stop]
         ax.plot(x, raw_seg, color="#b0b0b0", lw=0.55, label="Uncorrected input")
         ax.plot(x, farm_seg, color="#249d68", lw=0.75, ls="--", label="FARM reference")
@@ -100,21 +128,22 @@ def main() -> None:
         ax.set_ylim(-limit, limit)
         ax.grid(alpha=0.18, lw=0.45)
 
-    for ax in axes[len(MODELS):]:
+    for ax in axes[len(chosen) :]:
         ax.axis("off")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False, fontsize=9,
-               bbox_to_anchor=(0.5, 0.015))
-    figure_title = ("Phase 2: pipeline-corrected signals on one trigger-aligned epoch"
-                    if args.epoch_matched else
-                    "Phase 2: pipeline-corrected signals on a common real-data segment")
-    fig.suptitle(figure_title, fontsize=14,
-                 fontweight="bold", y=0.995)
-    fig.text(0.5, 0.065, "Time relative to trigger (ms)" if args.epoch_matched else "Time (s)",
-             ha="center", fontsize=10)
+    fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False, fontsize=9, bbox_to_anchor=(0.5, 0.015))
+    figure_title = (
+        "Phase 2: pipeline-corrected signals on one trigger-aligned epoch"
+        if args.epoch_matched
+        else "Phase 2: pipeline-corrected signals on a common real-data segment"
+    )
+    fig.suptitle(figure_title, fontsize=14, fontweight="bold", y=0.995)
+    fig.text(
+        0.5, 0.065, "Time relative to trigger (ms)" if args.epoch_matched else "Time (s)", ha="center", fontsize=10
+    )
     fig.text(0.012, 0.5, "Amplitude (µV)", va="center", rotation="vertical", fontsize=10)
     fig.tight_layout(rect=(0.025, 0.08, 1, 0.96))
-    suffix = "epoch_matched" if args.epoch_matched else "all_models"
+    suffix = "top5" if args.top else "epoch_matched" if args.epoch_matched else "all_models"
     output = OUT / f"figure_phase2_corrected_signals_{suffix}.png"
     fig.savefig(output, dpi=220, bbox_inches="tight")
     print(output)

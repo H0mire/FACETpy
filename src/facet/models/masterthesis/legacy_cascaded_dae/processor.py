@@ -49,7 +49,6 @@ from facet.correction.deep_learning import (
     EpochContextArtifactAdapter,
     _resample_1d,
 )
-
 from facet.models.masterthesis.adapters import require_artifact
 
 
@@ -63,25 +62,39 @@ def _build_dae(input_size: int, hidden_units: list[int], dropout: float):
     """
     import torch.nn as nn
 
-    return nn.ModuleDict({
-        "encoder": nn.Sequential(
-            nn.Linear(input_size, hidden_units[0]), nn.LeakyReLU(0.2), nn.Dropout(dropout),
-            nn.Linear(hidden_units[0], hidden_units[1]), nn.LeakyReLU(0.2), nn.Dropout(dropout),
-        ),
-        "decoder": nn.Sequential(
-            nn.Linear(hidden_units[1], hidden_units[2]), nn.LeakyReLU(0.2), nn.Dropout(dropout),
-            nn.Linear(hidden_units[2], input_size),
-        ),
-    })
+    return nn.ModuleDict(
+        {
+            "encoder": nn.Sequential(
+                nn.Linear(input_size, hidden_units[0]),
+                nn.LeakyReLU(0.2),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_units[0], hidden_units[1]),
+                nn.LeakyReLU(0.2),
+                nn.Dropout(dropout),
+            ),
+            "decoder": nn.Sequential(
+                nn.Linear(hidden_units[1], hidden_units[2]),
+                nn.LeakyReLU(0.2),
+                nn.Dropout(dropout),
+                nn.Linear(hidden_units[2], input_size),
+            ),
+        }
+    )
 
 
 class LegacyDLAdapter(EpochContextArtifactAdapter):
     """FACETpy 0.1.0's cascaded denoising autoencoder as a v2 corrector."""
 
-    def __init__(self, checkpoint: str | Path, *,
-                 device: str = "cpu", batch_size: int = 64,
-                 eeg_only: bool = True, n_channels: int = 30,
-                 epoch_samples: int = 294) -> None:
+    def __init__(
+        self,
+        checkpoint: str | Path,
+        *,
+        device: str = "cpu",
+        batch_size: int = 64,
+        eeg_only: bool = True,
+        n_channels: int = 30,
+        epoch_samples: int = 294,
+    ) -> None:
         self.checkpoint_path = str(Path(checkpoint).expanduser())
         self.device = device
         self.batch_size = int(batch_size)
@@ -114,6 +127,7 @@ class LegacyDLAdapter(EpochContextArtifactAdapter):
 
     def _load(self):
         import torch
+
         if self._models is None:
             b = torch.load(str(require_artifact(self.checkpoint_path)), map_location="cpu", weights_only=False)
             mods = []
@@ -129,8 +143,8 @@ class LegacyDLAdapter(EpochContextArtifactAdapter):
         super().validate_context(context)
         if not Path(self.checkpoint_path).exists():
             raise ProcessorValidationError(
-                f"Legacy checkpoint is missing: {self.checkpoint_path}. "
-                "Supply the recorded Phase-0 checkpoint.")
+                f"Legacy checkpoint is missing: {self.checkpoint_path}. Supply the recorded Phase-0 checkpoint."
+            )
 
     # ------------------------------------------------------------- prediction
 
@@ -146,9 +160,13 @@ class LegacyDLAdapter(EpochContextArtifactAdapter):
 
         # The separately trained delivery checkpoint omits epochs_info. Its
         # recorded native shape is supplied explicitly by the adapter settings.
-        dimensions = bundle.get("epochs_info", {
-            "n_channels": self.n_channels, "n_times": self.epoch_samples,
-        })
+        dimensions = bundle.get(
+            "epochs_info",
+            {
+                "n_channels": self.n_channels,
+                "n_times": self.epoch_samples,
+            },
+        )
         n_ch = int(dimensions["n_channels"])
         n_t = int(dimensions["n_times"])
         if n_ch * n_t != int(bundle["input_size"]):
@@ -157,44 +175,47 @@ class LegacyDLAdapter(EpochContextArtifactAdapter):
         if len(channels) != n_ch:
             raise ProcessorValidationError(
                 f"The legacy model expects {n_ch} channels; the pipeline supplies "
-                f"{len(channels)}. The original channel order and input size are required.")
+                f"{len(channels)}. The original channel order and input size are required."
+            )
 
         # (n_epochs, n_channels, n_times) at the model's own epoch length.
-        ep = np.stack([
-            np.stack([_resample_1d(data[ch, a:b], n_t) for ch in channels])
-            for a, b in zip(starts, stops)
-        ])
+        ep = np.stack(
+            [
+                np.stack([_resample_1d(data[ch, a:b], n_t) for ch in channels])
+                for a, b in zip(starts, stops, strict=False)
+            ]
+        )
         x = (ep - bundle["input_mean"]) / (bundle["input_std"] + 1e-8)
 
         preds = []
         with torch.no_grad():
             for i in range(0, x.shape[0], self.batch_size):
-                t = torch.as_tensor(np.ascontiguousarray(x[i:i + self.batch_size],
-                                                         dtype=np.float32),
-                                    device=self.device)
+                t = torch.as_tensor(
+                    np.ascontiguousarray(x[i : i + self.batch_size], dtype=np.float32), device=self.device
+                )
                 flat = t.reshape(t.shape[0], -1)
                 # Cascade: both stages see the same input, their outputs add.
-                out = (stage1["decoder"](stage1["encoder"](flat))
-                       + stage2["decoder"](stage2["encoder"](flat)))
+                out = stage1["decoder"](stage1["encoder"](flat)) + stage2["decoder"](stage2["encoder"](flat))
                 preds.append(out.reshape(t.shape).cpu().float().numpy())
         pred = np.concatenate(preds, axis=0)
         pred = pred * (bundle["artifact_std"] + 1e-8) + bundle["artifact_mean"]
 
         estimated = np.zeros_like(data)
-        for e, (lo, hi) in enumerate(zip(starts, stops)):
+        for e, (lo, hi) in enumerate(zip(starts, stops, strict=False)):
             for k, ch in enumerate(channels):
-                estimated[ch, lo:hi] += _resample_1d(pred[e, k], hi - lo).astype(
-                    data.dtype, copy=False)
+                estimated[ch, lo:hi] += _resample_1d(pred[e, k], hi - lo).astype(data.dtype, copy=False)
 
-        return DeepLearningPrediction(artifact_data=estimated, metadata={
-            "model_id": "legacy_dl",
-            "source": "feature/deeplearning, facet.frameworks.deeplearning_torch",
-            "architecture": f"Two-stage FC-DAE {bundle['hidden_units']}, flattened {n_ch}x{n_t}",
-            "normalisation": "global mean and standard deviation over the dataset",
-            "training_target": "noisy - AAS_corrected from the same recording",
-            "caveat": "AAS distillation: trained and "
-                      "applied to the same 162 seconds.",
-            "n_epochs": len(starts),
-            "epoch_samples": n_t,
-            "channels": [raw.ch_names[i] for i in channels],
-        })
+        return DeepLearningPrediction(
+            artifact_data=estimated,
+            metadata={
+                "model_id": "legacy_dl",
+                "source": "feature/deeplearning, facet.frameworks.deeplearning_torch",
+                "architecture": f"Two-stage FC-DAE {bundle['hidden_units']}, flattened {n_ch}x{n_t}",
+                "normalisation": "global mean and standard deviation over the dataset",
+                "training_target": "noisy - AAS_corrected from the same recording",
+                "caveat": "AAS distillation: trained and applied to the same 162 seconds.",
+                "n_epochs": len(starts),
+                "epoch_samples": n_t,
+                "channels": [raw.ch_names[i] for i in channels],
+            },
+        )

@@ -19,7 +19,7 @@ from facet.evaluation import (
 from facet.evaluation.deployment_metrics import _epoch_rate_hz
 
 SFREQ = 1000.0
-PERIOD = 100          # samples per epoch -> 10 Hz repetition rate
+PERIOD = 100  # samples per epoch -> 10 Hz repetition rate
 N_EPOCHS = 60
 N_CHANNELS = 4
 
@@ -41,7 +41,7 @@ def test_epoch_rate_from_median_spacing():
     trg = _triggers().astype(np.int64)
     assert _epoch_rate_hz(trg, SFREQ) == pytest.approx(10.0)
 
-    broken = np.delete(trg, 10)                     # one missing trigger -> one 2x gap
+    broken = np.delete(trg, 10)  # one missing trigger -> one 2x gap
     assert _epoch_rate_hz(broken, SFREQ) == pytest.approx(10.0)
 
 
@@ -63,7 +63,7 @@ def test_pure_epoch_periodic_signal_is_all_residual_artifact():
     assert res["epoch_rate_hz"] == pytest.approx(10.0)
     assert res["comb_share_pct"] == pytest.approx(100.0, abs=1.0)
     assert res["comb_rms_uv"] == pytest.approx(10.0 / np.sqrt(2), rel=0.02)
-    assert res["n_harmonics"] == 6                  # 10, 20, 30, 40, 50, 60 Hz
+    assert res["n_harmonics"] == 6  # 10, 20, 30, 40, 50, 60 Hz
 
 
 @pytest.mark.unit
@@ -101,12 +101,16 @@ def test_comb_rms_is_amplitude_not_share():
     rng = np.random.default_rng(0)
     eeg = rng.standard_normal((N_CHANNELS, n)) * 20e-6
 
-    deleted = GradientArtifactResidualCalculator().execute(
-        _context(np.tile(remnant, (N_CHANNELS, 1)), trg)
-    ).metadata.custom["gradient_artifact_residual"]
-    kept = GradientArtifactResidualCalculator().execute(
-        _context(eeg + remnant, trg)
-    ).metadata.custom["gradient_artifact_residual"]
+    deleted = (
+        GradientArtifactResidualCalculator()
+        .execute(_context(np.tile(remnant, (N_CHANNELS, 1)), trg))
+        .metadata.custom["gradient_artifact_residual"]
+    )
+    kept = (
+        GradientArtifactResidualCalculator()
+        .execute(_context(eeg + remnant, trg))
+        .metadata.custom["gradient_artifact_residual"]
+    )
 
     assert deleted["comb_share_pct"] > 90.0
     assert kept["comb_share_pct"] < 5.0
@@ -129,9 +133,11 @@ def test_background_subtraction_converges_to_the_true_line_amplitude():
         t = np.arange(n) / SFREQ
         rng = np.random.default_rng(0)
         data = rng.standard_normal((N_CHANNELS, n)) * 20e-6 + 1e-6 * np.sin(2 * np.pi * 10.0 * t)
-        res = GradientArtifactResidualCalculator().execute(
-            _context(data, np.arange(n_epochs) * PERIOD)
-        ).metadata.custom["gradient_artifact_residual"]
+        res = (
+            GradientArtifactResidualCalculator()
+            .execute(_context(data, np.arange(n_epochs) * PERIOD))
+            .metadata.custom["gradient_artifact_residual"]
+        )
         estimates.append(res["comb_rms_uv"])
 
     assert estimates == sorted(estimates, reverse=True), estimates
@@ -147,10 +153,14 @@ def test_background_subtraction_can_be_disabled():
     data = rng.standard_normal((N_CHANNELS, n)) * 20e-6
     trg = np.arange(240) * PERIOD
 
-    raw_comb = GradientArtifactResidualCalculator(background_bins=0.0).execute(
-        _context(data, trg)).metadata.custom["gradient_artifact_residual"]
-    subtracted = GradientArtifactResidualCalculator().execute(
-        _context(data, trg)).metadata.custom["gradient_artifact_residual"]
+    raw_comb = (
+        GradientArtifactResidualCalculator(background_bins=0.0)
+        .execute(_context(data, trg))
+        .metadata.custom["gradient_artifact_residual"]
+    )
+    subtracted = (
+        GradientArtifactResidualCalculator().execute(_context(data, trg)).metadata.custom["gradient_artifact_residual"]
+    )
 
     # Pure noise, no line at all: subtraction must remove most of the apparent comb.
     assert subtracted["comb_rms_uv"] < 0.5 * raw_comb["comb_rms_uv"]
@@ -183,7 +193,7 @@ def test_seam_step_detects_per_epoch_offsets():
     data = rng.standard_normal((N_CHANNELS, n)) * 1e-6
     offsets = rng.standard_normal(N_EPOCHS) * 50e-6
     for e, off in enumerate(offsets):
-        data[:, e * PERIOD:(e + 1) * PERIOD] += off
+        data[:, e * PERIOD : (e + 1) * PERIOD] += off
 
     ctx = EpochSeamStepCalculator().execute(_context(data, _triggers()))
     assert ctx.metadata.custom["epoch_seam_step"]["ratio"] > 10.0
@@ -214,10 +224,14 @@ def test_window_restriction_changes_what_is_measured():
     data = np.tile(comb, (N_CHANNELS, 1))
     trg = _triggers()
 
-    whole = GradientArtifactResidualCalculator().execute(
-        _context(data, trg)).metadata.custom["gradient_artifact_residual"]
-    second = GradientArtifactResidualCalculator(tmin=n / 2 / SFREQ).execute(
-        _context(data, trg)).metadata.custom["gradient_artifact_residual"]
+    whole = (
+        GradientArtifactResidualCalculator().execute(_context(data, trg)).metadata.custom["gradient_artifact_residual"]
+    )
+    second = (
+        GradientArtifactResidualCalculator(tmin=n / 2 / SFREQ)
+        .execute(_context(data, trg))
+        .metadata.custom["gradient_artifact_residual"]
+    )
 
     assert second["comb_rms_uv"] > whole["comb_rms_uv"]
     assert second["comb_rms_uv"] == pytest.approx(10.0 / np.sqrt(2), rel=0.05)

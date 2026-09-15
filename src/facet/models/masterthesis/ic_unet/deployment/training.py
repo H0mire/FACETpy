@@ -68,7 +68,6 @@ from facet.training.dataset import NPZContextArtifactDataset
 from facet.training.deployment_losses import build_deployment_loss
 from facet.training.deployment_model import DeploymentArtifactModel
 
-
 #: The base edition's tensor layout and output meaning, named here so the
 #: deployment editions all answer the same two questions the same way.
 PACKING = "bcts"
@@ -148,8 +147,7 @@ class SelfNormalisingIcUnet(DeploymentArtifactModel):
         identity_init: bool = True,
         normalise: bool = True,
     ) -> None:
-        super().__init__(normalise=normalise, identity_init=identity_init,
-                         demean_output=demean_output)
+        super().__init__(normalise=normalise, identity_init=identity_init, demean_output=demean_output)
         self.n_channels = int(n_channels)
         self.context_epochs = int(context_epochs)
         self.epoch_samples = int(epoch_samples)
@@ -157,21 +155,19 @@ class SelfNormalisingIcUnet(DeploymentArtifactModel):
         self.center_start = (self.context_epochs // 2) * self.epoch_samples
         self.center_stop = self.center_start + self.epoch_samples
 
-        self.unet = IcUnet1D(in_channels=self.n_channels, out_channels=self.n_channels,
-                             base_channels=base_channels)
+        self.unet = IcUnet1D(in_channels=self.n_channels, out_channels=self.n_channels, base_channels=base_channels)
 
         if ica_init is None:
             ica_init = np.eye(self.n_channels, dtype=np.float32)
         else:
             ica_init = np.asarray(ica_init, dtype=np.float32)
             if ica_init.shape != (self.n_channels, self.n_channels):
-                raise ValueError(
-                    f"ica_init must be ({self.n_channels}, {self.n_channels}), got {ica_init.shape}")
+                raise ValueError(f"ica_init must be ({self.n_channels}, {self.n_channels}), got {ica_init.shape}")
         self.register_buffer("ica_W", torch.from_numpy(ica_init))
         self.register_buffer("ica_W_pinv", torch.from_numpy(_invert(ica_init)))
 
     def centre_of(self, x: torch.Tensor) -> torch.Tensor:
-        return x[..., self.center_start:self.center_stop]
+        return x[..., self.center_start : self.center_stop]
 
     def core_clean(self, x: torch.Tensor) -> torch.Tensor:
         # The U-Net runs in IC space over the whole context; the skip is applied
@@ -180,7 +176,7 @@ class SelfNormalisingIcUnet(DeploymentArtifactModel):
         ic = torch.einsum("ij,bjt->bit", self.ica_W, x)
         ic_clean = ic + self.unet(ic) if self.identity_init else self.unet(ic)
         clean_full = torch.einsum("ij,bjt->bit", self.ica_W_pinv, ic_clean)
-        return clean_full[..., self.center_start:self.center_stop]
+        return clean_full[..., self.center_start : self.center_stop]
 
 
 class ContextIcUnetDeploymentDataset:
@@ -201,7 +197,8 @@ class ContextIcUnetDeploymentDataset:
         if first_target.ndim != 3:
             raise ValueError(
                 "base target must be (rows, channels, samples) — build the dataset with "
-                "target_extras=('clean', 'noisy')")
+                "target_extras=('clean', 'noisy')"
+            )
 
         self.context_epochs = int(first_noisy.shape[0])
         self.n_channels = int(first_noisy.shape[1])
@@ -220,8 +217,9 @@ class ContextIcUnetDeploymentDataset:
 
     def __getitem__(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         noisy_context, target = self.base_dataset[idx]
-        flat = noisy_context.transpose(1, 0, 2).reshape(
-            self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        flat = (
+            noisy_context.transpose(1, 0, 2).reshape(self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        )
         return flat, target.astype(np.float32, copy=True)
 
     @property
@@ -241,8 +239,10 @@ class ContextIcUnetDeploymentDataset:
         indices = rng.permutation(len(self)).tolist()
         n_val = max(1, int(len(self) * val_ratio))
         val = set(indices[:n_val])
-        return (_Subset(self, [i for i in range(len(self)) if i not in val]),
-                _Subset(self, [i for i in range(len(self)) if i in val]))
+        return (
+            _Subset(self, [i for i in range(len(self)) if i not in val]),
+            _Subset(self, [i for i in range(len(self)) if i in val]),
+        )
 
 
 class _Subset:
@@ -276,9 +276,15 @@ def build_model(
     if fit_ica and dataset_path is not None:
         ica = _fit_ica_matrix(dataset_path, n_channels, random_state=ica_random_state)
     return SelfNormalisingIcUnet(
-        n_channels=n_channels, context_epochs=context_epochs, epoch_samples=epoch_samples,
-        base_channels=base_channels, ica_init=ica, demean_output=demean_output,
-        identity_init=identity_init, normalise=normalise)
+        n_channels=n_channels,
+        context_epochs=context_epochs,
+        epoch_samples=epoch_samples,
+        base_channels=base_channels,
+        ica_init=ica,
+        demean_output=demean_output,
+        identity_init=identity_init,
+        normalise=normalise,
+    )
 
 
 def build_loss(name: str = "recovered_clean", **kwargs: Any) -> nn.Module:
@@ -292,6 +298,11 @@ def build_dataset(
     **_: Any,
 ) -> ContextIcUnetDeploymentDataset:
     base = NPZContextArtifactDataset(
-        path, target_key="artifact_center", max_examples=max_examples,
-        demean_input=True, demean_target=True, target_extras=("clean", "noisy"))
+        path,
+        target_key="artifact_center",
+        max_examples=max_examples,
+        demean_input=True,
+        demean_target=True,
+        target_extras=("clean", "noisy"),
+    )
     return ContextIcUnetDeploymentDataset(base)

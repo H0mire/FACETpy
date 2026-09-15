@@ -1,4 +1,5 @@
 """Produce matched FARM and selected-model pipeline outputs for evaluation."""
+
 from __future__ import annotations
 
 import argparse
@@ -18,9 +19,10 @@ def main(argv=None):
     args = parser.parse_args(argv)
     model = adapter(args.experiment, device=args.device)
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    for name, correctors in (("farm", pipeline.farm()),
-                             (args.experiment, [DeepLearningCorrection(model=model)])):
+    for name, correctors in (("farm", pipeline.farm()), (args.experiment, [DeepLearningCorrection(model=model)])):
         result = pipeline.build(args.edf, correctors=correctors, name=name).run()
+        if not result.success:
+            raise RuntimeError(result.error)
         result.get_raw().save(args.out_dir / f"{name}_raw.fif", overwrite=False)
 
 

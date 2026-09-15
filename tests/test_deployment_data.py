@@ -1,6 +1,6 @@
 """The training-side packing must be the inference-side packing.
 
-``tools/pipeline_demo/family_adapters.py`` already encodes how each family wants
+``facet.models.masterthesis.adapters`` already encodes how each family wants
 its input; :mod:`facet.training.deployment_data` encodes it again for training.
 Two encodings of one contract is how they drift, and a packing mismatch is
 silent — the model trains happily on transposed data and predicts something
@@ -10,14 +10,12 @@ element here rather than by inspection.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "tools" / "pipeline_demo"))
 
 from facet.training.deployment_data import (  # noqa: E402
     PER_CHANNEL_PACKINGS,
@@ -52,13 +50,19 @@ class _FakeBase:
 @pytest.mark.parametrize("packing", sorted(PACKINGS))
 def test_packing_matches_the_inference_adapter(packing):
     """Same context in, same tensor out, as ``predict_from_context`` builds it."""
-    from family_adapters import PackingSpec, _demean
+    from facet.models.masterthesis.adapters import PackingSpec, _demean
 
     base = _FakeBase()
     ds = PackedDeploymentDataset(base, packing=packing)
-    spec = PackingSpec("x", "x", "single" if packing == "b1s" else "stack",
-                       packing, "none", "artifact",
-                       multichannel=packing not in PER_CHANNEL_PACKINGS)
+    spec = PackingSpec(
+        "x",
+        "x",
+        "single" if packing == "b1s" else "stack",
+        packing,
+        "none",
+        "artifact",
+        multichannel=packing not in PER_CHANNEL_PACKINGS,
+    )
 
     # The inference side's own packing arithmetic, lifted from
     # predict_from_context with demeaning disabled on both sides.
@@ -66,16 +70,20 @@ def test_packing_matches_the_inference_adapter(packing):
     n, t, c, s = ctx.shape
     centre = t // 2
     if spec.multichannel:
-        expected = {"bcts": lambda: ctx.transpose(0, 2, 1, 3).reshape(n, c, t * s),
-                    "bcs": lambda: ctx[:, centre],
-                    "btcs": lambda: ctx}[packing]()
+        expected = {
+            "bcts": lambda: ctx.transpose(0, 2, 1, 3).reshape(n, c, t * s),
+            "bcs": lambda: ctx[:, centre],
+            "btcs": lambda: ctx,
+        }[packing]()
     elif packing == "b1s":
         expected = ctx[:, centre].transpose(0, 1, 2).reshape(n * c, 1, s)
     else:
         stack = ctx.transpose(0, 2, 1, 3).reshape(n * c, t, s)
-        expected = {"bt1s": lambda: stack[:, :, None, :],
-                    "bts": lambda: stack,
-                    "b1ts": lambda: stack.reshape(n * c, 1, t * s)}[packing]()
+        expected = {
+            "bt1s": lambda: stack[:, :, None, :],
+            "bts": lambda: stack,
+            "b1ts": lambda: stack.reshape(n * c, 1, t * s),
+        }[packing]()
     expected = _demean(expected, spec.demean)
 
     got = np.stack([ds[i][0] for i in range(len(ds))])

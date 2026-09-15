@@ -136,7 +136,9 @@ class _Up(nn.Module):
             kernel_size=2,
             stride=2,
         )
-        self.conv = _CBRDoubleConv1d(out_channels + skip_channels, out_channels, kernel_size, activation, negative_slope)
+        self.conv = _CBRDoubleConv1d(
+            out_channels + skip_channels, out_channels, kernel_size, activation, negative_slope
+        )
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
         x = self.up(x)
@@ -458,7 +460,7 @@ def build_loss(name: str = "ensemble", **kwargs: Any) -> nn.Module:
 
 
 class _SubsetDataset:
-    def __init__(self, parent: "NiazyContextIcUNetDataset", indices: list[int]) -> None:
+    def __init__(self, parent: NiazyContextIcUNetDataset, indices: list[int]) -> None:
         self._parent = parent
         self._indices = indices
 
@@ -536,7 +538,9 @@ class NiazyContextIcUNetDataset:
         return self._length
 
     def _flatten_input(self, noisy_context: np.ndarray) -> np.ndarray:
-        return noisy_context.transpose(1, 0, 2).reshape(self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        return (
+            noisy_context.transpose(1, 0, 2).reshape(self.n_channels, self.full_samples).astype(np.float32, copy=True)
+        )
 
     def _channel_stats(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         mean = x.mean(axis=-1, keepdims=True)
@@ -689,9 +693,7 @@ def _resolve_context_dims(
         return int(input_shape[1]), int(input_shape[0]), int(input_shape[2])
 
     if n_channels is None or context_epochs is None or epoch_samples is None:
-        raise ValueError(
-            "build_model requires input_shape or (n_channels, context_epochs, epoch_samples)"
-        )
+        raise ValueError("build_model requires input_shape or (n_channels, context_epochs, epoch_samples)")
     return int(n_channels), int(context_epochs), int(epoch_samples)
 
 

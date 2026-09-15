@@ -16,13 +16,13 @@ from dataclasses import dataclass
 
 DEFAULT_FILES = [
     "README.md",
-    "QUICKSTART.md",
     "docs/source/getting_started/quickstart.rst",
     "docs/source/getting_started/tutorial.rst",
     "docs/source/getting_started/examples.rst",
     "docs/source/user_guide/helper_cookbook.rst",
     "docs/source/user_guide/pipelines.rst",
     "docs/source/user_guide/processors.rst",
+    "docs/source/user_guide/deep_learning.rst",
 ]
 
 

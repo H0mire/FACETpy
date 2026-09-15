@@ -38,7 +38,7 @@ from pathlib import Path
 import numpy as np
 
 REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO / "tools"))
+sys.path.insert(0, str(REPO))
 
 WORKER = r'''
 import json, os, resource, sys, time, warnings
@@ -50,21 +50,18 @@ sys.path.insert(0, os.path.join(os.environ["FACET_REPO"], "src"))
 import contextlib, io
 import numpy as np
 from pathlib import Path
-from evaluation.eval_unified_holdout import (MODELS, INFERENCE_FUNCS, TRAIN_ROOT,
-                                  compute_holdout_indices, load_holdout, _resolve_ts_path)
-
-spec = MODELS[model_id]
-resolved = _resolve_ts_path(spec.ts_path)
-if resolved != spec.ts_path:
-    spec = type(spec)(**{**spec.__dict__, "ts_path": resolved})
-idx = compute_holdout_indices(n=833)
+sys.path.insert(0, os.environ["FACET_REPO"])
+from masterthesis_guide.reproduce import load_catalog, load_holdout, adapter, ROOT
+from facet.models.masterthesis.adapters import predict_from_context
+c = load_catalog()
+idx = np.asarray(json.loads((ROOT / c['datasets']['proof_fit']['split']).read_text())['indices'])
 if n_windows > 0:
-    idx = idx[:n_windows]          # a prefix of the same split, identical for every arm
+    idx = idx[:n_windows]
 ds = load_holdout(Path(dataset), idx)
-infer = INFERENCE_FUNCS[model_id]
+a = adapter('holdout_' + model_id, c, device=device)
 t0 = time.perf_counter()
-with contextlib.redirect_stdout(io.StringIO()):
-    pred = infer(spec, ds, device=device)
+model, _ = a._load_model()
+pred = predict_from_context(a.packing, model, ds['noisy_context'], device=device)
 elapsed = time.perf_counter() - t0
 peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 if sys.platform != "darwin":
@@ -85,11 +82,9 @@ def run_once(model_id: str, device: str, dataset: Path, n_windows: int, timeout:
 
 
 def training_time(model_id: str) -> dict:
-    """Recorded training wall time, taken verbatim from the run summary."""
-    for man in sorted((REPO / "output/model_evaluations").glob(f"{model_id}/holdout_v1/evaluation_manifest.json")):
-        cfg = json.loads(man.read_text()).get("config", {})
-        return {"checkpoint": cfg.get("checkpoint", "—")}
-    return {"checkpoint": "—"}
+    from masterthesis_guide.reproduce import load_catalog
+    c = load_catalog()
+    return {"artifact_ids": c['experiments']['holdout_' + model_id]['artifacts']}
 
 
 def main() -> None:
@@ -98,8 +93,7 @@ def main() -> None:
     p.add_argument("--device", default="cpu",
                    help="One device for every arm. CPU is the default because it is the only "
                         "device all exports run on, and a mixed-device table compares nothing.")
-    p.add_argument("--dataset", type=Path,
-                   default=REPO / "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
+    p.add_argument("--dataset", type=Path, required=True)
     p.add_argument("--models", nargs="*", default=None)
     p.add_argument("--n-windows", type=int, default=32,
                    help="Prefix of the holdout split used for timing. The same windows for "
@@ -112,8 +106,9 @@ def main() -> None:
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    from evaluation.eval_unified_holdout import MODELS
-    model_ids = args.models or sorted(MODELS)
+    from masterthesis_guide.reproduce import load_catalog
+    catalog = load_catalog()
+    model_ids = args.models or sorted(e.removeprefix('holdout_') for e, record in catalog['experiments'].items() if e.startswith('holdout_') and record['artifacts'])
 
     rows, failures = [], []
     for model_id in model_ids:
@@ -123,9 +118,7 @@ def main() -> None:
                     for _ in range(args.repetitions)]
         except subprocess.TimeoutExpired:
             failures.append({"model_id": model_id,
-                             "reason": f"Zeitbudget von {args.timeout:.0f} s je Wiederholung "
-                                       f"überschritten — auf CPU für {args.n_windows} Fenster "
-                                       f"nicht praktikabel"})
+                             "reason": f"Exceeded {args.timeout:.0f} s per repetition for {args.n_windows} windows on {args.device}"})
             print(f"  [timeout] {model_id}", flush=True)
             continue
         except Exception as exc:                                    # noqa: BLE001
@@ -136,7 +129,7 @@ def main() -> None:
         peaks = [r["peak_rss_bytes"] for r in reps]
         rows.append({
             "model_id": model_id,
-            "family": MODELS[model_id].family,
+            "family": catalog["models"][model_id]["family"],
             "device": args.device,
             "repetitions": args.repetitions,
             "warmup_discarded": True,
@@ -155,20 +148,15 @@ def main() -> None:
 
     payload = {
         "protocol": {
-            "task": f"Inferenz auf den ersten {args.n_windows} Fenstern des Unified Holdout "
-                    f"(dieselben Fenster für jeden Arm)",
+            "task": f"Inference on the first {args.n_windows} saved holdout windows; identical inputs for every model",
             "per_repetition_timeout_seconds": args.timeout,
-            "device": args.device,
-            "repetitions": args.repetitions,
-            "warmup": "eine verworfene Wiederholung je Modell",
-            "process_isolation": "ein frischer Prozess je Wiederholung",
-            "memory_definition": "Peak-RSS des Arbeitsprozesses (ru_maxrss), inklusive "
-                                 "Interpreter und Framework — identisch für alle Arme",
-            "timing_definition": "Wanduhr um den Inferenzaufruf, ohne Interpreterstart",
+            "device": args.device, "repetitions": args.repetitions,
+            "warmup": "One discarded repetition per model",
+            "process_isolation": "One fresh process per repetition",
+            "memory_definition": "Worker peak RSS (ru_maxrss), including interpreter and framework",
+            "timing_definition": "Wall time around model loading and prediction, excluding interpreter startup",
             "precision": "float32",
-            "not_measured": "Trainingslaufzeit — die vorhandenen Läufe stammen von "
-                            "verschiedenen Maschinen mit verschiedenen Batchgrößen und "
-                            "Abbruchkriterien und sind untereinander nicht vergleichbar.",
+            "not_measured": "Training time: original runs used different machines, batch sizes and stopping criteria",
         },
         "environment": {"platform": platform.platform(),
                         "processor": platform.processor() or platform.machine(),
@@ -178,7 +166,7 @@ def main() -> None:
     }
     (args.out / "benchmark_models.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n{len(rows)} Modelle gemessen, {len(failures)} nicht messbar "
+    print(f"\n{len(rows)} models measured, {len(failures)} unavailable "
           f"-> {args.out / 'benchmark_models.json'}")
 
 

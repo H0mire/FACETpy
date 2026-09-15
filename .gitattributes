@@ -3,3 +3,8 @@
 # Thesis weights are versioned separately from Git source blobs.
 artifacts/checkpoints/** filter=lfs diff=lfs merge=lfs -text
 artifacts/exports/** filter=lfs diff=lfs merge=lfs -text
+
+# Preserve original result bytes and recognize their recorded CRLF line endings.
+masterthesis_guide/results/phase2_holdout_replay/metrics.csv -text whitespace=cr-at-eol
+masterthesis_guide/results/spike_reference_preservation/spike_preservation.csv -text whitespace=cr-at-eol
+masterthesis_guide/results/spike_reference_residuals/residual_metrics.csv -text whitespace=cr-at-eol

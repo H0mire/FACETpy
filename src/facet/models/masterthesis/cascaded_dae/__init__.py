@@ -5,7 +5,10 @@ package-level API intentionally exposes only inference integration classes so
 pipeline imports do not pull in training dependencies.
 """
 
-from facet.models.masterthesis.cascaded_dae.processor import CascadedDenoisingAutoencoderAdapter, CascadedDenoisingAutoencoderCorrection
+from facet.models.masterthesis.cascaded_dae.processor import (
+    CascadedDenoisingAutoencoderAdapter,
+    CascadedDenoisingAutoencoderCorrection,
+)
 
 __all__ = [
     "CascadedDenoisingAutoencoderAdapter",

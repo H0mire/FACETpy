@@ -31,16 +31,14 @@ def _batch(seed: int = 0):
     artifact = (20.0 * np.sin(2 * np.pi * 7.0 * t)).astype(np.float32)[None, None, :]
     artifact = np.broadcast_to(artifact, (B, C, S)).copy()
     noisy = clean + artifact
-    stack = np.stack([artifact, clean, noisy], axis=1)          # (B, 3, C, S)
-    return (torch.from_numpy(artifact), torch.from_numpy(clean),
-            torch.from_numpy(noisy), torch.from_numpy(stack))
+    stack = np.stack([artifact, clean, noisy], axis=1)  # (B, 3, C, S)
+    return (torch.from_numpy(artifact), torch.from_numpy(clean), torch.from_numpy(noisy), torch.from_numpy(stack))
 
 
 @pytest.mark.unit
 def test_perfect_artifact_prediction_scores_zero():
     artifact, _, _, target = _batch()
-    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS,
-                                   si_sdr_weight=0.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS, si_sdr_weight=0.0, sfreq=SFREQ)
     assert float(loss(artifact, target)) == pytest.approx(0.0, abs=1e-5)
 
 
@@ -52,8 +50,7 @@ def test_deleting_the_signal_scores_one_per_time_domain_term():
     approximation: normalised MSE of a zero estimate is mean(ref^2)/mean(ref^2).
     """
     _, _, noisy, target = _batch()
-    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS,
-                                   si_sdr_weight=0.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS, si_sdr_weight=0.0, sfreq=SFREQ)
     total = float(loss(noisy, target))
 
     for term in ("amplitude", "velocity", "acceleration", "frequency"):
@@ -67,8 +64,7 @@ def test_doing_nothing_is_also_penalised():
     """``prediction = 0`` leaves the whole artifact in. Not the deletion failure,
     but it must not be cheap either — the artifact is far bigger than the EEG."""
     _, _, _, target = _batch()
-    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS,
-                                   si_sdr_weight=0.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS, si_sdr_weight=0.0, sfreq=SFREQ)
     total = float(loss(torch.zeros(B, C, S), target))
     assert total > 4.0
     assert loss.last_terms["energy_ratio"] > 1.0
@@ -85,14 +81,13 @@ def test_a_constant_output_is_caught_by_the_derivative_terms_alone():
     """
     artifact, _, noisy, target = _batch()
     offset = torch.tensor([0.0, 5.0, -5.0, 10.0]).reshape(B, 1, 1)
-    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS,
-                                   si_sdr_weight=0.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS, si_sdr_weight=0.0, sfreq=SFREQ)
 
-    loss(artifact - offset, target)               # clean_hat = clean + offset
+    loss(artifact - offset, target)  # clean_hat = clean + offset
     assert loss.last_terms["amplitude"] > 0.5
     assert loss.last_terms["velocity"] == pytest.approx(0.0, abs=1e-5)
 
-    loss(noisy - offset, target)                  # clean_hat = offset, a flat line
+    loss(noisy - offset, target)  # clean_hat = offset, a flat line
     assert loss.last_terms["velocity"] == pytest.approx(1.0, rel=1e-4)
     assert loss.last_terms["acceleration"] == pytest.approx(1.0, rel=1e-4)
     assert loss.last_terms["energy_ratio"] > 0.0  # not zero: a non-zero constant
@@ -101,13 +96,20 @@ def test_a_constant_output_is_caught_by_the_derivative_terms_alone():
 @pytest.mark.unit
 def test_si_sdr_term_rewards_a_good_fit_and_not_a_deleted_one():
     artifact, _, noisy, target = _batch()
-    loss = RecoveredCleanObjective(prediction_is="artifact", rows=ROWS,
-                                   amplitude_weight=0.0, velocity_weight=0.0,
-                                   acceleration_weight=0.0, frequency_weight=0.0,
-                                   si_sdr_weight=1.0, si_sdr_max=30.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(
+        prediction_is="artifact",
+        rows=ROWS,
+        amplitude_weight=0.0,
+        velocity_weight=0.0,
+        acceleration_weight=0.0,
+        frequency_weight=0.0,
+        si_sdr_weight=1.0,
+        si_sdr_max=30.0,
+        sfreq=SFREQ,
+    )
     good = float(loss(artifact, target))
     deleted = float(loss(noisy, target))
-    assert good == pytest.approx(-1.0, abs=1e-3)      # clamped at si_sdr_max
+    assert good == pytest.approx(-1.0, abs=1e-3)  # clamped at si_sdr_max
     assert deleted > good
     # Documented limitation: with the eps guard SI-SDR of an all-zero estimate is
     # 0 dB, not -inf. On its own it therefore only *ranks* deletion below a good
@@ -118,8 +120,7 @@ def test_si_sdr_term_rewards_a_good_fit_and_not_a_deleted_one():
 @pytest.mark.unit
 def test_clean_prediction_mode_needs_no_noisy_row():
     _, clean, _, target = _batch()
-    loss = RecoveredCleanObjective(prediction_is="clean", rows=ROWS,
-                                   si_sdr_weight=0.0, sfreq=SFREQ)
+    loss = RecoveredCleanObjective(prediction_is="clean", rows=ROWS, si_sdr_weight=0.0, sfreq=SFREQ)
     assert float(loss(clean, target)) == pytest.approx(0.0, abs=1e-5)
     loss(torch.zeros(B, C, S), target)
     assert loss.last_terms["amplitude"] == pytest.approx(1.0, rel=1e-4)
@@ -141,16 +142,31 @@ def test_row_layout_is_checked_rather_than_assumed():
 def test_identity_term_is_scale_free_and_one_at_the_truth():
     artifact, _, _, target = _batch()
     loss = RecoveredCleanObjective(
-        prediction_is="artifact", rows=ROWS, amplitude_weight=0.0, velocity_weight=0.0,
-        acceleration_weight=0.0, frequency_weight=0.0, si_sdr_weight=0.0,
-        identity_weight=1.0, sfreq=SFREQ)
+        prediction_is="artifact",
+        rows=ROWS,
+        amplitude_weight=0.0,
+        velocity_weight=0.0,
+        acceleration_weight=0.0,
+        frequency_weight=0.0,
+        si_sdr_weight=0.0,
+        identity_weight=1.0,
+        sfreq=SFREQ,
+    )
     assert float(loss(artifact, target)) == pytest.approx(1.0, rel=1e-5)
     assert float(loss(2.0 * artifact, target)) == pytest.approx(2.0, rel=1e-5)
 
     hinged = RecoveredCleanObjective(
-        prediction_is="artifact", rows=ROWS, amplitude_weight=0.0, velocity_weight=0.0,
-        acceleration_weight=0.0, frequency_weight=0.0, si_sdr_weight=0.0,
-        identity_weight=1.0, identity_hinge=True, sfreq=SFREQ)
+        prediction_is="artifact",
+        rows=ROWS,
+        amplitude_weight=0.0,
+        velocity_weight=0.0,
+        acceleration_weight=0.0,
+        frequency_weight=0.0,
+        si_sdr_weight=0.0,
+        identity_weight=1.0,
+        identity_hinge=True,
+        sfreq=SFREQ,
+    )
     assert float(hinged(artifact, target)) == pytest.approx(0.0, abs=1e-5)
     assert float(hinged(2.0 * artifact, target)) == pytest.approx(1.0, rel=1e-5)
 
@@ -159,25 +175,37 @@ def test_identity_term_is_scale_free_and_one_at_the_truth():
 def test_frequency_band_actually_restricts_the_term():
     """The 7 Hz artifact sits inside 1-70 Hz and outside 100-200 Hz."""
     artifact, _, noisy, target = _batch()
-    kw = dict(prediction_is="artifact", rows=ROWS, amplitude_weight=0.0,
-              velocity_weight=0.0, acceleration_weight=0.0, frequency_weight=1.0,
-              si_sdr_weight=0.0, sfreq=SFREQ)
+    kw = dict(
+        prediction_is="artifact",
+        rows=ROWS,
+        amplitude_weight=0.0,
+        velocity_weight=0.0,
+        acceleration_weight=0.0,
+        frequency_weight=1.0,
+        si_sdr_weight=0.0,
+        sfreq=SFREQ,
+    )
     in_band = float(RecoveredCleanObjective(freq_band=(1.0, 70.0), **kw)(noisy, target))
     out_band = float(RecoveredCleanObjective(freq_band=(100.0, 200.0), **kw)(noisy, target))
     assert in_band == pytest.approx(1.0, rel=1e-3)
-    assert out_band == pytest.approx(1.0, rel=1e-3)      # deletion is total either way
+    assert out_band == pytest.approx(1.0, rel=1e-3)  # deletion is total either way
     # But a prediction that is only wrong at 7 Hz must be invisible out of band.
     partial = artifact * 0.5
-    assert float(RecoveredCleanObjective(freq_band=(100.0, 200.0), **kw)(partial, target)) < \
-        float(RecoveredCleanObjective(freq_band=(1.0, 70.0), **kw)(partial, target))
+    assert float(RecoveredCleanObjective(freq_band=(100.0, 200.0), **kw)(partial, target)) < float(
+        RecoveredCleanObjective(freq_band=(1.0, 70.0), **kw)(partial, target)
+    )
 
 
 @pytest.mark.unit
 def test_ensemble_factory_drops_the_scale_invariant_term():
     loss = build_deployment_loss("ic_unet_ensemble", rows=ROWS, sfreq=SFREQ)
     assert loss.si_sdr_weight == 0.0
-    assert (loss.amplitude_weight, loss.velocity_weight,
-            loss.acceleration_weight, loss.frequency_weight) == (1.0, 1.0, 1.0, 1.0)
+    assert (loss.amplitude_weight, loss.velocity_weight, loss.acceleration_weight, loss.frequency_weight) == (
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+    )
     with pytest.raises(ValueError, match="Unknown deployment loss"):
         build_deployment_loss("nope")
 
@@ -199,12 +227,12 @@ def test_relative_min_delta_follows_the_loss_scale():
     from facet.training.callbacks import EarlyStoppingCallback
 
     absolute = EarlyStoppingCallback(monitor="val_loss", min_delta=1e-6)
-    assert not absolute._is_better(2.0e-07, 2.45e-07)      # a 18 % gain, rejected
+    assert not absolute._is_better(2.0e-07, 2.45e-07)  # a 18 % gain, rejected
 
     relative = EarlyStoppingCallback(monitor="val_loss", min_delta=0.0, min_delta_rel=0.01)
-    assert relative._is_better(2.0e-07, 2.45e-07)          # same gain, accepted
-    assert not relative._is_better(2.44e-07, 2.45e-07)     # 0.4 %, still rejected
-    assert relative._is_better(0.90, 1.00)                 # and scale-free
+    assert relative._is_better(2.0e-07, 2.45e-07)  # same gain, accepted
+    assert not relative._is_better(2.44e-07, 2.45e-07)  # 0.4 %, still rejected
+    assert relative._is_better(0.90, 1.00)  # and scale-free
     assert not relative._is_better(0.999, 1.00)
 
 
@@ -268,7 +296,14 @@ def test_si_sdr_is_also_unit_free():
     out = []
     for scale in (1.0, 1e-6):
         loss = RecoveredCleanObjective(
-            prediction_is="artifact", rows=ROWS, amplitude_weight=0.0, velocity_weight=0.0,
-            acceleration_weight=0.0, frequency_weight=0.0, si_sdr_weight=1.0, sfreq=SFREQ)
+            prediction_is="artifact",
+            rows=ROWS,
+            amplitude_weight=0.0,
+            velocity_weight=0.0,
+            acceleration_weight=0.0,
+            frequency_weight=0.0,
+            si_sdr_weight=1.0,
+            sfreq=SFREQ,
+        )
         out.append(float(loss(artifact * scale * 1.001, target * scale)))
     assert out[0] == pytest.approx(out[1], rel=1e-4)

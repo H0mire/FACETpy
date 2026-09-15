@@ -24,7 +24,7 @@ def test_epochs_are_concatenated_in_time_not_treated_as_units():
     seen = {}
 
     def _hook(_module, inputs, _output):
-        seen["t"] = inputs[0].shape[-1]      # returning a value would replace the output
+        seen["t"] = inputs[0].shape[-1]  # returning a value would replace the output
 
     m.encoder[0].conv.register_forward_hook(_hook)
     m(torch.randn(1, 7, 3, 512))
@@ -35,7 +35,7 @@ def test_epochs_are_concatenated_in_time_not_treated_as_units():
 def test_forward_shape_matches_the_weg_a_contract():
     m = _model()
     out = m(torch.randn(2, 7, 3, 512))
-    assert out.shape == (2, 1, 512)          # target channel only
+    assert out.shape == (2, 1, 512)  # target channel only
 
 
 @pytest.mark.unit
@@ -64,7 +64,7 @@ def test_cross_unit_attention_is_permutation_equivariant():
     from facet.models.experimental.v2.demucs_mc.training import CrossUnitAttention
 
     attn = CrossUnitAttention(features=16, n_heads=4).eval()
-    x = torch.randn(2, 3, 16, 20)          # (B, channels, features, T)
+    x = torch.randn(2, 3, 16, 20)  # (B, channels, features, T)
     perm = torch.tensor([2, 0, 1])
     with torch.no_grad():
         a = attn(x)[:, perm]
@@ -78,6 +78,6 @@ def test_model_output_depends_on_the_neighbour_channels():
     m = _model().eval()
     x = torch.randn(1, 7, 3, 256)
     y = x.clone()
-    y[:, :, 1:] = torch.randn_like(y[:, :, 1:])     # perturb neighbours only
+    y[:, :, 1:] = torch.randn_like(y[:, :, 1:])  # perturb neighbours only
     with torch.no_grad():
         assert not torch.allclose(m(x), m(y), atol=1e-7)

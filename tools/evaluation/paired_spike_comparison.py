@@ -5,7 +5,7 @@ reports each arm's *average*, and an average cannot support the statement "A is
 better than B". Two arms evaluated on the same examples differ example by example;
 only those paired differences give a test, an effect size and an interval. The
 results protocol requires all three for any superiority claim
-(``docs/research/results_evidence_pack_execution_plan.md`` §5.5.3), so this reads
+(see ``docs/source/thesis_reference/datasets_evaluation.rst``), so this reads
 the per-example CSV the evaluation writes and produces exactly that.
 
 What it deliberately does not do: pick a winner, or interpret. It emits the

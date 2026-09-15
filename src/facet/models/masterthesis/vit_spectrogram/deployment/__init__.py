@@ -4,6 +4,12 @@ See :mod:`facet.models.masterthesis.vit_spectrogram.deployment.training` for wha
 ``facet.models.masterthesis.vit_spectrogram`` and why.
 """
 
-from facet.models.masterthesis.vit_spectrogram.deployment.training import CORE_OUTPUT, PACKING, build_dataset, build_loss, build_model
+from facet.models.masterthesis.vit_spectrogram.deployment.training import (
+    CORE_OUTPUT,
+    PACKING,
+    build_dataset,
+    build_loss,
+    build_model,
+)
 
 __all__ = ["CORE_OUTPUT", "PACKING", "build_dataset", "build_loss", "build_model"]

@@ -6,7 +6,10 @@ ICASSP 2021, arXiv:2010.13154). See ``README.md`` and
 the documented deviations.
 """
 
-from facet.models.experimental.paper_accurate.sepformer.processor import SepFormerPaperAccurateAdapter, SepFormerPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.sepformer.processor import (
+    SepFormerPaperAccurateAdapter,
+    SepFormerPaperAccurateCorrection,
+)
 
 __all__ = [
     "SepFormerPaperAccurateAdapter",

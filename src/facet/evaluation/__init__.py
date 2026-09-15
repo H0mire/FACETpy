@@ -7,6 +7,10 @@ Author: FACETpy Team
 Date: 2025-01-12
 """
 
+from .deployment_metrics import (
+    EpochSeamStepCalculator,
+    GradientArtifactResidualCalculator,
+)
 from .metrics import (
     FFTAllenCalculator,
     FFTNiazyCalculator,
@@ -20,10 +24,6 @@ from .metrics import (
     SNRCalculator,
     SpectralCoherenceCalculator,
     SpikeDetectionRateCalculator,
-)
-from .deployment_metrics import (
-    EpochSeamStepCalculator,
-    GradientArtifactResidualCalculator,
 )
 from .model_evaluation import (
     EVALUATION_SCHEMA_VERSION,

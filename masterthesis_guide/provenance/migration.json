@@ -249,13 +249,13 @@
     },
     {
       "source": "output/legacy_dl_delivery/aas_vs_dae_metrics.json",
-      "destination": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_delivery_aas_vs_dae_metrics.json",
+      "destination": "masterthesis_guide/experiments/phase_0/legacy_delivery/provenance/legacy_dl_delivery_aas_vs_dae_metrics.json",
       "sha256": "045600332033e4f10319661cefa0fe0e978296ceafd96f098aa0dd3462917c1d",
       "source_ref": "ignored-local-archive"
     },
     {
       "source": "output/legacy_dl_delivery/anc_contribution.json",
-      "destination": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_delivery_anc_contribution.json",
+      "destination": "masterthesis_guide/experiments/phase_0/legacy_delivery/provenance/legacy_dl_delivery_anc_contribution.json",
       "sha256": "1979a1cc68b945d703fc374b007b93d70935f2ae81e4c30ebc1aef48c47d292f",
       "source_ref": "ignored-local-archive"
     },

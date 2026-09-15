@@ -79,9 +79,9 @@ def test_optimizer_reduces_loss():
 
 def test_build_loss_variants():
     pytest.importorskip("torch")
-    from facet.models.experimental.paper_accurate.denoise_mamba.training import build_loss
-
     import torch.nn as nn
+
+    from facet.models.experimental.paper_accurate.denoise_mamba.training import build_loss
 
     assert isinstance(build_loss("mse"), nn.MSELoss)
     assert isinstance(build_loss("l1"), nn.L1Loss)
@@ -157,9 +157,8 @@ def test_train_val_split_disjoint(tmp_path):
 def test_processor_registration_unique():
     # Importing the processor module registers the unique correction name and
     # must not collide with the original "denoise_mamba_correction".
-    from facet.core import list_processors
-
     import facet.models.experimental.paper_accurate.denoise_mamba.processor  # noqa: F401
+    from facet.core import list_processors
 
     names = list_processors()
     assert "denoise_mamba_paper_accurate_correction" in names

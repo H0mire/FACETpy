@@ -1,4 +1,5 @@
 """Run the Phase-0 architecture in the current pipeline (adapted execution)."""
+
 from __future__ import annotations
 
 import argparse
@@ -18,8 +19,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     model = LegacyDLAdapter(args.checkpoint, device=args.device)
     model._load()
-    result = pipeline.build(args.edf, correctors=[DeepLearningCorrection(model=model)],
-                            name="phase0_adapted").run()
+    result = pipeline.build(args.edf, correctors=[DeepLearningCorrection(model=model)], name="phase0_adapted").run()
+    if not result.success:
+        raise RuntimeError(result.error)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     result.get_raw().save(args.out, overwrite=False)
 

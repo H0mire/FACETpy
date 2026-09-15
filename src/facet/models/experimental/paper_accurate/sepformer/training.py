@@ -192,7 +192,10 @@ class _SBTransformerStack(torch.nn.Module):
         self.whole_stack_residual = bool(whole_stack_residual)
         self.pos_enc = _SinusoidalPositionalEncoding(d_model, max_len=max_len) if self.use_positional else None
         self.layers = torch.nn.ModuleList(
-            [_SBTransformerLayer(d_model, n_heads, d_ffn, dropout, ffn_activation=ffn_activation) for _ in range(num_layers)]
+            [
+                _SBTransformerLayer(d_model, n_heads, d_ffn, dropout, ffn_activation=ffn_activation)
+                for _ in range(num_layers)
+            ]
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -617,7 +620,7 @@ def build_loss(name: str = "si_snr", **kwargs: Any) -> torch.nn.Module:
 
 
 class _SubsetDataset:
-    def __init__(self, parent: "ChannelWiseContextArtifactDataset", indices: list[int]) -> None:
+    def __init__(self, parent: ChannelWiseContextArtifactDataset, indices: list[int]) -> None:
         self._parent = parent
         self._indices = indices
 
@@ -830,9 +833,7 @@ def _load_center_arrays(path: Path, target_type: str) -> tuple[np.ndarray, np.nd
                 raise KeyError(f"Bundle missing a target source for target_type='{target_type}'")
             return noisy, target, sfreq
 
-    raise KeyError(
-        f"NPZ bundle '{path}' must contain 'noisy_center'+'{target_key}' (or a 'noisy_context' cube)"
-    )
+    raise KeyError(f"NPZ bundle '{path}' must contain 'noisy_center'+'{target_key}' (or a 'noisy_context' cube)")
 
 
 def build_dataset(

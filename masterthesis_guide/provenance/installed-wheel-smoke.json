@@ -1,0 +1,7 @@
+{
+  "scope": "Installed wheel outside source checkout, declared pytorch extra, explicit TorchScript artifact, synthetic 30-channel current-pipeline correction. Zero artifact preserves every input sample.",
+  "passed": true,
+  "torch": "2.11.0",
+  "numpy": "2.1.3",
+  "maximum_absolute_difference": 0.0
+}

@@ -116,7 +116,7 @@ def test_every_input_epoch_and_channel_reaches_the_output():
     model = _generator().eval()
     x = torch.randn(2, 3, 3, 128, requires_grad=True)
     model(x)["fused"].abs().sum().backward()
-    grad = x.grad.abs().sum(dim=(0, 3))          # (epochs, channels)
+    grad = x.grad.abs().sum(dim=(0, 3))  # (epochs, channels)
     assert (grad.sum(dim=1) > 0).all(), f"an epoch got no gradient: {grad.sum(dim=1)}"
     assert (grad.sum(dim=0) > 0).all(), f"a channel got no gradient: {grad.sum(dim=0)}"
 
@@ -144,7 +144,7 @@ def test_cross_channel_bridge_is_permutation_equivariant():
     """
     torch.manual_seed(0)
     bridge = _CrossChannelBridge(8, n_heads=2).eval()
-    x = torch.randn(2, 3, 8, 16)          # (batch, channels, dim, time)
+    x = torch.randn(2, 3, 8, 16)  # (batch, channels, dim, time)
     perm = [2, 0, 1]
     with torch.no_grad():
         out = bridge(x)
@@ -217,8 +217,8 @@ def test_objective_pairs_each_discriminator_with_the_right_reference():
     """D2 judges against the artifact, D1/D3 against the clean EEG (§2.2.2)."""
     objective = build_loss()
     target = torch.zeros(1, 2, 8)
-    target[0, 0] = 1.0          # artifact row
-    target[0, 1] = 2.0          # clean row
+    target[0, 0] = 1.0  # artifact row
+    target[0, 1] = 2.0  # clean row
     assert objective._real_for("noise", target).mean() == pytest.approx(1.0)
     assert objective._real_for("clean", target).mean() == pytest.approx(2.0)
     assert objective._real_for("fused", target).mean() == pytest.approx(2.0)
@@ -290,9 +290,7 @@ def test_training_step_moves_all_three_branches_and_all_three_discriminators():
 
     for prefix in ("clean_branch", "noise_branch", "gate"):
         moved = [
-            n
-            for n, p in wrapper.model.named_parameters()
-            if n.startswith(prefix) and not torch.allclose(p, before[n])
+            n for n, p in wrapper.model.named_parameters() if n.startswith(prefix) and not torch.allclose(p, before[n])
         ]
         assert moved, f"'{prefix}' received no gradient — the dead-head defect is back"
     for d, disc in wrapper.objective.discriminators.items():
@@ -354,8 +352,9 @@ def test_loss_terms_are_comparable_at_volt_scale():
 def test_normalisation_is_scale_invariant():
     """Scaling the whole problem by 1000 must not change the loss."""
     rng = np.random.default_rng(1)
-    base_out = {k: torch.as_tensor(rng.standard_normal((3, 1, 128)), dtype=torch.float32) for k in
-                ("clean", "noise", "fused")}
+    base_out = {
+        k: torch.as_tensor(rng.standard_normal((3, 1, 128)), dtype=torch.float32) for k in ("clean", "noise", "fused")
+    }
     base_tgt = torch.as_tensor(rng.standard_normal((3, 2, 128)), dtype=torch.float32)
 
     torch.manual_seed(0)
@@ -370,7 +369,7 @@ def test_normalisation_does_not_change_model_output_units():
     """Only the loss is normalised; predictions stay in volts, so export is unaffected."""
     model = _generator(samples=64).eval()
     out = model(torch.randn(2, 3, 3, 64) * 1e-3)
-    assert out["fused"].abs().mean() < 1.0     # still volt-scale, not standardised
+    assert out["fused"].abs().mean() < 1.0  # still volt-scale, not standardised
 
 
 @pytest.mark.unit
@@ -393,7 +392,7 @@ def test_all_heads_share_one_loss_scale():
     """
     objective = DHCTGanStrictObjective(discriminator_dims=(8, 16), lambda_adv=0.0)
     target = torch.zeros(2, 2, 64)
-    target[:, 0] = 1.0e-3      # artifact, large
+    target[:, 0] = 1.0e-3  # artifact, large
     target[:, 1] = 1.0e-3 / 56  # clean, 56x smaller
     scale = objective._scale(target)
     expected = (target[:, 0:1] + target[:, 1:2]).pow(2).mean(dim=(-2, -1), keepdim=True).sqrt()

@@ -9,7 +9,10 @@ attention, a configurable LGTB inner stack and a parallel CNN path. CPU-cheap an
 fully compatible with the facet-train factory + TorchScript inference contracts.
 """
 
-from facet.models.experimental.paper_accurate.dhct_gan.processor import DHCTGanPaperAccurateAdapter, DHCTGanPaperAccurateCorrection
+from facet.models.experimental.paper_accurate.dhct_gan.processor import (
+    DHCTGanPaperAccurateAdapter,
+    DHCTGanPaperAccurateCorrection,
+)
 
 __all__ = [
     "DHCTGanPaperAccurateAdapter",

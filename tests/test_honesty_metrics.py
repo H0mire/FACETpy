@@ -9,7 +9,7 @@ from facet.training import honesty_report, honesty_verdict
 
 def _scenario(seed=0, n=4000):
     rng = np.random.default_rng(seed)
-    clean = rng.standard_normal(n)                      # true brain
+    clean = rng.standard_normal(n)  # true brain
     artifact = 30.0 * np.sin(np.linspace(0, 80 * np.pi, n))  # big structured artifact
     noisy = clean + artifact
     return noisy, clean, artifact
@@ -33,7 +33,7 @@ def test_plausible_fabrication_is_caught():
     # clean_corr is the decisive discriminator: a generic fabrication does NOT
     # match the specific clean (~0), and the real signal leaks into the error.
     assert abs(report["clean_corr"]) < 0.3
-    assert abs(report["residual_vs_clean_corr"]) > 0.5      # real signal sits in the error
+    assert abs(report["residual_vs_clean_corr"]) > 0.5  # real signal sits in the error
     assert honesty_verdict(report)["honest"] is False
 
 
@@ -49,6 +49,12 @@ def test_under_subtraction_shows_artifact_in_residual():
 def test_report_keys_present():
     noisy, clean, _ = _scenario()
     report = honesty_report(noisy, output=clean, clean=clean)
-    for k in ("artifact_corr", "clean_corr", "residual_rms_ratio",
-              "residual_vs_clean_corr", "residual_vs_artifact_corr", "artifact_rms_reduction"):
+    for k in (
+        "artifact_corr",
+        "clean_corr",
+        "residual_rms_ratio",
+        "residual_vs_clean_corr",
+        "residual_vs_artifact_corr",
+        "artifact_rms_reduction",
+    ):
         assert k in report

@@ -1,0 +1,3 @@
+arm,rms_uv,ga_rest_uv,naht_ratio,median_sample_step_uv,step_channel,n_harmonics,epoch_rate_hz,x_reference,hinweis
+farm,20.243,0.248,1.109,0.2687,Fp1,9,7.0137,1.0,
+uncorrected,322.115,36.4,5.691,11.8543,Fp1,9,7.0137,146.77,"Naht gebrochen, ansehen"
