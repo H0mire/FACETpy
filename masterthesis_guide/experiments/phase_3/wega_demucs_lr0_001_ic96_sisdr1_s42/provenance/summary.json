@@ -1,0 +1,49 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.demucs_deployment_edition.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.training.deployment_data:build_weg_a_packed_dataset",
+  "run_name": "grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316",
+  "run_dir": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 1,
+    "chunk_size": 512,
+    "input_shape": [
+      1,
+      3584
+    ],
+    "target_shape": [
+      3,
+      1,
+      512
+    ],
+    "n_total_chunks": 24810,
+    "n_train_chunks": 16170,
+    "n_val_chunks": 4110,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 60,
+    "best_epoch": 58,
+    "best_metric": 9.298155511072439,
+    "elapsed_seconds": 471.30576475313865
+  },
+  "results": {
+    "config_path": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/config.json",
+    "resolved_config_json": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/facet_train_config.resolved.json",
+    "resolved_config_yaml": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/facet_train_config.resolved.yaml",
+    "log_file": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/training.jsonl",
+    "loss_plot_file": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/loss.png",
+    "summary_path": "grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/summary.json"
+  },
+  "model": null,
+  "export": {
+    "enabled": false,
+    "path": null,
+    "format": null,
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

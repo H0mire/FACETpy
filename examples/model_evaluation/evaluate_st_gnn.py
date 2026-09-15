@@ -23,7 +23,7 @@ import numpy as np
 import torch
 
 from facet.evaluation import ModelEvaluationWriter
-from facet.models.st_gnn.training import NIAZY_PROOF_FIT_CHANNELS
+from facet.models.masterthesis.st_gnn.training import NIAZY_PROOF_FIT_CHANNELS
 
 
 def parse_args() -> argparse.Namespace:

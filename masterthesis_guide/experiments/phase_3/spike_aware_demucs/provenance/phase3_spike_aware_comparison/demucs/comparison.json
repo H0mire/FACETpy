@@ -1,0 +1,141 @@
+{
+  "scope": "Locked Weg-A checkpoint comparison; not an isolated loss ablation",
+  "split": 2,
+  "n_examples": 4110,
+  "epoch_duration_s": 0.194,
+  "device": "cuda",
+  "baseline_device": "cpu",
+  "neighborhood_ms": 50,
+  "spike_dilate_ms": 0,
+  "dataset_sha256": "4c3dc8a5861d71db5c8ddb1a4c8545b2fbe9bf6b1dc5bfe79b087b55b4a44357",
+  "baseline": "/workspace/phase3_baseline.ts",
+  "baseline_sha256": "f4a64ab3ca5817f2568456b42a18c3f0c9ffc36cb903f5d80520f6f9f9ba0f46",
+  "checkpoint": "/workspace/facetpy/training_output/phase3demucswegaspikeaware_20260914_122757/checkpoints/epoch0002_val_loss13.2668.pt",
+  "checkpoint_sha256": "26263804079e5d6e4610c461ffa7dd01b75dfee771c7e85c2048afecb424a805",
+  "config": {
+    "model": {
+      "framework": "pytorch",
+      "factory": "facet.models.demucs_deployment_edition.training:build_model",
+      "kwargs": {
+        "depth": 4,
+        "initial_channels": 64,
+        "kernel_size": 8,
+        "stride": 4,
+        "lstm_layers": 2,
+        "in_channels": 1,
+        "out_channels": 1,
+        "n_sources": 1,
+        "rescale": 0.1
+      },
+      "loss_factory": "facet.models.demucs_deployment_edition.training:build_loss",
+      "loss_kwargs": {
+        "name": "recovered_clean",
+        "rows": [
+          "artifact",
+          "clean",
+          "noisy",
+          "spike"
+        ],
+        "amplitude_weight": 1.0,
+        "velocity_weight": 0.00017043934156734243,
+        "acceleration_weight": 1.3597193525429164e-05,
+        "frequency_weight": 17.220293178786243,
+        "si_sdr_weight": 0.0,
+        "si_sdr_max": 30.0,
+        "freq_band": [
+          1.0,
+          70.0
+        ],
+        "spike_weight": 20.0
+      },
+      "device": "cuda"
+    },
+    "data": {
+      "dataset_factory": "facet.training.deployment_data:build_weg_a_packed_dataset",
+      "kwargs": {
+        "path": "./output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz",
+        "packing": "b1ts",
+        "include_spike": true
+      },
+      "eeg_only": true
+    },
+    "training": {
+      "model_name": "Phase3DemucsWegASpikeAware",
+      "chunk_size": 3584,
+      "target_type": "artifact",
+      "trigger_aligned": true,
+      "val_ratio": 0.2,
+      "max_epochs": 60,
+      "batch_size": 32,
+      "learning_rate": 0.001,
+      "weight_decay": 0.0,
+      "grad_clip_norm": 5.0,
+      "seed": 42,
+      "output_dir": "training_output"
+    },
+    "checkpoint": {
+      "monitor": "val_loss",
+      "mode": "min",
+      "save_top_k": 2,
+      "save_last": true
+    },
+    "early_stopping": {
+      "monitor": "val_loss",
+      "mode": "min",
+      "patience": 20,
+      "min_delta": 0.0,
+      "min_delta_rel": 0.001
+    },
+    "logging": {
+      "rich_live": true,
+      "log_file": "training.jsonl",
+      "loss_plot_file": "loss.png",
+      "val_every_n_epochs": 1,
+      "progress_bar": true
+    },
+    "export": {
+      "enabled": true,
+      "format": "torchscript",
+      "path": "exports/demucs_phase3_spike_aware.ts",
+      "write_inference_config": false
+    }
+  },
+  "metrics": {
+    "phase3": {
+      "spike_neighborhood_snr_db": -15.825202490684214,
+      "non_spike_snr_db": -23.410288455218023,
+      "spike_peak_over_residual": 2.3834076256999084,
+      "spike_metrics_reliable": 1.0,
+      "spike_amplitude_ratio": 13.55648347119012,
+      "spike_contrast_db": 3.214867581973163,
+      "spike_morphology_corr": 0.09963016319723589,
+      "spike_peak_latency_drift_samples": -0.6130030959752322,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 575.0244599767029
+    },
+    "spike_aware": {
+      "spike_neighborhood_snr_db": -3.0961139858705646,
+      "non_spike_snr_db": -3.4918897068101256,
+      "spike_peak_over_residual": 0.8250209584539978,
+      "spike_metrics_reliable": 0.0,
+      "spike_amplitude_ratio": 3.9338398430351096,
+      "spike_contrast_db": -1.1868741365857978,
+      "spike_morphology_corr": -0.15023365680178272,
+      "spike_peak_latency_drift_samples": -0.4520123839009288,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 58.14723772346042
+    },
+    "uncorrected": {
+      "spike_neighborhood_snr_db": -26.22797623412575,
+      "non_spike_snr_db": -34.05464944611015,
+      "spike_peak_over_residual": 1.4035850015111244,
+      "spike_metrics_reliable": 1.0,
+      "spike_amplitude_ratio": 57.20769357191379,
+      "spike_contrast_db": -0.6043356106928635,
+      "spike_morphology_corr": 0.08619767592082593,
+      "spike_peak_latency_drift_samples": -0.48606811145510836,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 1958.274282515049
+    }
+  }
+}

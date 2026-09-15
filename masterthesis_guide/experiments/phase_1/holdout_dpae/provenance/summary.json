@@ -1,0 +1,47 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.dpae.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.dpae.training:build_dataset",
+  "run_name": "dualpathwayautoencoderniazyprooffit_20260510_192929",
+  "run_dir": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      1,
+      512
+    ],
+    "target_shape": [
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 19992,
+    "n_val_chunks": 4998,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 19,
+    "best_epoch": 16,
+    "best_metric": 3.453173370360219e-07,
+    "elapsed_seconds": 48.02850940916687
+  },
+  "results": {
+    "config_path": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/config.json",
+    "resolved_config_json": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/facet_train_config.resolved.yaml",
+    "log_file": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/training.jsonl",
+    "loss_plot_file": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/loss.png",
+    "summary_path": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/exports/dpae.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

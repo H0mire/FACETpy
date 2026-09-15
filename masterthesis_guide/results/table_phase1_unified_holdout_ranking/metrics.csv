@@ -1,0 +1,16 @@
+family,n_models,models,median_snr_improvement_db,min_snr_improvement_db,max_snr_improvement_db,median_artifact_corr,median_residual_rms_ratio,n_holdout_windows,rank_rule,exclusions
+Audio (U-Net+LSTM),1,demucs,31.29543113708496,31.29543113708496,31.29543113708496,0.9996360414850605,0.0272413352211958,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Audio (TCN),1,conv_tasnet,22.738277435302734,22.738277435302734,22.738277435302734,0.9973348568204654,0.07296021925890112,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Autoencoder (context MLP),1,cascaded_context_dae,18.920250415802002,18.920250415802002,18.920250415802002,0.9936016833360306,0.11323677582097232,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Audio (Transformer),1,sepformer,18.708407402038574,18.708407402038574,18.708407402038574,0.9932905120930949,0.1160324938002232,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Autoencoder (cascaded MLP),1,cascaded_dae,18.059264183044434,18.059264183044434,18.059264183044434,0.992279256822137,0.1250364924255337,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+GAN (TF+Time),1,nested_gan,11.711594879627228,11.711594879627228,11.711594879627228,0.9745608048549789,0.2596690806044757,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+SSM,1,denoise_mamba,11.203944653272629,11.203944653272629,11.203944653272629,0.9613709163272423,0.27529780875061355,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Discriminative + ICA,1,ic_unet,11.109480172395706,11.109480172395706,11.109480172395706,0.9612539275588182,0.27830819849681765,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Graph (GNN),1,st_gnn,11.004556078463793,11.004556078463793,11.004556078463793,0.959546257527632,0.2816905038575326,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Vision (MAE),1,vit_spectrogram,10.94721175567247,10.94721175567247,10.94721175567247,0.9605251892044411,0.2835563787833825,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Baseline (AAS),1,aas_naive_6nn,9.15620470046997,9.15620470046997,9.15620470046997,0.9375421822491363,0.3484895608358443,166,Median der SNR-Verbesserung; Spanne mitgeführt,aas_baseline: reference (produced clean_center target by definition; SNR v
+Discriminative,1,dpae,7.284886121749878,7.284886121749878,7.284886121749878,0.9091759590173892,0.43227058294724463,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+Diffusion,1,d4pm,4.806132793426514,4.806132793426514,4.806132793426514,0.9265018792108938,0.5750338286096541,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+"GAN (hybrid CNN+Transformer, ctx fix)",1,dhct_gan_v2,-1.1738691329956055,-1.1738691329956055,-1.1738691329956055,0.5644395476653311,1.1447047136947361,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine
+"GAN (single-epoch input, failed)",1,dhct_gan,-7.115755081176758,-7.115755081176758,-7.115755081176758,0.15728382457439363,2.268755995514912,166,Median der SNR-Verbesserung; Spanne mitgeführt,keine

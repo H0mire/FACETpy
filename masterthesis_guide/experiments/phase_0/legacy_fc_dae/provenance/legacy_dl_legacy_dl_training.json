@@ -1,0 +1,35 @@
+{
+  "worktree": "/private/tmp/claude-501/-Volumes-JanikProSSD-Documents-Projects-FACETpy-git-repos-facetpy/d64b325c-8708-442a-82df-78790f845eb7/scratchpad/legacy-pkg",
+  "input": "/Volumes/JanikProSSD/Documents/Projects/FACETpy/git-repos/facetpy/examples/datasets/NiazyFMRI.edf",
+  "branch": "feature/deeplearning (FACETpy 0.1.0)",
+  "chain": "import_eeg(offset=-0.005) | crop(0,162) | find_triggers | pre_processing | find_missing_triggers | align_triggers | calc_matrix_aas | remove_artifacts | post_processing",
+  "hyperparameters": {
+    "lambda_noise": 0.5,
+    "learning_rate": 0.0001,
+    "epochs_per_stage": 500,
+    "batch_size": 32,
+    "validation_split": 0.2,
+    "optimizer": "RMSprop",
+    "architecture": "FC-DAE 8-4-8 ueber (Kanaele x Zeitpunkte) flach"
+  },
+  "target_note": "Ziel ist noisy - AAS_corrected DERSELBEN Aufnahme. Das Modell destilliert AAS, es korrigiert nicht unabhaengig.",
+  "seconds_aas_pipeline": 14.6,
+  "seconds_training": 31.4,
+  "agreement_with_aas": {
+    "n_epochs": 840,
+    "n_val_epochs": 168,
+    "target_definition": "noisy - AAS_corrected (die AAS-Schaetzung selbst)",
+    "rms_target_uv": 2043.0402072682289,
+    "rms_residual_all_uv": 208.57992600755085,
+    "rms_residual_val_uv": 225.12391774803484,
+    "reproduction_pct_all": 89.79070870629387,
+    "reproduction_pct_val": 88.60355403987123
+  },
+  "final_losses": {
+    "stage1_loss": 0.08800179316174417,
+    "stage1_val_loss": 0.032851219177246094,
+    "stage2_loss": 0.00870937446043605,
+    "stage2_val_loss": 0.01285656075924635,
+    "optimal_lambda": 0.5
+  }
+}

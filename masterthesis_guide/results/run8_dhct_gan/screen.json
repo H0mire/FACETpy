@@ -1,0 +1,97 @@
+{
+  "familie": "dhct_gan",
+  "phase": "screen",
+  "achsen": [
+    "lr",
+    "kapazitaet",
+    "si_sdr"
+  ],
+  "basis_werte_run7": {
+    "lr": 0.001,
+    "kapazitaet": 16,
+    "si_sdr": 1.0,
+    "wd": 0.0001,
+    "freq": 0.046,
+    "fenster": 16
+  },
+  "gitterwerte": {
+    "lr": [
+      0.0001,
+      0.001,
+      0.003
+    ],
+    "kapazitaet": [
+      8,
+      16,
+      32
+    ],
+    "si_sdr": [
+      0.0,
+      1.0,
+      3.0
+    ]
+  },
+  "fest_geblieben": {
+    "wd": 0.0001,
+    "freq": 0.046,
+    "fenster": 16
+  },
+  "basis_konfig": "configs/run8_dhct_gan_deployment_ctx_epochs.yaml",
+  "model_id": "dhct_gan_deployment",
+  "abweichung_von_run7": {
+    "config": "/workspace/facetpy/configs/run8_dhct_gan_deployment_ctx_epochs.yaml",
+    "packing": "b1ts",
+    "context": "stack",
+    "grund": "run 7 fuhr b1s (1 Epoche, 1 Kanal) -- keine Vergleichsachse"
+  },
+  "fenster_s": [
+    25.0,
+    160.0
+  ],
+  "analyse_s": [
+    4.5,
+    135.0
+  ],
+  "farm_ga_rest_uv": 0.248,
+  "naht_verworfen_ab": 2.5,
+  "dc_mode": "as_evaluated",
+  "bewertung": "Kammrest in der vollen Korrekturkette; Nahtsprung als Ausschluss. Nicht val_loss — der erklaert in run 7 nur 37 % der Pipeline-Rangvarianz.",
+  "zeilen": [
+    {
+      "tag": "lr0.0001_bc8_sisdr0_s42",
+      "seed": 42,
+      "lr": 0.0001,
+      "kapazitaet": 8,
+      "si_sdr": 0.0,
+      "train_s": 16385.0,
+      "val_loss": 0.3325,
+      "checkpoint": "grids/run8/dhct_gan/lr0.0001_bc8_sisdr0_s42/grid_dhct_gan_lr0.0001_bc8_sisdr0_s42_20260912_203924/checkpoints/epoch0076_val_loss0.3325.pt",
+      "pipeline_device": "cpu",
+      "ga_rest_uv": 3.7179,
+      "rms_uv": 30.198,
+      "naht_ratio": 1.3111,
+      "x_farm": 14.99,
+      "pipeline_s": 1788.4,
+      "hinweis": "",
+      "status": "ok"
+    },
+    {
+      "tag": "lr0.0001_bc8_sisdr1_s42",
+      "seed": 42,
+      "lr": 0.0001,
+      "kapazitaet": 8,
+      "si_sdr": 1.0,
+      "train_s": 10200.8,
+      "val_loss": -0.2966,
+      "checkpoint": "grids/run8/dhct_gan/lr0.0001_bc8_sisdr1_s42/grid_dhct_gan_lr0.0001_bc8_sisdr1_s42_20260913_014227/checkpoints/epoch0076_val_loss-0.2966.pt",
+      "pipeline_device": "cpu",
+      "ga_rest_uv": 5.9384,
+      "rms_uv": 29.684,
+      "naht_ratio": 1.7096,
+      "x_farm": 23.95,
+      "pipeline_s": 1164.3,
+      "hinweis": "",
+      "status": "ok"
+    }
+  ]
+}

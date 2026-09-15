@@ -1,0 +1,20 @@
+{
+  "dataset_path": "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+  "artifact_bundle": "output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz",
+  "mode": "niazy_only_proof_fit_context",
+  "clean_target": "aas_corrected_niazy_surrogate",
+  "artifact_target": "aas_estimated_niazy_artifact",
+  "warning": "This dataset intentionally uses Niazy-derived AAS corrected data and AAS artifact estimates. It is suitable for proof-of-fit tests, not for independent generalization claims.",
+  "n_examples": 833,
+  "context_epochs": 7,
+  "epoch_samples": 512,
+  "n_channels": 30,
+  "sampling_frequency_hz": 4096.0,
+  "min_native_epoch_length_samples": 584,
+  "median_native_epoch_length_samples": 584.0,
+  "max_native_epoch_length_samples": 605,
+  "mean_abs_clean_uv": 215.20933532714844,
+  "mean_abs_artifact_uv": 918.984619140625,
+  "mean_abs_noisy_uv": 936.6691284179688,
+  "max_abs_artifact_uv": 13601.818359375
+}

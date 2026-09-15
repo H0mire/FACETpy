@@ -15,10 +15,10 @@ it reports rather than from the paper's 40.
 Usage (on the GPU host)::
 
     .venv/bin/python tools/audit/measure_training_memory.py \\
-        --config src/facet/models/dhct_gan_strict_edition/training_weg_a_paper.yaml
+        --config src/facet/models/masterthesis/dhct_gan/strict/training_weg_a_paper.yaml
 
     .venv/bin/python tools/audit/measure_training_memory.py \\
-        --config src/facet/models/dhct_gan_strict_edition/training_weg_a_extended.yaml \\
+        --config src/facet/models/masterthesis/dhct_gan/strict/training_weg_a_extended.yaml \\
         --batch-sizes 2 4 8 16
 """
 

@@ -53,14 +53,14 @@
 
 model:
   framework: pytorch
-  factory: facet.models.dhct_gan_deployment_edition.training:build_axis_model
+  factory: facet.models.masterthesis.dhct_gan.deployment.training:build_axis_model
   kwargs:
     base_channels: 16
     depth: 4
     num_heads: 4
     window_size: 16
     axis: epochs
-  loss_factory: facet.models.dhct_gan_deployment_edition.training:build_loss
+  loss_factory: facet.models.masterthesis.dhct_gan.deployment.training:build_loss
   loss_kwargs:
     name: recovered_clean
     amplitude_weight: 1.0

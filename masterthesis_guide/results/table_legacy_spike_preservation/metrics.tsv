@@ -1,0 +1,7 @@
+Arm	Spike preservation (%)	Residual gradient artifact (µV)	Relative to FARM
+Uncorrected	100.0	36.40	145.6×
+FARM	94.3	0.25	1.0×
+Demucs	84.2	3.83	15.3×
+Nested GAN	81.6	1.41	5.6×
+ViT-Spectrogram	71.1	1.44	5.8×
+DHCT-GAN	38.0	2.45	9.8×

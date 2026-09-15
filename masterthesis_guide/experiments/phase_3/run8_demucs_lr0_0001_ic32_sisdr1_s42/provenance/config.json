@@ -1,0 +1,57 @@
+{
+  "model_name": "grid_demucs_lr0.0001_ic32_sisdr1_s42",
+  "chunk_size": 3584,
+  "val_ratio": 0.2,
+  "trigger_aligned": true,
+  "overlap": 0.0,
+  "target_type": "artifact",
+  "max_epochs": 60,
+  "batch_size": 32,
+  "learning_rate": 0.0001,
+  "weight_decay": 0.0,
+  "grad_clip_norm": 5.0,
+  "seed": 42,
+  "run_name": null,
+  "output_dir": "grids/run8/demucs/lr0.0001_ic32_sisdr1_s42",
+  "checkpoint": {
+    "dirpath": "checkpoints",
+    "monitor": "val_loss",
+    "mode": "min",
+    "save_top_k": 1,
+    "save_last": false,
+    "filename_template": "epoch{epoch:04d}_{monitor}{value:.4f}"
+  },
+  "early_stopping": {
+    "monitor": "val_loss",
+    "mode": "min",
+    "patience": 20,
+    "min_delta": 0.0,
+    "min_delta_rel": 0.001
+  },
+  "augmentation": {
+    "enabled": false,
+    "trigger_jitter_samples": 0,
+    "noise_scale_range": [
+      1.0,
+      1.0
+    ],
+    "channel_dropout_prob": 0.0,
+    "sign_flip_prob": 0.0
+  },
+  "logging": {
+    "log_every_n_steps": 10,
+    "val_every_n_epochs": 1,
+    "rich_live": true,
+    "log_file": "training.jsonl",
+    "loss_plot_file": "loss.png",
+    "progress_bar": true
+  },
+  "prediction_samples": {
+    "enabled": false,
+    "n_samples": 4,
+    "every_n_epochs": 5,
+    "seed": 7,
+    "output_subdir": "predictions"
+  },
+  "extra": {}
+}

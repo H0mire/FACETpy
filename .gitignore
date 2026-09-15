@@ -106,3 +106,19 @@ worktrees/
 .mne-home/
 .mplconfig/
 .uv-cache/
+
+# Selected thesis artifacts are committed through Git LFS.
+!artifacts/checkpoints/**/*.pt
+!artifacts/checkpoints/**/*.pth
+!artifacts/checkpoints/**/*.ckpt
+!artifacts/checkpoints/**/*.weights
+!artifacts/checkpoints/**/*.h5
+!artifacts/checkpoints/**/*.hdf5
+!artifacts/checkpoints/**/*.pkl
+!artifacts/exports/**/*.pt
+!artifacts/exports/**/*.pth
+!artifacts/exports/**/*.ckpt
+!artifacts/exports/**/*.weights
+!artifacts/exports/**/*.h5
+!artifacts/exports/**/*.hdf5
+!artifacts/exports/**/*.pkl

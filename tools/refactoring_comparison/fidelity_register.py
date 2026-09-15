@@ -84,13 +84,13 @@ IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 MANUAL_VERIFICATIONS = {
     ("dhct_gan_v2_paper_accurate_edition", "4"): {
         "actual_symbols": "disc_clean; disc_noise; disc_fused",
-        "location": "src/facet/models/dhct_gan_v2_paper_accurate_edition/training.py:558-566",
+        "location": "src/facet/models/experimental/paper_accurate/dhct_gan_v2/training.py:558-566",
         "note": "Review nennt die Paper-Notation D_clean/D_noise/D_fused; der Code "
                 "instanziiert drei DHCTGanV2PaperAccurateDiscriminator als disc_*.",
     },
     ("dpae_paper_accurate_edition", "2"): {
         "actual_symbols": "fusion_encoder; fusion_decoder",
-        "location": "src/facet/models/dpae_paper_accurate_edition/training.py:186-193",
+        "location": "src/facet/models/experimental/paper_accurate/dpae/training.py:186-193",
         "note": "Review schreibt fusion_encode/fusion_decode; der Code nennt die "
                 "Sequentials fusion_encoder/fusion_decoder, Residuum in forward().",
     },

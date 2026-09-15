@@ -1,0 +1,94 @@
+# D4PM deployment edition -- CUDA training on the Niazy proof-fit dataset.
+#
+# Two changes against src/facet/models/masterthesis/d4pm/, both forced by measurements that
+# are written out in training.py:
+#
+# 1. The diffusion is run on z-scored data. DDPM mixes the signal with
+#    eps ~ N(0,1); our artifact is stored in volts at 1.88e-03 RMS, so the
+#    signal-to-noise ratio at the *first* timestep was 0.19 and the whole
+#    schedule ran below its own noise. Untrained, that produced a recovered
+#    artifact 82-761x the clean signal's RMS.
+#
+# 2. The eps-prediction is kept exactly as the paper defines it, and the
+#    artifact is recovered from it analytically -- h0 = (h_t - sqrt(1-abar)*eps)/sqrt(abar),
+#    an identity, differentiable -- so the recovered-clean objective can score
+#    the waveform without changing the parameterisation. It contributes only
+#    below a quarter of the schedule, where 1/sqrt(abar) does not dominate.
+#
+#   uv run facet-train fit --config src/facet/models/masterthesis/d4pm/deployment/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.masterthesis.d4pm.deployment.training:build_model
+  kwargs:
+    epoch_samples: 512
+    num_steps: 200
+    beta_start: 0.0001
+    beta_end: 0.02
+    feats: 64
+    d_model: 128
+    d_ff: 512
+    n_heads: 2
+    n_layers: 2
+    embed_dim: 128
+    waveform_t_fraction: 0.25
+    demean_output: true
+  loss_factory: facet.models.masterthesis.d4pm.deployment.training:build_loss
+  loss_kwargs:
+    name: d4pm_deployment
+    eps_weight: 1.0
+    waveform_weight: 1.0
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 0.046
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band:
+    - 1.0
+    - 70.0
+  device: cuda
+data:
+  dataset_factory: facet.models.masterthesis.d4pm.deployment.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  eeg_only: true
+training:
+  model_name: D4pmDeploymentNiazyProofFit
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 30
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 20
+  min_delta: 0.0
+  min_delta_rel: 0.001
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/d4pm_deployment.ts
+  example_input_shape:
+  - 1
+  - 2
+  - 512
+  write_inference_config: false

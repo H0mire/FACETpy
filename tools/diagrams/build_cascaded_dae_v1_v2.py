@@ -6,8 +6,8 @@ same y so the reader can compare them line-by-line. Only the residual row
 differs, because that is where the two models actually diverge.
 
 Verified against
-    src/facet/models/cascaded_dae/training.py
-    src/facet/models/cascaded_context_dae/training.py
+    src/facet/models/masterthesis/cascaded_dae/training.py
+    src/facet/models/masterthesis/cascaded_context_dae/training.py
 """
 from __future__ import annotations
 

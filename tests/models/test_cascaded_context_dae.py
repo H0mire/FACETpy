@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from facet.core import ProcessingContext, ProcessingMetadata
-from facet.models.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
-from facet.models.cascaded_context_dae.training import (
+from facet.models.masterthesis.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
+from facet.models.masterthesis.cascaded_context_dae.training import (
     CascadedContextDenoisingAutoencoder,
     ChannelWiseContextArtifactDataset,
 )

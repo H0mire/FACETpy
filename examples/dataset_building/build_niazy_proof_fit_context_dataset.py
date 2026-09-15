@@ -52,7 +52,7 @@ def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
     """Bandlimited polyphase resampling.
 
     Matches the resampling logic used in
-    ``facet.models.cascaded_context_dae.processor._resample_1d`` so that
+    ``facet.models.masterthesis.cascaded_context_dae.processor._resample_1d`` so that
     training data and inference share the same canonical resampler.
     Replaces the earlier linear interpolation (sinc^2 lowpass) which
     destroyed HF content in the artifact estimates.

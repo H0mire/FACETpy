@@ -1,0 +1,27 @@
+{
+  "input_file": "examples/datasets/NiazyFMRI.edf",
+  "artifact_npz": "output/artifact_libraries/niazy_farm_pca4_direct/niazy_aas_pca4_artifact.npz",
+  "source_type": "farm_plus_pca_obs_artifact_eeg_only_upsampled_no_lowpass",
+  "template_method": "farm",
+  "artifact_composition": "FARM + PCACorrection(n_components=4, hp_freq=300.0)",
+  "n_components": 4,
+  "obs_hp_freq_hz": 300.0,
+  "upsample_factor": 2,
+  "n_channels": 30,
+  "n_samples": 667648,
+  "sfreq": 4096.0,
+  "trigger_count": 840,
+  "artifact_length_samples": 585,
+  "artifact_to_trigger_offset_seconds": -0.005,
+  "history": [
+    "auto_loader",
+    "drop_channels",
+    "trigger_detector",
+    "highpass_filter",
+    "upsample",
+    "trigger_aligner",
+    "farm_correction",
+    "pca_correction"
+  ],
+  "note": "Combined AAS + OBS/PCA artifact (run_3 Weg A, Hebel 1). Full bandwidth, no 70 Hz low-pass, no down-sample. OBS hp_freq keeps the EEG band out of the basis (no brain removal); the OBS contribution is the >hp_freq residual."
+}

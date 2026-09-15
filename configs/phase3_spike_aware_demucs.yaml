@@ -1,8 +1,8 @@
 model:
   framework: pytorch
-  factory: facet.models.demucs_deployment_edition.training:build_model
+  factory: facet.models.masterthesis.demucs.deployment.training:build_model
   kwargs: {depth: 4, initial_channels: 64, kernel_size: 8, stride: 4, lstm_layers: 2, in_channels: 1, out_channels: 1, n_sources: 1, rescale: 0.1}
-  loss_factory: facet.models.demucs_deployment_edition.training:build_loss
+  loss_factory: facet.models.masterthesis.demucs.deployment.training:build_loss
   loss_kwargs:
     name: recovered_clean
     rows: [artifact, clean, noisy, spike]

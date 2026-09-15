@@ -57,7 +57,7 @@ CONV = C["blue"]
 POOL = C["blue400"]
 
 # --- title second line ------------------------------------------------------
-d.add(desc(70, 82, "Xiong et al. 2023  ·  src/facet/models/dpae/", size=12,
+d.add(desc(70, 82, "Xiong et al. 2023  ·  src/facet/models/masterthesis/dpae/", size=12,
            italic=True))
 
 # --------------------------------------------------------------------------- #

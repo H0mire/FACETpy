@@ -53,7 +53,7 @@
 
 model:
   framework: pytorch
-  factory: facet.models.demucs_deployment_edition.training:build_model
+  factory: facet.models.masterthesis.demucs.deployment.training:build_model
   kwargs:
     depth: 4
     initial_channels: 64
@@ -64,7 +64,7 @@ model:
     out_channels: 1
     n_sources: 1
     rescale: 0.1
-  loss_factory: facet.models.demucs_deployment_edition.training:build_loss
+  loss_factory: facet.models.masterthesis.demucs.deployment.training:build_loss
   loss_kwargs:
     name: recovered_clean
     amplitude_weight: 1.0

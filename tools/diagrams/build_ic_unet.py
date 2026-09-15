@@ -20,7 +20,7 @@ d = Diagram(H)   # custom two-line title block below (the subtitle is long)
 
 TITLE = "IC-U-Net — U-Net in IC Space"
 SUB = ("ICA prior + multichannel 1D U-Net · Chuang et al. 2022 · "
-       "src/facet/models/ic_unet/")
+       "src/facet/models/masterthesis/ic_unet/")
 _tw = text_width(TITLE, 24)
 d.add(text(70, 52, TITLE, size=24, weight=700, fill=C["ink"]),
       f'<rect x="70" y="62" width="{22 + len(TITLE) * 9}" height="3" rx="1.5" '

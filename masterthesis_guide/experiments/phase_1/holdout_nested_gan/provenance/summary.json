@@ -1,0 +1,48 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.nested_gan.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.nested_gan.training:build_dataset",
+  "run_name": "nestedganniazyprooffit_20260510_222546",
+  "run_dir": "training_output/nestedganniazyprooffit_20260510_222546",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      1,
+      512
+    ],
+    "target_shape": [
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 19992,
+    "n_val_chunks": 4998,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 52,
+    "best_epoch": 37,
+    "best_metric": 0.13328766058894653,
+    "elapsed_seconds": 499.8498444729994
+  },
+  "results": {
+    "config_path": "training_output/nestedganniazyprooffit_20260510_222546/config.json",
+    "resolved_config_json": "training_output/nestedganniazyprooffit_20260510_222546/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/nestedganniazyprooffit_20260510_222546/facet_train_config.resolved.yaml",
+    "log_file": "training_output/nestedganniazyprooffit_20260510_222546/training.jsonl",
+    "loss_plot_file": "training_output/nestedganniazyprooffit_20260510_222546/loss.png",
+    "summary_path": "training_output/nestedganniazyprooffit_20260510_222546/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/nestedganniazyprooffit_20260510_222546/exports/nested_gan.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

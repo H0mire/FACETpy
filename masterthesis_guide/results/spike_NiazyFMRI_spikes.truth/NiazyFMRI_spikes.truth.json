@@ -1,0 +1,37 @@
+{
+ "input": "examples/datasets/NiazyFMRI.edf",
+ "sfreq_hz": 2048.0,
+ "n_channels_injected": 32,
+ "amplitude_uv": 100.0,
+ "duration_ms": 50.0,
+ "seed": 42,
+ "complex_samples": 455,
+ "centre_offset_samples": 51,
+ "spikes": [
+  {
+   "t_s": 30.0,
+   "peak_sample": 61440,
+   "start_s": 29.97509765625,
+   "stop_s": 30.197265625
+  },
+  {
+   "t_s": 31.5,
+   "peak_sample": 64512,
+   "start_s": 31.47509765625,
+   "stop_s": 31.697265625
+  },
+  {
+   "t_s": 33.0,
+   "peak_sample": 67584,
+   "start_s": 32.97509765625,
+   "stop_s": 33.197265625
+  },
+  {
+   "t_s": 34.5,
+   "peak_sample": 70656,
+   "start_s": 34.47509765625,
+   "stop_s": 34.697265625
+  }
+ ],
+ "note": "Gleiche Amplitude auf allen EEG-Kanälen — bewusst unphysiologisch, siehe Modul-Docstring."
+}

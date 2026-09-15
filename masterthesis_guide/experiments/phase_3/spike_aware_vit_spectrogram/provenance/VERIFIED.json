@@ -1,0 +1,6 @@
+{
+  "archive_sha256": "da55dbe8e3877781a2888854e1dc1d92ad3932cbbc02047b264638df2f2fd393",
+  "run_dir": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724",
+  "comparison_dir": "output/phase3_spike_aware_comparison/vit_spectrogram",
+  "best_checkpoint": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/checkpoints/epoch0058_val_loss4.2328.pt"
+}

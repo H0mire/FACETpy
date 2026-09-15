@@ -18,7 +18,7 @@ citable artefact::
 
     [
       {"name": "cascade", "checkpoint": "...pt",
-       "factory": "facet.models.demucs_mc.training:build_model",
+       "factory": "facet.models.experimental.v2.demucs_mc.training:build_model",
        "kwargs": {"initial_channels": 32},
        "residual_mode": true, "max_channels": null},
       {"name": "demucs_direct", "checkpoint": "...pt", "factory": "...", "kwargs": {}}

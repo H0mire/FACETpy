@@ -41,7 +41,7 @@ Usage from a training YAML::
       wrapper_factory: facet.models.<pkg>.training:build_wrapper
       wrapper_kwargs: {...}
 
-See :mod:`facet.models.dhct_gan_strict_edition.training` for a worked example.
+See :mod:`facet.models.masterthesis.dhct_gan.strict.training` for a worked example.
 """
 
 from __future__ import annotations

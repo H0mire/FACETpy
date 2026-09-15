@@ -1,1 +1,5 @@
 *.edf filter=lfs diff=lfs merge=lfs -text
+
+# Thesis weights are versioned separately from Git source blobs.
+artifacts/checkpoints/** filter=lfs diff=lfs merge=lfs -text
+artifacts/exports/** filter=lfs diff=lfs merge=lfs -text

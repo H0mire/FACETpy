@@ -14,7 +14,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from facet.models.dhct_gan_strict_edition.training import (  # noqa: E402
+from facet.models.masterthesis.dhct_gan.strict.training import (  # noqa: E402
     PAPER_DISCRIMINATOR_DIMS,
     CNNLGTBBlock,
     DHCTGanStrictDiscriminator,

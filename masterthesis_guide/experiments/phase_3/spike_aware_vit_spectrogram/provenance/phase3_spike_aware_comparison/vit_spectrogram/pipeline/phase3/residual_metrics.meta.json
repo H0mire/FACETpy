@@ -1,0 +1,15 @@
+{
+ "arm_dir": "output/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/without",
+ "window_s": [
+  29.5,
+  160.0
+ ],
+ "reference_arm": "vit_spectrogram_tuned",
+ "step_channel": "Fp1",
+ "metrics": {
+  "ga_rest_uv": "GradientArtifactResidualCalculator.comb_rms_uv, fmax 70 Hz",
+  "naht_ratio": "EpochSeamStepCalculator.ratio; FARM = 1.11, unkorrigiert = 5.69",
+  "median_sample_step_uv": "Median |diff| auf step_channel; trennt Treppe vom Zackenzug"
+ },
+ "caveat": "Der Kammwert ist fensterabhängig — dasselbe Signal über 5,5 s gemessen ergibt rund das Siebenfache. Er sieht ausserdem nur epochenperiodische Reste; breitbandig Aufgeprägtes findet erst der Nahtsprung. Siehe run_7_stand_fuer_kapitel_5.md §2.2."
+}

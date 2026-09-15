@@ -1,0 +1,145 @@
+{
+  "scope": "Locked Weg-A checkpoint comparison; not an isolated loss ablation",
+  "split": 2,
+  "n_examples": 4110,
+  "epoch_duration_s": 0.194,
+  "device": "cuda",
+  "baseline_device": "cuda",
+  "neighborhood_ms": 50,
+  "spike_dilate_ms": 0,
+  "dataset_sha256": "4c3dc8a5861d71db5c8ddb1a4c8545b2fbe9bf6b1dc5bfe79b087b55b4a44357",
+  "baseline": "/workspace/phase3_baseline.ts",
+  "baseline_sha256": "00a8800084420079ae70b3a0857bb45df72a17f898ff631f6b0e62adaa64916d",
+  "checkpoint": "/workspace/facetpy/training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/checkpoints/epoch0058_val_loss4.2328.pt",
+  "checkpoint_sha256": "4e6bf737d756877f59ecc3d93807a3433407ced93b6e3eeb6fe46bddbf5f92ee",
+  "config": {
+    "model": {
+      "framework": "pytorch",
+      "factory": "facet.models.vit_spectrogram_deployment_edition.training:build_model",
+      "kwargs": {
+        "n_fft": 64,
+        "hop_length": 16,
+        "freq_bins": 32,
+        "time_frames": 224,
+        "patch_freq": 4,
+        "patch_time": 16,
+        "embed_dim": 192,
+        "depth": 6,
+        "n_heads": 6,
+        "mlp_ratio": 4.0,
+        "dropout": 0.0,
+        "mask_margin_patches": 1
+      },
+      "loss_factory": "facet.models.vit_spectrogram_deployment_edition.training:build_loss",
+      "loss_kwargs": {
+        "name": "recovered_clean",
+        "prediction_is": "artifact",
+        "rows": [
+          "artifact",
+          "clean",
+          "noisy",
+          "spike"
+        ],
+        "amplitude_weight": 1.0,
+        "velocity_weight": 0.00017043934156734243,
+        "acceleration_weight": 1.3597193525429164e-05,
+        "frequency_weight": 17.220293178786243,
+        "si_sdr_weight": 1.0,
+        "si_sdr_max": 30.0,
+        "freq_band": [
+          1.0,
+          70.0
+        ],
+        "spike_weight": 20.0
+      },
+      "device": "cuda"
+    },
+    "data": {
+      "dataset_factory": "facet.training.deployment_data:build_weg_a_packed_dataset",
+      "kwargs": {
+        "path": "./output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz",
+        "packing": "bt1s",
+        "include_spike": true
+      },
+      "eeg_only": true
+    },
+    "training": {
+      "model_name": "Phase3VitSpectrogramWegASpikeAware",
+      "chunk_size": 512,
+      "target_type": "artifact",
+      "trigger_aligned": true,
+      "val_ratio": 0.2,
+      "max_epochs": 60,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "weight_decay": 0.05,
+      "grad_clip_norm": 1.0,
+      "seed": 42,
+      "output_dir": "training_output"
+    },
+    "checkpoint": {
+      "monitor": "val_loss",
+      "mode": "min",
+      "save_top_k": 2,
+      "save_last": true
+    },
+    "early_stopping": {
+      "monitor": "val_loss",
+      "mode": "min",
+      "patience": 20,
+      "min_delta": 0.0,
+      "min_delta_rel": 0.001
+    },
+    "logging": {
+      "rich_live": true,
+      "log_file": "training.jsonl",
+      "loss_plot_file": "loss.png",
+      "val_every_n_epochs": 1,
+      "progress_bar": true
+    },
+    "export": {
+      "enabled": true,
+      "format": "torchscript",
+      "path": "exports/vit_spectrogram_phase3_spike_aware.ts",
+      "write_inference_config": false
+    }
+  },
+  "metrics": {
+    "phase3": {
+      "spike_neighborhood_snr_db": -9.628952930319052,
+      "non_spike_snr_db": -17.14432903163124,
+      "spike_peak_over_residual": 2.286726026438691,
+      "spike_metrics_reliable": 1.0,
+      "spike_amplitude_ratio": 7.711432098272826,
+      "spike_contrast_db": 2.7946818392789905,
+      "spike_morphology_corr": 0.12262230363986286,
+      "spike_peak_latency_drift_samples": -1.1207430340557276,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 279.51889205724
+    },
+    "spike_aware": {
+      "spike_neighborhood_snr_db": 13.311212577442388,
+      "non_spike_snr_db": 8.646474376958619,
+      "spike_peak_over_residual": 3.7338044760496882,
+      "spike_metrics_reliable": 1.0,
+      "spike_amplitude_ratio": 1.6703150345306714,
+      "spike_contrast_db": 8.79979674489883,
+      "spike_morphology_corr": 0.24517238108695796,
+      "spike_peak_latency_drift_samples": 0.4179566563467492,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 14.35745525668608
+    },
+    "uncorrected": {
+      "spike_neighborhood_snr_db": -26.22797623412575,
+      "non_spike_snr_db": -34.05464944611015,
+      "spike_peak_over_residual": 1.4035850015111244,
+      "spike_metrics_reliable": 1.0,
+      "spike_amplitude_ratio": 57.20769357191379,
+      "spike_contrast_db": -0.6043356106928635,
+      "spike_morphology_corr": 0.08619767592082593,
+      "spike_peak_latency_drift_samples": -0.48606811145510836,
+      "n_spike_examples": 323.0,
+      "rmse_uv": 1958.274282515049
+    }
+  }
+}

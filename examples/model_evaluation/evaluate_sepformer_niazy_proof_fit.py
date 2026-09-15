@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
-from facet.models.sepformer.training import (
+from facet.models.masterthesis.sepformer.training import (
     ChannelWiseContextArtifactDataset,
 )
 from facet.training.dataset import NPZContextArtifactDataset

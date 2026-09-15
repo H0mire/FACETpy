@@ -1,0 +1,55 @@
+{
+ "dataset_path": "output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz",
+ "artifact_bundle": "output/artifact_libraries/niazy_farm_pca4_direct/niazy_aas_pca4_artifact.npz",
+ "mode": "weg_a_decoupled_spatiotemporal",
+ "decoupling": {
+  "lever_1_artifact": "AAS + PCA/OBS(n_components=4, hp_freq=300) supplied by the bundle",
+  "lever_2_clean": "clean_source=external"
+ },
+ "warning": "Run 3 / Weg A reference dataset. clean_source='synthetic'|'external' decouples the target from AAS; 'aas_corrected' is the old coupled baseline only. Full bandwidth, no 70 Hz low-pass (run_3 §2).",
+ "n_examples": 24810,
+ "input_shape": [
+  7,
+  1,
+  576
+ ],
+ "target_shape": [
+  1,
+  576
+ ],
+ "context_epochs": 7,
+ "core_samples": 512,
+ "guard_samples": 32,
+ "k_neighbors": 0,
+ "clean_source": "external",
+ "spikes_injected": true,
+ "spike_label_positive_fraction": 0.001066298311612701,
+ "sampling_frequency_hz": 4096.0,
+ "mean_abs_clean_uv": 18.84693145751953,
+ "mean_abs_artifact_uv": 985.5711669921875,
+ "mean_abs_noisy_uv": 990.80859375,
+ "locked_split": {
+  "dataset": "output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz",
+  "context_epochs": 7,
+  "n_val_epochs_before": 288,
+  "n_selection_epochs": 137,
+  "n_locked_epochs": 137,
+  "n_guard_epochs_dropped": 14,
+  "n_examples_train": 16170,
+  "n_examples_selection": 4110,
+  "n_examples_locked": 4110,
+  "n_examples_dropped_at_seam": 420,
+  "selection_epoch_range": [
+   548,
+   684
+  ],
+  "locked_epoch_range": [
+   699,
+   835
+  ],
+  "epoch_overlap": [],
+  "note": "example_split: 0 train, 1 selection/early stopping, 2 locked holdout, -1 guard band at the seam (used nowhere)."
+ },
+ "derived_from": "output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz",
+ "derivation": "Nachbarachse abgeschnitten (Spalte 0 = Zielelektrode). Beispiele, Split, Spikes und Fehlermodi sind bitgleich zur Quelle."
+}

@@ -12,7 +12,7 @@ introduced by the earlier build scripts so the whole set reads as one system:
     two-line title block                                            (IC-U-Net / cascaded)
 
 Verified against
-    src/facet/models/nested_gan_paper_accurate_edition/training.py
+    src/facet/models/experimental/paper_accurate/nested_gan/training.py
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ d = Diagram(H)
 
 TITLE = "Nested-GAN — Paper-Accurate Edition"
 SUB = ("Hierarchical spectral Restormer → outer time refiner · "
-       "src/facet/models/nested_gan_paper_accurate_edition/")
+       "src/facet/models/experimental/paper_accurate/nested_gan/")
 d.add(text(70, 52, TITLE, size=24, weight=700, fill=C["ink"]),
       f'<rect x="70" y="62" width="{22 + len(TITLE) * 9}" height="3" rx="1.5" '
       f'fill="url(#fp-header)"/>',

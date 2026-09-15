@@ -12,7 +12,7 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from facet.models.denoise_mamba_deployment_edition.training import (  # noqa: E402
+from facet.models.masterthesis.denoise_mamba.deployment.training import (  # noqa: E402
     ParallelScanSSM,
     build_model,
     parallel_affine_scan,
@@ -77,7 +77,7 @@ def test_the_whole_model_agrees_with_the_sequential_one():
 def test_a_state_dict_moves_between_the_two_implementations():
     """A checkpoint trained with one must load into the other, or the speed-up
     silently forks the model zoo."""
-    from facet.models.denoise_mamba.training import SelectiveSSM
+    from facet.models.masterthesis.denoise_mamba.training import SelectiveSSM
 
     old = SelectiveSSM(d_inner=8, d_state=4)
     new = ParallelScanSSM(d_inner=8, d_state=4)

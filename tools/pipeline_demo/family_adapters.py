@@ -368,7 +368,7 @@ def load_model(model_id: str, device: str):
     packing = FAMILY_SPECS[model_id]
     if packing.loader == "python_source":
         import torch
-        from facet.models.denoise_mamba.training import build_model
+        from facet.models.masterthesis.denoise_mamba.training import build_model
         ckpt = (TRAIN_ROOT / spec.ts_path).parent.parent / "checkpoints" / "last.pt"
         model = build_model(epoch_samples=512, d_model=64, d_state=16, expand=2,
                             d_conv=4, n_blocks=4, dropout=0.1, input_kernel_size=7)
@@ -377,7 +377,7 @@ def load_model(model_id: str, device: str):
         return model.float().to(device).eval()
     if packing.loader == "d4pm":
         import torch
-        from facet.models.d4pm.training import D4PMTrainingModule
+        from facet.models.masterthesis.d4pm.training import D4PMTrainingModule
         ckpt = (TRAIN_ROOT / spec.ts_path).parent.parent / "checkpoints" / "last.pt"
         module = D4PMTrainingModule(epoch_samples=512, num_steps=200, beta_start=1e-4,
                                     beta_end=0.02, feats=64, d_model=128, d_ff=512,

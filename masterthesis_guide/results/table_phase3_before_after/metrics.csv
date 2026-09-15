@@ -1,0 +1,5 @@
+family,phase2_ga_rest_uv,best_grid_ga_rest_uv,learning_rate,capacity,si_sdr_weight,valid_grid_points
+Nested GAN,1.403,0.974,0.00015,48,1.0,27
+ViT-Spectrogram,1.432,2.222,0.001,192,1.0,27
+Demucs,3.819,1.89,0.001,64,0.0,25
+DHCT-GAN,2.442,not reported,search stopped,2/27 points,not reported,2

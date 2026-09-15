@@ -108,7 +108,7 @@ def main() -> None:
     print(f"FARM reference: err {ref['err_uv']:.1f} uV  corr {ref['corr_clean']:.3f}  ratio {ref['spike_ratio']:.2f}\n",
           flush=True)
 
-    from facet.models.demucs_mc.training import build_model
+    from facet.models.experimental.v2.demucs_mc.training import build_model
 
     rows: list[dict] = []
     for i, (mse_w, spike_w, lr, ch) in enumerate(mine, start=1):

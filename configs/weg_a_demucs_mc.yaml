@@ -15,7 +15,7 @@
 
 model:
   framework: pytorch
-  factory: facet.models.demucs_mc.training:build_model
+  factory: facet.models.experimental.v2.demucs_mc.training:build_model
   kwargs:
     depth: 4
     initial_channels: 32
@@ -29,7 +29,7 @@ model:
     # (B*T, units, features) attention dominates the step time for little gain.
     attention_levels: 2
     rescale: 0.1
-  loss_factory: facet.models.demucs_mc.training:build_loss
+  loss_factory: facet.models.experimental.v2.demucs_mc.training:build_loss
   loss_kwargs:
     name: mse
   # Cosine decay: at a flat 1e-3 this run diverged around epoch 20 — train loss
@@ -41,7 +41,7 @@ model:
   device: mps
 
 data:
-  dataset_factory: facet.models.demucs_mc.training:build_dataset
+  dataset_factory: facet.models.experimental.v2.demucs_mc.training:build_dataset
   kwargs:
     path: ./output/weg_a_farm_v5_512/weg_a_spatiotemporal_dataset.npz
     # No max_examples: truncating would cut away the validation block, since

@@ -1,0 +1,15 @@
+arm,rms_uv,ga_rest_uv,naht_ratio,median_sample_step_uv,step_channel,n_harmonics,epoch_rate_hz,x_reference,hinweis
+farm,20.243,0.248,1.109,0.2687,Fp1,9,7.0137,1.0,
+st_gnn_deployment,17.45,0.57,3.615,0.0541,Fp1,9,7.0137,2.3,"Naht gebrochen, ansehen"
+nested_gan_deployment,25.849,1.403,1.169,0.4338,Fp1,9,7.0137,5.66,
+vit_spectrogram_deployment,24.32,1.432,1.186,0.4034,Fp1,9,7.0137,5.77,
+sepformer_deployment,28.316,2.428,0.954,0.6173,Fp1,9,7.0137,9.79,
+cascaded_context_dae_deployment,39.954,2.925,2.132,3.4902,Fp1,9,7.0137,11.79,Naht auffällig
+demucs_deployment,29.703,3.819,1.367,0.5472,Fp1,9,7.0137,15.4,
+conv_tasnet_deployment,32.724,3.834,1.27,0.6341,Fp1,9,7.0137,15.46,
+denoise_mamba_deployment,24.201,3.946,1.719,0.4052,Fp1,9,7.0137,15.91,
+dpae_deployment,31.949,4.296,1.946,0.6631,Fp1,9,7.0137,17.32,Naht auffällig
+cascaded_dae_deployment,32.403,4.498,1.929,1.4051,Fp1,9,7.0137,18.14,Naht auffällig
+ic_unet_deployment,52.521,4.555,4.03,2.2926,Fp1,9,7.0137,18.37,"Naht gebrochen, ansehen"
+uncorrected,322.115,36.4,5.691,11.8543,Fp1,9,7.0137,146.77,"Naht gebrochen, ansehen"
+dhct_gan_context_7_epoch,,3.7179,1.3111,,,9,7.0137,,"7-epoch context export; first completed grid point (2/27 grid points completed), not a grid winner"

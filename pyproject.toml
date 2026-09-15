@@ -115,10 +115,10 @@ known-first-party = ["facet"]
 # These torch test modules gate the whole file on pytest.importorskip("torch")
 # before importing torch-dependent symbols, so module-level imports legitimately
 # follow a statement (E402).
-"tests/models/dhct_gan/test_processor.py" = ["E402"]
-"tests/models/dhct_gan/test_training_smoke.py" = ["E402"]
-"tests/models/dhct_gan_v2/test_processor.py" = ["E402"]
-"tests/models/dhct_gan_v2/test_training_smoke.py" = ["E402"]
-"tests/models/st_gnn/test_training_smoke.py" = ["E402"]
-"tests/models/d4pm/test_processor.py" = ["E402"]
-"tests/models/d4pm/test_training_smoke.py" = ["E402"]
+"tests/models/masterthesis/dhct_gan/test_processor.py" = ["E402"]
+"tests/models/masterthesis/dhct_gan/test_training_smoke.py" = ["E402"]
+"tests/models/masterthesis/dhct_gan/v2/test_processor.py" = ["E402"]
+"tests/models/masterthesis/dhct_gan/v2/test_training_smoke.py" = ["E402"]
+"tests/models/masterthesis/st_gnn/test_training_smoke.py" = ["E402"]
+"tests/models/masterthesis/d4pm/test_processor.py" = ["E402"]
+"tests/models/masterthesis/d4pm/test_training_smoke.py" = ["E402"]

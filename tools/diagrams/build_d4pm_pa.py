@@ -17,8 +17,8 @@ set reads as one system:
     two-line title block                                 (IC-U-Net / cascaded)
 
 Verified against
-    src/facet/models/d4pm_paper_accurate_edition/training.py
-    src/facet/models/d4pm_paper_accurate_edition/processor.py
+    src/facet/models/experimental/paper_accurate/d4pm/training.py
+    src/facet/models/experimental/paper_accurate/d4pm/processor.py
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ d = Diagram(H)
 
 TITLE = "D4PM — Paper-Accurate Edition"
 SUB = ("Dual-branch denoising diffusion with joint posterior sampling · "
-       "src/facet/models/d4pm_paper_accurate_edition/")
+       "src/facet/models/experimental/paper_accurate/d4pm/")
 d.add(text(70, 52, TITLE, size=24, weight=700, fill=C["ink"]),
       f'<rect x="70" y="62" width="{22 + len(TITLE) * 9}" height="3" rx="1.5" '
       f'fill="url(#fp-header)"/>',

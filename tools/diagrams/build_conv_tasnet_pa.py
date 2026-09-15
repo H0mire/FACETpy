@@ -5,8 +5,8 @@ configuration, the 16-block sequential residual TCN, all-block skip summation,
 the shared encoder-latent mask bypass, and one decoder module reused twice.
 
 Verified against
-    src/facet/models/conv_tasnet_paper_accurate_edition/training.py
-    src/facet/models/conv_tasnet_paper_accurate_edition/
+    src/facet/models/experimental/paper_accurate/conv_tasnet/training.py
+    src/facet/models/experimental/paper_accurate/conv_tasnet/
         training_niazy_proof_fit.yaml
 """
 from __future__ import annotations

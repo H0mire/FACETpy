@@ -1,0 +1,1 @@
+{"baseline_cpu_eager_matches_original_trace": true, "cuda_matches_cpu": true, "cuda_atol": 1e-07, "cuda_rtol": 0.002, "seed_note": "random probe; no training or parameter changes"}

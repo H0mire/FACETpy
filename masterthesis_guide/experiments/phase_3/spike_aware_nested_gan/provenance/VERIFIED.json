@@ -1,0 +1,6 @@
+{
+  "archive_sha256": "2f0b03738dad0717ac35a078cf08d066f65622510b6f275646b91e7d076e2270",
+  "run_dir": "training_output/phase3nestedganwegaspikeaware_20260914_121744",
+  "comparison_dir": "output/phase3_spike_aware_comparison/nested_gan",
+  "best_checkpoint": "training_output/phase3nestedganwegaspikeaware_20260914_121744/checkpoints/epoch0079_val_loss1.5766.pt"
+}

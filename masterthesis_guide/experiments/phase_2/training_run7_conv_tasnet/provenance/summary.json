@@ -1,0 +1,49 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.conv_tasnet_deployment_edition.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.conv_tasnet_deployment_edition.training:build_dataset",
+  "run_name": "convtasnetdeploymentniazyprooffit_20260826_195217",
+  "run_dir": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      1,
+      512
+    ],
+    "target_shape": [
+      3,
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 20010,
+    "n_val_chunks": 4980,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 73,
+    "best_epoch": 53,
+    "best_metric": -0.5487221957017214,
+    "elapsed_seconds": 2066.7022322826087
+  },
+  "results": {
+    "config_path": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/config.json",
+    "resolved_config_json": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/facet_train_config.resolved.yaml",
+    "log_file": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/training.jsonl",
+    "loss_plot_file": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/loss.png",
+    "summary_path": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/summary.json"
+  },
+  "model": null,
+  "export": {
+    "enabled": true,
+    "path": "training_output/convtasnetdeploymentniazyprooffit_20260826_195217/exports/conv_tasnet_deployment.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

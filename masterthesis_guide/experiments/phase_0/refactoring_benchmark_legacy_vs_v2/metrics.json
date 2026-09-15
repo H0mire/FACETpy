@@ -1,0 +1,673 @@
+{
+  "task": {
+    "input": "examples/datasets/NiazyFMRI.edf",
+    "dropped_channels": [
+      "EMG",
+      "ECG"
+    ],
+    "highpass_hz": 1.0,
+    "upsample_factor": 10,
+    "trigger_regex": "\\b1\\b",
+    "aas_window_size": 25,
+    "lowpass_hz": 40.0,
+    "note": "Identical steps in identical order on both sides. The v2 pipeline expresses them as processors, the 0.1.0 API as method calls on a facade."
+  },
+  "environment": {
+    "platform": "macOS-26.6.2-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.12.9",
+    "numpy": "2.1.3",
+    "precision": "float64 throughout (MNE default); no GPU involved on either arm",
+    "memory_definition": "peak resident set size of the worker process (ru_maxrss), one fresh process per repetition",
+    "timing_definition": "wall clock around the full task inside the worker, excluding interpreter start-up"
+  },
+  "arms": {
+    "legacy": {
+      "repetitions": 3,
+      "warmup_discarded": true,
+      "warmup_seconds": 7.230071375000989,
+      "elapsed_seconds_mean": 7.23981404134732,
+      "elapsed_seconds_sd": 0.042506604356291826,
+      "elapsed_seconds_min": 7.204119166010059,
+      "elapsed_seconds_all": [
+        7.228485833009472,
+        7.28683712502243,
+        7.204119166010059
+      ],
+      "peak_rss_bytes_mean": 4923506688.0,
+      "peak_rss_mib_mean": 4695.421875,
+      "peak_rss_mib_all": [
+        4695.171875,
+        4695.796875,
+        4695.296875
+      ],
+      "output_channels": 33,
+      "output_sfreq": 2048.0,
+      "output_samples": 333824
+    },
+    "current": {
+      "repetitions": 3,
+      "warmup_discarded": true,
+      "warmup_seconds": 8.215571667009499,
+      "elapsed_seconds_mean": 8.148490917005498,
+      "elapsed_seconds_sd": 0.012784383255138348,
+      "elapsed_seconds_min": 8.133905166992918,
+      "elapsed_seconds_all": [
+        8.157754167012172,
+        8.153813417011406,
+        8.133905166992918
+      ],
+      "peak_rss_bytes_mean": 5721866240.0,
+      "peak_rss_mib_mean": 5456.796875,
+      "peak_rss_mib_all": [
+        5458.6875,
+        5455.890625,
+        5455.8125
+      ],
+      "output_channels": 31,
+      "output_sfreq": 2048.0,
+      "output_samples": 333824
+    },
+    "current_matched": {
+      "repetitions": 3,
+      "warmup_discarded": true,
+      "warmup_seconds": 8.148647291003726,
+      "elapsed_seconds_mean": 8.168252916337224,
+      "elapsed_seconds_sd": 0.05531075826222528,
+      "elapsed_seconds_min": 8.125129082996864,
+      "elapsed_seconds_all": [
+        8.125129082996864,
+        8.230613499996252,
+        8.149016166018555
+      ],
+      "peak_rss_bytes_mean": 5018834261.333333,
+      "peak_rss_mib_mean": 4786.333333333333,
+      "peak_rss_mib_all": [
+        4786.484375,
+        4786.359375,
+        4786.15625
+      ],
+      "output_channels": 31,
+      "output_sfreq": 2048.0,
+      "output_samples": 333824
+    }
+  },
+  "speedup_current_over_legacy": 0.8884852563605594,
+  "memory_ratio_current_over_legacy": 1.1621526287241228,
+  "speedup_matched_over_legacy": 0.8863356846929967,
+  "parity": {
+    "definition": {
+      "metric": "per-channel RMS of (legacy_corrected - v2_corrected), relative to RMS(uncorrected)",
+      "tolerance_relative": 0.05,
+      "rationale": "5 % of the uncorrected amplitude. Tight enough that a different artifact estimate fails it, loose enough to tolerate differing filter edge handling and epoch bookkeeping."
+    },
+    "n_shared_channels": 30,
+    "n_within_tolerance": 30,
+    "n_samples_compared": 333824,
+    "sfreq_legacy": 2048.0,
+    "sfreq_current": 2048.0,
+    "median_relative_difference": 0.001880017239574251,
+    "median_pearson_r": 0.999913030219425,
+    "verdict": "Parität innerhalb der Toleranz",
+    "channels": [
+      {
+        "channel": "Fp1",
+        "rms_legacy_uv": 193.83864573186924,
+        "rms_current_uv": 193.83649572501952,
+        "rms_difference_uv": 0.47552804836165175,
+        "relative_to_uncorrected": 0.00033293201868236477,
+        "within_tolerance": true,
+        "pearson_r": 0.9999969955266392
+      },
+      {
+        "channel": "Fp2",
+        "rms_legacy_uv": 149.28455413428625,
+        "rms_current_uv": 149.2705590889465,
+        "rms_difference_uv": 1.6851869573897313,
+        "relative_to_uncorrected": 0.001455530685139895,
+        "within_tolerance": true,
+        "pearson_r": 0.9999396616836185
+      },
+      {
+        "channel": "F7",
+        "rms_legacy_uv": 172.84399989909068,
+        "rms_current_uv": 172.82989029242643,
+        "rms_difference_uv": 2.3386117452493154,
+        "relative_to_uncorrected": 0.0021262561073604057,
+        "within_tolerance": true,
+        "pearson_r": 0.9999134334301611
+      },
+      {
+        "channel": "F3",
+        "rms_legacy_uv": 62.12775306360559,
+        "rms_current_uv": 62.10140767359989,
+        "rms_difference_uv": 1.7392457282512983,
+        "relative_to_uncorrected": 0.002983154069340211,
+        "within_tolerance": true,
+        "pearson_r": 0.9996296464996378
+      },
+      {
+        "channel": "Fz",
+        "rms_legacy_uv": 163.5243645134004,
+        "rms_current_uv": 163.5182301021025,
+        "rms_difference_uv": 1.357733835294586,
+        "relative_to_uncorrected": 0.001342138588079135,
+        "within_tolerance": true,
+        "pearson_r": 0.9999673952903781
+      },
+      {
+        "channel": "F4",
+        "rms_legacy_uv": 190.5420462153839,
+        "rms_current_uv": 190.51797153525024,
+        "rms_difference_uv": 2.396110131959594,
+        "relative_to_uncorrected": 0.0017692113050779507,
+        "within_tolerance": true,
+        "pearson_r": 0.9999247611018544
+      },
+      {
+        "channel": "F8",
+        "rms_legacy_uv": 303.11542350454965,
+        "rms_current_uv": 303.1562690955923,
+        "rms_difference_uv": 4.457410865946955,
+        "relative_to_uncorrected": 0.002153947131821537,
+        "within_tolerance": true,
+        "pearson_r": 0.9998976963003016
+      },
+      {
+        "channel": "T3",
+        "rms_legacy_uv": 196.8075847771397,
+        "rms_current_uv": 196.7743058661655,
+        "rms_difference_uv": 3.7248553268164057,
+        "relative_to_uncorrected": 0.00243649314825738,
+        "within_tolerance": true,
+        "pearson_r": 0.999831132528562
+      },
+      {
+        "channel": "C3",
+        "rms_legacy_uv": 149.17089864855328,
+        "rms_current_uv": 149.1449429372814,
+        "rms_difference_uv": 2.741044952497857,
+        "relative_to_uncorrected": 0.0024288916738540796,
+        "within_tolerance": true,
+        "pearson_r": 0.9998408240977732
+      },
+      {
+        "channel": "Cz",
+        "rms_legacy_uv": 274.4593794920236,
+        "rms_current_uv": 274.4527113787456,
+        "rms_difference_uv": 1.9446122702613735,
+        "relative_to_uncorrected": 0.0011908673341309887,
+        "within_tolerance": true,
+        "pearson_r": 0.9999763378495632
+      },
+      {
+        "channel": "C4",
+        "rms_legacy_uv": 303.4266386478938,
+        "rms_current_uv": 303.4235110556633,
+        "rms_difference_uv": 1.5943097721433508,
+        "relative_to_uncorrected": 0.0008386601159055074,
+        "within_tolerance": true,
+        "pearson_r": 0.9999869112234541
+      },
+      {
+        "channel": "T4",
+        "rms_legacy_uv": 304.14481889239875,
+        "rms_current_uv": 304.112245899556,
+        "rms_difference_uv": 4.118180863581127,
+        "relative_to_uncorrected": 0.001637312932562087,
+        "within_tolerance": true,
+        "pearson_r": 0.999913737391296
+      },
+      {
+        "channel": "T5",
+        "rms_legacy_uv": 178.567527319645,
+        "rms_current_uv": 178.53846432420124,
+        "rms_difference_uv": 3.564122462095184,
+        "relative_to_uncorrected": 0.0021971056637277602,
+        "within_tolerance": true,
+        "pearson_r": 0.9998119438501663
+      },
+      {
+        "channel": "P3",
+        "rms_legacy_uv": 291.24196675364385,
+        "rms_current_uv": 291.22844944883855,
+        "rms_difference_uv": 3.185166527997123,
+        "relative_to_uncorrected": 0.0013974052245669304,
+        "within_tolerance": true,
+        "pearson_r": 0.9999436791885933
+      },
+      {
+        "channel": "Pz",
+        "rms_legacy_uv": 303.94846497668533,
+        "rms_current_uv": 303.91708430291845,
+        "rms_difference_uv": 4.484719940956439,
+        "relative_to_uncorrected": 0.0018792316313251444,
+        "within_tolerance": true,
+        "pearson_r": 0.9998976638825154
+      },
+      {
+        "channel": "P4",
+        "rms_legacy_uv": 304.21780958140897,
+        "rms_current_uv": 304.144972103406,
+        "rms_difference_uv": 6.540058064892437,
+        "relative_to_uncorrected": 0.0022561130325896776,
+        "within_tolerance": true,
+        "pearson_r": 0.9997828688244236
+      },
+      {
+        "channel": "T6",
+        "rms_legacy_uv": 190.1957700161787,
+        "rms_current_uv": 190.1440891449682,
+        "rms_difference_uv": 3.735763046135386,
+        "relative_to_uncorrected": 0.002796739924280497,
+        "within_tolerance": true,
+        "pearson_r": 0.9998177773989839
+      },
+      {
+        "channel": "O1",
+        "rms_legacy_uv": 304.2424873185474,
+        "rms_current_uv": 304.22122523422263,
+        "rms_difference_uv": 3.8050186869652722,
+        "relative_to_uncorrected": 0.0014320785085137628,
+        "within_tolerance": true,
+        "pearson_r": 0.9999263696313908
+      },
+      {
+        "channel": "O2",
+        "rms_legacy_uv": 304.7921619908692,
+        "rms_current_uv": 304.6558914160063,
+        "rms_difference_uv": 8.771788023996379,
+        "relative_to_uncorrected": 0.002559149507451569,
+        "within_tolerance": true,
+        "pearson_r": 0.9996108543531416
+      },
+      {
+        "channel": "AF4",
+        "rms_legacy_uv": 153.38756665183655,
+        "rms_current_uv": 153.38076988868627,
+        "rms_difference_uv": 0.9729655651716813,
+        "relative_to_uncorrected": 0.0011132896590124648,
+        "within_tolerance": true,
+        "pearson_r": 0.9999806298359167
+      },
+      {
+        "channel": "AF3",
+        "rms_legacy_uv": 125.44275740101209,
+        "rms_current_uv": 125.43918089166698,
+        "rms_difference_uv": 0.7922271551436775,
+        "relative_to_uncorrected": 0.0009814507473386456,
+        "within_tolerance": true,
+        "pearson_r": 0.9999809047158565
+      },
+      {
+        "channel": "FC2",
+        "rms_legacy_uv": 305.5309093107694,
+        "rms_current_uv": 304.0105634325746,
+        "rms_difference_uv": 29.570596639922826,
+        "relative_to_uncorrected": 0.014081100575217548,
+        "within_tolerance": true,
+        "pearson_r": 0.9955897782679544
+      },
+      {
+        "channel": "FC1",
+        "rms_legacy_uv": 124.04780538504285,
+        "rms_current_uv": 124.02954889190349,
+        "rms_difference_uv": 2.175830093011402,
+        "relative_to_uncorrected": 0.003276758590868883,
+        "within_tolerance": true,
+        "pearson_r": 0.9998549241360618
+      },
+      {
+        "channel": "CP1",
+        "rms_legacy_uv": 189.67633638088307,
+        "rms_current_uv": 189.64477248790132,
+        "rms_difference_uv": 2.570191960750583,
+        "relative_to_uncorrected": 0.0019014876714851055,
+        "within_tolerance": true,
+        "pearson_r": 0.9999126270086889
+      },
+      {
+        "channel": "CP2",
+        "rms_legacy_uv": 303.5742148873374,
+        "rms_current_uv": 303.55776054903333,
+        "rms_difference_uv": 3.272769529887777,
+        "relative_to_uncorrected": 0.0015045049863404002,
+        "within_tolerance": true,
+        "pearson_r": 0.9999453246036354
+      },
+      {
+        "channel": "PO3",
+        "rms_legacy_uv": 304.41094351499873,
+        "rms_current_uv": 304.40039820724724,
+        "rms_difference_uv": 2.8184707915061935,
+        "relative_to_uncorrected": 0.0012752883521068284,
+        "within_tolerance": true,
+        "pearson_r": 0.9999595836424061
+      },
+      {
+        "channel": "PO4",
+        "rms_legacy_uv": 304.2052550061336,
+        "rms_current_uv": 304.1523235421532,
+        "rms_difference_uv": 5.680373002974614,
+        "relative_to_uncorrected": 0.002006563403926201,
+        "within_tolerance": true,
+        "pearson_r": 0.999836121134543
+      },
+      {
+        "channel": "FC6",
+        "rms_legacy_uv": 303.8829306476434,
+        "rms_current_uv": 303.8673706792789,
+        "rms_difference_uv": 2.872536712457627,
+        "relative_to_uncorrected": 0.001383034887103036,
+        "within_tolerance": true,
+        "pearson_r": 0.9999579239009754
+      },
+      {
+        "channel": "FC5",
+        "rms_legacy_uv": 185.29734729725698,
+        "rms_current_uv": 185.27975863873175,
+        "rms_difference_uv": 2.7015929629386823,
+        "relative_to_uncorrected": 0.0026813744286311512,
+        "within_tolerance": true,
+        "pearson_r": 0.9998997471308517
+      },
+      {
+        "channel": "CP5",
+        "rms_legacy_uv": 154.44493016533718,
+        "rms_current_uv": 154.40951392080245,
+        "rms_difference_uv": 3.521541923750664,
+        "relative_to_uncorrected": 0.0018808028478233573,
+        "within_tolerance": true,
+        "pearson_r": 0.9997551183862116
+      }
+    ]
+  },
+  "parity_against_shipped_default": {
+    "definition": {
+      "metric": "per-channel RMS of (legacy_corrected - v2_corrected), relative to RMS(uncorrected)",
+      "tolerance_relative": 0.05,
+      "rationale": "5 % of the uncorrected amplitude. Tight enough that a different artifact estimate fails it, loose enough to tolerate differing filter edge handling and epoch bookkeeping."
+    },
+    "n_shared_channels": 30,
+    "n_within_tolerance": 30,
+    "n_samples_compared": 333824,
+    "sfreq_legacy": 2048.0,
+    "sfreq_current": 2048.0,
+    "median_relative_difference": 0.00260451215279932,
+    "median_pearson_r": 0.9998071233840725,
+    "verdict": "Parität innerhalb der Toleranz",
+    "channels": [
+      {
+        "channel": "Fp1",
+        "rms_legacy_uv": 193.83864573186924,
+        "rms_current_uv": 193.82399296389292,
+        "rms_difference_uv": 1.6372379801586003,
+        "relative_to_uncorrected": 0.001146281376410179,
+        "within_tolerance": true,
+        "pearson_r": 0.9999643315433681
+      },
+      {
+        "channel": "Fp2",
+        "rms_legacy_uv": 149.28455413428625,
+        "rms_current_uv": 149.2297840325668,
+        "rms_difference_uv": 3.232331053496296,
+        "relative_to_uncorrected": 0.002791830907700503,
+        "within_tolerance": true,
+        "pearson_r": 0.9997689275762196
+      },
+      {
+        "channel": "F7",
+        "rms_legacy_uv": 172.84399989909068,
+        "rms_current_uv": 172.75587350336937,
+        "rms_difference_uv": 4.699662102241134,
+        "relative_to_uncorrected": 0.004272913307529443,
+        "within_tolerance": true,
+        "pearson_r": 0.9996352579807145
+      },
+      {
+        "channel": "F3",
+        "rms_legacy_uv": 62.12775306360559,
+        "rms_current_uv": 62.04693840245851,
+        "rms_difference_uv": 2.722673375098213,
+        "relative_to_uncorrected": 0.0046699290540013535,
+        "within_tolerance": true,
+        "pearson_r": 0.9990609205419061
+      },
+      {
+        "channel": "Fz",
+        "rms_legacy_uv": 163.5243645134004,
+        "rms_current_uv": 163.50552351715888,
+        "rms_difference_uv": 2.1129058739039794,
+        "relative_to_uncorrected": 0.0020886365446805815,
+        "within_tolerance": true,
+        "pearson_r": 0.9999183853631448
+      },
+      {
+        "channel": "F4",
+        "rms_legacy_uv": 190.5420462153839,
+        "rms_current_uv": 190.49606231559338,
+        "rms_difference_uv": 3.34235734770065,
+        "relative_to_uncorrected": 0.0024678900716163165,
+        "within_tolerance": true,
+        "pearson_r": 0.9998499751443585
+      },
+      {
+        "channel": "F8",
+        "rms_legacy_uv": 303.11542350454965,
+        "rms_current_uv": 303.06391217968763,
+        "rms_difference_uv": 7.244907500070169,
+        "relative_to_uncorrected": 0.0035009444270229385,
+        "within_tolerance": true,
+        "pearson_r": 0.9997201086703372
+      },
+      {
+        "channel": "T3",
+        "rms_legacy_uv": 196.8075847771397,
+        "rms_current_uv": 196.68732226660063,
+        "rms_difference_uv": 5.994440854753496,
+        "relative_to_uncorrected": 0.003921068817114059,
+        "within_tolerance": true,
+        "pearson_r": 0.9995463055755978
+      },
+      {
+        "channel": "C3",
+        "rms_legacy_uv": 149.17089864855328,
+        "rms_current_uv": 149.1217836362878,
+        "rms_difference_uv": 3.4678253107672723,
+        "relative_to_uncorrected": 0.0030729054684153884,
+        "within_tolerance": true,
+        "pearson_r": 0.9997394101110516
+      },
+      {
+        "channel": "Cz",
+        "rms_legacy_uv": 274.4593794920236,
+        "rms_current_uv": 274.43713442789095,
+        "rms_difference_uv": 3.0486525082844786,
+        "relative_to_uncorrected": 0.0018669740702317544,
+        "within_tolerance": true,
+        "pearson_r": 0.9999397443978439
+      },
+      {
+        "channel": "C4",
+        "rms_legacy_uv": 303.4266386478938,
+        "rms_current_uv": 303.3761432855179,
+        "rms_difference_uv": 4.0405127934478715,
+        "relative_to_uncorrected": 0.00212544449446302,
+        "within_tolerance": true,
+        "pearson_r": 0.9999120486618783
+      },
+      {
+        "channel": "T4",
+        "rms_legacy_uv": 304.14481889239875,
+        "rms_current_uv": 304.04989626555283,
+        "rms_difference_uv": 5.933884221665482,
+        "relative_to_uncorrected": 0.0023592031769120504,
+        "within_tolerance": true,
+        "pearson_r": 0.9998150773332188
+      },
+      {
+        "channel": "T5",
+        "rms_legacy_uv": 178.567527319645,
+        "rms_current_uv": 178.48266779028273,
+        "rms_difference_uv": 5.040009129703526,
+        "relative_to_uncorrected": 0.003106916982196418,
+        "within_tolerance": true,
+        "pearson_r": 0.9996127661540802
+      },
+      {
+        "channel": "P3",
+        "rms_legacy_uv": 291.24196675364385,
+        "rms_current_uv": 291.2031692832255,
+        "rms_difference_uv": 4.425698378180673,
+        "relative_to_uncorrected": 0.0019416548496495594,
+        "within_tolerance": true,
+        "pearson_r": 0.9998880195476045
+      },
+      {
+        "channel": "Pz",
+        "rms_legacy_uv": 303.94846497668533,
+        "rms_current_uv": 303.8786721017503,
+        "rms_difference_uv": 5.422879193550748,
+        "relative_to_uncorrected": 0.0022723483846356285,
+        "within_tolerance": true,
+        "pearson_r": 0.9998473556612613
+      },
+      {
+        "channel": "P4",
+        "rms_legacy_uv": 304.21780958140897,
+        "rms_current_uv": 304.06492434933944,
+        "rms_difference_uv": 7.550793807849778,
+        "relative_to_uncorrected": 0.0026047848730479887,
+        "within_tolerance": true,
+        "pearson_r": 0.999705932202619
+      },
+      {
+        "channel": "T6",
+        "rms_legacy_uv": 190.1957700161787,
+        "rms_current_uv": 190.12318852875543,
+        "rms_difference_uv": 4.379424363866838,
+        "relative_to_uncorrected": 0.0032786102363916436,
+        "within_tolerance": true,
+        "pearson_r": 0.9997455670380607
+      },
+      {
+        "channel": "O1",
+        "rms_legacy_uv": 304.2424873185474,
+        "rms_current_uv": 304.1765289852058,
+        "rms_difference_uv": 5.130300283868597,
+        "relative_to_uncorrected": 0.0019308690398600738,
+        "within_tolerance": true,
+        "pearson_r": 0.9998624007107663
+      },
+      {
+        "channel": "O2",
+        "rms_legacy_uv": 304.7921619908692,
+        "rms_current_uv": 304.5557092888495,
+        "rms_difference_uv": 9.827501485974476,
+        "relative_to_uncorrected": 0.0028671515452163105,
+        "within_tolerance": true,
+        "pearson_r": 0.9995051722985843
+      },
+      {
+        "channel": "AF4",
+        "rms_legacy_uv": 153.38756665183655,
+        "rms_current_uv": 153.34749311587885,
+        "rms_difference_uv": 2.7343944315685627,
+        "relative_to_uncorrected": 0.0031287572276922243,
+        "within_tolerance": true,
+        "pearson_r": 0.999841833891291
+      },
+      {
+        "channel": "AF3",
+        "rms_legacy_uv": 125.44275740101209,
+        "rms_current_uv": 125.42207368501916,
+        "rms_difference_uv": 1.8257907350603397,
+        "relative_to_uncorrected": 0.0022618811659945743,
+        "within_tolerance": true,
+        "pearson_r": 0.9998949160316787
+      },
+      {
+        "channel": "FC2",
+        "rms_legacy_uv": 305.5309093107694,
+        "rms_current_uv": 303.8066811064106,
+        "rms_difference_uv": 30.87880044478673,
+        "relative_to_uncorrected": 0.014704048754906999,
+        "within_tolerance": true,
+        "pearson_r": 0.9951639536031125
+      },
+      {
+        "channel": "FC1",
+        "rms_legacy_uv": 124.04780538504285,
+        "rms_current_uv": 124.01906982080288,
+        "rms_difference_uv": 2.5396562162570424,
+        "relative_to_uncorrected": 0.003824673788271857,
+        "within_tolerance": true,
+        "pearson_r": 0.9997991694349262
+      },
+      {
+        "channel": "CP1",
+        "rms_legacy_uv": 189.67633638088307,
+        "rms_current_uv": 189.62272721405128,
+        "rms_difference_uv": 3.476018489248243,
+        "relative_to_uncorrected": 0.0025716391631812542,
+        "within_tolerance": true,
+        "pearson_r": 0.9998365056640225
+      },
+      {
+        "channel": "CP2",
+        "rms_legacy_uv": 303.5742148873374,
+        "rms_current_uv": 303.5199981148941,
+        "rms_difference_uv": 4.497611906183354,
+        "relative_to_uncorrected": 0.002067569829675369,
+        "within_tolerance": true,
+        "pearson_r": 0.9998936856183475
+      },
+      {
+        "channel": "PO3",
+        "rms_legacy_uv": 304.41094351499873,
+        "rms_current_uv": 304.37484640543363,
+        "rms_difference_uv": 4.189604210423536,
+        "relative_to_uncorrected": 0.0018956923256371876,
+        "within_tolerance": true,
+        "pearson_r": 0.9999077328010229
+      },
+      {
+        "channel": "PO4",
+        "rms_legacy_uv": 304.2052550061336,
+        "rms_current_uv": 304.113123904946,
+        "rms_difference_uv": 6.744606882023448,
+        "relative_to_uncorrected": 0.0023824987084915088,
+        "within_tolerance": true,
+        "pearson_r": 0.9997646646301325
+      },
+      {
+        "channel": "FC6",
+        "rms_legacy_uv": 303.8829306476434,
+        "rms_current_uv": 303.80792244656226,
+        "rms_difference_uv": 5.4089549351145525,
+        "relative_to_uncorrected": 0.0026042394325506515,
+        "within_tolerance": true,
+        "pearson_r": 0.9998441771978946
+      },
+      {
+        "channel": "FC5",
+        "rms_legacy_uv": 185.29734729725698,
+        "rms_current_uv": 185.2358410528445,
+        "rms_difference_uv": 4.227434558783679,
+        "relative_to_uncorrected": 0.004195796731830414,
+        "within_tolerance": true,
+        "pearson_r": 0.999745760927834
+      },
+      {
+        "channel": "CP5",
+        "rms_legacy_uv": 154.44493016533718,
+        "rms_current_uv": 154.33730424396506,
+        "rms_difference_uv": 5.175707862111841,
+        "relative_to_uncorrected": 0.0027642681238319177,
+        "within_tolerance": true,
+        "pearson_r": 0.9994534460522796
+      }
+    ]
+  },
+  "parity_note": "The registered parity check compares the legacy arm against 'current_matched' — the v2 pipeline with the post-averaging realignment switched off, i.e. the same algorithm. 'parity_against_shipped_default' additionally shows how far the shipped default moves the result, which is a feature difference, not a refactoring defect."
+}

@@ -69,7 +69,7 @@ class CascadeDemucsAdapter(EpochContextArtifactAdapter):
         self,
         checkpoint_path: str | Path,
         *,
-        model_factory: str = "facet.models.demucs_mc.training:build_model",
+        model_factory: str = "facet.models.experimental.v2.demucs_mc.training:build_model",
         model_kwargs: dict[str, Any] | None = None,
         context_epochs: int = 7,
         n_channels: int = 3,

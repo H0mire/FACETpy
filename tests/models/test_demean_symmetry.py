@@ -62,8 +62,8 @@ def _recording_stub(torch):
 @pytest.mark.unit
 def test_demucs_inference_demean_matches_flat_context_dataset(tmp_path):
     torch = pytest.importorskip("torch")
-    from facet.models.demucs.processor import DemucsAdapter
-    from facet.models.demucs.training import FlatContextArtifactDataset
+    from facet.models.masterthesis.demucs.processor import DemucsAdapter
+    from facet.models.masterthesis.demucs.training import FlatContextArtifactDataset
 
     samples = 16
     n_epochs = 7
@@ -114,8 +114,8 @@ def test_demucs_inference_demean_matches_flat_context_dataset(tmp_path):
 @pytest.mark.unit
 def test_dpae_inference_demean_matches_channelwise_dataset(tmp_path):
     torch = pytest.importorskip("torch")
-    from facet.models.dpae.processor import DualPathwayAutoencoderAdapter
-    from facet.models.dpae.training import ChannelWiseArtifactDataset
+    from facet.models.masterthesis.dpae.processor import DualPathwayAutoencoderAdapter
+    from facet.models.masterthesis.dpae.training import ChannelWiseArtifactDataset
     from facet.training.dataset import NPZContextArtifactDataset
 
     samples = 16
@@ -159,8 +159,8 @@ def test_dpae_inference_demean_matches_channelwise_dataset(tmp_path):
 @pytest.mark.unit
 def test_dhct_gan_inference_demean_matches_single_epoch_dataset(tmp_path):
     torch = pytest.importorskip("torch")
-    from facet.models.dhct_gan.processor import DHCTGanAdapter
-    from facet.models.dhct_gan.training import DHCTGanArtifactDataset
+    from facet.models.masterthesis.dhct_gan.processor import DHCTGanAdapter
+    from facet.models.masterthesis.dhct_gan.training import DHCTGanArtifactDataset
 
     samples = 16
     n_epochs = 7

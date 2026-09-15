@@ -22,9 +22,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
-from facet.models.cascaded_dae import CascadedDenoisingAutoencoderCorrection
-from facet.models.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
-from facet.models.demo01 import EpochContextDeepLearningCorrection
+from facet.models.masterthesis.cascaded_dae import CascadedDenoisingAutoencoderCorrection
+from facet.models.masterthesis.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
+from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
 
 from facet import (
     DownSample,

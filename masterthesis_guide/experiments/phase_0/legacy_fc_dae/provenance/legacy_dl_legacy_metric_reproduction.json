@@ -1,0 +1,24 @@
+{
+  "measures": {
+    "SNR": "|var(ausserhalb Scan) / (var(im Scan) - var(ausserhalb Scan))| — Varianzabgleich mit Betrag, unterscheidet Ueber- von Unterkorrektur nicht und explodiert bei Gleichheit",
+    "RMS": "RMS unkorrigiert zu korrigiert",
+    "RMS2": "RMS korrigiert zu unbeeintraechtigt",
+    "MEDIAN": "Median ueber Epochen des kanalgemittelten Peak-to-Peak — niedriger ist besser, misst den verbliebenen Artefaktausschlag"
+  },
+  "results": {
+    "AAS": {
+      "name": "AAS",
+      "SNR": 15.525161835437732,
+      "RMS": 63.922175778438614,
+      "RMS2": 1.0650942960321097,
+      "MEDIAN": 5.816382617083982e-05
+    },
+    "DAE": {
+      "name": "DAE",
+      "SNR": 0.030340141568784628,
+      "RMS": 8.208487228199154,
+      "RMS2": 7.7668538520755295,
+      "MEDIAN": 0.0009229739945489735
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.vit_spectrogram_deployment_edition.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.training.deployment_data:build_weg_a_packed_dataset",
+  "run_name": "phase3vitspectrogramwegaspikeaware_20260914_122724",
+  "run_dir": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 1,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      1,
+      512
+    ],
+    "target_shape": [
+      4,
+      1,
+      512
+    ],
+    "n_total_chunks": 24810,
+    "n_train_chunks": 16170,
+    "n_val_chunks": 4110,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 60,
+    "best_epoch": 58,
+    "best_metric": 4.232824993362794,
+    "elapsed_seconds": 849.5569256101735
+  },
+  "results": {
+    "config_path": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/config.json",
+    "resolved_config_json": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/facet_train_config.resolved.yaml",
+    "log_file": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/training.jsonl",
+    "loss_plot_file": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/loss.png",
+    "summary_path": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/summary.json"
+  },
+  "model": null,
+  "export": {
+    "enabled": true,
+    "path": "training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/exports/vit_spectrogram_phase3_spike_aware.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

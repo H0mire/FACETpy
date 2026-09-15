@@ -1,0 +1,37 @@
+{
+  "n_model_packages": 13,
+  "n_requirements": 131,
+  "disposition_counts": {
+    "umgesetzt": 67,
+    "dokumentierte Abweichung": 38,
+    "bereits konform": 10,
+    "unklassifiziert": 12,
+    "bewusst ausgelassen": 4
+  },
+  "code_evidence_counts": {
+    "verifiziert": 67,
+    "keine Symbolangabe": 56,
+    "teilweise": 6,
+    "manuell verifiziert (Namensabweichung)": 2
+  },
+  "severity_counts": {
+    "low": 48,
+    "medium": 36,
+    "**high**": 10,
+    "**medium**": 2,
+    "**low** (deliberate adaptation)": 1,
+    "**low**": 4,
+    "high": 9,
+    "—": 10,
+    "n/a": 2,
+    "high — documented deviation": 1,
+    "high — **fixed**": 1,
+    "medium — **fixed**": 2,
+    "low — **fixed**": 1,
+    "low — no change (documented)": 1,
+    "medium — optional fix": 1,
+    "low — documented": 1,
+    "low — optional fix": 1
+  },
+  "limitation": "Die Spalte 'paper_requirement' ist aus dem Review übernommen; eine Rückprüfung gegen die Original-PDF ist ein menschlicher Schritt und bleibt offen."
+}

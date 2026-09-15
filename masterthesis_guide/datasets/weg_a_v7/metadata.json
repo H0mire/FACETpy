@@ -1,0 +1,31 @@
+{
+  "dataset_path": "output/weg_a_farm_v7_k6_512/weg_a_spatiotemporal_dataset.npz",
+  "artifact_bundle": "output/artifact_libraries/niazy_farm_pca4_direct/niazy_aas_pca4_artifact.npz",
+  "mode": "weg_a_decoupled_spatiotemporal",
+  "decoupling": {
+    "lever_1_artifact": "AAS + PCA/OBS(n_components=4, hp_freq=300) supplied by the bundle",
+    "lever_2_clean": "clean_source=niazy_pretrigger"
+  },
+  "warning": "Run 3 / Weg A reference dataset. clean_source='synthetic'|'external' decouples the target from AAS; 'aas_corrected' is the old coupled baseline only. Full bandwidth, no 70 Hz low-pass (run_3 \u00a72).",
+  "n_examples": 24810,
+  "input_shape": [
+    7,
+    7,
+    576
+  ],
+  "target_shape": [
+    1,
+    576
+  ],
+  "context_epochs": 7,
+  "core_samples": 512,
+  "guard_samples": 32,
+  "k_neighbors": 6,
+  "clean_source": "niazy_pretrigger",
+  "spikes_injected": true,
+  "spike_label_positive_fraction": 0.00017683001925746788,
+  "sampling_frequency_hz": 4096.0,
+  "mean_abs_clean_uv": 16.998184204101562,
+  "mean_abs_artifact_uv": 954.6087036132812,
+  "mean_abs_noisy_uv": 958.1907348632812
+}

@@ -1,0 +1,77 @@
+{
+  "question": "Korrigierte die 0.1.0-DAE-Variante besser als AAS?",
+  "answer": "Nein — auf der Kennzahl, die den verbliebenen Artefaktausschlag misst, ist sie schlechter. Besser ist sie nur auf einem SNR-Mass, das Ueber- und Unterkorrektur nicht unterscheiden kann.",
+  "reproduction_check": {
+    "note": "AAS reproduziert die historische Auswertung praktisch exakt, die Kette stimmt also. Das hier trainierte DAE ist ein anderes Modell als das historische und darf nicht mit ihm verwechselt werden.",
+    "aas_here": {
+      "SNR": 15.525161835437732,
+      "RMS": 63.922175778438614,
+      "RMS2": 1.0650942960321097,
+      "MEDIAN": 5.816382617083982e-05
+    },
+    "aas_historical": {
+      "SNR": 15.53,
+      "RMS": 66.86,
+      "RMS2": 1.07,
+      "MEDIAN": 6e-05
+    },
+    "dae_here": {
+      "SNR": 6.026270383154613,
+      "RMS": 57.097378485115186,
+      "RMS2": 1.1863378816887822,
+      "MEDIAN": 9.267659777536292e-05
+    },
+    "dae_historical": {
+      "SNR": 17.53,
+      "RMS": 67.5,
+      "RMS2": 1.07,
+      "MEDIAN": 0.00044
+    }
+  },
+  "residual_artifact_median_p2p": {
+    "aas": 5.816382617083982e-05,
+    "dae_here_vs_aas": 1.59,
+    "dae_historical_vs_aas": 7.33,
+    "reading": "Beide Reproduktionen sagen dasselbe: das DAE laesst mehr Artefakt stehen als AAS — hier Faktor 1.6, historisch Faktor 7.3. Das hier trainierte Modell ist auf dieser Achse also sogar besser als das historische."
+  },
+  "why_the_snr_bar_disagrees": {
+    "definition": "SNR = |var(ausserhalb Scan) / (var(im Scan) - var(ausserhalb Scan))|",
+    "equivalent_form": "SNR = 1 / |Varianzverhaeltnis - 1|",
+    "implied_variance_ratio": {
+      "aas_historical": 1.0644,
+      "dae_historical": 1.057
+    },
+    "reading": "Die beiden Balken 15.53 und 17.53 entsprechen Restvarianzen von 6.44 % und 5.70 % ueber der Referenz — 0.74 Prozentpunkte Unterschied, vom Kehrwert auf 13 % aufgeblasen. Der Betrag macht zudem Ueber- und Unterkorrektur ununterscheidbar: ein Verfahren, das 5.7 % zu VIEL entfernt, bekommt denselben Wert."
+  },
+  "application_path_matters": {
+    "note": "clean_continuous_data(use_noisy_original=True) zieht die Schaetzung vom UNVERARBEITETEN Original ab — ohne 1-Hz-Hochpass und 70-Hz-Tiefpass. Gegen die nachverarbeitete AAS-Ausgabe gestellt vergleicht das ueberwiegend Filterzustaende, nicht Korrektoren.",
+    "variants": {
+      "AAS": {
+        "SNR": 15.525161835437732,
+        "RMS2": 1.0650942960321097,
+        "MEDIAN": 5.816382617083982e-05
+      },
+      "DAE_orig_raw": {
+        "SNR": 0.030340141568784628,
+        "RMS2": 7.7668538520755295,
+        "MEDIAN": 0.0009229739945489735
+      },
+      "DAE_orig_postproc": {
+        "SNR": 6.026270383154613,
+        "RMS2": 1.1863378816887822,
+        "MEDIAN": 9.267659777536292e-05
+      },
+      "DAE_aas_raw": {
+        "SNR": 0.0003774930960402422,
+        "RMS2": 64.1359142709789,
+        "MEDIAN": 0.01413638116247798
+      },
+      "DAE_aas_postproc": {
+        "SNR": 0.007640051384635671,
+        "RMS2": 13.755276660952397,
+        "MEDIAN": 0.0018832988959128346
+      }
+    }
+  },
+  "retracted": "Eine fruehere Fassung dieser Datei nannte '74 % der Samples korrigiert' als Defekt. Das war falsch: die Epochen kacheln zu 100.7 % des Triggerabstands, die restlichen 26 % liegen ausserhalb des Scans, wo nichts zu korrigieren ist."
+}

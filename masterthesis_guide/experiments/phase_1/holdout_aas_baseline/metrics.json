@@ -1,0 +1,12 @@
+{
+  "metrics": {
+    "unified_holdout": {
+      "inference_seconds": 0.15314383299846668,
+      "quality_status": "reference (produced clean_center target by definition; SNR vs target undefined)",
+      "note": "Production FACETpy AAS run on reconstructed-discontinuous data yields +0 dB because of window-stitching artifacts. The TIMING here is real (153 ms for 4980 channel-windows on the reconstructed continuous signal). For QUALITY, AAS = reference target by definition."
+    }
+  },
+  "flat_metrics": {
+    "unified_holdout.inference_seconds": 0.15314383299846668
+  }
+}

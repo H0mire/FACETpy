@@ -1,7 +1,7 @@
 # DHCT-GAN, Deployment-Edition mit Epochenkontext -- die Fassung fuer run 8.
 #
 # Die run-7-Fassung
-# (src/facet/models/dhct_gan_deployment_edition/training_niazy_proof_fit.yaml)
+# (src/facet/models/masterthesis/dhct_gan/deployment/training_niazy_proof_fit.yaml)
 # faehrt PACKING = "b1s": **eine** Epoche und **ein** Kanal. Das verletzt die
 # Projektregel, dass mindestens eine Vergleichsachse da sein muss, und run 7 hat
 # selbst gemessen, was das kostet -- die Epochenachse lag mit -0,473 +- 0,057
@@ -47,14 +47,14 @@
 
 model:
   framework: pytorch
-  factory: facet.models.dhct_gan_deployment_edition.training:build_axis_model
+  factory: facet.models.masterthesis.dhct_gan.deployment.training:build_axis_model
   kwargs:
     base_channels: 16
     depth: 4
     num_heads: 4
     window_size: 16
     axis: epochs
-  loss_factory: facet.models.dhct_gan_deployment_edition.training:build_loss
+  loss_factory: facet.models.masterthesis.dhct_gan.deployment.training:build_loss
   loss_kwargs:
     name: recovered_clean
     amplitude_weight: 1.0
@@ -68,7 +68,7 @@ model:
     - 70.0
   device: cuda
 data:
-  dataset_factory: facet.models.dhct_gan_deployment_edition.training:build_axis_dataset
+  dataset_factory: facet.models.masterthesis.dhct_gan.deployment.training:build_axis_dataset
   kwargs:
     path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
     axis: epochs

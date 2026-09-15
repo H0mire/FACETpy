@@ -1,0 +1,28 @@
+{
+  "config": {
+    "epochs_per_stage": 3000,
+    "lambda_noise": 1.5,
+    "learning_rate": 0.001
+  },
+  "note": "Metriken, Abbildung und Checkpoint stammen aus demselben Lauf. Der Legacy-Trainer setzt keinen Seed, zwei Läufe derselben Konfiguration ergeben verschiedene Modelle.",
+  "measures": {
+    "SNR": "|var(ausserhalb) / (var(im Scan) - var(ausserhalb))|",
+    "RMS": "RMS unkorrigiert zu korrigiert",
+    "RMS2": "RMS korrigiert zu unbeeintraechtigt",
+    "MEDIAN": "Median ueber Epochen des kanalgemittelten p2p"
+  },
+  "results": {
+    "AAS": {
+      "SNR": 15.525161835437732,
+      "RMS": 63.922175778438614,
+      "RMS2": 1.0650942960321097,
+      "MEDIAN": 5.816382617083982e-05
+    },
+    "DAE": {
+      "SNR": 36.56336269826543,
+      "RMS": 63.5053055057831,
+      "RMS2": 1.063601395963896,
+      "MEDIAN": 8.314575398552727e-05
+    }
+  }
+}

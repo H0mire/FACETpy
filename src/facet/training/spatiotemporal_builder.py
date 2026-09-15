@@ -39,7 +39,7 @@ from scipy.signal import resample_poly
 logger = logging.getLogger(__name__)
 
 # Niazy uses old 10-20 names; map to modern 10-05 montage equivalents.
-# Kept in sync with facet.models.st_gnn_paper_accurate_edition.training.
+# Kept in sync with facet.models.experimental.paper_accurate.st_gnn.training.
 _LEGACY_NAME_ALIAS: dict[str, str] = {
     "T3": "T7",
     "T4": "T8",

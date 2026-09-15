@@ -1,0 +1,6 @@
+{
+  "archive_sha256": "931dc7f1147edb7a49f2f72c80abd9e785e6e7d90aabe4dfb3f18ca007907fc7",
+  "run_dir": "training_output/phase3demucswegaspikeaware_20260914_122757",
+  "comparison_dir": "output/phase3_spike_aware_comparison/demucs",
+  "best_checkpoint": "training_output/phase3demucswegaspikeaware_20260914_122757/checkpoints/epoch0002_val_loss13.2668.pt"
+}

@@ -1,0 +1,72 @@
+# DPAE deployment edition -- CUDA training on the Niazy proof-fit dataset.
+#
+# Same network as src/facet/models/masterthesis/dpae/, different objective. See
+# src/facet/models/masterthesis/dpae/deployment/training.py for what changed and why.
+#
+#   uv run facet-train fit --config src/facet/models/masterthesis/dpae/deployment/training_niazy_proof_fit.yaml
+#
+# frequency_weight is 0.046, not the paper's 1.0: normalised by the clean
+# signal's own energy the frequency term reads 151.6 at the identity
+# initialisation against 8.79 / 6.17 / 5.83 for the time-domain terms, so 1.0
+# would make it 87 % of the initial gradient. 6.93 / 151.6 = 0.046 equalises them.
+
+model:
+  framework: pytorch
+  factory: facet.models.masterthesis.dpae.deployment.training:build_model
+  kwargs:
+    base_filters: 32
+    latent_filters: 128
+    residual_init: 0.0
+  loss_factory: facet.models.masterthesis.dpae.deployment.training:build_loss
+  loss_kwargs:
+    name: recovered_clean
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 0.046
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band:
+    - 1.0
+    - 70.0
+  device: cuda
+data:
+  dataset_factory: facet.models.masterthesis.dpae.deployment.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  eeg_only: true
+training:
+  model_name: DpaeDeploymentNiazyProofFit
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: false
+  val_ratio: 0.2
+  max_epochs: 80
+  batch_size: 128
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 20
+  min_delta: 0.0
+  min_delta_rel: 0.001
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dpae_deployment.ts
+  write_inference_config: false

@@ -428,7 +428,7 @@ def infer_denoise_mamba(
     """
     import torch
 
-    from facet.models.denoise_mamba.training import build_model
+    from facet.models.masterthesis.denoise_mamba.training import build_model
 
     ts_path = TRAIN_ROOT / spec.ts_path
     ckpt_file = ts_path.parent.parent / "checkpoints" / "last.pt"
@@ -658,13 +658,13 @@ def infer_d4pm(
 
     The shipped TorchScript export (d4pm.ts) is a zero stub — it does NOT contain
     the DDPM sampler. So we reconstruct the training module with default
-    hyperparameters (matching src/facet/models/d4pm/evaluate.py defaults) and
+    hyperparameters (matching src/facet/models/masterthesis/d4pm/evaluate.py defaults) and
     load the last.pt checkpoint, then run the same reverse sampler used in
     Run 1's per-model evaluation.
     """
     import torch
 
-    from facet.models.d4pm.training import D4PMTrainingModule
+    from facet.models.masterthesis.d4pm.training import D4PMTrainingModule
 
     ckpt_path = TRAIN_ROOT / spec.ts_path  # ".../exports/d4pm.ts" — replace tail
     ckpt_dir = ckpt_path.parent.parent / "checkpoints"

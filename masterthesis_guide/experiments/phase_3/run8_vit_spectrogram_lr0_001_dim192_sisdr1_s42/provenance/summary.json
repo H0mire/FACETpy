@@ -1,0 +1,50 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.vit_spectrogram_deployment_edition.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.vit_spectrogram_deployment_edition.training:build_dataset",
+  "run_name": "grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252",
+  "run_dir": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      1,
+      512
+    ],
+    "target_shape": [
+      3,
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 20010,
+    "n_val_chunks": 4980,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 60,
+    "best_epoch": 47,
+    "best_metric": -0.6088880862181003,
+    "elapsed_seconds": 950.8622602326795
+  },
+  "results": {
+    "config_path": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/config.json",
+    "resolved_config_json": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/facet_train_config.resolved.json",
+    "resolved_config_yaml": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/facet_train_config.resolved.yaml",
+    "log_file": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/training.jsonl",
+    "loss_plot_file": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/loss.png",
+    "summary_path": "grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/summary.json"
+  },
+  "model": null,
+  "export": {
+    "enabled": false,
+    "path": null,
+    "format": null,
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

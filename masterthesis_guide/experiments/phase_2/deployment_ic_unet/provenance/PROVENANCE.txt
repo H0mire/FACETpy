@@ -1,0 +1,12 @@
+Dieses Verzeichnis ist KEIN eigener Trainingslauf.
+
+Es enthaelt eine Kopie des CPU-Reexports aus
+    icunetdeploymentniazyprooffitlong_20260826_200640   (best val_loss 0.6763, epoch 847)
+unter einem Namen, auf den der Adapter-Glob
+    icunetdeploymentniazyprooffit_*/exports/ic_unet_deployment.ts
+passt. Der "long"-Lauf ist der bessere: der Basislauf kam auf 4.058, weil sein
+Epochenbudget vor der Konvergenz endete.
+
+Der Original-Export war auf CUDA getraced und laesst sich ohne GPU nicht
+ausfuehren; siehe scratchpad/reexport_cpu.py und den Fix in
+src/facet/training/cli.py::_export_pytorch_torchscript.

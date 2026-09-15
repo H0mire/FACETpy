@@ -43,7 +43,7 @@ from facet import (
     UpSample,
 )
 from facet.config import set_config
-from facet.models.cascaded_context_dae import (
+from facet.models.masterthesis.cascaded_context_dae import (
     CascadedContextDenoisingAutoencoderCorrection,
 )
 from facet.preprocessing import TriggerExplorer
@@ -68,7 +68,7 @@ ARTIFACT_TO_TRIGGER_OFFSET = -0.005
 # Cascaded Context DAE checkpoint — picks the newest Niazy proof-fit export.
 # Train with:
 #   uv run facet-train fit --config \
-#     src/facet/models/cascaded_context_dae/training_niazy_proof_fit.yaml
+#     src/facet/models/masterthesis/cascaded_context_dae/training_niazy_proof_fit.yaml
 # ---------------------------------------------------------------------------
 _candidates = sorted(glob(
     "./training_output/cascadedcontextdenoisingautoencoderniazyprooffit_*/"

@@ -31,9 +31,10 @@ S, T, C = 512, 7, 30
 
 
 def _build(family: str):
-    module = importlib.import_module(f"facet.models.{family}_deployment_edition.training")
+    name = "dhct_gan.v2" if family == "dhct_gan_v2" else family
+    module = importlib.import_module(f"facet.models.masterthesis.{name}.deployment.training")
     cfg = yaml.safe_load(
-        open(f"src/facet/models/{family}_deployment_edition/training_niazy_proof_fit.yaml"))
+        open(f"tests/fixtures/deployment_configs/{family}_deployment_edition.yaml"))
     kwargs = dict(cfg["model"].get("kwargs") or {})
     kwargs.pop("dataset_path", None)
     kwargs["fit_ica"] = False                       # no ICA fit without the bundle
@@ -92,7 +93,8 @@ def test_config_points_at_the_edition_and_monitors_validation(family):
     """A config that still points at the base module trains the wrong model, and
     ``monitor: loss`` is what made two GAN runs pick epoch 1 of 16 and 1 of 34."""
     _, _, cfg = _build(family)
-    module = f"{family}_deployment_edition"
+    name = "dhct_gan.v2" if family == "dhct_gan_v2" else family
+    module = f"masterthesis.{name}.deployment"
     for key in ("factory", "loss_factory"):
         assert cfg["model"][key].startswith(f"facet.models.{module}.")
     assert cfg["data"]["dataset_factory"].startswith(f"facet.models.{module}.")
@@ -115,7 +117,8 @@ def test_the_registry_and_the_editions_agree_on_which_families_exist():
     assert {k.removesuffix("_deployment") for k in DEPLOYMENT_SPECS} == set(EDITIONS)
     for key, spec in DEPLOYMENT_SPECS.items():
         family = key.removesuffix("_deployment")
-        module = importlib.import_module(f"facet.models.{family}_deployment_edition.training")
+        name = "dhct_gan.v2" if family == "dhct_gan_v2" else family
+        module = importlib.import_module(f"facet.models.masterthesis.{name}.deployment.training")
         assert spec.packing == module.PACKING, family
         assert spec.demean == "none", family
         assert not spec.remove_prediction_dc, family

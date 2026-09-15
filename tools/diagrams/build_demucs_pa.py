@@ -6,9 +6,9 @@ resampling operations explicit and shows the configured decoder's 6996-sample
 output being right-padded (not cropped) to the 7168-sample upsampled target.
 
 Verified against
-    src/facet/models/demucs_paper_accurate_edition/training.py
-    src/facet/models/demucs_paper_accurate_edition/processor.py
-    src/facet/models/demucs_paper_accurate_edition/training_niazy_proof_fit.yaml
+    src/facet/models/experimental/paper_accurate/demucs/training.py
+    src/facet/models/experimental/paper_accurate/demucs/processor.py
+    src/facet/models/experimental/paper_accurate/demucs/training_niazy_proof_fit.yaml
 """
 from __future__ import annotations
 

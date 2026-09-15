@@ -1,0 +1,48 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.cascaded_context_dae.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.cascaded_context_dae.training:build_dataset",
+  "run_name": "cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603",
+  "run_dir": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      1,
+      512
+    ],
+    "target_shape": [
+      1,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 19992,
+    "n_val_chunks": 4998,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 25,
+    "best_epoch": 15,
+    "best_metric": 0.00014567725018515618,
+    "elapsed_seconds": 81.03471486699709
+  },
+  "results": {
+    "config_path": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/config.json",
+    "resolved_config_json": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/facet_train_config.resolved.yaml",
+    "log_file": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/training.jsonl",
+    "loss_plot_file": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/loss.png",
+    "summary_path": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/exports/cascaded_context_dae.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

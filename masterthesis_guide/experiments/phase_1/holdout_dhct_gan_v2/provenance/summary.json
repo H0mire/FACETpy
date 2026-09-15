@@ -1,0 +1,47 @@
+{
+  "framework": "pytorch",
+  "model_factory": "facet.models.dhct_gan_v2.training:build_model",
+  "context_factory": null,
+  "dataset_factory": "facet.models.dhct_gan_v2.training:build_dataset",
+  "run_name": "dhctganv2niazyprooffit_20260510_220534",
+  "run_dir": "training_output/dhctganv2niazyprooffit_20260510_220534",
+  "n_contexts": 0,
+  "dataset": {
+    "n_channels": 30,
+    "chunk_size": 512,
+    "input_shape": [
+      7,
+      512
+    ],
+    "target_shape": [
+      3,
+      512
+    ],
+    "n_total_chunks": 24990,
+    "n_train_chunks": 19992,
+    "n_val_chunks": 4998,
+    "target_type": "artifact",
+    "trigger_aligned": true
+  },
+  "training": {
+    "total_epochs": 34,
+    "best_epoch": 19,
+    "best_metric": 0.13047772315861303,
+    "elapsed_seconds": 481.0403447659992
+  },
+  "results": {
+    "config_path": "training_output/dhctganv2niazyprooffit_20260510_220534/config.json",
+    "resolved_config_json": "training_output/dhctganv2niazyprooffit_20260510_220534/facet_train_config.resolved.json",
+    "resolved_config_yaml": "training_output/dhctganv2niazyprooffit_20260510_220534/facet_train_config.resolved.yaml",
+    "log_file": "training_output/dhctganv2niazyprooffit_20260510_220534/training.jsonl",
+    "loss_plot_file": "training_output/dhctganv2niazyprooffit_20260510_220534/loss.png",
+    "summary_path": "training_output/dhctganv2niazyprooffit_20260510_220534/summary.json"
+  },
+  "export": {
+    "enabled": true,
+    "path": "training_output/dhctganv2niazyprooffit_20260510_220534/exports/dhct_gan_v2.ts",
+    "format": "torchscript",
+    "inference_config_path": null
+  },
+  "inference_spec": null
+}

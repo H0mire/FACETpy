@@ -1,0 +1,14 @@
+model_package,n_manually_verified,n_requirements,n_symbol_verified,n_symbols_not_found,n_test_functions,n_without_symbol_claim,parse_status
+conv_tasnet_paper_accurate_edition,0,8,2,0,4,6,ok
+d4pm_paper_accurate_edition,0,10,7,0,10,1,ok
+demucs_paper_accurate_edition,0,8,5,0,5,3,ok
+denoise_mamba_paper_accurate_edition,0,12,7,0,8,4,ok
+dhct_gan_paper_accurate_edition,0,12,5,0,6,7,ok
+dhct_gan_strict_edition,0,10,7,0,28,3,ok
+dhct_gan_v2_paper_accurate_edition,1,15,5,0,3,9,ok
+dpae_paper_accurate_edition,1,10,5,0,7,4,ok
+ic_unet_paper_accurate_edition,0,8,7,0,7,1,ok
+nested_gan_paper_accurate_edition,0,9,5,0,8,4,ok
+sepformer_paper_accurate_edition,0,12,5,0,7,6,ok
+st_gnn_paper_accurate_edition,0,8,4,0,11,4,ok
+vit_spectrogram_paper_accurate_edition,0,9,5,0,5,4,ok

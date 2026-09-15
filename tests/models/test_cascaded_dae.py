@@ -4,8 +4,8 @@ import numpy as np
 import pytest
 
 from facet.core import ProcessingContext, ProcessingMetadata
-from facet.models.cascaded_dae import CascadedDenoisingAutoencoderCorrection
-from facet.models.cascaded_dae.training import CascadedDenoisingAutoencoder, ChannelWiseArtifactDataset
+from facet.models.masterthesis.cascaded_dae import CascadedDenoisingAutoencoderCorrection
+from facet.models.masterthesis.cascaded_dae.training import CascadedDenoisingAutoencoder, ChannelWiseArtifactDataset
 
 
 def test_cascaded_dae_model_preserves_single_channel_shape():

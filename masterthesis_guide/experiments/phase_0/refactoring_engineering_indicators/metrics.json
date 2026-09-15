@@ -1,0 +1,204 @@
+{
+  "scope": {
+    "counted": "shipped library source (.py files under the given root, recursively)",
+    "excluded": "tests, tooling, examples, notebooks, docs, data; __pycache__ and site-packages never enter a root",
+    "tests_counted_separately": true,
+    "line_definition": "code = a physical line carrying at least one token that is neither a comment, a docstring-only expression, nor whitespace",
+    "rationale": "Indicators and scope are fixed before measurement so the comparison cannot be tuned to its outcome."
+  },
+  "indicator_definitions": {
+    "modules": {
+      "label": "Module (.py-Dateien)",
+      "better": "neutral",
+      "evidence_for": "Größe und Gliederung der Codebasis"
+    },
+    "code_lines": {
+      "label": "Code-Zeilen",
+      "better": "neutral",
+      "evidence_for": "Umfang; allein kein Qualitätsmaß"
+    },
+    "comment_lines": {
+      "label": "Kommentarzeilen",
+      "better": "höher",
+      "evidence_for": "Erklärungsdichte"
+    },
+    "comment_ratio_pct": {
+      "label": "Kommentaranteil (%)",
+      "better": "höher",
+      "evidence_for": "Erklärungsdichte relativ zum Umfang"
+    },
+    "classes": {
+      "label": "Klassen",
+      "better": "neutral",
+      "evidence_for": "Gliederung"
+    },
+    "functions": {
+      "label": "Funktionen und Methoden",
+      "better": "neutral",
+      "evidence_for": "Gliederung"
+    },
+    "public_symbols": {
+      "label": "Öffentliche Symbole auf Modulebene",
+      "better": "neutral",
+      "evidence_for": "API-Oberfläche"
+    },
+    "docstring_coverage_pct": {
+      "label": "Docstring-Abdeckung (%)",
+      "better": "höher",
+      "evidence_for": "Anteil öffentlicher Module/Klassen/Funktionen mit Docstring"
+    },
+    "typed_params_pct": {
+      "label": "Typannotierte Parameter (%)",
+      "better": "höher",
+      "evidence_for": "Prüfbarkeit der Schnittstellen"
+    },
+    "typed_returns_pct": {
+      "label": "Typannotierte Rückgaben (%)",
+      "better": "höher",
+      "evidence_for": "Prüfbarkeit der Schnittstellen"
+    },
+    "mean_function_lines": {
+      "label": "Funktionslänge, Mittel",
+      "better": "niedriger",
+      "evidence_for": "Lesbarkeit"
+    },
+    "max_function_lines": {
+      "label": "Funktionslänge, Maximum",
+      "better": "niedriger",
+      "evidence_for": "Lesbarkeit"
+    },
+    "functions_over_50_lines": {
+      "label": "Funktionen > 50 Zeilen",
+      "better": "niedriger",
+      "evidence_for": "Lesbarkeit"
+    },
+    "mean_cyclomatic": {
+      "label": "Zyklomatische Komplexität, Mittel",
+      "better": "niedriger",
+      "evidence_for": "Testbarkeit"
+    },
+    "max_cyclomatic": {
+      "label": "Zyklomatische Komplexität, Maximum",
+      "better": "niedriger",
+      "evidence_for": "Testbarkeit"
+    },
+    "functions_cyclomatic_over_10": {
+      "label": "Funktionen mit Komplexität > 10",
+      "better": "niedriger",
+      "evidence_for": "Testbarkeit"
+    },
+    "max_methods_per_class": {
+      "label": "Methoden je Klasse, Maximum",
+      "better": "niedriger",
+      "evidence_for": "God-Class-Indikator"
+    },
+    "broad_excepts": {
+      "label": "Pauschale except-Blöcke",
+      "better": "niedriger",
+      "evidence_for": "bare except oder except Exception ohne re-raise"
+    },
+    "mutable_default_args": {
+      "label": "Veränderliche Default-Argumente",
+      "better": "niedriger",
+      "evidence_for": "bekannte Fehlerklasse (list/dict/set als Default)"
+    },
+    "print_calls_in_library": {
+      "label": "print() in Bibliothekscode",
+      "better": "niedriger",
+      "evidence_for": "Bibliothek schreibt unkontrolliert auf stdout"
+    },
+    "todo_comments": {
+      "label": "TODO/FIXME-Kommentare",
+      "better": "niedriger",
+      "evidence_for": "bekannte offene Stellen"
+    },
+    "non_importable_filenames": {
+      "label": "Nicht importierbare Modulnamen",
+      "better": "niedriger",
+      "evidence_for": "Dateiname ist kein gültiger Python-Bezeichner + .py"
+    },
+    "test_files": {
+      "label": "Testdateien",
+      "better": "höher",
+      "evidence_for": "Prüfumfang"
+    },
+    "test_functions": {
+      "label": "Testfunktionen",
+      "better": "höher",
+      "evidence_for": "Prüfumfang"
+    },
+    "test_functions_per_100_code_lines": {
+      "label": "Testfunktionen je 100 Code-Zeilen",
+      "better": "höher",
+      "evidence_for": "Prüfdichte, größenbereinigt"
+    }
+  },
+  "arms": {
+    "legacy": {
+      "label": "FACETpy 0.1.0 (Branch bachelor)",
+      "root": "/private/tmp/claude-501/-Volumes-JanikProSSD-Documents-Projects-FACETpy-git-repos-facetpy/56692da2-d585-4eae-9bc6-e24dbcabf713/scratchpad/legacy_bachelor/src/FACET",
+      "tests_root": "/private/tmp/claude-501/-Volumes-JanikProSSD-Documents-Projects-FACETpy-git-repos-facetpy/56692da2-d585-4eae-9bc6-e24dbcabf713/scratchpad/legacy_bachelor/src/tests",
+      "indicators": {
+        "modules": 7,
+        "code_lines": 762,
+        "comment_lines": 131,
+        "comment_ratio_pct": 17.19,
+        "classes": 4,
+        "functions": 76,
+        "public_symbols": 7,
+        "docstring_coverage_pct": 12.64,
+        "typed_params_pct": 0.0,
+        "typed_returns_pct": 0.0,
+        "mean_function_lines": 12.75,
+        "max_function_lines": 57,
+        "functions_over_50_lines": 1,
+        "mean_cyclomatic": 2.3,
+        "max_cyclomatic": 13,
+        "functions_cyclomatic_over_10": 1,
+        "max_methods_per_class": 26,
+        "broad_excepts": 0,
+        "mutable_default_args": 6,
+        "print_calls_in_library": 41,
+        "todo_comments": 4,
+        "non_importable_filenames": 2,
+        "test_files": 2,
+        "test_functions": 6,
+        "test_functions_per_100_code_lines": 0.79
+      },
+      "parse_failures": []
+    },
+    "current": {
+      "label": "FACETpy 2.0.0 — klassischer Kern (ohne models/ und training/)",
+      "root": "/private/tmp/claude-501/-Volumes-JanikProSSD-Documents-Projects-FACETpy-git-repos-facetpy/56692da2-d585-4eae-9bc6-e24dbcabf713/scratchpad/current_core/facet",
+      "tests_root": "/private/tmp/claude-501/-Volumes-JanikProSSD-Documents-Projects-FACETpy-git-repos-facetpy/56692da2-d585-4eae-9bc6-e24dbcabf713/scratchpad/current_core_tests",
+      "indicators": {
+        "modules": 57,
+        "code_lines": 15477,
+        "comment_lines": 1102,
+        "comment_ratio_pct": 7.12,
+        "classes": 125,
+        "functions": 854,
+        "public_symbols": 173,
+        "docstring_coverage_pct": 58.69,
+        "typed_params_pct": 94.95,
+        "typed_returns_pct": 91.1,
+        "mean_function_lines": 22.97,
+        "max_function_lines": 342,
+        "functions_over_50_lines": 98,
+        "mean_cyclomatic": 4.04,
+        "max_cyclomatic": 95,
+        "functions_cyclomatic_over_10": 45,
+        "max_methods_per_class": 71,
+        "broad_excepts": 35,
+        "mutable_default_args": 0,
+        "print_calls_in_library": 33,
+        "todo_comments": 0,
+        "non_importable_filenames": 0,
+        "test_files": 21,
+        "test_functions": 437,
+        "test_functions_per_100_code_lines": 2.82
+      },
+      "parse_failures": []
+    }
+  }
+}

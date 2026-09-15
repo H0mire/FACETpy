@@ -5,7 +5,7 @@ One diagram, two regions:
     dual decoder → two gating heads → fusion → exported artifact Y2),
   * the adversarial part is fenced off at the bottom (D1/D2/D3, LSGAN losses).
 
-Verified against src/facet/models/dhct_gan_paper_accurate_edition/training.py.
+Verified against src/facet/models/experimental/paper_accurate/dhct_gan/training.py.
 Shares its custom helpers (skip_edge, skip_label_vertical, multi_note,
 layer_row, halo, the two-line title block) with the other diagrams in the series.
 """
@@ -33,7 +33,7 @@ d = Diagram(H)
 
 TITLE = "DHCT-GAN — Paper-Accurate Edition"
 SUB = ("Dual-branch hybrid CNN-Transformer generator + 3 LSGAN discriminators · "
-       "src/facet/models/dhct_gan_paper_accurate_edition/")
+       "src/facet/models/experimental/paper_accurate/dhct_gan/")
 d.add(text(70, 52, TITLE, size=24, weight=700, fill=C["ink"]),
       f'<rect x="70" y="62" width="{22 + len(TITLE) * 9}" height="3" rx="1.5" '
       f'fill="url(#fp-header)"/>',
