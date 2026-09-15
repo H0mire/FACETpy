@@ -1,0 +1,77 @@
+# Smoke training config for SepFormer.
+#
+# Use this to validate the worktree sync, dataset preparation, CUDA setup,
+# checkpoint export, and TorchScript trace before launching a full run.
+
+model:
+  framework: pytorch
+  factory: facet.models.sepformer.training:build_model
+  kwargs:
+    epoch_samples: 512
+    context_epochs: 7
+    encoder_channels: 64
+    encoder_kernel: 16
+    encoder_stride: 8
+    chunk_size: 32
+    n_blocks: 1
+    intra_layers: 2
+    inter_layers: 2
+    intra_heads: 4
+    inter_heads: 4
+    d_ffn: 128
+    dropout: 0.1
+    skip_around_intra: true
+    mask_activation: relu
+  loss_factory: facet.models.sepformer.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+
+data:
+  dataset_factory: facet.models.sepformer.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    max_examples: 256
+  eeg_only: true
+
+training:
+  model_name: SepFormerNiazySmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 32
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/sepformer.ts
+  write_inference_config: false

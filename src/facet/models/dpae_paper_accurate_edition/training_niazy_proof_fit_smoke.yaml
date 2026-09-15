@@ -1,0 +1,67 @@
+# Smoke training config for the paper-accurate DPAE on the Niazy proof-fit
+# dataset. ILLUSTRATIVE ONLY -- this file is NOT executed by the smoke test;
+# the test builds the model directly with tiny dims. Every dimension here is
+# shrunk so a real run on CPU finishes in seconds (device: cpu, max_epochs: 1).
+
+model:
+  framework: pytorch
+  factory: facet.models.dpae_paper_accurate_edition.training:build_model
+  kwargs:
+    base_filters: 4
+    shrink_ratio_low: 0.45
+    shrink_ratio_high: 0.75
+    pathway_layers: 3
+    pathway2_stride: 4
+    fusion_depth: 2
+  loss_factory: facet.models.dpae_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cpu
+
+data:
+  dataset_factory: facet.models.dpae_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    target_type: clean
+    normalize: true
+    max_examples: 64
+  eeg_only: true
+
+training:
+  model_name: DPAEPaperAccurateNiazySmoke
+  chunk_size: 256
+  target_type: clean
+  trigger_aligned: false
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dpae_paper_accurate.ts
+  write_inference_config: false

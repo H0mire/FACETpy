@@ -18,10 +18,22 @@ from .metrics import (
     RMSResidualCalculator,
     SignalIntervalSelector,
     SNRCalculator,
+    SpectralCoherenceCalculator,
+    SpikeDetectionRateCalculator,
+)
+from .deployment_metrics import (
+    EpochSeamStepCalculator,
+    GradientArtifactResidualCalculator,
+)
+from .model_evaluation import (
+    EVALUATION_SCHEMA_VERSION,
+    ModelEvaluationRun,
+    ModelEvaluationWriter,
 )
 from .visualization import RawPlotter
 
 __all__ = [
+    "EVALUATION_SCHEMA_VERSION",
     "ReferenceIntervalSelector",
     "SignalIntervalSelector",
     "SNRCalculator",
@@ -29,8 +41,14 @@ __all__ = [
     "RMSCalculator",
     "RMSResidualCalculator",
     "MedianArtifactCalculator",
+    "GradientArtifactResidualCalculator",
+    "EpochSeamStepCalculator",
     "FFTAllenCalculator",
     "FFTNiazyCalculator",
+    "SpectralCoherenceCalculator",
+    "SpikeDetectionRateCalculator",
     "MetricsReport",
+    "ModelEvaluationRun",
+    "ModelEvaluationWriter",
     "RawPlotter",
 ]

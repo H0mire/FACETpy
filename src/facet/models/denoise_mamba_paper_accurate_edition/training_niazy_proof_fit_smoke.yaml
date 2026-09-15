@@ -1,0 +1,75 @@
+# Paper-accurate DenoiseMamba smoke config — single epoch on the Niazy-only
+# proof-fit dataset, CPU-only, tiny dims. Illustrative ONLY: the pytest smoke
+# test does NOT execute this file. It documents the factory wiring and how to
+# scale the paper architecture down so a forward+backward finishes in seconds.
+#
+# Paper defaults (full run): base_channels 64, n_stages 3, d_state 16,
+# dropout 0.2, AdamW lr 1e-3 + weight decay, ReduceLROnPlateau(0.5, patience 3),
+# MSE loss, target_type clean. Those live in the full training_niazy_proof_fit
+# config; everything here is shrunk for a worktree/CUDA sanity check.
+
+model:
+  framework: pytorch
+  factory: facet.models.denoise_mamba_paper_accurate_edition.training:build_model
+  kwargs:
+    base_channels: 8
+    n_stages: 1
+    d_state: 4
+    n_heads: 1
+    d_conv: 4
+    dropout: 0.0
+    ssd_chunk_size: 16
+  loss_factory: facet.models.denoise_mamba_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cpu
+
+data:
+  dataset_factory: facet.models.denoise_mamba_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    target_type: clean      # paper target; set to "artifact" for FACETpy parity
+    normalize: zscore       # paper z-score standardisation; "demean" or "none" available
+    max_examples: 64
+  eeg_only: true
+
+training:
+  model_name: DenoiseMambaPaperAccurateNiazySmoke
+  chunk_size: 64
+  target_type: clean
+  trigger_aligned: true
+  val_ratio: 0.25
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  # Paper scheduler (configure if facet-train supports it; otherwise documented):
+  # ReduceLROnPlateau(factor=0.5, patience=3) monitoring val loss.
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/denoise_mamba_paper_accurate.ts
+  write_inference_config: false

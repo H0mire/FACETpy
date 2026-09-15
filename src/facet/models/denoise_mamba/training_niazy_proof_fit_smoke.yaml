@@ -1,0 +1,68 @@
+# DenoiseMamba smoke config — single epoch on the Niazy-only proof-fit dataset.
+# Used to verify worktree sync, dataset prep, CUDA torch on the GPU fleet,
+# checkpoint writing, training.jsonl, loss.png, and TorchScript export before
+# launching the longer training run defined in training_niazy_proof_fit.yaml.
+
+model:
+  framework: pytorch
+  factory: facet.models.denoise_mamba.training:build_model
+  kwargs:
+    d_model: 32
+    d_state: 8
+    expand: 2
+    d_conv: 4
+    n_blocks: 2
+    dropout: 0.0
+    input_kernel_size: 7
+  loss_factory: facet.models.denoise_mamba.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+
+data:
+  dataset_factory: facet.models.denoise_mamba.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean_input: true
+    demean_target: true
+    max_examples: 256
+  eeg_only: true
+
+training:
+  model_name: DenoiseMambaNiazySmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/denoise_mamba.ts
+  write_inference_config: false

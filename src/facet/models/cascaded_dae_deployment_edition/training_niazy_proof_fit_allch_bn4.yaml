@@ -1,0 +1,84 @@
+# Cascaded DAE deployment edition -- all channels, bottleneck 4.
+#
+# The per-channel edition sees one electrode and one epoch: 512 samples,
+# no temporal and no spatial context. The cascaded DAE that *did*
+# reproduce AAS -- FACETpy 0.1.0, 88.6 % agreement on the validation tail
+# -- was an 8-4-8 autoencoder over (channels x timepoints) flattened, so it
+# saw all 30 electrodes at once through a four-unit bottleneck.
+#
+# The gradient artifact comes from the same switching gradients at every
+# electrode, so its waveform is nearly identical across them up to a gain.
+# That redundancy is what averaging methods exploit, and a single-channel
+# model cannot.
+#
+# bottleneck 4: the 0.1.0 value. Four latent units over 15,360 inputs can encode almost
+# nothing except what the channels share.
+#
+# 833 examples per epoch here rather than 24,990: the channel axis is the
+# model's input now, not an example multiplier. Hence the raised ceiling.
+
+checkpoint:
+  mode: min
+  monitor: val_loss
+  save_last: true
+  save_top_k: 2
+data:
+  dataset_factory: facet.models.cascaded_dae_deployment_edition.training:build_all_channel_dataset
+  eeg_only: true
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+early_stopping:
+  min_delta: 0.0
+  min_delta_rel: 0.001
+  mode: min
+  monitor: val_loss
+  patience: 60
+export:
+  enabled: true
+  format: torchscript
+  path: exports/cascaded_dae_deployment_allch_bn4.ts
+  write_inference_config: false
+  example_input_shape:
+  - 1
+  - 30
+  - 512
+logging:
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  progress_bar: true
+  rich_live: true
+  val_every_n_epochs: 1
+model:
+  device: cuda
+  factory: facet.models.cascaded_dae_deployment_edition.training:build_all_channel_model
+  framework: pytorch
+  kwargs:
+    n_channels: 30
+    bottleneck: 4
+    outer_units: 8
+    dropout_rate: 0.2
+  loss_factory: facet.models.cascaded_dae_deployment_edition.training:build_loss
+  loss_kwargs:
+    acceleration_weight: 1.0
+    amplitude_weight: 1.0
+    freq_band:
+    - 1.0
+    - 70.0
+    frequency_weight: 0.046
+    name: recovered_clean
+    si_sdr_max: 30.0
+    si_sdr_weight: 1.0
+    velocity_weight: 1.0
+training:
+  batch_size: 16
+  chunk_size: 512
+  grad_clip_norm: 1.0
+  learning_rate: 0.001
+  max_epochs: 600
+  model_name: CascadedDaeDeploymentBn4
+  output_dir: training_output
+  seed: 42
+  target_type: artifact
+  trigger_aligned: false
+  val_ratio: 0.2
+  weight_decay: 0.0001

@@ -1,0 +1,88 @@
+# Run 6 Phase B — multichannel Demucs with a cross-unit attention bridge.
+# Ablation partner of configs/weg_a_baseline.yaml: every hyperparameter below is
+# identical, only the architecture differs (248k -> 4.5M parameters), so any
+# change in the spike metrics is attributable to the error floor.
+#
+# The point of this run is the VALIDATION number: the split is leakage-free for
+# the first time (builder-supplied example_split, contiguous in time, guard band
+# at the seam, pre-trigger clean cut disjointly), so val loss finally measures
+# generalisation rather than memorisation.
+#
+# Deliberately plain: MSE, no augmentation. Later runs change one thing at a time
+# against this reference.
+#
+#   uv run facet-train fit --config configs/weg_a_baseline.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.demucs_mc.training:build_model
+  kwargs:
+    depth: 4
+    initial_channels: 32
+    kernel_size: 8
+    # Demucs' own stride. The epochs are concatenated in time (7 x 512 = 3584),
+    # so 256x downsampling still leaves 14 bottleneck steps.
+    stride: 4
+    lstm_layers: 2
+    n_heads: 4
+    # Attention only on the two deepest levels: at full resolution the
+    # (B*T, units, features) attention dominates the step time for little gain.
+    attention_levels: 2
+    rescale: 0.1
+  loss_factory: facet.models.demucs_mc.training:build_loss
+  loss_kwargs:
+    name: mse
+  # Cosine decay: at a flat 1e-3 this run diverged around epoch 20 — train loss
+  # climbed back from 7e-9 to 5e-7 and val RMSE blew up from 67 to 1287 uV.
+  scheduler_factory: torch.optim.lr_scheduler:CosineAnnealingLR
+  scheduler_kwargs:
+    T_max: 40
+    eta_min: 0.000001
+  device: mps
+
+data:
+  dataset_factory: facet.models.demucs_mc.training:build_dataset
+  kwargs:
+    path: ./output/weg_a_farm_v5_512/weg_a_spatiotemporal_dataset.npz
+    # No max_examples: truncating would cut away the validation block, since
+    # examples are ordered epoch-major and val lives at the end.
+  eeg_only: true
+
+training:
+  model_name: DemucsMC
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2          # ignored: the stored example_split wins
+  max_epochs: 40
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 8
+  # MSE here is in V^2, so val loss lives around 1e-9. Any non-zero min_delta on
+  # a "sensible" 1e-7 scale exceeds the whole loss range and stops a still-
+  # improving run; require only that it improve at all.
+  min_delta: 0.0
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: false

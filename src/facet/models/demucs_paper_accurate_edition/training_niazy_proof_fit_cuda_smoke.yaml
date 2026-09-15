@@ -1,0 +1,68 @@
+# PAPER-ACCURATE Demucs edition -- CUDA fleet SMOKE (1 epoch, max_examples capped).
+# Same paper-scale architecture as the full config; verifies worktree sync, dataset
+# build, CUDA uv-run, checkpoint/loss.png/TorchScript export before the long run.
+# See docs/research/run_4_paper_accurate_editions_fleet.md.
+
+model:
+  framework: pytorch
+  factory: facet.models.demucs_paper_accurate_edition.training:build_model
+  kwargs:
+    depth: 4
+    initial_channels: 64
+    kernel_size: 8
+    stride: 4
+    lstm_layers: 2
+    in_channels: 1
+    out_channels: 1
+    n_sources: 1
+    rescale: 0.1
+    resample: 2
+    auto_depth: true
+  loss_factory: facet.models.demucs_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: l1
+  device: cuda
+data:
+  dataset_factory: facet.models.demucs_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    augment: false
+    max_examples: 256
+  eeg_only: true
+training:
+  model_name: DemucsPaperAccurateCudaSmoke
+  chunk_size: 3584
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 32
+  learning_rate: 0.0003
+  weight_decay: 0.0
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 1.0e-06
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/demucs_paper_accurate_cuda_smoke.ts
+  write_inference_config: false

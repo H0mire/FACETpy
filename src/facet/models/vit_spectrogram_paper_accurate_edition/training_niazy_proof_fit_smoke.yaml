@@ -1,0 +1,110 @@
+# Smoke config for the PAPER-ACCURATE MAE-ViT Spectrogram Inpainter.
+# Illustrative only -- it is NOT executed by the pytest smoke test, which
+# constructs the tiny model directly. Every dimension is shrunk so a single
+# CPU epoch finishes in seconds. device: cpu (no cloud GPU exists).
+#
+# Build dataset first (handled by the fleet job's --prepare-command):
+#
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+#
+# Smoke training:
+#
+#   uv run facet-train fit --config \
+#     src/facet/models/vit_spectrogram_paper_accurate_edition/training_niazy_proof_fit_smoke.yaml
+#
+# NOTE: the MAE masked-patch loss owns its OWN STFT/patch geometry, so the
+# loss_kwargs MUST repeat the model geometry AND supply epoch_samples (the
+# trainer does not inject dims into build_loss).
+
+model:
+  framework: pytorch
+  factory: facet.models.vit_spectrogram_paper_accurate_edition.training:build_model
+  kwargs:
+    n_fft: 16
+    hop_length: 8
+    freq_bins: 8
+    # time_frames must cover the full 7*64=448-sample signal (~57 STFT frames
+    # at hop 8) so the iSTFT reconstruction contains the center epoch.
+    time_frames: 56
+    patch_freq: 4
+    patch_time: 4
+    embed_dim: 16
+    depth: 2
+    n_heads: 2
+    mlp_ratio: 2.0
+    dropout: 0.0
+    decoder_embed_dim: 8
+    decoder_depth: 1
+    decoder_heads: 2
+    decoder_mlp_ratio: 2.0
+    mask_margin_patches: 1
+  loss_factory: facet.models.vit_spectrogram_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: mse
+    epoch_samples: 64
+    context_epochs: 7
+    n_fft: 16
+    hop_length: 8
+    freq_bins: 8
+    time_frames: 56
+    patch_freq: 4
+    patch_time: 4
+    mask_margin_patches: 1
+    normalize_target: true
+  device: cpu
+
+data:
+  dataset_factory: facet.models.vit_spectrogram_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    max_examples: 32
+  eeg_only: true
+
+training:
+  model_name: ViTSpectrogramMAEInpainterNiazySmoke
+  chunk_size: 64
+  target_type: clean
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  # MAE pretraining base lr is 1.5e-4 (linearly scaled lr = base * batch / 256).
+  # At smoke batch 4 that scale is negligible; we keep a small fixed lr here for
+  # a single illustrative epoch. See README for the MAE recipe details.
+  learning_rate: 0.0003
+  weight_decay: 0.05
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/vit_spectrogram_paper_accurate.ts
+  write_inference_config: false

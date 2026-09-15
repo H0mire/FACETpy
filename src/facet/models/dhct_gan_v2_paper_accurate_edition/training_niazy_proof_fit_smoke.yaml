@@ -1,0 +1,98 @@
+# Smoke training config for the PAPER-ACCURATE DHCT-GAN v2 edition on the
+# Niazy proof-fit dataset.
+#
+# Illustrative only — this file is NOT executed by the pytest smoke test. It
+# documents tiny, CPU-runnable dims and the paper-accurate loss kwargs. For a
+# faithful full-scale run on GPU, raise base_channels/depth/local_blocks/
+# lgtb_depth/disc_depth toward the paper values (channels 64..1024, 5 stages,
+# 8 local blocks, lgtb_depth 5, disc_depth 8) and switch device to cuda.
+#
+# Dataset preparation (one-shot per worker):
+#
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 64 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_64
+#
+# Training:
+#
+#   uv run facet-train fit --config \
+#     src/facet/models/dhct_gan_v2_paper_accurate_edition/training_niazy_proof_fit_smoke.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.dhct_gan_v2_paper_accurate_edition.training:build_model
+  kwargs:
+    context_epochs: 7
+    base_channels: 8
+    depth: 2
+    num_heads: 2
+    local_blocks: 4
+    lgtb_depth: 1
+    epoch_samples: 64
+  loss_factory: facet.models.dhct_gan_v2_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    recon: mse
+    alpha_consistency: 0.5
+    lambda_feat: 0.1
+    lambda_adv: 0.1
+    disc_channels: 4
+    disc_depth: 3
+    disc_lr: 0.0001
+  device: cpu
+  # Paper-recommended generator Adam betas (0.5, 0.9); applied if facet-train
+  # supports optimizer beta overrides, otherwise the AdamW default is a
+  # documented deviation (the discriminator betas (0.9, 0.999) are set
+  # internally and already match the paper).
+  optimizer:
+    betas: [0.5, 0.9]
+
+data:
+  dataset_factory: facet.models.dhct_gan_v2_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_64/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    max_examples: 256
+  eeg_only: true
+
+training:
+  model_name: DHCTGanV2PaperAccurateNiazySmoke
+  chunk_size: 64
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dhct_gan_v2_paper_accurate.ts
+  write_inference_config: false

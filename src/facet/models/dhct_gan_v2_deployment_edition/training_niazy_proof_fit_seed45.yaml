@@ -1,0 +1,66 @@
+# dhct_gan_v2 deployment edition -- seed 45, third replicate.
+# Three seeds is the minimum at which a difference between two
+# architectures can be told apart from the spread within one.
+
+model:
+  framework: pytorch
+  factory: facet.models.dhct_gan_v2_deployment_edition.training:build_model
+  kwargs:
+    context_epochs: 7
+    base_channels: 16
+    depth: 4
+    num_heads: 4
+    window_size: 16
+  loss_factory: facet.models.dhct_gan_v2_deployment_edition.training:build_loss
+  loss_kwargs:
+    name: recovered_clean
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 0.046
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band:
+    - 1.0
+    - 70.0
+  device: cuda
+data:
+  dataset_factory: facet.models.dhct_gan_v2_deployment_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  eeg_only: true
+training:
+  model_name: DhctGanV2DeploymentNiazyProofFitSeed45
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 80
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 45
+  output_dir: training_output
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 20
+  min_delta: 0.0
+  min_delta_rel: 0.001
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dhct_gan_v2_deployment_seed45.ts
+  write_inference_config: false

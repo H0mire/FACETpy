@@ -1,0 +1,39 @@
+model:
+  framework: pytorch
+  factory: facet.models.vit_spectrogram_deployment_edition.training:build_model
+  kwargs: {n_fft: 64, hop_length: 16, freq_bins: 32, time_frames: 224, patch_freq: 4, patch_time: 16, embed_dim: 192, depth: 6, n_heads: 6, mlp_ratio: 4.0, dropout: 0.0, mask_margin_patches: 1}
+  loss_factory: facet.models.vit_spectrogram_deployment_edition.training:build_loss
+  loss_kwargs:
+    name: recovered_clean
+    prediction_is: artifact
+    rows: [artifact, clean, noisy, spike]
+    amplitude_weight: 1.0
+    velocity_weight: 0.00017043934156734243
+    acceleration_weight: 1.3597193525429164e-05
+    frequency_weight: 17.220293178786243
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band: [1.0, 70.0]
+    spike_weight: 20.0
+  device: cuda
+data:
+  dataset_factory: facet.training.deployment_data:build_weg_a_packed_dataset
+  kwargs: {path: ./output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz, packing: bt1s, include_spike: true}
+  eeg_only: true
+training:
+  model_name: Phase3VitSpectrogramWegASpikeAware
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 60
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.05
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint: {monitor: val_loss, mode: min, save_top_k: 2, save_last: true}
+early_stopping: {monitor: val_loss, mode: min, patience: 20, min_delta: 0.0, min_delta_rel: 0.001}
+logging: {rich_live: true, log_file: training.jsonl, loss_plot_file: loss.png, val_every_n_epochs: 1, progress_bar: true}
+export: {enabled: true, format: torchscript, path: exports/vit_spectrogram_phase3_spike_aware.ts, write_inference_config: false}

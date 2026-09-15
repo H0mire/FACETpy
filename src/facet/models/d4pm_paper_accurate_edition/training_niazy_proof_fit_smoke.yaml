@@ -1,0 +1,84 @@
+# Illustrative CPU smoke training of the paper-accurate D4PM edition on the
+# Niazy proof-fit dataset. NOT executed by the pytest smoke test; it documents
+# how facet-train would invoke the factories with tiny CPU-friendly dims.
+#
+# Build dataset first (must include clean_center for dual_branch):
+#
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+
+model:
+  framework: pytorch
+  factory: facet.models.d4pm_paper_accurate_edition.training:build_model
+  kwargs:
+    epoch_samples: 64
+    num_steps: 8
+    beta_start: 0.0001
+    beta_end: 0.02
+    feats: 8
+    d_model: 16
+    d_ff: 32
+    n_heads: 2
+    n_layers: 1          # faithful default is 3 (paper "x3"); shrunk for the smoke
+    embed_dim: 16
+    num_classes: 1        # single gradient artifact class
+    norm_first: false     # post-norm, faithful to EEG-DNet reference
+    dual_branch: false    # single artifact branch halves the smoke cost
+    lambda_snr: 1.0       # Niazy NPZ already encodes the mixture
+  loss_factory: facet.models.d4pm_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: l1            # Eq 1 epsilon-prediction L1 loss
+  device: cpu
+
+data:
+  dataset_factory: facet.models.d4pm_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    dual_branch: false
+    demean_input: true
+    demean_target: true
+    max_examples: 64
+  eeg_only: true
+
+training:
+  model_name: D4PMPaperAccurateNiazySmoke
+  chunk_size: 64
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/d4pm_paper_accurate.ts
+  example_input_shape: [1, 2, 64]
+  write_inference_config: false

@@ -1,0 +1,79 @@
+# denoise_mamba deployment edition -- context axis: epochs.
+#
+# The base contract is one epoch of one electrode: 512 samples and no
+# comparison axis at all. run_7_paper_strict_rebuild.md names this
+# family as one of five that violate the rule 'never one epoch AND one
+# channel', and the pipeline plot shows the consequence -- an EEG-like
+# baseline with a periodic spike train through it, i.e. the artifact's
+# shape learned but not its instance.
+#
+# This run gives it 7 epochs,
+# concatenated into one 3584-sample 1-D signal. The network is not
+# widened, so a difference against the base run is a difference in what
+# the model could see, not in what it could represent.
+
+checkpoint:
+  mode: min
+  monitor: val_loss
+  save_last: true
+  save_top_k: 2
+data:
+  dataset_factory: facet.models.denoise_mamba_deployment_edition.training:build_axis_dataset
+  eeg_only: true
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    axis: epochs
+early_stopping:
+  min_delta: 0.0
+  min_delta_rel: 0.001
+  mode: min
+  monitor: val_loss
+  patience: 60
+export:
+  enabled: true
+  format: torchscript
+  path: exports/denoise_mamba_deployment_ctx_epochs_seed43.ts
+  write_inference_config: false
+  example_input_shape:
+  - 1
+  - 1
+  - 3584
+logging:
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  progress_bar: true
+  rich_live: true
+  val_every_n_epochs: 1
+model:
+  device: cuda
+  factory: facet.models.denoise_mamba_deployment_edition.training:build_axis_model
+  framework: pytorch
+  kwargs:
+    axis: epochs
+    parallel_scan: true
+    checkpoint_scan: true
+  loss_factory: facet.models.denoise_mamba_deployment_edition.training:build_loss
+  loss_kwargs:
+    acceleration_weight: 1.0
+    amplitude_weight: 1.0
+    freq_band:
+    - 1.0
+    - 70.0
+    frequency_weight: 0.046
+    name: recovered_clean
+    si_sdr_max: 30.0
+    si_sdr_weight: 1.0
+    velocity_weight: 1.0
+training:
+  batch_size: 64
+  chunk_size: 512
+  grad_clip_norm: 1.0
+  learning_rate: 0.001
+  max_epochs: 300
+  model_name: DenoiseMambaDeploymentCtxEpochsSeed43
+  output_dir: training_output
+  seed: 43
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  weight_decay: 0.0001

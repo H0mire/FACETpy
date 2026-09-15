@@ -1,0 +1,110 @@
+# DHCT-GAN, Deployment-Edition mit Epochenkontext -- die Fassung fuer run 8.
+#
+# Die run-7-Fassung
+# (src/facet/models/dhct_gan_deployment_edition/training_niazy_proof_fit.yaml)
+# faehrt PACKING = "b1s": **eine** Epoche und **ein** Kanal. Das verletzt die
+# Projektregel, dass mindestens eine Vergleichsachse da sein muss, und run 7 hat
+# selbst gemessen, was das kostet -- die Epochenachse lag mit -0,473 +- 0,057
+# deutlich ueber der kontextlosen Basis mit -0,254 +- 0,082, bei vier Seeds je
+# Arm. Ein Gitter ueber eine Konfiguration, die ohne Vergleichsachse arbeitet,
+# optimiert die falsche Sache.
+#
+# Geaendert gegenueber run 7 sind genau drei Dinge, alles andere ist unveraendert:
+#
+#   factory          build_model            -> build_axis_model,  axis: epochs
+#   dataset_factory  build_dataset          -> build_axis_dataset, axis: epochs
+#   chunk_size       512                    -> 3584   (7 x 512, aneinandergehaengt)
+#   batch_size       64                     -> 16     (Speicher, siehe unten)
+#
+# Zur Batchgroesse: der DHCT-Block faehrt neben der Fensterattention eine
+# **globale** Attention ueber die volle Sequenz. Bei 3584 statt 512 Samples ist
+# deren Matrix (B, Koepfe, T, T) 49-mal so gross. Dazu kommt ein Kerndetail: bei
+# base_channels=8 und 4 Koepfen ist die Kopfdimension 2, und dafuer hat PyTorch
+# keinen speichereffizienten Attention-Kern -- es faellt auf die Mathe-Variante
+# zurueck, die die volle Matrix materialisiert. Gemessen auf einer 4090:
+#
+#   base_channels    8      16      32
+#   batch 16     12,32    0,57    1,01  GiB
+#   batch  8      6,17    0,30    0,53  GiB
+#   batch 64        OOM
+#
+# 16 passt fuer alle drei Kapazitaetsstufen und haelt die Achse symmetrisch um
+# den run-7-Wert 16. Sie gilt fuer alle 27 Punkte: eine Batchgroesse, die mit der
+# Kapazitaet variiert, macht die Kapazitaetsachse unlesbar.
+#
+# Die Packung wird damit "b1ts": (B, 1, 7*512). Das ist dieselbe Achse, die in
+# run 7 als ctx_epochs gemessen wurde, und dieselbe, die Demucs von Haus aus
+# benutzt.
+#
+# Diese Datei liegt bewusst unter configs/ und nicht im Modellordner: der Ordner
+# haelt den Stand von run 7, und der soll nachlesbar bleiben.
+#
+#   uv run facet-train fit --config configs/run8_dhct_gan_deployment_ctx_epochs.yaml
+#
+# frequency_weight ist 0,046 und nicht die 1,0 des Papers: am Identitaetsstart
+# liest der Frequenzterm 151,6 gegen 8,79 / 6,17 / 5,83 der Zeitterme, 1,0 waere
+# also 87 % des Anfangsgradienten. 6,93/151,6 = 0,046 gleicht sie an.
+
+model:
+  framework: pytorch
+  factory: facet.models.dhct_gan_deployment_edition.training:build_axis_model
+  kwargs:
+    base_channels: 16
+    depth: 4
+    num_heads: 4
+    window_size: 16
+    axis: epochs
+  loss_factory: facet.models.dhct_gan_deployment_edition.training:build_loss
+  loss_kwargs:
+    name: recovered_clean
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 0.046
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band:
+    - 1.0
+    - 70.0
+  device: cuda
+data:
+  dataset_factory: facet.models.dhct_gan_deployment_edition.training:build_axis_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    axis: epochs
+  eeg_only: true
+training:
+  model_name: DhctGanDeploymentCtxEpochs
+  chunk_size: 3584
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 80
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 20
+  min_delta: 0.0
+  min_delta_rel: 0.001
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/dhct_gan_deployment.ts
+  write_inference_config: false

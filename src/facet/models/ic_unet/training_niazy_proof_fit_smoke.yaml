@@ -1,0 +1,69 @@
+# Smoke run for IC-U-Net on the Niazy proof-fit dataset.
+# Verifies dataset construction, ICA initialisation, model forward, training
+# loop, checkpoint, loss.png, and TorchScript export on the GPU fleet.
+
+model:
+  framework: pytorch
+  factory: facet.models.ic_unet.training:build_model
+  kwargs:
+    n_channels: 30
+    context_epochs: 7
+    epoch_samples: 512
+    base_channels: 64
+    demean_input: true
+    fit_ica: true
+    ica_random_state: 0
+    dataset_path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  loss_factory: facet.models.ic_unet.training:build_loss
+  loss_kwargs:
+    name: mse
+  device: cuda
+
+data:
+  dataset_factory: facet.models.ic_unet.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    demean_input: true
+    demean_target: true
+    max_examples: 64
+  eeg_only: true
+
+training:
+  model_name: IcUnetNiazySmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 8
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/ic_unet.ts
+  example_input_shape: [1, 30, 3584]
+  write_inference_config: false

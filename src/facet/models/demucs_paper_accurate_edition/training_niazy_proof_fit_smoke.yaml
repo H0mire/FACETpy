@@ -1,0 +1,76 @@
+# Smoke training config for the paper-accurate Demucs edition on the Niazy
+# proof-fit context dataset. Illustrative only -- NOT executed by the pytest
+# smoke test (which builds its own tiny synthetic NPZ). Every dimension is
+# shrunk so a single CPU epoch finishes in seconds. The resampling trick is
+# disabled (resample: 1) to keep the smoke fast; the real config would set
+# resample: 2.
+
+model:
+  framework: pytorch
+  factory: facet.models.demucs_paper_accurate_edition.training:build_model
+  kwargs:
+    depth: 2
+    initial_channels: 8
+    kernel_size: 8
+    stride: 4
+    lstm_layers: 1
+    in_channels: 1
+    out_channels: 1
+    n_sources: 1
+    rescale: 0.1
+    resample: 1        # 2x resampling trick OFF for the smoke; use 2 for accuracy
+    auto_depth: true
+  loss_factory: facet.models.demucs_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: l1
+  device: cpu
+
+data:
+  dataset_factory: facet.models.demucs_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 7
+    demean_input: true
+    demean_target: true
+    max_examples: 16
+    augment: false      # FACETpy-appropriate gain+shift augmentation, off by default
+  eeg_only: true
+
+training:
+  model_name: DemucsPaperAccurateNiazySmoke
+  chunk_size: 224       # 7 context epochs * 32 samples (tiny, matches smoke dims)
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.0003
+  weight_decay: 0.0
+  grad_clip_norm: 5.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/demucs_paper_accurate.ts
+  write_inference_config: false

@@ -1,0 +1,91 @@
+# Smoke run for the PAPER-ACCURATE Nested-GAN edition on the Niazy proof-fit
+# context dataset.
+#
+# This file is ILLUSTRATIVE: it documents how facet-train would build and train
+# the paper-accurate generator with tiny, CPU-cheap dimensions. It is NOT
+# executed by the pytest smoke test (tests/models/.../test_training_smoke.py),
+# which builds its own tiny synthetic NPZ. All dims here are shrunk so a single
+# epoch finishes in a few seconds on an M4 Pro CPU.
+#
+# Build dataset first (run once):
+#
+#   uv run python examples/dataset_building/build_niazy_proof_fit_context_dataset.py \
+#     --artifact-bundle output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz \
+#     --target-epoch-samples 512 \
+#     --context-epochs 7 \
+#     --output-dir output/niazy_proof_fit_context_512
+
+model:
+  framework: pytorch
+  factory: facet.models.nested_gan_paper_accurate_edition.training:build_model
+  kwargs:
+    # Hierarchical inner Restormer, shrunk for CPU. Channels must stay divisible
+    # by the per-level head counts at EVERY level (8 -> 16 with heads 1,2 here).
+    inner_channels: 8
+    inner_levels: 2
+    inner_block_counts: [1, 1, 1]   # 2 encoder levels + bottleneck
+    inner_head_counts: [1, 2, 2]    # per-level heads (levels + bottleneck)
+    inner_refinement_blocks: 1
+    inner_expansion: 2.0            # 2.66 is the full-run default; 2.0 for smoke
+    inner_bias_free_norm: false
+    inner_neighbor_epochs: 0        # EEG-fMRI context extension, off by default
+    outer_base_channels: 8
+    n_fft: 16
+    hop_length: 8
+    win_length: 16
+  loss_factory: facet.models.nested_gan_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    lambda_time: 1.0
+    lambda_mrstft: 0.5
+    fft_sizes: [16, 32]
+    hop_fraction: 0.25
+  # Harness rule: smoke must run on CPU.
+  device: cpu
+
+data:
+  dataset_factory: facet.models.nested_gan_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 3
+    demean_input: true
+    demean_target: true
+  eeg_only: true
+
+training:
+  model_name: NestedGANPaperAccurateNiazySmoke
+  chunk_size: 64
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 5
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/nested_gan_paper_accurate.ts
+  write_inference_config: false

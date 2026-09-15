@@ -1,0 +1,85 @@
+# Illustrative SMOKE configuration for the paper-accurate SepFormer edition.
+#
+# This file documents a CPU-only, tiny-dimension training run. It is NOT
+# executed by the smoke test (the test fabricates its own synthetic NPZ and
+# calls the factories directly). Every architectural dimension is shrunk so a
+# forward + backward pass completes in a few seconds on an M-series CPU.
+#
+#   uv run facet-train fit \
+#     --config src/facet/models/sepformer_paper_accurate_edition/training_niazy_proof_fit_smoke.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.sepformer_paper_accurate_edition.training:build_model
+  kwargs:
+    epoch_samples: 32
+    context_epochs: 3        # odd; flattened waveform = 3*32 = 96 samples
+    encoder_channels: 8      # == d_model
+    encoder_kernel: 8
+    encoder_stride: 4        # feature_length = (96-8)//4 + 1 = 23
+    chunk_size: 8            # 50% hop = 4 -> a few feature chunks
+    n_blocks: 1
+    intra_layers: 1
+    inter_layers: 1
+    intra_heads: 2           # 8 % 2 == 0
+    inter_heads: 2
+    d_ffn: 16
+    dropout: 0.0
+    skip_around_intra: true
+    whole_stack_residual: true
+    mask_activation: relu
+  loss_factory: facet.models.sepformer_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: si_snr           # paper-faithful 30 dB-clipped negative SI-SNR
+    si_snr_max: 30.0
+  device: cpu
+
+data:
+  dataset_factory: facet.models.sepformer_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    context_epochs: 3
+    demean_input: true
+    demean_target: true
+    target_type: artifact
+    max_examples: 16
+  eeg_only: true
+
+training:
+  model_name: SepFormerPaperAccurateSmoke
+  chunk_size: 32
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_clip_norm: 5.0        # paper value (L2 grad clip at 5)
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/sepformer_paper_accurate_smoke.ts
+  write_inference_config: false

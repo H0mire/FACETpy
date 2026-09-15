@@ -1,0 +1,52 @@
+# Wiring smoke test for the Weg-A baseline: tiny subset, 2 epochs, CPU.
+# Confirms the (7, 3, 512) -> (1, 512) contract runs end to end before the real run.
+#
+#   uv run facet-train fit --config configs/weg_a_baseline_smoke.yaml
+
+model:
+  framework: pytorch
+  factory: facet.training.weg_a_baseline:build_model
+  kwargs:
+    hidden_channels: 16
+    n_blocks: 3
+  loss_factory: facet.training.weg_a_baseline:build_loss
+  loss_kwargs:
+    name: mse
+  device: cpu
+
+data:
+  dataset_factory: facet.training.weg_a_baseline:build_dataset
+  kwargs:
+    path: ./output/weg_a_farm_v5_512/weg_a_spatiotemporal_dataset.npz
+    max_examples: 512
+  eeg_only: true
+
+training:
+  model_name: WegABaselineSmoke
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 2
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: false
+
+logging:
+  rich_live: false
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: false
+
+export:
+  enabled: false

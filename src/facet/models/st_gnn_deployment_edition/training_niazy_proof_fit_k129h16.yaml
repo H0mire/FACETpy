@@ -1,0 +1,76 @@
+# ST-GNN deployment edition -- time_kernel 129, hidden 16.
+#
+# The one family that still fails. Its residual is 8.63 uV with an
+# energy_ratio of 0.047: the recovered signal has the right shape at a
+# twentieth of the amplitude, which the objective tolerates because
+# SI-SDR is scale-invariant.
+#
+# The suspected cause is the receptive field. time_kernel is inherited
+# from STGCN, where one step is a five-minute traffic observation; here
+# the four temporal convolutions of width 3 see 9 of 512 samples per
+# epoch. This variant sees 513 -- 100 % of an epoch.
+# hidden_channels 16: the base model has 0.01 M parameters, which may
+# be the second half of the same problem.
+
+checkpoint:
+  mode: min
+  monitor: val_loss
+  save_last: true
+  save_top_k: 2
+data:
+  dataset_factory: facet.models.st_gnn_deployment_edition.training:build_dataset
+  eeg_only: true
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+early_stopping:
+  min_delta: 0.0
+  min_delta_rel: 0.001
+  mode: min
+  monitor: val_loss
+  patience: 20
+export:
+  enabled: true
+  format: torchscript
+  path: exports/st_gnn_deployment_k129h16.ts
+  write_inference_config: false
+logging:
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  progress_bar: true
+  rich_live: true
+  val_every_n_epochs: 1
+model:
+  device: cuda
+  factory: facet.models.st_gnn_deployment_edition.training:build_model
+  framework: pytorch
+  kwargs:
+    dropout: 0.1
+    hidden_channels: 16
+    k_order: 3
+    knn_k: 4
+    time_kernel: 129
+  loss_factory: facet.models.st_gnn_deployment_edition.training:build_loss
+  loss_kwargs:
+    acceleration_weight: 1.0
+    amplitude_weight: 1.0
+    freq_band:
+    - 1.0
+    - 70.0
+    frequency_weight: 0.046
+    name: recovered_clean
+    si_sdr_max: 30.0
+    si_sdr_weight: 1.0
+    velocity_weight: 1.0
+training:
+  batch_size: 32
+  chunk_size: 512
+  grad_clip_norm: 1.0
+  learning_rate: 0.001
+  max_epochs: 60
+  model_name: StGnnDeploymentK129H16
+  output_dir: training_output
+  seed: 42
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  weight_decay: 0.0001

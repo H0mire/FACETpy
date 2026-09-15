@@ -1,0 +1,97 @@
+# DenoiseMamba deployment edition -- CUDA training on the Niazy proof-fit dataset.
+#
+# Two numbers decide this config, both measured on an idle RTX 4090.
+#
+# 1. The base implementation's selective scan is a 512-step Python loop, so the
+#    autograd graph is 512 nodes deep: forward 67 ms, backward 5478 ms, 8
+#    examples/s and flat in batch size (64/128/256 identical, 512 OOM).
+#    That is 44.5 min/epoch, ~44 h for a 60-epoch budget, and it is why the base
+#    run in run 6 reached only 11 of its 60 epochs. torch.compile does not help:
+#    inductor unrolls the loop and runs out of memory on an empty 24 GB card.
+#
+#    parallel_scan replaces the loop with a Hillis-Steele scan over the same
+#    affine recurrence -- log2(512) = 9 sequential steps, identical mathematics,
+#    verified to float32 precision in tests/test_denoise_mamba_parallel_scan.py.
+#    Result: 99 examples/s, 3.36 min/epoch, a factor of 13.2.
+#
+#    checkpoint_scan recomputes the scan in the backward pass. Not an
+#    optimisation: the scan holds 9 levels of (batch, 512, 128, 16) tensors,
+#    19 GB across the four blocks, and OOMs at every batch size without it.
+#
+# 2. Throughput is 99 examples/s at batch 32, 64 *and* 96 -- completely flat, so
+#    the limit is arithmetic and not capacity. A larger card would help; more
+#    VRAM on the same card would not.
+#
+# max_epochs is therefore 35, not the 60 the other families get: 35 x 3.36 min
+# = 1.96 h, which is the available budget. batch_size stays at the base
+# edition's 64 so the only deliberate difference is the number of epochs, and
+# that difference belongs in any table this run appears in.
+#
+#   uv run facet-train fit --config src/facet/models/denoise_mamba_deployment_edition/training_niazy_proof_fit.yaml
+
+model:
+  framework: pytorch
+  factory: facet.models.denoise_mamba_deployment_edition.training:build_model
+  kwargs:
+    d_model: 64
+    d_state: 16
+    expand: 2
+    d_conv: 4
+    n_blocks: 4
+    dropout: 0.1
+    input_kernel_size: 7
+    parallel_scan: true
+    checkpoint_scan: true
+  loss_factory: facet.models.denoise_mamba_deployment_edition.training:build_loss
+  loss_kwargs:
+    name: recovered_clean
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 0.046
+    si_sdr_weight: 1.0
+    si_sdr_max: 30.0
+    freq_band:
+    - 1.0
+    - 70.0
+  device: cuda
+data:
+  dataset_factory: facet.models.denoise_mamba_deployment_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  eeg_only: true
+training:
+  model_name: DenoiseMambaDeploymentNiazyProofFit
+  chunk_size: 512
+  target_type: artifact
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 35
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+checkpoint:
+  monitor: val_loss
+  mode: min
+  save_top_k: 2
+  save_last: true
+early_stopping:
+  monitor: val_loss
+  mode: min
+  patience: 15
+  min_delta: 0.0
+  min_delta_rel: 0.001
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+export:
+  enabled: true
+  format: torchscript
+  path: exports/denoise_mamba_deployment.ts
+  write_inference_config: false

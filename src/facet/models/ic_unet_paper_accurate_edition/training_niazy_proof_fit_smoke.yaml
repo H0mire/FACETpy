@@ -1,0 +1,79 @@
+# CPU smoke run for the paper-accurate IC-U-Net edition on the Niazy proof-fit
+# dataset. Illustrative only -- this file is NOT executed by the pytest smoke
+# test (tests/models/ic_unet_paper_accurate_edition/test_training_smoke.py).
+# Every architecture dimension is shrunk so forward+backward finishes in a few
+# seconds on a CPU.
+
+model:
+  framework: pytorch
+  factory: facet.models.ic_unet_paper_accurate_edition.training:build_model
+  kwargs:
+    # Tiny dims (kept context length a multiple of 2**depth so pooling /
+    # transposed-conv reconstruct cleanly: 3 * 32 = 96, 96 % 4 == 0).
+    n_channels: 4
+    context_epochs: 3
+    epoch_samples: 32
+    base_channels: 4
+    depth: 2
+    kernel_size: 7
+    activation: relu          # paper Sec 2.1 (ReLU), not LeakyReLU
+    target_type: clean        # paper-faithful clean reconstruction (Eqs 1-3)
+    use_frozen_ica: false     # sensor-level network; ICA is NOT in the graph
+    dataset_path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+  loss_factory: facet.models.ic_unet_paper_accurate_edition.training:build_loss
+  loss_kwargs:
+    name: ensemble            # normalised equal-weight four-term ensemble (Eq. 2)
+    amplitude_weight: 1.0
+    velocity_weight: 1.0
+    acceleration_weight: 1.0
+    frequency_weight: 1.0     # z-scored 1-50 Hz PSD term (Eq. 4)
+  device: cpu
+
+data:
+  dataset_factory: facet.models.ic_unet_paper_accurate_edition.training:build_dataset
+  kwargs:
+    path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    target_type: clean        # selects clean_center as the target key
+    normalize: zscore         # per-time-series z-score (paper Sec 3.1/4.1)
+    max_examples: 32
+  eeg_only: true
+
+training:
+  model_name: IcUNetPaperAccurateNiazySmoke
+  chunk_size: 32
+  target_type: clean
+  trigger_aligned: true
+  val_ratio: 0.2
+  max_epochs: 1
+  batch_size: 4
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  grad_clip_norm: 1.0
+  seed: 42
+  output_dir: training_output
+
+checkpoint:
+  monitor: loss
+  mode: min
+  save_top_k: 1
+  save_last: true
+
+early_stopping:
+  monitor: loss
+  mode: min
+  patience: 10
+  min_delta: 0.000001
+
+logging:
+  rich_live: true
+  log_file: training.jsonl
+  loss_plot_file: loss.png
+  val_every_n_epochs: 1
+  progress_bar: true
+
+export:
+  enabled: true
+  format: torchscript
+  path: exports/ic_unet_paper_accurate.ts
+  example_input_shape: [1, 4, 96]
+  write_inference_config: false
