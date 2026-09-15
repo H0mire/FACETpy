@@ -635,7 +635,7 @@ die auf einem anderen Datensatz mit entkoppeltem Clean-EEG arbeiten.
                 locator="holdout_uncertainty.json:split",
                 dataset_split_id="niazy_proof_fit_context_512, Holdout aus Seed 42",
                 metric_version="tools/evaluation/holdout_uncertainty.py + "
-                               "tools/eval_unified_holdout.py:compute_holdout_indices",
+                               "tools/evaluation/eval_unified_holdout.py:compute_holdout_indices",
                 extraction_rule="SHA-256 über die sortierte Indexmenge",
                 target_artifact="table_5_3c_holdout_split_verification.csv",
                 limitation="Der Hash sichert die Indexmenge, nicht den Inhalt des Datensatzes; "
@@ -913,7 +913,7 @@ Schranke, an der sich ein Modell messen lassen muss.
                 metric_version=f"Perzentil-Bootstrap, {unc.get('bootstrap_resamples')} "
                                f"Resamples, Einheit: {unc.get('unit_of_inference')}",
                 extraction_rule="Metriken je Fenster mit compute_metrics aus "
-                                "tools/eval_unified_holdout.py, dann Bootstrap des Mittelwerts",
+                                "tools/evaluation/eval_unified_holdout.py, dann Bootstrap des Mittelwerts",
                 target_artifact="table_5_5b_holdout_intervals.csv",
                 limitation="Das Intervall beschreibt die Streuung über Fenster, nicht über "
                            "Trainingsläufe: je Architektur existiert ein Seed")

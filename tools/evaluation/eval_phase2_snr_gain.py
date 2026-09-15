@@ -16,10 +16,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT / "tools"), str(ROOT / "src")]
 
-from eval_unified_holdout import (  # noqa: E402
+from evaluation.eval_unified_holdout import (  # noqa: E402
     DATASET_PATH, compute_holdout_indices, compute_metrics, load_holdout,
 )
 from pipeline_demo.family_adapters import (  # noqa: E402

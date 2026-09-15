@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 LOGS = REPO / "docs" / "research" / "run_7_logs"
 OUT = (REPO / "output" / "thesis_results_by_phase" / "phase_2_pipeline_deployment"
        / "figure_phase2_training_curves.png")

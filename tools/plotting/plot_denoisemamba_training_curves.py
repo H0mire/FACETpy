@@ -8,7 +8,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 PHASE1 = REPO / "training_output/denoisemambaniazyprooffit_20260510_193847/training.jsonl"
 PHASE2 = REPO / "docs/research/run_7_logs/pod1_runs/denoisemambadeploymentniazyprooffit_20260826_210335/training.jsonl"
 OUT = REPO / "output/thesis_results_by_phase/phase_2_pipeline_deployment/figure_denoisemamba_training_curves.png"

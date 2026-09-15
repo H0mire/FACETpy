@@ -23,7 +23,7 @@ independent choices, and this module encodes exactly those:
 
 **The packing is not re-derived here.** ``predict_from_context`` is written to be
 the single implementation, and ``verify_family_adapters.py`` asserts it
-reproduces ``tools/eval_unified_holdout.py``'s per-model inference on the holdout
+reproduces ``tools/evaluation/eval_unified_holdout.py``'s per-model inference on the holdout
 data to floating-point tolerance. A contract that is re-implemented and only
 eyeballed is a contract that will drift.
 """
@@ -196,7 +196,7 @@ def _batched(model, arr: np.ndarray, batch_size: int, device: str) -> np.ndarray
         axis=0)
 
 
-#: D4PM sampler settings, taken from ``tools/eval_unified_holdout.py:infer_d4pm``
+#: D4PM sampler settings, taken from ``tools/evaluation/eval_unified_holdout.py:infer_d4pm``
 #: so the pipeline and the holdout evaluation run the *same* reverse process.
 D4PM_SAMPLE_STEPS = 50
 D4PM_DATA_CONSISTENCY_WEIGHT = 0.5
@@ -350,7 +350,7 @@ def load_model(model_id: str, device: str):
     """
     import sys
     sys.path.insert(0, str(REPO / "tools"))
-    from eval_unified_holdout import (MODELS, TRAIN_ROOT, _load_torchscript,
+    from evaluation.eval_unified_holdout import (MODELS, TRAIN_ROOT, _load_torchscript,
                                       _resolve_ts_path)
 
     if model_id in DEPLOYMENT_SPECS:
@@ -449,7 +449,7 @@ class FamilyAdapter(EpochContextArtifactAdapter):
 
         ``as_evaluated`` (default)
             Exactly what the model's own inference function in
-            ``tools/eval_unified_holdout.py`` does — four of the fourteen remove
+            ``tools/evaluation/eval_unified_holdout.py`` does — four of the fourteen remove
             the prediction's mean, ten do not. This is the setting the adapters
             are verified bit-identical under, and it must stay the default:
             without it the family comparison stops being about the models.
@@ -606,7 +606,7 @@ class FamilyAdapter(EpochContextArtifactAdapter):
             "dc_mode": self.dc_mode,
             "channels": [raw.ch_names[i] for i in channels],
             "contract_verified_against":
-                "tools/eval_unified_holdout.py:INFERENCE_FUNCS (bit-identical, "
+                "tools/evaluation/eval_unified_holdout.py:INFERENCE_FUNCS (bit-identical, "
                 "output/model_evaluations/family_adapters/adapter_verification.json)",
         }
         return DeepLearningPrediction(artifact_data=estimated, metadata=metadata)

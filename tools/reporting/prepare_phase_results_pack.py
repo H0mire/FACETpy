@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "output" / "thesis_results_by_phase"
 FIG = ROOT / "output" / "results_evidence_pack" / "delivery" / "thesis_ready_figures"
 TAB = ROOT / "output" / "results_evidence_pack" / "delivery" / "thesis_ready_tables"

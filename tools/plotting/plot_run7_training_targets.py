@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 DATASET = ROOT / "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
 HOLDOUT = ROOT / "output/niazy_proof_fit_context_512/holdout_v1_indices.json"
 OUT = ROOT / "output/thesis_results_by_phase/phase_2_pipeline_deployment"

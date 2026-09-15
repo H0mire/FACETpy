@@ -14,7 +14,7 @@ import numpy as np
 from facet.core import Pipeline
 
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools/pipeline_demo"))
 import reference_chain  # noqa: E402
 EDF = ROOT / "examples/datasets/NiazyFMRI.edf"

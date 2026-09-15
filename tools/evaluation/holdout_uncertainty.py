@@ -21,7 +21,7 @@ holdout split is reproducible from its seed. This tool therefore:
    window; the 30 electrodes inside a window are replicates and are averaged
    first.
 
-Metric definitions are imported from ``tools/eval_unified_holdout.py`` rather
+Metric definitions are imported from ``tools/evaluation/eval_unified_holdout.py`` rather
 than restated, so the per-window values cannot drift from the aggregates they
 are supposed to decompose.
 
@@ -45,7 +45,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools"))
 
-from eval_unified_holdout import (  # noqa: E402
+from evaluation.eval_unified_holdout import (  # noqa: E402
     compute_holdout_indices,
     compute_metrics,
     holdout_split_hash,

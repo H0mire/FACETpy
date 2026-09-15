@@ -50,7 +50,7 @@ sys.path.insert(0, os.path.join(os.environ["FACET_REPO"], "src"))
 import contextlib, io
 import numpy as np
 from pathlib import Path
-from eval_unified_holdout import (MODELS, INFERENCE_FUNCS, TRAIN_ROOT,
+from evaluation.eval_unified_holdout import (MODELS, INFERENCE_FUNCS, TRAIN_ROOT,
                                   compute_holdout_indices, load_holdout, _resolve_ts_path)
 
 spec = MODELS[model_id]
@@ -112,7 +112,7 @@ def main() -> None:
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    from eval_unified_holdout import MODELS
+    from evaluation.eval_unified_holdout import MODELS
     model_ids = args.models or sorted(MODELS)
 
     rows, failures = [], []

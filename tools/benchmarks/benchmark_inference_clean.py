@@ -14,9 +14,9 @@ reported). It updates each model's metrics.json in place so downstream
 aggregators and figures use the corrected numbers.
 
 Usage:
-    uv run python tools/benchmark_inference_clean.py
-    uv run python tools/benchmark_inference_clean.py --models cascaded_dae demucs
-    uv run python tools/benchmark_inference_clean.py --warmup 1 --runs 3
+    uv run python tools/benchmarks/benchmark_inference_clean.py
+    uv run python tools/benchmarks/benchmark_inference_clean.py --models cascaded_dae demucs
+    uv run python tools/benchmarks/benchmark_inference_clean.py --warmup 1 --runs 3
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = REPO_ROOT / "output/model_evaluations"
 
 ALL_MODELS = [
@@ -61,7 +61,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 
 import numpy as np  # noqa: E402
 
-from eval_unified_holdout import (  # noqa: E402
+from evaluation.eval_unified_holdout import (  # noqa: E402
     MODELS,
     INFERENCE_FUNCS,
     ModelSpec,

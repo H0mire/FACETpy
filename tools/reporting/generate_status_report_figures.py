@@ -24,7 +24,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = REPO_ROOT / "output/model_evaluations"
 FIG_ROOT = REPO_ROOT / "docs/reports/2026-05-12_status_update/figures"
 FIG_ROOT.mkdir(parents=True, exist_ok=True)

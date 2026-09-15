@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "output" / "phase3_spike_aware_comparison"
 OUT = ROOT / "output" / "thesis_results_by_phase" / "phase_3_spike_checkpoint_comparison"
 REF = BASE / "reference_pipeline"

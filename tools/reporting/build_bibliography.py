@@ -24,7 +24,7 @@ from __future__ import annotations
 import html
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 OUT = REPO / "output/kapitel_5"
 
 # ---------------------------------------------------------------------------
@@ -361,7 +361,7 @@ def bibtex() -> str:
              "Report": "misc"}
     venue_field = {"article": "journal", "inproceedings": "booktitle", "misc": "howpublished"}
     lines = ["% FACETpy — Literatur für Kapitel 5",
-             "% Erzeugt von tools/build_bibliography.py aus src/facet/models/REFERENCES.md.",
+             "% Erzeugt von tools/reporting/build_bibliography.py aus src/facet/models/REFERENCES.md.",
              "% Alle Angaben aus Crossref, arXiv oder PubMed abgerufen; "
              "das note-Feld nennt die Quelle je Eintrag.", ""]
     for r in REFS:

@@ -26,10 +26,10 @@ Output layout:
         plots/holdout_examples.png
 
 Usage:
-    uv run python tools/eval_unified_holdout.py                  # all 12 models
-    uv run python tools/eval_unified_holdout.py --models dpae nested_gan
-    uv run python tools/eval_unified_holdout.py --device cuda
-    uv run python tools/eval_unified_holdout.py --dry-run        # split only
+    uv run python tools/evaluation/eval_unified_holdout.py                  # all 12 models
+    uv run python tools/evaluation/eval_unified_holdout.py --models dpae nested_gan
+    uv run python tools/evaluation/eval_unified_holdout.py --device cuda
+    uv run python tools/evaluation/eval_unified_holdout.py --dry-run        # split only
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from typing import Callable
 import numpy as np
 
 # Local repo root resolution — script lives in tools/.
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = REPO_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
@@ -974,7 +974,7 @@ def write_index_summary(
         f"{len(holdout_indices) * 30} channel-windows.",
         f"Split hash: `{holdout_split_hash(holdout_indices)}`",
         "",
-        "All metrics computed identically via `tools/eval_unified_holdout.py`. "
+        "All metrics computed identically via `tools/evaluation/eval_unified_holdout.py`. "
         "See [docs/research/run_2_plan.md §5.1](../../docs/research/run_2_plan.md).",
         "",
         "| Rank | Model | Family | SNR↑ dB | SNR before | SNR after | art.corr | res.RMS ratio | t [s] |",

@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "output" / "thesis_results_by_phase" / "phase_3_legacy_spike_preservation"
 SOURCE = ROOT / "output" / "spike_test"
 

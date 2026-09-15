@@ -12,7 +12,7 @@ import json
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 EVAL_ROOT = REPO_ROOT / "output/model_evaluations"
 RUN_ID = "holdout_v1"
 
@@ -102,7 +102,7 @@ def build_unified_md() -> str:
         "Holdout: seed=42, val_ratio=0.2 at the window level.",
         "Split hash: `sha256:ddaa64a504e062fd`.",
         "Holdout indices: `output/niazy_proof_fit_context_512/holdout_v1_indices.json`.",
-        "Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).",
+        "Driver: [`tools/evaluation/eval_unified_holdout.py`](../../tools/evaluation/eval_unified_holdout.py).",
         "",
         "## Cross-Model Ranking (Unified Holdout)",
         "",
@@ -178,7 +178,7 @@ def patch_index(unified_rows: list[tuple[str, dict]]) -> str:
         "## Unified Holdout Re-Evaluation (Run 2 §5.1)",
         "",
         f"Common test split: 166 windows × 30 channels = 4980 channel-windows, seed=42.",
-        f"Driver: [`tools/eval_unified_holdout.py`](../../tools/eval_unified_holdout.py).",
+        f"Driver: [`tools/evaluation/eval_unified_holdout.py`](../../tools/evaluation/eval_unified_holdout.py).",
         f"Full report: [`UNIFIED_HOLDOUT.md`](UNIFIED_HOLDOUT.md).",
         "",
         "| Rank | Model | SNR↑ dB | art.corr | res.RMS | Run 1 SNR↑ | Δ |",

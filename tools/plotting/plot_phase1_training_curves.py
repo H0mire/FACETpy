@@ -8,7 +8,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 EVALUATIONS = REPO / "output/model_evaluations"
 OUT = REPO / "output/thesis_results_by_phase/phase_1_unified_holdout/figure_phase1_training_curves.png"
 

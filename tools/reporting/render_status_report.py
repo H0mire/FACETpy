@@ -2,7 +2,7 @@
 """Render docs/reports/2026-05-12_status_update/README.md to HTML and PDF.
 
 Usage:
-    uv run python tools/render_status_report.py
+    uv run python tools/reporting/render_status_report.py
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import markdown
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 REPORT_DIR = REPO_ROOT / "docs/reports/2026-05-12_status_update"
 MD_PATH = REPORT_DIR / "README.md"
 HTML_PATH = REPORT_DIR / "status_report.html"

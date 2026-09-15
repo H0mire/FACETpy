@@ -14,7 +14,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_HTML_FILES = (
     REPOSITORY_ROOT / "output" / "kapitel_4" / "kapitel_4.html",
     REPOSITORY_ROOT / "output" / "kapitel_5" / "kapitel_5.html",

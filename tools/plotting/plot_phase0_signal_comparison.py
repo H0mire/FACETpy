@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "output/legacy_dl_delivery/aas_vs_dae_signals.npz"
 OUT = ROOT / "output/thesis_results_by_phase/phase_0_legacy_feasibility/figure_phase0_signal_comparison.png"
 METRIC_SOURCE = ROOT / "output/legacy_dl_delivery/aas_vs_dae_metrics.json"

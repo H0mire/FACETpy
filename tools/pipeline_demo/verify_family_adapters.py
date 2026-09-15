@@ -7,7 +7,7 @@ mis-packed input still produces a plausible-looking artifact.
 
 So the packing is not reviewed, it is tested: for every model, run
 ``predict_from_context`` on the holdout context and compare against that model's
-own inference function from ``tools/eval_unified_holdout.py``. Same data, same
+own inference function from ``tools/evaluation/eval_unified_holdout.py``. Same data, same
 checkpoint, same device. Any mismatch above floating-point noise is a defect in
 the adapter, not a tolerance to widen.
 
@@ -29,7 +29,7 @@ REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(REPO / "src"))
 
-from eval_unified_holdout import (                                    # noqa: E402
+from evaluation.eval_unified_holdout import (                                    # noqa: E402
     INFERENCE_FUNCS, MODELS, TRAIN_ROOT, _load_torchscript, _resolve_ts_path,
     compute_holdout_indices, load_holdout,
 )
@@ -105,7 +105,7 @@ def main() -> None:
         "n_checked": len(rows), "n_matching": n_ok,
         "skipped": args.skip,
         "meaning": "Jeder Adapter wird gegen die Inferenzfunktion desselben Modells aus "
-                   "tools/eval_unified_holdout.py geprüft — gleiche Daten, gleicher "
+                   "tools/evaluation/eval_unified_holdout.py geprüft — gleiche Daten, gleicher "
                    "Checkpoint, gleiches Gerät. Abweichung = Defekt im Adapter.",
         "rows": rows,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
