@@ -1,8 +1,12 @@
 """Plot the recorded histories for one thesis phase without selecting new runs."""
 
 from __future__ import annotations
-import argparse, json, sys
+
+import argparse
+import json
+import sys
 from pathlib import Path
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -10,7 +14,10 @@ import matplotlib.pyplot as plt
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from masterthesis_guide.reproduce import load_catalog, sha256
+from masterthesis_guide.reproduce import (  # noqa: E402 - repository path is set before checkout-only imports
+    load_catalog,
+    sha256,
+)
 
 
 def main(argv=None):
@@ -30,7 +37,7 @@ def main(argv=None):
         if logs:
             histories.append((eid, logs[0]))
     fig, axes = plt.subplots(4, 4, figsize=(13.5, 11), constrained_layout=True)
-    for ax, (eid, path) in zip(axes.flat, histories):
+    for ax, (eid, path) in zip(axes.flat, histories, strict=False):
         rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
         epochs = [r["epoch"] for r in rows]
         for keys, label in [(("train_loss", "loss"), "Training"), (("val_loss",), "Validation")]:

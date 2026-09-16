@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/denoise_mamba",
+  "title": "DenoiseMamba",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Epoch",
+      "description": "Single-channel waveform"
+    },
+    {
+      "title": "Feature encoder",
+      "description": "ConvSSD pyramid"
+    },
+    {
+      "title": "State-space model",
+      "description": "Local CNN + global SSD paths"
+    },
+    {
+      "title": "Prediction",
+      "description": "Decoder and artifact waveform"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Single-channel waveform",
+      "description": [
+        "Pad length for the encoder pyramid."
+      ],
+      "row": 0
+    },
+    {
+      "id": "stem",
+      "title": "Signal embedding",
+      "description": [
+        "Convolutions with PReLU and BatchNorm."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encoder",
+      "title": "ConvSSD encoder pyramid",
+      "description": [
+        "Downsample across levels and save matching skip features.",
+        "Each block combines local CNN and structured state-space paths."
+      ],
+      "row": 2
+    },
+    {
+      "id": "ssd",
+      "title": "ConvSSD bottleneck",
+      "description": [
+        "Split features: local convolutions and a global SSD branch.",
+        "The global branch uses two SSD paths plus a SiLU shortcut.",
+        "Learned fusion weights and depthwise-separable refinement."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "ConvSSD decoder",
+      "description": [
+        "Upsample, concatenate level-matched encoder features, fuse and refine."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Projection head",
+      "description": [
+        "Length-preserving decoder output plus pooled projection head.",
+        "Crop padding; return batch x 1 x samples."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "stem",
+      "kind": "flow",
+      "label": "Single-channel waveform to Signal embedding"
+    },
+    {
+      "source": "stem",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Signal embedding to ConvSSD encoder pyramid"
+    },
+    {
+      "source": "encoder",
+      "target": "ssd",
+      "kind": "flow",
+      "label": "ConvSSD encoder pyramid to ConvSSD bottleneck"
+    },
+    {
+      "source": "ssd",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "ConvSSD bottleneck to ConvSSD decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "ConvSSD decoder to Projection head"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "skip",
+      "label": "Level-matched concatenated features"
+    }
+  ],
+  "notes": [
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/denoise_mamba/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/denoise_mamba/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

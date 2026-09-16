@@ -18,8 +18,6 @@ from pathlib import Path
 import mne
 import numpy as np
 
-from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
-
 from facet import (
     DownSample,
     DropChannels,
@@ -30,6 +28,7 @@ from facet import (
     UpSample,
     load,
 )
+from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
 
 DEFAULT_INPUT = Path("./examples/datasets/NiazyFMRI.edf")
 DEFAULT_OUTPUT_DIR = Path("./output/context_artifact_model_inference")

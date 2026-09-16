@@ -22,16 +22,10 @@ import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
 
-
-DEFAULT_DATASET = Path(
-    "./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+DEFAULT_DATASET = Path("./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 DEFAULT_MODEL_ID = "ic_unet"
 DEFAULT_MODEL_NAME = "IC-U-Net"
-DEFAULT_MODEL_DESCRIPTION = (
-    "Multichannel 1-D U-Net with frozen FastICA preprocessing, adapted from "
-    "Chuang et al. 2022."
-)
+DEFAULT_MODEL_DESCRIPTION = "Multichannel 1-D U-Net with frozen FastICA preprocessing, adapted from Chuang et al. 2022."
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,13 +54,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10(
-            (np.mean(np.square(reference)) + 1e-20)
-            / (np.mean(np.square(error)) + 1e-20)
-        )
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -143,9 +131,7 @@ def evaluate(args: argparse.Namespace, run_dir: Path) -> dict[str, Any]:
         "artifact_snr_db": _snr_db(artifact_center, pred_artifact - artifact_center),
         "residual_error_rms_ratio": _rms(after_error) / (_rms(before_error) + 1e-20),
     }
-    synthetic["clean_snr_improvement_db"] = (
-        synthetic["clean_snr_db_after"] - synthetic["clean_snr_db_before"]
-    )
+    synthetic["clean_snr_improvement_db"] = synthetic["clean_snr_db_after"] - synthetic["clean_snr_db_before"]
     synthetic["clean_mse_reduction_pct"] = 100.0 * (
         1.0 - synthetic["clean_mse_after"] / (synthetic["clean_mse_before"] + 1e-20)
     )
@@ -248,8 +234,7 @@ def main() -> None:
         "The proof-fit dataset uses the same Niazy recording for training and "
         "evaluation; numbers reported here characterise fit quality, not "
         "generalisation.",
-        "The clean target is itself an AAS estimate, so absolute clean-SNR "
-        "values inherit AAS bias.",
+        "The clean target is itself an AAS estimate, so absolute clean-SNR values inherit AAS bias.",
     ]
     run = writer.write(
         metrics=metrics,

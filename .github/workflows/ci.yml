@@ -14,9 +14,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: pip install ruff
-      - run: ruff check src/ tests/
-      - run: ruff format --check src/ tests/
+      - name: Install Ruff from the project lock
+        run: |
+          python - <<'PYTHON'
+          import subprocess
+          import sys
+          import tomllib
+          with open("uv.lock", "rb") as handle:
+              lock = tomllib.load(handle)
+          version = next(package["version"] for package in lock["package"] if package["name"] == "ruff")
+          subprocess.run([sys.executable, "-m", "pip", "install", f"ruff=={version}"], check=True)
+          PYTHON
+      - run: ruff check .
+      - run: ruff format --check .
 
   test:
     runs-on: ubuntu-latest
@@ -67,5 +77,7 @@ jobs:
         run: |
           uv run python -m masterthesis_guide.reproduce validate
           uv run python -m masterthesis_guide.reproduce index --check
+      - name: Check model diagram sources and generated SVGs
+        run: uv run python tools/diagrams/build_model_diagrams.py --check
       - name: Build docs (warnings as errors)
         run: uv run sphinx-build -W -b html docs/source docs/build

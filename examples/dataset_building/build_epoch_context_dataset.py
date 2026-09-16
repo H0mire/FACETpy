@@ -182,7 +182,9 @@ def _write_dataset(
     return dataset_path, metadata_path
 
 
-def build_dataset_from_args(args: argparse.Namespace) -> tuple[Path, Path, dict[str, np.ndarray], dict[str, int | float]]:
+def build_dataset_from_args(
+    args: argparse.Namespace,
+) -> tuple[Path, Path, dict[str, np.ndarray], dict[str, int | float]]:
     if args.context_epochs < 3 or args.context_epochs % 2 == 0:
         raise ValueError("--context-epochs must be an odd integer >= 3")
     if args.target_epoch_samples < 8:

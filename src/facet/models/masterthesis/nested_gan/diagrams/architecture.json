@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/nested_gan",
+  "title": "Nested-GAN",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Neighbouring EEG epochs"
+    },
+    {
+      "title": "Spectral stage",
+      "description": "Estimate centre artifact"
+    },
+    {
+      "title": "Temporal stage",
+      "description": "Refine the residual context"
+    },
+    {
+      "title": "Sum",
+      "description": "Centre-epoch artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Epoch context",
+      "description": [
+        "Single EEG channel with neighbouring epochs."
+      ],
+      "row": 0
+    },
+    {
+      "id": "inner",
+      "title": "Inner spectrogram model",
+      "description": [
+        "Centre-epoch STFT; real/imaginary channels into a flat Restormer stack.",
+        "Channel attention (MDTA) and gated feed-forward blocks; inverse STFT."
+      ],
+      "row": 1
+    },
+    {
+      "id": "residual",
+      "title": "Modify centre only",
+      "description": [
+        "Subtract inner artifact from the centre of a copied context."
+      ],
+      "row": 2
+    },
+    {
+      "id": "outer",
+      "title": "Outer temporal U-Net",
+      "description": [
+        "Three downsampling levels and bottleneck.",
+        "Transpose-convolution decoder concatenates matching encoder skips."
+      ],
+      "row": 3
+    },
+    {
+      "id": "sum",
+      "title": "Add residual artifact",
+      "description": [
+        "Sum inner artifact and outer residual prediction."
+      ],
+      "row": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "inner",
+      "kind": "flow",
+      "label": "Epoch context to Inner spectrogram model"
+    },
+    {
+      "source": "inner",
+      "target": "residual",
+      "kind": "flow",
+      "label": "Inner spectrogram model to Modify centre only"
+    },
+    {
+      "source": "residual",
+      "target": "outer",
+      "kind": "flow",
+      "label": "Modify centre only to Outer temporal U-Net"
+    },
+    {
+      "source": "outer",
+      "target": "sum",
+      "kind": "flow",
+      "label": "Outer temporal U-Net to Add residual artifact"
+    },
+    {
+      "source": "input",
+      "target": "residual",
+      "kind": "skip",
+      "label": "Unchanged neighbouring epochs"
+    },
+    {
+      "source": "inner",
+      "target": "sum",
+      "kind": "skip",
+      "label": "Inner artifact"
+    }
+  ],
+  "notes": [
+    "This diagram shows the implemented generator; the name does not imply an inference-time discriminator.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/nested_gan/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/nested_gan/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

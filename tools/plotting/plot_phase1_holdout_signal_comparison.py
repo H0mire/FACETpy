@@ -20,10 +20,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from masterthesis_guide.reproduce import load_catalog
+from masterthesis_guide.reproduce import load_catalog  # noqa: E402
 
 DATASET = ROOT / "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
 EVAL = ROOT / "output/model_evaluations"
@@ -90,7 +89,7 @@ def main() -> None:
 
     fig, axes = plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
     axes = axes.ravel()
-    for ax, (model_id, label) in zip(axes, MODELS):
+    for ax, (model_id, label) in zip(axes, MODELS, strict=False):
         path = EVAL / model_id / "holdout_v1" / "predicted_artifact.npy"
         from masterthesis_guide.reproduce import sha256
 

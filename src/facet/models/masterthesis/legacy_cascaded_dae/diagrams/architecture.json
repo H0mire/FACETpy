@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/legacy_cascaded_dae",
+  "title": "Legacy Cascaded DAE",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Epoch",
+      "description": "Normalise and flatten all channels"
+    },
+    {
+      "title": "Two parallel DAEs",
+      "description": "Both receive the same input"
+    },
+    {
+      "title": "Sum + rescale",
+      "description": "Add predictions and restore units"
+    },
+    {
+      "title": "Artifact",
+      "description": "Return to native epoch boundaries"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Triggered multichannel epoch",
+      "description": [
+        "Resample to checkpoint-native dimensions; preserve channel order.",
+        "Normalise with recorded global mean/std; flatten channels and time."
+      ],
+      "row": 0
+    },
+    {
+      "id": "first",
+      "title": "Legacy DAE 1",
+      "description": [
+        "Dense encoder and decoder with LeakyReLU / Dropout.",
+        "Consumes the original normalised input."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "second",
+      "title": "Legacy DAE 2",
+      "description": [
+        "Independent dense encoder and decoder.",
+        "Also consumes the original normalised input."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "sum",
+      "title": "Sum both outputs",
+      "description": [
+        "The historical adapter adds both DAE predictions.",
+        "It does not feed a residual into DAE 2."
+      ],
+      "row": 2
+    },
+    {
+      "id": "output",
+      "title": "Restore artifact units",
+      "description": [
+        "Reshape, undo target normalisation, resample to epoch boundaries.",
+        "Return multichannel artifact data to DeepLearningCorrection."
+      ],
+      "row": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "first",
+      "kind": "flow",
+      "label": "Triggered multichannel epoch to Legacy DAE 1"
+    },
+    {
+      "source": "input",
+      "target": "second",
+      "kind": "flow",
+      "label": "Triggered multichannel epoch to Legacy DAE 2"
+    },
+    {
+      "source": "first",
+      "target": "sum",
+      "kind": "merge",
+      "label": "Legacy DAE 1 to Sum both outputs"
+    },
+    {
+      "source": "second",
+      "target": "sum",
+      "kind": "merge",
+      "label": "Legacy DAE 2 to Sum both outputs"
+    },
+    {
+      "source": "sum",
+      "target": "output",
+      "kind": "flow",
+      "label": "Sum both outputs to Restore artifact units"
+    }
+  ],
+  "notes": [
+    "Describes the migrated Phase-0 adapter; exact original environment provenance remains incomplete.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/legacy_cascaded_dae/processor.py",
+      "label": "Variant implementation and forward contract"
+    }
+  ]
+}

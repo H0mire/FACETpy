@@ -28,9 +28,7 @@ import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
 
-DEFAULT_DATASET = Path(
-    "./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+DEFAULT_DATASET = Path("./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 DEFAULT_OUTPUT_ROOT = Path("./output/model_evaluations")
 MODEL_ID = "demucs"
 MODEL_NAME = "Demucs"
@@ -102,9 +100,7 @@ def _load_validation_split(args: argparse.Namespace) -> dict[str, np.ndarray]:
         sfreq = float(bundle["sfreq"][0])
 
     if noisy_ctx.shape[1] != args.context_epochs:
-        raise SystemExit(
-            f"Bundle has {noisy_ctx.shape[1]} context epochs but --context-epochs={args.context_epochs}"
-        )
+        raise SystemExit(f"Bundle has {noisy_ctx.shape[1]} context epochs but --context-epochs={args.context_epochs}")
 
     n_examples, context_epochs, n_channels, n_samples = noisy_ctx.shape
     total_pairs = n_examples * n_channels
@@ -170,10 +166,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20))
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -241,7 +234,9 @@ def _plot_examples(
     for row, idx in enumerate(indices):
         axes[row, 0].plot(time_ms, noisy[idx] * 1e6, label="noisy mixture", color="#9a3412", linewidth=1.0)
         axes[row, 0].plot(time_ms, clean[idx] * 1e6, label="clean target (AAS)", color="#0f766e", linewidth=1.1)
-        axes[row, 0].plot(time_ms, corrected[idx] * 1e6, label="corrected (noisy − pred)", color="#1d4ed8", linewidth=1.0)
+        axes[row, 0].plot(
+            time_ms, corrected[idx] * 1e6, label="corrected (noisy − pred)", color="#1d4ed8", linewidth=1.0
+        )
         axes[row, 0].set_title(f"Demucs sample {int(idx)}: clean vs corrected")
         axes[row, 0].set_ylabel("uV")
         axes[row, 0].legend(loc="upper right", fontsize=8)

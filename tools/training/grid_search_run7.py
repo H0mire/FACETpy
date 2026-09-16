@@ -6,6 +6,7 @@ its recorded selection split; the locked holdout is not used for selection.
 Use --base-config with a config resolved by masterthesis_guide.reproduce."""
 
 from __future__ import annotations
+
 import argparse
 import copy
 import itertools
@@ -16,6 +17,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
@@ -164,6 +166,7 @@ def bester_checkpoint(run_dir: Path) -> Path:
 
 def exportiere(cfg_pfad: Path, ckpt: Path, ziel: Path) -> Path:
     import torch
+
     from facet.training.cli import _build_dataset, _build_model, _load_contexts, load_training_cli_config
 
     cli_cfg = load_training_cli_config(cfg_pfad)
@@ -185,7 +188,7 @@ def exportiere(cfg_pfad: Path, ckpt: Path, ziel: Path) -> Path:
     form = getattr(dataset, "input_shape", None)
     if form is None:
         beispiel_ein = dataset[0][0]
-        form = tuple((int(x) for x in beispiel_ein.shape))
+        form = tuple(int(x) for x in beispiel_ein.shape)
     beispiel = torch.randn(1, *form)
     with torch.no_grad():
         scripted = torch.jit.trace(ziel_modul, beispiel)
@@ -199,12 +202,12 @@ def bewerte_in_pipeline(
 ) -> dict:
     import mne
     import numpy as np
-    import torch
-    from facet.models.masterthesis import pipeline as reference_chain
-    from facet.models.masterthesis.adapters import FamilyAdapter
+
     from facet.core import ProcessingContext, ProcessingMetadata
     from facet.correction.deep_learning import DeepLearningCorrection
     from facet.evaluation import EpochSeamStepCalculator, GradientArtifactResidualCalculator
+    from facet.models.masterthesis import pipeline as reference_chain
+    from facet.models.masterthesis.adapters import FamilyAdapter
 
     benutzt = device
     for versuch in (device, "cpu"):
@@ -261,6 +264,7 @@ def bewerte_in_pipeline(
 def bewerte_auf_selektion(cfg_pfad: Path, ckpt: Path, device: str) -> dict:
     import numpy as np
     import torch
+
     from facet.training.cli import _build_dataset, _build_model, load_training_cli_config
 
     cli_cfg = load_training_cli_config(cfg_pfad)
@@ -279,14 +283,14 @@ def bewerte_auf_selektion(cfg_pfad: Path, ckpt: Path, device: str) -> dict:
 
     verlust = _import_object(cli_cfg.model.loss_factory)(**cli_cfg.model.loss_kwargs, sfreq=ds.sfreq)
     sagt_artefakt = getattr(verlust, "prediction_is", "artifact") == "artifact"
-    fehler, fehler_null, cl, ch, quoten = ([], [], [], [], [])
+    fehler, fehler_null, cl, ch = ([], [], [], [])
     with torch.no_grad():
         for anfang in range(0, len(selektion), 64):
             paare = [selektion[i] for i in range(anfang, min(anfang + 64, len(selektion)))]
             x = torch.from_numpy(np.stack([p[0] for p in paare])).to(device)
             y = np.stack([p[1] for p in paare])
             pred = modell(x).cpu().numpy()
-            artefakt, clean, noisy = (y[:, 0], y[:, 1], y[:, 2])
+            clean, noisy = (y[:, 1], y[:, 2])
             clean_hat = noisy - pred if sagt_artefakt else pred
             fehler.append(clean_hat - clean)
             fehler_null.append(-clean)
@@ -497,7 +501,7 @@ def main() -> int:
     zeilen: list[dict] = []
     for i, (punkt, seed) in enumerate(meine, start=1):
         beschriftung = ", ".join(
-            (f"{a}={punkt[a]:g}" if isinstance(punkt[a], (int, float)) else f"{a}={punkt[a]}" for a in args.axes)
+            f"{a}={punkt[a]:g}" if isinstance(punkt[a], (int, float)) else f"{a}={punkt[a]}" for a in args.axes
         )
         print(f"[{i}/{len(meine)}] {beschriftung}, seed {seed}", flush=True)
         zeile = fuehre_punkt_aus(family, basis, punkt, seed, args)

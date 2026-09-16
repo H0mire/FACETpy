@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/cascaded_context_dae/deployment",
+  "title": "Cascaded Context DAE",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Input",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "First DAE",
+      "description": "Initial artifact estimate"
+    },
+    {
+      "title": "Residual + second DAE",
+      "description": "Refine the residual artifact"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Epoch context",
+      "description": [
+        "One EEG channel; epoch and context sizes follow the configuration."
+      ],
+      "row": 1
+    },
+    {
+      "id": "stage1",
+      "title": "First dense autoencoder",
+      "description": [
+        "Flatten input; Linear / LeakyReLU / Dropout encoder and decoder.",
+        "Map the context to the centre artifact."
+      ],
+      "row": 2
+    },
+    {
+      "id": "residual",
+      "title": "Subtract first estimate",
+      "description": [
+        "Copy the context and subtract stage 1 only from its centre epoch."
+      ],
+      "row": 3
+    },
+    {
+      "id": "stage2",
+      "title": "Second dense autoencoder",
+      "description": [
+        "Predict residual artifact from the modified context."
+      ],
+      "row": 4
+    },
+    {
+      "id": "sum",
+      "title": "Sum both predictions",
+      "description": [
+        "Artifact = stage 1 + stage 2; output preserves the centre epoch length."
+      ],
+      "row": 5
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 6
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Epoch context"
+    },
+    {
+      "source": "input",
+      "target": "stage1",
+      "kind": "flow",
+      "label": "Epoch context to First dense autoencoder"
+    },
+    {
+      "source": "stage1",
+      "target": "residual",
+      "kind": "flow",
+      "label": "First dense autoencoder to Subtract first estimate"
+    },
+    {
+      "source": "residual",
+      "target": "stage2",
+      "kind": "flow",
+      "label": "Subtract first estimate to Second dense autoencoder"
+    },
+    {
+      "source": "stage2",
+      "target": "sum",
+      "kind": "flow",
+      "label": "Second dense autoencoder to Sum both predictions"
+    },
+    {
+      "source": "input",
+      "target": "residual",
+      "kind": "skip",
+      "label": "Original input"
+    },
+    {
+      "source": "stage1",
+      "target": "sum",
+      "kind": "skip",
+      "label": "First artifact estimate"
+    },
+    {
+      "source": "sum",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Sum both predictions to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/cascaded_context_dae/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/cascaded_context_dae/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

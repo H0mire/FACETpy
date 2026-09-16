@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1519" width="190mm" height="288.61mm" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif">
+<title>ST-GNN — detailed architecture</title>
+<defs>
+  <linearGradient id="fp-header" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#0f2537"/><stop offset="1" stop-color="#2f6d94"/>
+  </linearGradient>
+  <linearGradient id="fp-bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef6fb"/>
+  </linearGradient>
+  <pattern id="fp-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0 L0 0 0 40" fill="none" stroke="#173147" stroke-opacity="0.045" stroke-width="1"/>
+  </pattern>
+  <filter id="fp-shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#0f2537" flood-opacity="0.13"/>
+  </filter>
+  <marker id="fp-arrow" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto">
+    <path d="M1 1 L9 5 L1 9" fill="none" stroke="#173147" stroke-opacity="0.7" stroke-width="1.5"/>
+  </marker>
+  <marker id="fp-arrow-open" markerWidth="13" markerHeight="12" refX="10" refY="5" orient="auto">
+    <path d="M1 1 L10 5 L1 9" fill="none" stroke="#173147" stroke-opacity="0.6" stroke-width="1.3"/>
+  </marker>
+  <marker id="fp-diamond" markerWidth="18" markerHeight="12" refX="1" refY="5" orient="auto">
+    <path d="M1 5 L8 1.5 L15 5 L8 8.5 Z" fill="#173147" fill-opacity="0.75" stroke="#173147" stroke-width="1"/>
+  </marker>
+  <marker id="fp-diamond-open" markerWidth="18" markerHeight="12" refX="1" refY="5" orient="auto">
+    <path d="M1 5 L8 1.5 L15 5 L8 8.5 Z" fill="#ffffff" stroke="#173147" stroke-width="1.3"/>
+  </marker>
+  <marker id="fp-triangle" markerWidth="16" markerHeight="14" refX="13" refY="6" orient="auto">
+    <path d="M1 1 L13 6 L1 11 Z" fill="#ffffff" stroke="#173147" stroke-width="1.4"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1000" height="1519" fill="url(#fp-grid)"/>
+<polyline points="320.0,224 320.0,252 487.0,252 487.0,342" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<polyline points="680.0,224 680.0,252 513.0,252 513.0,342" fill="none" stroke-dasharray="7 5" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<polyline points="500.0,496 500.0,524 500.0,524 500.0,614" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<polyline points="500.0,720 500.0,748 500.0,748 500.0,838" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<text x="40" y="38" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="27" fill="#173147" font-weight="600">ST-GNN · Thesis model</text>
+<text x="40" y="70" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#5b7488">Detailed architecture · numbered relationships below</text>
+<polyline points="790.0,65.0 792.7,65.0 795.3,65.0 798.0,65.0 800.7,65.0 803.3,65.0 806.0,65.0 808.7,65.0 811.3,65.0 814.0,65.0 816.7,65.0 819.3,65.0 822.0,65.0 824.7,65.0 827.3,65.0 830.0,65.0 832.7,62.0 835.3,59.8 838.0,59.0 840.7,59.8 843.3,62.0 846.0,65.0 848.7,68.0 851.3,70.2 854.0,71.0 856.7,70.2 859.3,68.0 862.0,65.0 864.7,62.0 867.3,59.8 870.0,59.0 872.7,59.8 875.3,62.0 878.0,65.0 880.7,54.8 883.3,46.2 886.0,40.7 888.7,39.0 891.3,41.5 894.0,47.8 896.7,56.8 899.3,65.0 902.0,65.0 904.7,65.0 907.3,65.0 910.0,65.0 912.7,65.0 915.3,65.0 918.0,65.0 920.7,65.0 923.3,65.0 926.0,65.0 928.7,65.0 931.3,65.0 934.0,65.0 936.7,65.0 939.3,65.0 942.0,65.0 944.7,65.0 947.3,65.0 950.0,65.0" fill="none" stroke="#7eb8d2" stroke-opacity="0.9" stroke-width="2" stroke-linejoin="round"/>
+<rect x="170" y="98" width="300" height="122" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M170 110 A12 12 0 0 1 182 98 L458 98 A12 12 0 0 1 470 110 L470 145 L170 145 Z" fill="url(#fp-header)"/><circle cx="191" cy="122" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="210" y="127" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="21" fill="#ffffff" font-weight="600">Multichannel context</text><text x="188" y="173" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Rearrange to batch x features</text><text x="188" y="197" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">x electrodes x time.</text>
+<rect x="530" y="98" width="300" height="122" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M530 110 A12 12 0 0 1 542 98 L818 98 A12 12 0 0 1 830 110 L830 145 L530 145 Z" fill="url(#fp-header)"/><circle cx="551" cy="122" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="570" y="127" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="21" fill="#ffffff" font-weight="600">Electrode graph</text><text x="548" y="173" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Montage-derived adjacency</text><text x="548" y="197" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">and scaled graph Laplacian.</text>
+<rect x="220" y="346" width="560" height="146" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M220 358 A12 12 0 0 1 232 346 L768 346 A12 12 0 0 1 780 358 L780 393 L220 393 Z" fill="url(#fp-header)"/><circle cx="241" cy="370" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="260" y="375" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="21" fill="#ffffff" font-weight="600">Two spatiotemporal blocks</text><text x="238" y="421" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Temporal tanh/sigmoid gate -&gt; Chebyshev convolution -&gt;</text><text x="238" y="445" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">temporal gate.</text><text x="238" y="469" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Residual projection and GroupNorm complete each block.</text>
+<rect x="220" y="618" width="560" height="98" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M220 630 A12 12 0 0 1 232 618 L768 618 A12 12 0 0 1 780 630 L780 665 L220 665 Z" fill="url(#fp-header)"/><circle cx="241" cy="642" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="260" y="647" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="21" fill="#ffffff" font-weight="600">Output head</text><text x="238" y="693" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">1x1 convolution predicts the artifact for every electrode.</text>
+<rect x="220" y="842" width="560" height="122" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M220 854 A12 12 0 0 1 232 842 L768 842 A12 12 0 0 1 780 854 L780 889 L220 889 Z" fill="url(#fp-header)"/><circle cx="241" cy="866" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="260" y="871" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="21" fill="#ffffff" font-weight="600">Centre-epoch artifact</text><text x="238" y="917" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Slice the centre epoch; output batch x electrodes x</text><text x="238" y="941" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">samples.</text>
+<rect x="389.5" y="239" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="403.5" y="258" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">1</text>
+<rect x="582.5" y="239" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="596.5" y="258" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">2</text>
+<rect x="486.0" y="497.0" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="500.0" y="516.0" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">3</text>
+<rect x="486.0" y="721.0" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="500.0" y="740.0" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">4</text>
+<text x="60" y="1094" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#173147" font-weight="600">Relationships</text>
+<rect x="60" y="1108" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="74" y="1127" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">1</text>
+<text x="100" y="1126" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Multichannel context → Two spatiotemporal blocks · flow</text>
+<rect x="60" y="1145" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="74" y="1164" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">2</text>
+<text x="100" y="1163" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Electrode graph → Two spatiotemporal blocks · conditioning: Laplacian for Chebyshev filters</text>
+<rect x="60" y="1182" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="74" y="1201" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">3</text>
+<text x="100" y="1200" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Two spatiotemporal blocks → Output head · flow</text>
+<rect x="60" y="1219" width="28" height="26" rx="7" fill="#eef6fb" stroke="#2f6d94" stroke-width="1"/><text x="74" y="1238" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#173147" font-weight="600" text-anchor="middle">4</text>
+<text x="100" y="1237" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Output head → Centre-epoch artifact · flow</text>
+<text x="60" y="1288" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#173147" font-weight="600">Reading notes</text>
+<text x="60" y="1320" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">Dimensions and repeated-block counts are configurable; consult the linked implementation and</text>
+<text x="60" y="1345" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="18" fill="#173147">run configuration.</text>
+<text x="60" y="1397" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#173147" font-weight="600">Implementation sources</text>
+<text x="60" y="1427" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#2f6d94">Variant implementation and forward contract: src/facet/models/masterthesis/st_gnn/training.py</text>
+<text x="60" y="1451" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#2f6d94">Pipeline input/output adapter: src/facet/models/masterthesis/st_gnn/processor.py</text>
+<text x="980" y="1501" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="11" fill="#5b7488" text-anchor="end" fill-opacity="0.8">Made with FACETpy</text>
+</svg>

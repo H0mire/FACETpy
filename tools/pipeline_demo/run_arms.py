@@ -14,9 +14,15 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from facet.correction import DeepLearningCorrection
-from facet.models.masterthesis import pipeline
-from masterthesis_guide.reproduce import adapter, load_catalog, selected_artifact, sha256
+from masterthesis_guide.reproduce import (  # noqa: E402 - repository path is set before checkout-only imports
+    adapter,
+    load_catalog,
+    selected_artifact,
+    sha256,
+)
+
+from facet.correction import DeepLearningCorrection  # noqa: E402 - repository path is set before checkout-only imports
+from facet.models.masterthesis import pipeline  # noqa: E402 - repository path is set before checkout-only imports
 
 WINDOW_START_S, WINDOW_STOP_S = 25.0, 160.0
 

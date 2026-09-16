@@ -13,27 +13,30 @@ Also demonstrates the convenience processors DropChannels, PickChannels, and
 PrintMetric that eliminate common boilerplate lambdas.
 """
 
+from rich import print
+from rich.panel import Panel
+
 from facet import (
-    TriggerEditor,
+    AASCorrection,
+    DownSample,
+    DropChannels,
+    EDFExporter,
+    HighPassFilter,
+    Loader,
+    LowPassFilter,
     MetricsReport,
     Pipeline,
-    ProcessingContext,
-    Loader,
-    EDFExporter,
-    TriggerDetector,
-    HighPassFilter,
-    LowPassFilter,
-    UpSample,
-    DownSample,
-    AASCorrection,
-    SNRCalculator,
-    DropChannels,
     PrintMetric,
+    ProcessingContext,
+    SNRCalculator,
+    TriggerDetector,
+    TriggerEditor,
+    UpSample,
     load,
 )
 from facet.helpers.interactive import WaitForConfirmation
 
-INPUT_FILE  = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
 OUTPUT_FILE = "./output/corrected_inline.edf"
 
 
@@ -45,36 +48,35 @@ OUTPUT_FILE = "./output/corrected_inline.edf"
 # But returning nothing is equivalent to returning the context unchanged.
 # Use a def for anything that needs more than one line.
 
+
 def log_sfreq(ctx: ProcessingContext) -> ProcessingContext:
     triggers = ctx.get_triggers()
     n_triggers = len(triggers) if triggers is not None else 0
-    print(f"  sfreq = {ctx.get_sfreq()} Hz, " f"n_triggers = {n_triggers}")
+    print(f"  sfreq = {ctx.get_sfreq()} Hz, n_triggers = {n_triggers}")
     return ctx
 
-pipeline = Pipeline([
-    Loader(path=INPUT_FILE, preload=True),
-    # Drop non-EEG channels by name — no lambda needed
-    DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
 
-    TriggerDetector(regex=r"\b1\b"),
-    TriggerEditor(),
-
-    # Custom def step: log sampling frequency for verification
-    log_sfreq,
-
-    HighPassFilter(freq=1.0),
-    UpSample(factor=10),
-    AASCorrection(window_size=30),
-    DownSample(factor=10),
-    LowPassFilter(freq=70),
-
-    SNRCalculator(),
-
-    # Print a metric inline — no (print(...) or ctx) tricks required
-    PrintMetric("snr"),
-
-    EDFExporter(path=OUTPUT_FILE, overwrite=True),
-], name="Inline Steps")
+pipeline = Pipeline(
+    [
+        Loader(path=INPUT_FILE, preload=True),
+        # Drop non-EEG channels by name — no lambda needed
+        DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]),
+        TriggerDetector(regex=r"\b1\b"),
+        TriggerEditor(),
+        # Custom def step: log sampling frequency for verification
+        log_sfreq,
+        HighPassFilter(freq=1.0),
+        UpSample(factor=10),
+        AASCorrection(window_size=30),
+        DownSample(factor=10),
+        LowPassFilter(freq=70),
+        SNRCalculator(),
+        # Print a metric inline — no (print(...) or ctx) tricks required
+        PrintMetric("snr"),
+        EDFExporter(path=OUTPUT_FILE, overwrite=True),
+    ],
+    name="Inline Steps",
+)
 
 result = pipeline.run()
 result.print_summary()
@@ -102,8 +104,6 @@ ctx = (
     | MetricsReport(name="Pipe-operator result")
 )
 
-from rich import print
-from rich.panel import Panel
 
 print(
     Panel.fit(

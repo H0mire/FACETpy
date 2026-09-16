@@ -138,6 +138,7 @@ def adapter(experiment_id: str, catalog=None, *, device="cpu"):
         factory = config["model"]["factory"]
         kwargs = config["model"].get("kwargs", {})
     from dataclasses import replace
+
     from facet.models.masterthesis.adapters import DEPLOYMENT_SPECS, FAMILY_SPECS
 
     spec = {**FAMILY_SPECS, **DEPLOYMENT_SPECS}[model_id]
@@ -258,9 +259,13 @@ def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
             )
             if pointer != expected:
                 errors.append(f"{aid}: invalid LFS pointer")
-        if hashes and path and path.is_file():
-            if path.stat().st_size != record["bytes"] or sha256(path) != record.get("sha256"):
-                errors.append(f"{aid}: binary size or SHA-256 does not match")
+        if (
+            hashes
+            and path
+            and path.is_file()
+            and (path.stat().st_size != record["bytes"] or sha256(path) != record.get("sha256"))
+        ):
+            errors.append(f"{aid}: binary size or SHA-256 does not match")
     for mid, record in catalog["models"].items():
         if "readme" in record:
             file(record["readme"], mid)

@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/examples/demo01",
+  "title": "Context CNN demo",
+  "subtitle": "Experimental",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Epochs and channels"
+    },
+    {
+      "title": "Pack",
+      "description": "Use epochs as feature channels"
+    },
+    {
+      "title": "Convolutions",
+      "description": "Three GELU blocks and linear head"
+    },
+    {
+      "title": "Artifact",
+      "description": "Predict centre epoch"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Context tensor",
+      "description": [
+        "Batch x context epochs x channels x samples."
+      ],
+      "row": 0
+    },
+    {
+      "id": "pack",
+      "title": "Pack epochs and channels",
+      "description": [
+        "Reshape to batch x (epochs * channels) x samples."
+      ],
+      "row": 1
+    },
+    {
+      "id": "hidden",
+      "title": "Three hidden convolutions",
+      "description": [
+        "Each: reflection padding 4, Conv1d kernel 9, GELU.",
+        "Hidden channel width is configurable."
+      ],
+      "row": 2
+    },
+    {
+      "id": "head",
+      "title": "Final waveform head",
+      "description": [
+        "Reflection padding 4; Conv1d kernel 9 without bias.",
+        "Output channels match EEG channels."
+      ],
+      "row": 3
+    },
+    {
+      "id": "output",
+      "title": "Centre artifact",
+      "description": [
+        "Batch x channels x samples; supervised against artifact_center."
+      ],
+      "row": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "pack",
+      "kind": "flow",
+      "label": "Context tensor to Pack epochs and channels"
+    },
+    {
+      "source": "pack",
+      "target": "hidden",
+      "kind": "flow",
+      "label": "Pack epochs and channels to Three hidden convolutions"
+    },
+    {
+      "source": "hidden",
+      "target": "head",
+      "kind": "flow",
+      "label": "Three hidden convolutions to Final waveform head"
+    },
+    {
+      "source": "head",
+      "target": "output",
+      "kind": "flow",
+      "label": "Final waveform head to Centre artifact"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/examples/demo01/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/examples/demo01/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

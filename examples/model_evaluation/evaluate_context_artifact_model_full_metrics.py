@@ -25,8 +25,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
-
 from facet import (
     DownSample,
     DropChannels,
@@ -49,10 +47,10 @@ from facet.evaluation import (
     SpectralCoherenceCalculator,
     SpikeDetectionRateCalculator,
 )
+from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
 
 DEFAULT_CHECKPOINT = Path(
-    "./training_output/sevenepochcontextartifactnet_20260430_134222/"
-    "exports/seven_epoch_context_artifact_net.ts"
+    "./training_output/sevenepochcontextartifactnet_20260430_134222/exports/seven_epoch_context_artifact_net.ts"
 )
 DEFAULT_INPUT = Path("./examples/datasets/NiazyFMRI.edf")
 DEFAULT_OUTPUT_DIR = Path("./output/context_artifact_model_full_metrics")

@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/st_gnn",
+  "title": "ST-GNN",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "EEG + montage",
+      "description": "Temporal context and electrode graph"
+    },
+    {
+      "title": "ST blocks",
+      "description": "Temporal gates and graph filters"
+    },
+    {
+      "title": "Projection",
+      "description": "Waveform at each electrode"
+    },
+    {
+      "title": "Centre slice",
+      "description": "Multichannel artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Multichannel context",
+      "description": [
+        "Rearrange to batch x features x electrodes x time."
+      ],
+      "row": 0,
+      "column": 0
+    },
+    {
+      "id": "graph",
+      "title": "Electrode graph",
+      "description": [
+        "Montage-derived adjacency and scaled graph Laplacian."
+      ],
+      "row": 0,
+      "column": 1
+    },
+    {
+      "id": "blocks",
+      "title": "Two spatiotemporal blocks",
+      "description": [
+        "Temporal tanh/sigmoid gate -> Chebyshev convolution -> temporal gate.",
+        "Residual projection and GroupNorm complete each block."
+      ],
+      "row": 1
+    },
+    {
+      "id": "head",
+      "title": "Output head",
+      "description": [
+        "1x1 convolution predicts the artifact for every electrode."
+      ],
+      "row": 2
+    },
+    {
+      "id": "output",
+      "title": "Centre-epoch artifact",
+      "description": [
+        "Slice the centre epoch; output batch x electrodes x samples."
+      ],
+      "row": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "blocks",
+      "kind": "flow",
+      "label": "Multichannel context to Two spatiotemporal blocks"
+    },
+    {
+      "source": "graph",
+      "target": "blocks",
+      "kind": "conditioning",
+      "label": "Laplacian for Chebyshev filters"
+    },
+    {
+      "source": "blocks",
+      "target": "head",
+      "kind": "flow",
+      "label": "Two spatiotemporal blocks to Output head"
+    },
+    {
+      "source": "head",
+      "target": "output",
+      "kind": "flow",
+      "label": "Output head to Centre-epoch artifact"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/st_gnn/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/st_gnn/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

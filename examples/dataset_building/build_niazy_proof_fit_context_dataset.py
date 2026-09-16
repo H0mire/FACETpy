@@ -69,9 +69,7 @@ def _resample_1d(values: np.ndarray, target_samples: int) -> np.ndarray:
         out = out[..., :target_samples]
     elif out.shape[-1] < target_samples:
         pad = target_samples - out.shape[-1]
-        out = np.concatenate(
-            [out, np.full(pad, out[..., -1], dtype=out.dtype)], axis=-1
-        )
+        out = np.concatenate([out, np.full(pad, out[..., -1], dtype=out.dtype)], axis=-1)
     return out.astype(np.float32, copy=False)
 
 
@@ -113,16 +111,24 @@ def _build_context_dataset(
     artifact = np.asarray(bundle["artifact"], dtype=np.float32)
     corrected = np.asarray(bundle["corrected"], dtype=np.float32)
     if artifact.shape != corrected.shape:
-        raise ValueError(f"artifact and corrected arrays must have the same shape, got {artifact.shape} and {corrected.shape}")
+        raise ValueError(
+            f"artifact and corrected arrays must have the same shape, got {artifact.shape} and {corrected.shape}"
+        )
 
     starts, stops = _epoch_boundaries(bundle)
     epoch_lengths = (stops - starts).astype(np.int64)
     clean_epochs = np.stack(
-        [_resample_epoch(corrected[:, start:stop], target_epoch_samples) for start, stop in zip(starts, stops, strict=False)],
+        [
+            _resample_epoch(corrected[:, start:stop], target_epoch_samples)
+            for start, stop in zip(starts, stops, strict=False)
+        ],
         axis=0,
     )
     artifact_epochs = np.stack(
-        [_resample_epoch(artifact[:, start:stop], target_epoch_samples) for start, stop in zip(starts, stops, strict=False)],
+        [
+            _resample_epoch(artifact[:, start:stop], target_epoch_samples)
+            for start, stop in zip(starts, stops, strict=False)
+        ],
         axis=0,
     )
     noisy_epochs = clean_epochs + artifact_epochs

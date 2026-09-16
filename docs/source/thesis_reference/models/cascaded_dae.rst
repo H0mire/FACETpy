@@ -27,3 +27,9 @@ The seven-epoch configuration in thesis Figure 8 and Table 5 belongs to
 ``deployment_cascaded_context_dae`` (batch size 64). Select that experiment for
 those references. The single-epoch ``deployment_cascaded_dae`` arm (batch size
 128) is a separate result. Both remain available; see :doc:`context_dae`.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-cascaded-dae` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/dhct_gan/deployment",
+  "title": "DHCT-GAN",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Input",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "Hybrid branches",
+      "description": "Shared encoder and dual decoders"
+    },
+    {
+      "title": "Fusion + heads",
+      "description": "Clean and artifact estimates"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Noisy waveform",
+      "description": [
+        "Batch x input channels x samples."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encoder",
+      "title": "Shared CNN / Transformer",
+      "description": [
+        "CNN stem; encoder levels with local and global attention.",
+        "Store skip features before downsampling."
+      ],
+      "row": 2
+    },
+    {
+      "id": "bottleneck",
+      "title": "Shared bottleneck",
+      "description": [
+        "Process deepest features before splitting into decoder branches."
+      ],
+      "row": 3
+    },
+    {
+      "id": "clean",
+      "title": "Clean decoder branch",
+      "description": [
+        "Upsample, concatenate encoder skips, CNN refinement.",
+        "Linear interpolation and waveform head."
+      ],
+      "row": 4,
+      "column": 0
+    },
+    {
+      "id": "artifact",
+      "title": "Artifact decoder branch",
+      "description": [
+        "Independent decoder weights with the same encoder skips.",
+        "Linear interpolation and artifact head."
+      ],
+      "row": 4,
+      "column": 1
+    },
+    {
+      "id": "gate",
+      "title": "Gated clean fusion",
+      "description": [
+        "A sigmoid gate combines clean and input-minus-artifact.",
+        "The complementary weight is 1 - gate."
+      ],
+      "row": 5
+    },
+    {
+      "id": "output",
+      "title": "Returned waveform",
+      "description": [
+        "forward returns the artifact decoder prediction.",
+        "Fused clean is retained for the training objective."
+      ],
+      "row": 6
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 7
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Noisy waveform"
+    },
+    {
+      "source": "input",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Noisy waveform to Shared CNN / Transformer"
+    },
+    {
+      "source": "encoder",
+      "target": "bottleneck",
+      "kind": "flow",
+      "label": "Shared CNN / Transformer to Shared bottleneck"
+    },
+    {
+      "source": "bottleneck",
+      "target": "clean",
+      "kind": "flow",
+      "label": "Shared bottleneck to Clean decoder branch"
+    },
+    {
+      "source": "bottleneck",
+      "target": "artifact",
+      "kind": "flow",
+      "label": "Shared bottleneck to Artifact decoder branch"
+    },
+    {
+      "source": "encoder",
+      "target": "clean",
+      "kind": "skip",
+      "label": "Matching feature levels"
+    },
+    {
+      "source": "encoder",
+      "target": "artifact",
+      "kind": "skip",
+      "label": "Matching feature levels"
+    },
+    {
+      "source": "clean",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Clean decoder branch to Gated clean fusion"
+    },
+    {
+      "source": "artifact",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Artifact decoder branch to Gated clean fusion"
+    },
+    {
+      "source": "input",
+      "target": "gate",
+      "kind": "skip",
+      "label": "Noisy input"
+    },
+    {
+      "source": "artifact",
+      "target": "output",
+      "kind": "flow",
+      "label": "Inference output"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Returned waveform to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Discriminators and adversarial objectives are training-only; they are not in the inference signal path.",
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/dhct_gan/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/dhct_gan/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

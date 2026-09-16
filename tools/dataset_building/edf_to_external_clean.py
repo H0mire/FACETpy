@@ -52,16 +52,22 @@ import numpy as np
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--input", type=Path, required=True, help="EDF with the gradient and pulse artifact removed")
-    p.add_argument("--artifact-bundle", type=Path, required=True,
-                   help="Defines the montage, order, rate and length the clean must match")
+    p.add_argument(
+        "--artifact-bundle",
+        type=Path,
+        required=True,
+        help="Defines the montage, order, rate and length the clean must match",
+    )
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--highpass-hz", type=float, default=1.0,
-                   help="Matches the pre-trigger path; 0 disables")
-    p.add_argument("--line-freq", type=float, default=50.0,
-                   help="Mains notch with harmonics up to Nyquist; 0 disables")
-    p.add_argument("--val-fraction", type=float, default=0.2,
-                   help="Must equal the builder's --val-fraction: the fill material is taken from "
-                        "the correct side of that boundary")
+    p.add_argument("--highpass-hz", type=float, default=1.0, help="Matches the pre-trigger path; 0 disables")
+    p.add_argument("--line-freq", type=float, default=50.0, help="Mains notch with harmonics up to Nyquist; 0 disables")
+    p.add_argument(
+        "--val-fraction",
+        type=float,
+        default=0.2,
+        help="Must equal the builder's --val-fraction: the fill material is taken from "
+        "the correct side of that boundary",
+    )
     p.add_argument("--drop", nargs="*", default=["EKG", "EMG", "EOG", "ECG", "Status"])
     return p.parse_args()
 
@@ -70,6 +76,7 @@ def _resample(data: np.ndarray, src: float, dst: float) -> np.ndarray:
     if abs(src - dst) < 1e-9:
         return data
     from scipy.signal import resample_poly
+
     g = gcd(int(round(dst)), int(round(src)))
     return resample_poly(data, int(round(dst)) // g, int(round(src)) // g, axis=-1)
 
@@ -98,7 +105,6 @@ def _fill_to_length(block: np.ndarray, target: int) -> np.ndarray:
 
 def main() -> None:
     args = parse_args()
-    import mne
     from mne.filter import notch_filter as mne_notch
 
     from facet import DropChannels, HighPassFilter, load
@@ -107,8 +113,10 @@ def main() -> None:
         bundle_names = [str(x) for x in bundle["ch_names"]]
         bundle_sfreq = float(bundle["sfreq"][0])
         n_samples = int(bundle["artifact"].shape[1])
-    print(f"bundle: {len(bundle_names)} channels @ {bundle_sfreq:.0f} Hz, {n_samples} samples "
-          f"({n_samples / bundle_sfreq:.1f} s)")
+    print(
+        f"bundle: {len(bundle_names)} channels @ {bundle_sfreq:.0f} Hz, {n_samples} samples "
+        f"({n_samples / bundle_sfreq:.1f} s)"
+    )
 
     ctx = load(str(args.input), preload=True)
     ctx = ctx | DropChannels(channels=list(args.drop))
@@ -127,8 +135,9 @@ def main() -> None:
     # electrode's clean paired with its own artifact.
     picks = [raw.ch_names.index(n) for n in bundle_names]
     clean = raw._data[picks].astype(np.float64)
-    print(f"input : {clean.shape[0]} channels @ {sfreq:.0f} Hz, {clean.shape[1]} samples "
-          f"({clean.shape[1] / sfreq:.1f} s)")
+    print(
+        f"input : {clean.shape[0]} channels @ {sfreq:.0f} Hz, {clean.shape[1]} samples ({clean.shape[1] / sfreq:.1f} s)"
+    )
 
     if args.line_freq and args.line_freq > 0:
         freqs = np.arange(args.line_freq, sfreq / 2.0, args.line_freq)
@@ -149,14 +158,18 @@ def main() -> None:
 
     reflect_train = max(0, split - src_split)
     reflect_val = max(0, (n_samples - split) - (clean.shape[1] - src_split))
-    print(f"  train side: {src_split} source -> {split} samples "
-          f"({100 * reflect_train / max(split, 1):.1f} % reflected)")
-    print(f"  val   side: {clean.shape[1] - src_split} source -> {n_samples - split} samples "
-          f"({100 * reflect_val / max(n_samples - split, 1):.1f} % reflected)")
+    print(
+        f"  train side: {src_split} source -> {split} samples ({100 * reflect_train / max(split, 1):.1f} % reflected)"
+    )
+    print(
+        f"  val   side: {clean.shape[1] - src_split} source -> {n_samples - split} samples "
+        f"({100 * reflect_val / max(n_samples - split, 1):.1f} % reflected)"
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(args.output, clean=out, ch_names=np.array(bundle_names, dtype=object),
-                        sfreq=np.array([bundle_sfreq]))
+    np.savez_compressed(
+        args.output, clean=out, ch_names=np.array(bundle_names, dtype=object), sfreq=np.array([bundle_sfreq])
+    )
     digest = hashlib.sha256(np.ascontiguousarray(out)).hexdigest()
     meta = {
         "source_edf": str(args.input),

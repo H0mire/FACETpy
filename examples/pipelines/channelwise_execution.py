@@ -40,40 +40,44 @@ from facet import (
 from facet.core import ParallelExecutor, ProcessingContext
 from facet.core.processor import Processor
 
-INPUT_FILE    = "./examples/datasets/NiazyFMRI.edf"
-OUTPUT_DIR    = Path("./output")
+INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_FILE   = str(OUTPUT_DIR / "corrected_channelwise.edf")
+OUTPUT_FILE = str(OUTPUT_DIR / "corrected_channelwise.edf")
 TRIGGER_REGEX = r"\b1\b"
-UPSAMPLE      = 10
+UPSAMPLE = 10
 
 
 # ---------------------------------------------------------------------------
 # A. Inspect which processors support channel-wise execution
 # ---------------------------------------------------------------------------
 
+
 def inspect_pipeline_flags():
     """Print parallel flags for every processor in a typical pipeline."""
-    pipeline = Pipeline([
-        Loader(path=INPUT_FILE, preload=True),
-        TriggerDetector(regex=TRIGGER_REGEX),
-        HighPassFilter(freq=1.0),
-        UpSample(factor=UPSAMPLE),
-        TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
-        AASCorrection(window_size=30),
-        DownSample(factor=UPSAMPLE),
-        LowPassFilter(freq=70),
-        RMSCalculator(),
-        MetricsReport(),
-        EDFExporter(path=OUTPUT_FILE, overwrite=True),
-    ], name="Flag inspection")
+    pipeline = Pipeline(
+        [
+            Loader(path=INPUT_FILE, preload=True),
+            TriggerDetector(regex=TRIGGER_REGEX),
+            HighPassFilter(freq=1.0),
+            UpSample(factor=UPSAMPLE),
+            TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
+            AASCorrection(window_size=30),
+            DownSample(factor=UPSAMPLE),
+            LowPassFilter(freq=70),
+            RMSCalculator(),
+            MetricsReport(),
+            EDFExporter(path=OUTPUT_FILE, overwrite=True),
+        ],
+        name="Flag inspection",
+    )
 
     print(f"\n{'Processor':<28} {'parallel_safe':<16} {'channel_wise':<14} {'run_once'}")
     print("-" * 72)
     for proc in pipeline.processors:
-        ps  = getattr(proc, "parallel_safe", False)
-        cw  = getattr(proc, "channel_wise",  False)
-        ro  = getattr(proc, "run_once",      False)
+        ps = getattr(proc, "parallel_safe", False)
+        cw = getattr(proc, "channel_wise", False)
+        ro = getattr(proc, "run_once", False)
         print(f"{proc.name:<28} {str(ps):<16} {str(cw):<14} {ro}")
 
     eligible = [p.name for p in pipeline.processors if getattr(p, "channel_wise", False)]
@@ -83,6 +87,7 @@ def inspect_pipeline_flags():
 # ---------------------------------------------------------------------------
 # B. Run a correction pipeline with channel-wise execution enabled
 # ---------------------------------------------------------------------------
+
 
 def run_channelwise(n_jobs: int = -1):
     """
@@ -95,24 +100,29 @@ def run_channelwise(n_jobs: int = -1):
     Steps that are not channel_wise (TriggerDetector, Loader, EDFExporter)
     run serially as usual.
     """
-    pipeline = Pipeline([
-        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
-        TriggerDetector(regex=TRIGGER_REGEX),
-        HighPassFilter(freq=1.0),                 # channel_wise=True
-        UpSample(factor=UPSAMPLE),
-        TriggerAligner(ref_trigger_index=0),      # channel_wise=True, run_once=True
-        AASCorrection(window_size=30,             # channel_wise=True
-                      correlation_threshold=0.975),
-        DownSample(factor=UPSAMPLE),
-        LowPassFilter(freq=70),                   # channel_wise=True
-        RMSCalculator(),
-        MetricsReport(),
-        EDFExporter(path=OUTPUT_FILE, overwrite=True),
-    ], name="Channel-wise AAS")
+    pipeline = Pipeline(
+        [
+            Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+            TriggerDetector(regex=TRIGGER_REGEX),
+            HighPassFilter(freq=1.0),  # channel_wise=True
+            UpSample(factor=UPSAMPLE),
+            TriggerAligner(ref_trigger_index=0),  # channel_wise=True, run_once=True
+            AASCorrection(
+                window_size=30,  # channel_wise=True
+                correlation_threshold=0.975,
+            ),
+            DownSample(factor=UPSAMPLE),
+            LowPassFilter(freq=70),  # channel_wise=True
+            RMSCalculator(),
+            MetricsReport(),
+            EDFExporter(path=OUTPUT_FILE, overwrite=True),
+        ],
+        name="Channel-wise AAS",
+    )
 
     result = pipeline.run(
-        parallel=True,   # enable channel-wise execution
-        n_jobs=n_jobs,   # -1 → all CPUs, -2 → all but one, N → exactly N
+        parallel=True,  # enable channel-wise execution
+        n_jobs=n_jobs,  # -1 → all CPUs, -2 → all but one, N → exactly N
     )
     result.print_summary()
     return result
@@ -121,6 +131,7 @@ def run_channelwise(n_jobs: int = -1):
 # ---------------------------------------------------------------------------
 # C. Backend comparison and speed measurement
 # ---------------------------------------------------------------------------
+
 
 def benchmark_backends():
     """
@@ -140,10 +151,9 @@ def benchmark_backends():
     ctx = UpSample(factor=UPSAMPLE).execute(ctx)
 
     processor = AASCorrection(window_size=30)
-    n_cpus    = multiprocessing.cpu_count()
+    n_cpus = multiprocessing.cpu_count()
 
-    print(f"\nBenchmarking AASCorrection on {len(ctx.get_raw().ch_names)} channels "
-          f"({n_cpus} CPU cores available)\n")
+    print(f"\nBenchmarking AASCorrection on {len(ctx.get_raw().ch_names)} channels ({n_cpus} CPU cores available)\n")
 
     timings = {}
     for backend in ("serial", "threading", "multiprocessing"):
@@ -159,7 +169,7 @@ def benchmark_backends():
     serial_t = timings["serial"]
     for backend, t in timings.items():
         if backend != "serial":
-            speedup = serial_t / tl
+            speedup = serial_t / t
             print(f"  {backend} speed-up vs serial: {speedup:.2f}×")
 
     return timings
@@ -178,7 +188,7 @@ def benchmark_n_jobs():
     ctx = UpSample(factor=UPSAMPLE).execute(ctx)
 
     processor = AASCorrection(window_size=30)
-    n_cpus    = multiprocessing.cpu_count()
+    n_cpus = multiprocessing.cpu_count()
     candidates = sorted({1, 2, min(4, n_cpus), n_cpus})
 
     print(f"\nScaling AASCorrection over {len(ctx.get_raw().ch_names)} channels\n")
@@ -202,6 +212,7 @@ def benchmark_n_jobs():
 # D. Custom processor with channel-wise execution
 # ---------------------------------------------------------------------------
 
+
 class ChannelZScoreNormalizer(Processor):
     """
     Normalise each EEG channel to zero mean and unit variance independently.
@@ -210,22 +221,22 @@ class ChannelZScoreNormalizer(Processor):
     processor is safe to run channel-wise in parallel.
     """
 
-    name        = "channel_zscore_normalizer"
+    name = "channel_zscore_normalizer"
     description = "Per-channel z-score normalisation (mean=0, std=1)"
 
-    requires_raw  = True
-    modifies_raw  = True
+    requires_raw = True
+    modifies_raw = True
 
     parallel_safe = True
-    channel_wise  = True
+    channel_wise = True
 
     def process(self, context: ProcessingContext) -> ProcessingContext:
-        raw  = context.get_raw().copy()
+        raw = context.get_raw().copy()
         data = raw._data  # shape: [n_channels, n_samples]
 
         mean = data.mean(axis=1, keepdims=True)
-        std  = data.std(axis=1, keepdims=True)
-        std  = np.where(std == 0, 1.0, std)   # avoid div-by-zero on flat channels
+        std = data.std(axis=1, keepdims=True)
+        std = np.where(std == 0, 1.0, std)  # avoid div-by-zero on flat channels
 
         raw._data = (data - mean) / std
         return context.with_raw(raw)
@@ -239,17 +250,20 @@ def run_custom_channelwise_processor():
     the built-in AASCorrection — the executor splits channels, processes in
     parallel, and merges the result back seamlessly.
     """
-    pipeline = Pipeline([
-        Loader(path=INPUT_FILE, preload=True),
-        TriggerDetector(regex=TRIGGER_REGEX),
-        ChannelZScoreNormalizer(),    # runs channel-wise when parallel=True
-        HighPassFilter(freq=1.0),
-        UpSample(factor=UPSAMPLE),
-        AASCorrection(window_size=30),
-        DownSample(factor=UPSAMPLE),
-        LowPassFilter(freq=70),
-        MetricsReport(),
-    ], name="Custom channel-wise normalizer")
+    pipeline = Pipeline(
+        [
+            Loader(path=INPUT_FILE, preload=True),
+            TriggerDetector(regex=TRIGGER_REGEX),
+            ChannelZScoreNormalizer(),  # runs channel-wise when parallel=True
+            HighPassFilter(freq=1.0),
+            UpSample(factor=UPSAMPLE),
+            AASCorrection(window_size=30),
+            DownSample(factor=UPSAMPLE),
+            LowPassFilter(freq=70),
+            MetricsReport(),
+        ],
+        name="Custom channel-wise normalizer",
+    )
 
     result = pipeline.run(parallel=True, n_jobs=-1)
     result.print_summary()

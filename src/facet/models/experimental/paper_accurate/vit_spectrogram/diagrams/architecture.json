@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/vit_spectrogram",
+  "title": "ViT Spectrogram",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Time-domain EEG"
+    },
+    {
+      "title": "STFT + patches",
+      "description": "Tokens from log-magnitude"
+    },
+    {
+      "title": "Transformer",
+      "description": "Visible-token MAE"
+    },
+    {
+      "title": "Inverse STFT",
+      "description": "Centre waveform"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Temporal context",
+      "description": [
+        "Flatten channel-wise context to one waveform."
+      ],
+      "row": 0
+    },
+    {
+      "id": "stft",
+      "title": "Complex STFT",
+      "description": [
+        "Retain complex coefficients and cropped frequency/time geometry."
+      ],
+      "row": 1
+    },
+    {
+      "id": "tokens",
+      "title": "Magnitude patches",
+      "description": [
+        "log(1 + magnitude), non-overlapping patches and token projection."
+      ],
+      "row": 2
+    },
+    {
+      "id": "encoder",
+      "title": "Visible-token encoder",
+      "description": [
+        "Encode only visible tokens with fixed 2D position embeddings."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Asymmetric MAE decoder",
+      "description": [
+        "Reinsert mask tokens; separate lightweight Transformer decoder.",
+        "In training return masked-patch predictions for the reconstruction loss."
+      ],
+      "row": 4
+    },
+    {
+      "id": "reconstruct",
+      "title": "Spectral reconstruction",
+      "description": [
+        "Replace only masked patches; preserve visible input patches and phase."
+      ],
+      "row": 5
+    },
+    {
+      "id": "output",
+      "title": "Inverse STFT and centre",
+      "description": [
+        "Restore spectral padding; inverse STFT; select the centre waveform."
+      ],
+      "row": 6
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "stft",
+      "kind": "flow",
+      "label": "Temporal context to Complex STFT"
+    },
+    {
+      "source": "stft",
+      "target": "tokens",
+      "kind": "flow",
+      "label": "Complex STFT to Magnitude patches"
+    },
+    {
+      "source": "tokens",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Magnitude patches to Visible-token encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Visible-token encoder to Asymmetric MAE decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "reconstruct",
+      "kind": "flow",
+      "label": "Asymmetric MAE decoder to Spectral reconstruction"
+    },
+    {
+      "source": "reconstruct",
+      "target": "output",
+      "kind": "flow",
+      "label": "Spectral reconstruction to Inverse STFT and centre"
+    },
+    {
+      "source": "stft",
+      "target": "reconstruct",
+      "kind": "skip",
+      "label": "Noisy phase"
+    },
+    {
+      "source": "tokens",
+      "target": "reconstruct",
+      "kind": "skip",
+      "label": "Unmasked original patches"
+    }
+  ],
+  "notes": [
+    "Training and evaluation returns differ in the MAE variant.",
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/vit_spectrogram/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/vit_spectrogram/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

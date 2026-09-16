@@ -69,11 +69,11 @@ UPSAMPLE = 10
 
 # Choose what to run (you can run one or many).
 DEMO_CHOICES = {
-    "trigger_utilities",   # MissingTriggerCompleter + SliceTriggerGenerator
-    "farm_volume",         # VolumeArtifactCorrection + FARMCorrection
-    "corresponding_slice", # CorrespondingSliceCorrection
-    "volume_trigger",      # VolumeTriggerCorrection
-    "moosmann",            # MoosmannCorrection
+    "trigger_utilities",  # MissingTriggerCompleter + SliceTriggerGenerator
+    "farm_volume",  # VolumeArtifactCorrection + FARMCorrection
+    "corresponding_slice",  # CorrespondingSliceCorrection
+    "volume_trigger",  # VolumeTriggerCorrection
+    "moosmann",  # MoosmannCorrection
 }
 
 

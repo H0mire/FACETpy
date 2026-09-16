@@ -34,20 +34,17 @@ import ast
 import io
 import json
 import tokenize
-from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
 #: The counting scope, stated once and applied to both trees unchanged.
 SCOPE = {
     "counted": "shipped library source (.py files under the given root, recursively)",
-    "excluded": "tests, tooling, examples, notebooks, docs, data; __pycache__ and "
-                "site-packages never enter a root",
+    "excluded": "tests, tooling, examples, notebooks, docs, data; __pycache__ and site-packages never enter a root",
     "tests_counted_separately": True,
     "line_definition": "code = a physical line carrying at least one token that is "
-                       "neither a comment, a docstring-only expression, nor whitespace",
-    "rationale": "Indicators and scope are fixed before measurement so the comparison "
-                 "cannot be tuned to its outcome.",
+    "neither a comment, a docstring-only expression, nor whitespace",
+    "rationale": "Indicators and scope are fixed before measurement so the comparison cannot be tuned to its outcome.",
 }
 
 #: Indicator id -> (human label, direction, what it is evidence for).
@@ -63,8 +60,11 @@ INDICATORS = {
     "classes": ("Klassen", "neutral", "Gliederung"),
     "functions": ("Funktionen und Methoden", "neutral", "Gliederung"),
     "public_symbols": ("Öffentliche Symbole auf Modulebene", "neutral", "API-Oberfläche"),
-    "docstring_coverage_pct": ("Docstring-Abdeckung (%)", "höher",
-                              "Anteil öffentlicher Module/Klassen/Funktionen mit Docstring"),
+    "docstring_coverage_pct": (
+        "Docstring-Abdeckung (%)",
+        "höher",
+        "Anteil öffentlicher Module/Klassen/Funktionen mit Docstring",
+    ),
     "typed_params_pct": ("Typannotierte Parameter (%)", "höher", "Prüfbarkeit der Schnittstellen"),
     "typed_returns_pct": ("Typannotierte Rückgaben (%)", "höher", "Prüfbarkeit der Schnittstellen"),
     "mean_function_lines": ("Funktionslänge, Mittel", "niedriger", "Lesbarkeit"),
@@ -74,24 +74,38 @@ INDICATORS = {
     "max_cyclomatic": ("Zyklomatische Komplexität, Maximum", "niedriger", "Testbarkeit"),
     "functions_cyclomatic_over_10": ("Funktionen mit Komplexität > 10", "niedriger", "Testbarkeit"),
     "max_methods_per_class": ("Methoden je Klasse, Maximum", "niedriger", "God-Class-Indikator"),
-    "broad_excepts": ("Pauschale except-Blöcke", "niedriger",
-                     "bare except oder except Exception ohne re-raise"),
-    "mutable_default_args": ("Veränderliche Default-Argumente", "niedriger",
-                            "bekannte Fehlerklasse (list/dict/set als Default)"),
-    "print_calls_in_library": ("print() in Bibliothekscode", "niedriger",
-                              "Bibliothek schreibt unkontrolliert auf stdout"),
+    "broad_excepts": ("Pauschale except-Blöcke", "niedriger", "bare except oder except Exception ohne re-raise"),
+    "mutable_default_args": (
+        "Veränderliche Default-Argumente",
+        "niedriger",
+        "bekannte Fehlerklasse (list/dict/set als Default)",
+    ),
+    "print_calls_in_library": (
+        "print() in Bibliothekscode",
+        "niedriger",
+        "Bibliothek schreibt unkontrolliert auf stdout",
+    ),
     "todo_comments": ("TODO/FIXME-Kommentare", "niedriger", "bekannte offene Stellen"),
-    "non_importable_filenames": ("Nicht importierbare Modulnamen", "niedriger",
-                                "Dateiname ist kein gültiger Python-Bezeichner + .py"),
+    "non_importable_filenames": (
+        "Nicht importierbare Modulnamen",
+        "niedriger",
+        "Dateiname ist kein gültiger Python-Bezeichner + .py",
+    ),
     "test_files": ("Testdateien", "höher", "Prüfumfang"),
     "test_functions": ("Testfunktionen", "höher", "Prüfumfang"),
-    "test_functions_per_100_code_lines": ("Testfunktionen je 100 Code-Zeilen", "höher",
-                                          "Prüfdichte, größenbereinigt"),
+    "test_functions_per_100_code_lines": ("Testfunktionen je 100 Code-Zeilen", "höher", "Prüfdichte, größenbereinigt"),
 }
 
 DECISION_NODES = (
-    ast.If, ast.For, ast.AsyncFor, ast.While, ast.ExceptHandler,
-    ast.With, ast.AsyncWith, ast.Assert, ast.IfExp,
+    ast.If,
+    ast.For,
+    ast.AsyncFor,
+    ast.While,
+    ast.ExceptHandler,
+    ast.With,
+    ast.AsyncWith,
+    ast.Assert,
+    ast.IfExp,
     ast.comprehension,
 )
 
@@ -153,8 +167,7 @@ class TreeStats:
             "non_importable_filenames": self.non_importable_filenames,
             "test_files": self.test_files,
             "test_functions": self.test_functions,
-            "test_functions_per_100_code_lines": round(
-                100.0 * self.test_functions / max(1, self.code_lines), 2),
+            "test_functions_per_100_code_lines": round(100.0 * self.test_functions / max(1, self.code_lines), 2),
         }
 
 
@@ -193,8 +206,14 @@ def _count_lines(text: str) -> tuple[int, int, int]:
             upper = tok.string.upper()
             if "TODO" in upper or "FIXME" in upper:
                 todo += 1
-        elif tok.type not in (tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
-                              tokenize.DEDENT, tokenize.ENDMARKER, tokenize.STRING):
+        elif tok.type not in (
+            tokenize.NL,
+            tokenize.NEWLINE,
+            tokenize.INDENT,
+            tokenize.DEDENT,
+            tokenize.ENDMARKER,
+            tokenize.STRING,
+        ):
             code_lines.add(tok.start[0])
     return len(code_lines), comment_lines, todo
 
@@ -235,9 +254,10 @@ def analyse_tree(root: Path, tests_root: Path | None) -> TreeStats:
         if ast.get_docstring(tree):
             st.documented += 1
         for node in tree.body:
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-                if not node.name.startswith("_"):
-                    st.public_symbols += 1
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and not node.name.startswith(
+                "_"
+            ):
+                st.public_symbols += 1
 
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
@@ -246,7 +266,8 @@ def analyse_tree(root: Path, tests_root: Path | None) -> TreeStats:
                 if ast.get_docstring(node):
                     st.documented += 1
                 st.methods_per_class.append(
-                    sum(1 for b in node.body if isinstance(b, (ast.FunctionDef, ast.AsyncFunctionDef))))
+                    sum(1 for b in node.body if isinstance(b, (ast.FunctionDef, ast.AsyncFunctionDef)))
+                )
             elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 st.functions += 1
                 st.documentable += 1
@@ -308,19 +329,29 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     payload = {
         "scope": SCOPE,
-        "indicator_definitions": {k: {"label": v[0], "better": v[1], "evidence_for": v[2]}
-                                  for k, v in INDICATORS.items()},
+        "indicator_definitions": {
+            k: {"label": v[0], "better": v[1], "evidence_for": v[2]} for k, v in INDICATORS.items()
+        },
         "arms": {
-            "legacy": {"label": args.legacy_label, "root": str(args.legacy_root),
-                       "tests_root": str(args.legacy_tests) if args.legacy_tests else None,
-                       "indicators": li, "parse_failures": legacy.parse_failures},
-            "current": {"label": args.current_label, "root": str(args.current_root),
-                        "tests_root": str(args.current_tests) if args.current_tests else None,
-                        "indicators": ci, "parse_failures": current.parse_failures},
+            "legacy": {
+                "label": args.legacy_label,
+                "root": str(args.legacy_root),
+                "tests_root": str(args.legacy_tests) if args.legacy_tests else None,
+                "indicators": li,
+                "parse_failures": legacy.parse_failures,
+            },
+            "current": {
+                "label": args.current_label,
+                "root": str(args.current_root),
+                "tests_root": str(args.current_tests) if args.current_tests else None,
+                "indicators": ci,
+                "parse_failures": current.parse_failures,
+            },
         },
     }
     (args.out / "engineering_indicators.json").write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
     width = max(len(v[0]) for v in INDICATORS.values())
     print(f"{'Indikator':{width}s} {'legacy':>12} {'aktuell':>12}  besser")

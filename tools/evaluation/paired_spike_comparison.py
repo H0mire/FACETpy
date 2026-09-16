@@ -91,9 +91,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument("--arm-a", default="model")
     p.add_argument("--arm-b", default="aas_ideal")
-    p.add_argument(
-        "--label-a", default=None, help="Name for arm A in output filenames and the printed table."
-    )
+    p.add_argument("--label-a", default=None, help="Name for arm A in output filenames and the printed table.")
     p.add_argument("--label-b", default=None)
     p.add_argument("--out", type=Path, required=True)
     p.add_argument("--bootstrap", type=int, default=10000)
@@ -102,7 +100,9 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def load(path: Path, cluster_column: str = "spike_event_id") -> tuple[dict[str, dict[int, dict[str, float]]], dict[int, str]]:
+def load(
+    path: Path, cluster_column: str = "spike_event_id"
+) -> tuple[dict[str, dict[int, dict[str, float]]], dict[int, str]]:
     """arm -> example_index -> metric -> value, plus example_index -> cluster id.
 
     The cluster id is the ``spike_event_id`` column when the evaluation wrote one.
@@ -167,7 +167,7 @@ def wilcoxon_signed_rank(diff: np.ndarray) -> tuple[float, float]:
     var = n * (n + 1) * (2 * n + 1) / 24.0 - tie_term / 48.0
     if var <= 0:
         return w, float("nan")
-    z = (w - mean + 0.5) / np.sqrt(var)          # continuity-corrected
+    z = (w - mean + 0.5) / np.sqrt(var)  # continuity-corrected
     p = 2.0 * 0.5 * math_erfc(abs(z) / np.sqrt(2.0))
     return w, float(min(1.0, p))
 
@@ -232,14 +232,14 @@ def bootstrap_ci(
         return float("nan"), float("nan")
     # Chunked: all resamples at once would be gigabytes of Walsh matrices.
     stats = np.empty(n, dtype=np.float64)
-    chunk = max(1, min(200, int(8e6 // max(d.size ** 2, 1))))
+    chunk = max(1, min(200, int(8e6 // max(d.size**2, 1))))
     iu = np.triu_indices(d.size)
     done = 0
     while done < n:
         take = min(chunk, n - done)
         draws = rng.choice(d, size=(take, d.size), replace=True)
         walsh = (draws[:, :, None] + draws[:, None, :]) / 2.0
-        stats[done:done + take] = np.median(walsh[:, iu[0], iu[1]], axis=1)
+        stats[done : done + take] = np.median(walsh[:, iu[0], iu[1]], axis=1)
         done += take
     lo, hi = np.quantile(stats, [alpha / 2, 1 - alpha / 2])
     return float(lo), float(hi)
@@ -326,30 +326,30 @@ def main() -> None:
         # correction, so a non-testable design cannot pick up significance by
         # falling back to the window level.
         pvalues[metric] = p_ev
-        rows.append({
-            "metric": metric,
-            "better_is": direction,
-            "n_events": n_events,
-            "n_paired_windows": int(paired.sum()),
-            "n_dropped_nonfinite": int((~paired).sum()),
-            f"median_{args.arm_a}": float(np.nanmedian(a)) if np.isfinite(a).any() else float("nan"),
-            f"median_{args.arm_b}": float(np.nanmedian(b)) if np.isfinite(b).any() else float("nan"),
-            "event_mean_difference": float(ev_diff_arr.mean()) if ev_diff_arr.size else float("nan"),
-            "event_hodges_lehmann_difference": hodges_lehmann(ev_diff_arr),
-            "event_ci_low": lo_ev,
-            "event_ci_high": hi_ev,
-            "event_wilcoxon_w": w_ev,
-            "event_testable": bool(np.isfinite(p_ev)),
-            "window_mean_difference": float(diff.mean()) if diff.size else float("nan"),
-            "window_hodges_lehmann_difference": hodges_lehmann(diff),
-            "window_mean_ci_low": lo_win,
-            "window_mean_ci_high": hi_win,
-            "window_p_raw": p_win,
-            "window_wilcoxon_w": w_win,
-            "cliffs_delta_windows": (
-                cliffs_delta(a, b) if paired.sum() <= HL_BOOTSTRAP_MAX_N else float("nan")
-            ),
-        })
+        rows.append(
+            {
+                "metric": metric,
+                "better_is": direction,
+                "n_events": n_events,
+                "n_paired_windows": int(paired.sum()),
+                "n_dropped_nonfinite": int((~paired).sum()),
+                f"median_{args.arm_a}": float(np.nanmedian(a)) if np.isfinite(a).any() else float("nan"),
+                f"median_{args.arm_b}": float(np.nanmedian(b)) if np.isfinite(b).any() else float("nan"),
+                "event_mean_difference": float(ev_diff_arr.mean()) if ev_diff_arr.size else float("nan"),
+                "event_hodges_lehmann_difference": hodges_lehmann(ev_diff_arr),
+                "event_ci_low": lo_ev,
+                "event_ci_high": hi_ev,
+                "event_wilcoxon_w": w_ev,
+                "event_testable": bool(np.isfinite(p_ev)),
+                "window_mean_difference": float(diff.mean()) if diff.size else float("nan"),
+                "window_hodges_lehmann_difference": hodges_lehmann(diff),
+                "window_mean_ci_low": lo_win,
+                "window_mean_ci_high": hi_win,
+                "window_p_raw": p_win,
+                "window_wilcoxon_w": w_win,
+                "cliffs_delta_windows": (cliffs_delta(a, b) if paired.sum() <= HL_BOOTSTRAP_MAX_N else float("nan")),
+            }
+        )
 
     corrected = holm(pvalues, args.alpha)
     for row in rows:
@@ -378,24 +378,24 @@ def main() -> None:
         "clustering_warning": (
             "The per-example CSV carries no spike_event_id; every row was treated as its own "
             "event, which reproduces the earlier anti-conservative behaviour."
-            if all(e.startswith("row") for e in event_ids) else
-            f"{len(shared)} channel-windows collapse to {n_events} independent spike events. "
+            if all(e.startswith("row") for e in event_ids)
+            else f"{len(shared)} channel-windows collapse to {n_events} independent spike events. "
             "Window-level statistics are reported for completeness but must not be quoted as "
             "evidence about spikes."
         ),
         "excluded_only_in_a": only_a,
         "excluded_only_in_b": only_b,
         "test": "Wilcoxon signed-rank, two-sided, normal approximation with tie and continuity "
-                "correction, applied to per-event mean differences",
+        "correction, applied to per-event mean differences",
         "effect_estimate": "Hodges-Lehmann median of per-event mean differences; window-level "
-                           "estimates and Cliff's delta reported alongside as descriptive only",
+        "estimates and Cliff's delta reported alongside as descriptive only",
         "interval": f"event level: percentile bootstrap of the Hodges-Lehmann estimate "
-                    f"({args.bootstrap} resamples, seed {args.seed}), i.e. the same statistic as "
-                    f"the reported effect. Window level: bootstrap of the mean difference, "
-                    f"labelled window_mean_ci_*, descriptive only.",
+        f"({args.bootstrap} resamples, seed {args.seed}), i.e. the same statistic as "
+        f"the reported effect. Window level: bootstrap of the mean difference, "
+        f"labelled window_mean_ci_*, descriptive only.",
         "multiplicity": f"Holm-Bonferroni across {len(pvalues)} metrics, alpha {args.alpha}",
         "caveat": "amplitude_ratio and latency_drift are compared as distance to their ideal "
-                  "(1.0 and 0 respectively), not as raw values",
+        "(1.0 and 0 respectively), not as raw values",
         "rows": rows,
     }
     (args.out / f"paired_{args.arm_a}_vs_{args.arm_b}{suffix}.json").write_text(
@@ -404,24 +404,32 @@ def main() -> None:
 
     width = max(len(r["metric"]) for r in rows)
     unit = "Spike-Ereignissen" if args.cluster_column == "spike_event_id" else "Clustern"
-    print(f"{args.arm_a} vs {args.arm_b}   {len(shared)} Kanalfenster aus "
-          f"{n_events} unabhängigen {unit} ({args.cluster_column})")
+    print(
+        f"{args.arm_a} vs {args.arm_b}   {len(shared)} Kanalfenster aus "
+        f"{n_events} unabhängigen {unit} ({args.cluster_column})"
+    )
     if n_events < 6:
-        print(f"  ACHTUNG: {n_events} Ereignisse reichen für keinen Vorzeichenrangtest "
-              "(Mindestzahl 6). Ereignisebene ist nicht testbar; die Fensterwerte unten sind "
-              "deskriptiv und dürfen nicht als Spike-Evidenz zitiert werden.")
-    print(f"{'metric':{width}s} {'ev':>3s} {'median A':>10s} {'median B':>10s} "
-          f"{'HL(Ereig.)':>11s} {'95% CI (Ereig.)':>22s} {'p_holm':>8s} | "
-          f"{'HL(Fenster)':>12s} {'p(Fenster)':>10s}")
+        print(
+            f"  ACHTUNG: {n_events} Ereignisse reichen für keinen Vorzeichenrangtest "
+            "(Mindestzahl 6). Ereignisebene ist nicht testbar; die Fensterwerte unten sind "
+            "deskriptiv und dürfen nicht als Spike-Evidenz zitiert werden."
+        )
+    print(
+        f"{'metric':{width}s} {'ev':>3s} {'median A':>10s} {'median B':>10s} "
+        f"{'HL(Ereig.)':>11s} {'95% CI (Ereig.)':>22s} {'p_holm':>8s} | "
+        f"{'HL(Fenster)':>12s} {'p(Fenster)':>10s}"
+    )
     print("-" * (width + 100))
     for r in rows:
         ci = f"[{r['event_ci_low']:.3g}, {r['event_ci_high']:.3g}]"
         p_ev = "n/a" if not r["event_testable"] else f"{r['p_holm']:.4g}"
-        print(f"{r['metric']:{width}s} {r['n_events']:>3d} {r[f'median_{args.arm_a}']:>10.4g} "
-              f"{r[f'median_{args.arm_b}']:>10.4g} {r['event_hodges_lehmann_difference']:>11.4g} "
-              f"{ci:>22s} {p_ev:>8s} | {r['window_hodges_lehmann_difference']:>12.4g} "
-              f"{r['window_p_raw']:>10.3g}"
-              f"{'  *' if r['significant'] else ''}")
+        print(
+            f"{r['metric']:{width}s} {r['n_events']:>3d} {r[f'median_{args.arm_a}']:>10.4g} "
+            f"{r[f'median_{args.arm_b}']:>10.4g} {r['event_hodges_lehmann_difference']:>11.4g} "
+            f"{ci:>22s} {p_ev:>8s} | {r['window_hodges_lehmann_difference']:>12.4g} "
+            f"{r['window_p_raw']:>10.3g}"
+            f"{'  *' if r['significant'] else ''}"
+        )
     print(f"\nwrote {csv_path}")
 
 

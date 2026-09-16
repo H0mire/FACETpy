@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/conv_tasnet",
+  "title": "Conv-TasNet",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Waveform",
+      "description": "One noisy EEG channel"
+    },
+    {
+      "title": "Encoder + TCN",
+      "description": "Learn temporal source masks"
+    },
+    {
+      "title": "Mask + decoder",
+      "description": "Decode each separated source"
+    },
+    {
+      "title": "Sources",
+      "description": "Clean EEG and artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Noisy waveform",
+      "description": [
+        "Batch x 1 x samples."
+      ],
+      "row": 0
+    },
+    {
+      "id": "encode",
+      "title": "Learned analysis filters",
+      "description": [
+        "Linear strided Conv1d by default."
+      ],
+      "row": 1
+    },
+    {
+      "id": "bottle",
+      "title": "Normalise and project",
+      "description": [
+        "Global layer normalisation and 1x1 bottleneck."
+      ],
+      "row": 2
+    },
+    {
+      "id": "tcn",
+      "title": "Temporal convolution stack",
+      "description": [
+        "Repeated dilated depthwise-convolution blocks.",
+        "Each block emits a residual update and a skip contribution."
+      ],
+      "row": 3
+    },
+    {
+      "id": "mask",
+      "title": "Source mask head",
+      "description": [
+        "Sum skip outputs; PReLU and 1x1 projection.",
+        "Separate skip-channel width; configured mask activation."
+      ],
+      "row": 4
+    },
+    {
+      "id": "apply",
+      "title": "Apply masks to encoding",
+      "description": [
+        "Multiply each source mask by the original encoded features."
+      ],
+      "row": 5
+    },
+    {
+      "id": "decode",
+      "title": "Shared synthesis decoder",
+      "description": [
+        "Transposed convolution per source; crop to input length."
+      ],
+      "row": 6
+    },
+    {
+      "id": "output",
+      "title": "Ordered sources",
+      "description": [
+        "Source 0: clean EEG; source 1: gradient artifact for the two-source setup."
+      ],
+      "row": 7
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "encode",
+      "kind": "flow",
+      "label": "Noisy waveform to Learned analysis filters"
+    },
+    {
+      "source": "encode",
+      "target": "bottle",
+      "kind": "flow",
+      "label": "Learned analysis filters to Normalise and project"
+    },
+    {
+      "source": "bottle",
+      "target": "tcn",
+      "kind": "flow",
+      "label": "Normalise and project to Temporal convolution stack"
+    },
+    {
+      "source": "tcn",
+      "target": "mask",
+      "kind": "flow",
+      "label": "Temporal convolution stack to Source mask head"
+    },
+    {
+      "source": "mask",
+      "target": "apply",
+      "kind": "flow",
+      "label": "Source mask head to Apply masks to encoding"
+    },
+    {
+      "source": "apply",
+      "target": "decode",
+      "kind": "flow",
+      "label": "Apply masks to encoding to Shared synthesis decoder"
+    },
+    {
+      "source": "decode",
+      "target": "output",
+      "kind": "flow",
+      "label": "Shared synthesis decoder to Ordered sources"
+    },
+    {
+      "source": "encode",
+      "target": "apply",
+      "kind": "skip",
+      "label": "Unmasked encoded features"
+    }
+  ],
+  "notes": [
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/conv_tasnet/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/conv_tasnet/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

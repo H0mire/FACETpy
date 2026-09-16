@@ -31,3 +31,9 @@ Source-paper record
 -------------------
 
 Cai et al. (2025), DHCT-GAN. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-dhct-gan` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

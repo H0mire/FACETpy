@@ -16,7 +16,10 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from masterthesis_guide.reproduce import load_catalog, sha256
+from masterthesis_guide.reproduce import (  # noqa: E402 - repository path is set before checkout-only imports
+    load_catalog,
+    sha256,
+)
 
 
 def records(catalog, result_id):

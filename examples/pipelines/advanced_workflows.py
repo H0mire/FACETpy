@@ -11,32 +11,31 @@ Three patterns for less common but important use cases:
 from pathlib import Path
 
 from facet import (
-    Pipeline,
-    Loader,
-    EDFExporter,
-    TriggerDetector,
-    TriggerAligner,
-    HighPassFilter,
-    LowPassFilter,
-    UpSample,
-    DownSample,
     AASCorrection,
-    PCACorrection,
-    SNRCalculator,
-    RMSCalculator,
-    MetricsReport,
-    RawPlotter,
     ConditionalProcessor,
+    DownSample,
+    EDFExporter,
+    HighPassFilter,
+    Loader,
+    LowPassFilter,
+    MetricsReport,
+    PCACorrection,
+    Pipeline,
+    RMSCalculator,
+    SNRCalculator,
+    TriggerAligner,
+    TriggerDetector,
+    UpSample,
     create_standard_pipeline,
 )
 
 OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILE    = "./examples/datasets/NiazyFMRI.edf"
-OUTPUT_FILE   = str(OUTPUT_DIR / "corrected_advanced.edf")
+INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
+OUTPUT_FILE = str(OUTPUT_DIR / "corrected_advanced.edf")
 TRIGGER_REGEX = r"\b1\b"
-UPSAMPLE      = 10
+UPSAMPLE = 10
 
 
 # ---------------------------------------------------------------------------
@@ -47,23 +46,26 @@ def example_conditional():
         # ctx.get_metric() is a clean shortcut for accessing evaluation results
         return ctx.get_metric("snr", default=float("inf")) < 10
 
-    pipeline = Pipeline([
-        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
-        TriggerDetector(regex=TRIGGER_REGEX),
-        HighPassFilter(freq=1.0),
-        UpSample(factor=UPSAMPLE),
-        AASCorrection(window_size=30),
-        DownSample(factor=UPSAMPLE),
-        LowPassFilter(freq=70),
-        SNRCalculator(),
-        # PCA runs only when SNR < 10 dB
-        ConditionalProcessor(
-            condition=snr_too_low,
-            processor=PCACorrection(n_components=0.95),
-        ),
-        MetricsReport(),
-        EDFExporter(path=OUTPUT_FILE, overwrite=True),
-    ], name="Conditional PCA")
+    pipeline = Pipeline(
+        [
+            Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+            TriggerDetector(regex=TRIGGER_REGEX),
+            HighPassFilter(freq=1.0),
+            UpSample(factor=UPSAMPLE),
+            AASCorrection(window_size=30),
+            DownSample(factor=UPSAMPLE),
+            LowPassFilter(freq=70),
+            SNRCalculator(),
+            # PCA runs only when SNR < 10 dB
+            ConditionalProcessor(
+                condition=snr_too_low,
+                processor=PCACorrection(n_components=0.95),
+            ),
+            MetricsReport(),
+            EDFExporter(path=OUTPUT_FILE, overwrite=True),
+        ],
+        name="Conditional PCA",
+    )
 
     result = pipeline.run()
     result.print_summary()
@@ -74,19 +76,22 @@ def example_conditional():
 # B. Parallel execution
 # ---------------------------------------------------------------------------
 def example_parallel():
-    pipeline = Pipeline([
-        Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
-        TriggerDetector(regex=TRIGGER_REGEX),
-        HighPassFilter(freq=1.0),
-        UpSample(factor=UPSAMPLE),
-        TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
-        AASCorrection(window_size=30, correlation_threshold=0.975),
-        DownSample(factor=UPSAMPLE),
-        LowPassFilter(freq=70),
-        RMSCalculator(),
-        MetricsReport(),
-        EDFExporter(path=OUTPUT_FILE, overwrite=True),
-    ], name="Parallel AAS")
+    pipeline = Pipeline(
+        [
+            Loader(path=INPUT_FILE, preload=True, artifact_to_trigger_offset=-0.005),
+            TriggerDetector(regex=TRIGGER_REGEX),
+            HighPassFilter(freq=1.0),
+            UpSample(factor=UPSAMPLE),
+            TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
+            AASCorrection(window_size=30, correlation_threshold=0.975),
+            DownSample(factor=UPSAMPLE),
+            LowPassFilter(freq=70),
+            RMSCalculator(),
+            MetricsReport(),
+            EDFExporter(path=OUTPUT_FILE, overwrite=True),
+        ],
+        name="Parallel AAS",
+    )
 
     # parallel=True enables channel-wise joblib parallelism for compatible steps
     result = pipeline.run(parallel=True, n_jobs=-1)

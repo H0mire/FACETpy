@@ -132,8 +132,8 @@ def main() -> None:
         | PCACorrection(n_components=args.n_components, hp_freq=args.hp_freq)
     )
 
-    artifact_raw = _artifact_raw(context)          # AAS + PCA combined estimate
-    corrected_raw = _pick_eeg(context.get_raw())   # original - (AAS + PCA)
+    artifact_raw = _artifact_raw(context)  # AAS + PCA combined estimate
+    corrected_raw = _pick_eeg(context.get_raw())  # original - (AAS + PCA)
 
     triggers = context.get_triggers()
     triggers = np.asarray(triggers if triggers is not None else [], dtype=np.int64)
@@ -182,7 +182,9 @@ def main() -> None:
     print(f"Saved combined {args.method.upper()} + PCA(OBS) artifact bundle:")
     print(f"  npz       : {npz_path}")
     print(f"  metadata  : {args.output_dir / METADATA_NAME}")
-    print(f"  artifact  : {args.method.upper()} + PCACorrection(n_components={args.n_components}, hp_freq={args.hp_freq})")
+    print(
+        f"  artifact  : {args.method.upper()} + PCACorrection(n_components={args.n_components}, hp_freq={args.hp_freq})"
+    )
     print(f"  channels  : {len(artifact_raw.ch_names)}")
     print(f"  samples   : {artifact_raw.n_times}")
     print(f"  sfreq     : {artifact_raw.info['sfreq']} Hz")

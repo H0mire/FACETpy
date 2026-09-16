@@ -8,10 +8,9 @@ from pathlib import Path
 
 import numpy as np
 
-from facet.models.masterthesis.adapters import predict_from_context
-from masterthesis_guide.reproduce import ROOT, adapter, data_path, load_catalog
 from facet.evaluation.thesis_metrics import compute_metrics
-from masterthesis_guide.reproduce import load_holdout
+from facet.models.masterthesis.adapters import predict_from_context
+from masterthesis_guide.reproduce import ROOT, adapter, data_path, load_catalog, load_holdout
 
 
 def main(argv=None):

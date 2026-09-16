@@ -6,7 +6,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 TOOLKIT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLKIT_DIR))
@@ -15,7 +14,6 @@ from facetpy_svg import (  # noqa: E402
     CANVAS_W,
     C,
     Diagram,
-    capsule,
     card,
     container,
     edge,

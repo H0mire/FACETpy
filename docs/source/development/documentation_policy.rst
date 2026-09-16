@@ -23,3 +23,21 @@ Earlier phases remain relevant whenever the thesis uses their results. Age alone
 is never a reason to exclude evidence. Keep necessary negative findings and
 variant differences, and remove material only after checking its scientific and
 runtime dependencies.
+
+Diagram sources and skill
+-------------------------
+
+Each model package owns two generated SVGs and their editable JSON architecture
+profile in ``diagrams/``. The overview fits within half an A4 page; the detailed
+view can grow vertically. The model diagram gallery is generated from the same
+profiles. The canonical FACETpy diagram skill lives in
+``.agents/skills/facetpy-diagram``; the Claude skill path links to it. Skill Markdown
+is an implementation-instruction exception, not a second documentation tree.
+
+Regenerate and check diagrams with::
+
+    uv run python tools/diagrams/build_model_diagrams.py
+    uv run python tools/diagrams/build_model_diagrams.py --check
+
+PNG previews are optional local review files. Rendering them requires librsvg's
+``rsvg-convert``; generating and checking SVGs requires only Python.

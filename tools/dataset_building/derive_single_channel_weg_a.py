@@ -42,12 +42,13 @@ KONTEXT_SCHLUESSEL = ("artifact_context", "artifact_context_template", "clean_co
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--input", type=Path,
-                    default=REPO / "output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz")
-    ap.add_argument("--output", type=Path,
-                    default=REPO / "output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz")
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument(
+        "--input", type=Path, default=REPO / "output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz"
+    )
+    ap.add_argument(
+        "--output", type=Path, default=REPO / "output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz"
+    )
     args = ap.parse_args()
 
     if args.output.resolve() == args.input.resolve():
@@ -57,8 +58,10 @@ def main() -> int:
     nachbarn = b["neighbor_channel_indices"]
     ziel = b["target_channel_index"]
     if not bool((nachbarn[:, 0] == ziel).all()):
-        raise SystemExit("Spalte 0 der Nachbartabelle ist nicht die Zielelektrode -- "
-                         "die Annahme dieses Skripts gilt für diese Datei nicht.")
+        raise SystemExit(
+            "Spalte 0 der Nachbartabelle ist nicht die Zielelektrode -- "
+            "die Annahme dieses Skripts gilt für diese Datei nicht."
+        )
 
     neu: dict[str, np.ndarray] = {}
     for k in b.files:
@@ -85,17 +88,22 @@ def main() -> int:
         if "input_shape" in m:
             m["input_shape"] = [m["input_shape"][0], 1, m["input_shape"][2]]
         m["derived_from"] = str(args.input.relative_to(REPO))
-        m["derivation"] = ("Nachbarachse abgeschnitten (Spalte 0 = Zielelektrode). "
-                           "Beispiele, Split, Spikes und Fehlermodi sind bitgleich zur Quelle.")
+        m["derivation"] = (
+            "Nachbarachse abgeschnitten (Spalte 0 = Zielelektrode). "
+            "Beispiele, Split, Spikes und Fehlermodi sind bitgleich zur Quelle."
+        )
         args.output.with_name(args.output.stem + "_metadata.json").write_text(
-            json.dumps(m, indent=1, ensure_ascii=False))
+            json.dumps(m, indent=1, ensure_ascii=False)
+        )
 
     for k in KONTEXT_SCHLUESSEL:
         if k in neu:
             print(f"  {k:28s} {b[k].shape} -> {neu[k].shape}")
-    print(f"\ngeschrieben: {args.output}  "
-          f"({args.output.stat().st_size / 2**30:.2f} GiB, Quelle "
-          f"{args.input.stat().st_size / 2**30:.2f} GiB)")
+    print(
+        f"\ngeschrieben: {args.output}  "
+        f"({args.output.stat().st_size / 2**30:.2f} GiB, Quelle "
+        f"{args.input.stat().st_size / 2**30:.2f} GiB)"
+    )
     return 0
 
 

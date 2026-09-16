@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/st_gnn",
+  "title": "ST-GNN",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "EEG + montage",
+      "description": "Temporal context and electrode graph"
+    },
+    {
+      "title": "ST blocks",
+      "description": "Temporal gates and graph filters"
+    },
+    {
+      "title": "Projection",
+      "description": "Waveform at each electrode"
+    },
+    {
+      "title": "Centre slice",
+      "description": "Multichannel artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Multichannel context",
+      "description": [
+        "Rearrange to batch x features x electrodes x time."
+      ],
+      "row": 0,
+      "column": 0
+    },
+    {
+      "id": "graph",
+      "title": "Electrode graph",
+      "description": [
+        "Geodesic montage adjacency and scaled graph Laplacian."
+      ],
+      "row": 0,
+      "column": 1
+    },
+    {
+      "id": "blocks",
+      "title": "Two spatiotemporal blocks",
+      "description": [
+        "Temporal GLU -> Chebyshev graph convolution -> temporal GLU.",
+        "Spatial bottleneck, residual path and channel LayerNorm."
+      ],
+      "row": 1
+    },
+    {
+      "id": "head",
+      "title": "Temporal and output head",
+      "description": [
+        "Final temporal convolution, ReLU and 1x1 projection."
+      ],
+      "row": 2
+    },
+    {
+      "id": "output",
+      "title": "Centre-epoch artifact",
+      "description": [
+        "Slice the centre epoch; output batch x electrodes x samples."
+      ],
+      "row": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "blocks",
+      "kind": "flow",
+      "label": "Multichannel context to Two spatiotemporal blocks"
+    },
+    {
+      "source": "graph",
+      "target": "blocks",
+      "kind": "conditioning",
+      "label": "Laplacian for Chebyshev filters"
+    },
+    {
+      "source": "blocks",
+      "target": "head",
+      "kind": "flow",
+      "label": "Two spatiotemporal blocks to Temporal and output head"
+    },
+    {
+      "source": "head",
+      "target": "output",
+      "kind": "flow",
+      "label": "Temporal and output head to Centre-epoch artifact"
+    }
+  ],
+  "notes": [
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/st_gnn/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/st_gnn/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

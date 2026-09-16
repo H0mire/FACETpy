@@ -119,7 +119,9 @@ def _base_gradient_template(n_samples: int, *, n_slices: int = 21) -> np.ndarray
     in_mask = (sample_phase >= active_start) & (sample_phase < fade_in_stop)
     out_mask = (sample_phase > fade_out_start) & (sample_phase <= active_stop)
     fade[in_mask] = 0.5 - 0.5 * np.cos(np.pi * (sample_phase[in_mask] - active_start) / (fade_in_stop - active_start))
-    fade[out_mask] = 0.5 + 0.5 * np.cos(np.pi * (sample_phase[out_mask] - fade_out_start) / (active_stop - fade_out_start))
+    fade[out_mask] = 0.5 + 0.5 * np.cos(
+        np.pi * (sample_phase[out_mask] - fade_out_start) / (active_stop - fade_out_start)
+    )
 
     template *= fade
     template = _smooth(template, sigma_samples=0.70)

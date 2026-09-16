@@ -81,7 +81,7 @@ def compute_metrics(
         return float(np.mean((a - b) ** 2))
 
     def _rms(a: np.ndarray) -> float:
-        return float(np.sqrt(np.mean(a ** 2)))
+        return float(np.sqrt(np.mean(a**2)))
 
     def _flat_corr(a: np.ndarray, b: np.ndarray) -> float:
         a_f = a.reshape(-1)
@@ -94,8 +94,8 @@ def compute_metrics(
         return float(np.dot(a_f, b_f) / denom)
 
     def _snr_db(signal: np.ndarray, residual: np.ndarray) -> float:
-        sig_pow = float(np.mean(signal ** 2))
-        res_pow = float(np.mean(residual ** 2))
+        sig_pow = float(np.mean(signal**2))
+        res_pow = float(np.mean(residual**2))
         if res_pow == 0.0:
             return float("inf")
         return 10.0 * float(np.log10(sig_pow / res_pow))
@@ -282,27 +282,28 @@ def main() -> None:
         artifacts["loss_log"] = str(loss_path.relative_to(run.run_dir))
 
     interpretation = (
-        "Validation set: {n_val} examples (seed={seed}, val_ratio={vr}). "
+        f"Validation set: {len(val_idx)} examples (seed={args.seed}, val_ratio={args.val_ratio}). "
         "Chebyshev order K=3, hidden=16, two ST-Conv blocks. "
         "Compare flat_metrics.synthetic.* against cascaded_context_dae and "
-        "cascaded_dae on the same Niazy proof-fit split.".format(
-            n_val=len(val_idx), seed=args.seed, vr=args.val_ratio,
-        )
+        "cascaded_dae on the same Niazy proof-fit split."
     )
     limitations = [
         "Niazy proof-fit dataset uses AAS-derived clean and artifact targets; "
         "absolute metrics overstate generalisation to independent recordings.",
         "Validation split is in-recording; the model has been exposed to the "
         "same artifact morphology family at training time.",
-        "Per-electrode adjacency assumes the Niazy 30-channel layout in the "
-        "exact stored order.",
+        "Per-electrode adjacency assumes the Niazy 30-channel layout in the exact stored order.",
     ]
 
     config = {
         "checkpoint": str(checkpoint),
         "dataset": str(dataset_path),
-        "split": {"val_ratio": args.val_ratio, "seed": args.seed,
-                   "n_train": int(len(train_idx)), "n_val": int(len(val_idx))},
+        "split": {
+            "val_ratio": args.val_ratio,
+            "seed": args.seed,
+            "n_train": int(len(train_idx)),
+            "n_val": int(len(val_idx)),
+        },
         "device": args.device,
         "architecture": {
             "context_epochs": int(noisy_context.shape[1]),

@@ -122,3 +122,10 @@ worktrees/
 !artifacts/exports/**/*.h5
 !artifacts/exports/**/*.hdf5
 !artifacts/exports/**/*.pkl
+
+# Share the diagram skill with Claude without tracking private Claude state.
+!.claude/
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/facetpy-diagram

@@ -13,39 +13,39 @@ from pathlib import Path
 REPOSITORY = Path(__file__).resolve().parents[2]
 
 # Keep MNE config/cache inside the docs workspace during builds.
-_mne_home = str(REPOSITORY / 'docs/.mne')
+_mne_home = str(REPOSITORY / "docs/.mne")
 os.makedirs(_mne_home, exist_ok=True)
 os.environ.setdefault("MNE_HOME", _mne_home)
 os.environ.setdefault("MNE_DONTWRITE_HOME", "true")
 
-sys.path.insert(0, str(REPOSITORY / 'src'))
+sys.path.insert(0, str(REPOSITORY / "src"))
 
-project = 'FACETpy'
-copyright = '2025, FACETpy Team'
-author = 'FACETpy Team'
-release = '2.1.0'
-version = '2.1'
+project = "FACETpy"
+copyright = "2025, FACETpy Team"
+author = "FACETpy Team"
+release = "2.1.0"
+version = "2.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
 ]
 
 # Autosummary settings
 autosummary_generate = True
 autodoc_default_options = {
-    'members': True,
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
+    "members": True,
+    "member-order": "bysource",
+    "special-members": "__init__",
+    "undoc-members": True,
+    "exclude-members": "__weakref__",
 }
 autodoc_type_aliases = {
     "Path": "pathlib.Path",
@@ -95,29 +95,29 @@ nitpick_ignore_regex = [
 
 # Intersphinx mapping
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
-    'mne': ('https://mne.tools/stable/', None),
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "mne": ("https://mne.tools/stable/", None),
 }
 
-source_suffix = {'.rst': 'restructuredtext'}
+source_suffix = {".rst": "restructuredtext"}
 
-templates_path = ['_templates']
+templates_path = ["_templates"]
 exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
-html_logo = '_static/logo.png'
+html_theme = "sphinx_rtd_theme"
+html_static_path = ["_static"]
+html_logo = "_static/logo.png"
 
 html_theme_options = {
-    'navigation_depth': 4,
-    'collapse_navigation': False,
-    'sticky_navigation': True,
-    'includehidden': True,
-    'titles_only': False
+    "navigation_depth": 4,
+    "collapse_navigation": False,
+    "sticky_navigation": True,
+    "includehidden": True,
+    "titles_only": False,
 }
 
 # -- Options for todo extension ----------------------------------------------
@@ -127,4 +127,5 @@ todo_include_todos = True
 def setup(app):
     sys.path.insert(0, str(REPOSITORY))
     from masterthesis_guide.reproduce import generate_indexes
+
     generate_indexes(root=REPOSITORY)

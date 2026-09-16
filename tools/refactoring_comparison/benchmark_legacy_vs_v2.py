@@ -56,7 +56,7 @@ TASK = {
     "aas_window_size": 25,
     "lowpass_hz": 40.0,
     "note": "Identical steps in identical order on both sides. The v2 pipeline "
-            "expresses them as processors, the 0.1.0 API as method calls on a facade.",
+    "expresses them as processors, the 0.1.0 API as method calls on a facade.",
 }
 
 #: Parity tolerance, fixed before the comparison ran.
@@ -70,11 +70,11 @@ PARITY = {
     "metric": "per-channel RMS of (legacy_corrected - v2_corrected), relative to RMS(uncorrected)",
     "tolerance_relative": 0.05,
     "rationale": "5 % of the uncorrected amplitude. Tight enough that a different "
-                 "artifact estimate fails it, loose enough to tolerate differing "
-                 "filter edge handling and epoch bookkeeping.",
+    "artifact estimate fails it, loose enough to tolerate differing "
+    "filter edge handling and epoch bookkeeping.",
 }
 
-WORKER = r'''
+WORKER = r"""
 import json, os, resource, sys, time, warnings
 warnings.filterwarnings("ignore")
 arm, input_path, out_npz, legacy_path = sys.argv[1:5]
@@ -140,14 +140,17 @@ if out_npz:
 print(json.dumps({"arm": arm, "elapsed_seconds": elapsed, "peak_rss_bytes": int(peak),
                   "n_channels": len(raw.ch_names), "sfreq": float(raw.info["sfreq"]),
                   "n_samples": int(raw.n_times)}))
-'''
+"""
 
 
 def run_once(arm: str, input_path: Path, legacy_path: Path, out_npz: Path | None) -> dict:
     env = dict(os.environ, FACET_REPO=str(REPO), PYTHONWARNINGS="ignore")
     proc = subprocess.run(
         [sys.executable, "-c", WORKER, arm, str(input_path), str(out_npz or ""), str(legacy_path)],
-        capture_output=True, text=True, env=env, cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=str(REPO),
     )
     if proc.returncode != 0:
         raise RuntimeError(f"{arm} worker failed:\n{proc.stdout[-2000:]}\n{proc.stderr[-4000:]}")
@@ -156,12 +159,12 @@ def run_once(arm: str, input_path: Path, legacy_path: Path, out_npz: Path | None
 
 def uncorrected_rms(input_path: Path) -> dict[str, float]:
     import mne
+
     raw = mne.io.read_raw_edf(input_path, preload=True, verbose="ERROR")
     raw.drop_channels([c for c in TASK["dropped_channels"] if c in raw.ch_names])
     picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False, exclude=[])
     data = raw.get_data(picks=picks) * 1e6
-    return {raw.ch_names[i]: float(np.sqrt(np.mean(d ** 2)))
-            for i, d in zip(picks, data)}
+    return {raw.ch_names[i]: float(np.sqrt(np.mean(d**2))) for i, d in zip(picks, data, strict=False)}
 
 
 def parity(legacy_npz: Path, current_npz: Path, ref_rms: dict[str, float]) -> dict:
@@ -176,27 +179,32 @@ def parity(legacy_npz: Path, current_npz: Path, ref_rms: dict[str, float]) -> di
         db = b["data"][names_b.index(name)][:n] * 1e6
         diff = float(np.sqrt(np.mean((da - db) ** 2)))
         ref = ref_rms.get(name, float("nan"))
-        rows.append({
-            "channel": name,
-            "rms_legacy_uv": float(np.sqrt(np.mean(da ** 2))),
-            "rms_current_uv": float(np.sqrt(np.mean(db ** 2))),
-            "rms_difference_uv": diff,
-            "relative_to_uncorrected": diff / ref if ref and np.isfinite(ref) else float("nan"),
-            "within_tolerance": bool(diff / ref <= PARITY["tolerance_relative"])
-            if ref and np.isfinite(ref) else False,
-            "pearson_r": float(np.corrcoef(da, db)[0, 1]),
-        })
+        rows.append(
+            {
+                "channel": name,
+                "rms_legacy_uv": float(np.sqrt(np.mean(da**2))),
+                "rms_current_uv": float(np.sqrt(np.mean(db**2))),
+                "rms_difference_uv": diff,
+                "relative_to_uncorrected": diff / ref if ref and np.isfinite(ref) else float("nan"),
+                "within_tolerance": bool(diff / ref <= PARITY["tolerance_relative"])
+                if ref and np.isfinite(ref)
+                else False,
+                "pearson_r": float(np.corrcoef(da, db)[0, 1]),
+            }
+        )
     passed = sum(1 for r in rows if r["within_tolerance"])
     return {
         "definition": PARITY,
         "n_shared_channels": len(shared),
         "n_within_tolerance": passed,
         "n_samples_compared": int(n),
-        "sfreq_legacy": float(a["sfreq"][0]), "sfreq_current": float(b["sfreq"][0]),
+        "sfreq_legacy": float(a["sfreq"][0]),
+        "sfreq_current": float(b["sfreq"][0]),
         "median_relative_difference": float(np.median([r["relative_to_uncorrected"] for r in rows])),
         "median_pearson_r": float(np.median([r["pearson_r"] for r in rows])),
-        "verdict": "Parität innerhalb der Toleranz" if passed == len(rows) else
-                   f"{len(rows) - passed} von {len(rows)} Kanälen außerhalb der Toleranz",
+        "verdict": "Parität innerhalb der Toleranz"
+        if passed == len(rows)
+        else f"{len(rows) - passed} von {len(rows)} Kanälen außerhalb der Toleranz",
         "channels": rows,
     }
 
@@ -219,8 +227,11 @@ def main() -> None:
         for i in range(args.repetitions):
             r = run_once(arm, args.input, args.legacy_path, None)
             reps.append(r)
-            print(f"[{arm}] rep {i + 1}/{args.repetitions}: "
-                  f"{r['elapsed_seconds']:.2f} s, {r['peak_rss_bytes'] / 2**20:.0f} MiB", flush=True)
+            print(
+                f"[{arm}] rep {i + 1}/{args.repetitions}: "
+                f"{r['elapsed_seconds']:.2f} s, {r['peak_rss_bytes'] / 2**20:.0f} MiB",
+                flush=True,
+            )
         times = [r["elapsed_seconds"] for r in reps]
         peaks = [r["peak_rss_bytes"] for r in reps]
         results[arm] = {
@@ -232,8 +243,8 @@ def main() -> None:
             "elapsed_seconds_min": float(np.min(times)),
             "elapsed_seconds_all": times,
             "peak_rss_bytes_mean": float(np.mean(peaks)),
-            "peak_rss_mib_mean": float(np.mean(peaks)) / 2 ** 20,
-            "peak_rss_mib_all": [x / 2 ** 20 for x in peaks],
+            "peak_rss_mib_mean": float(np.mean(peaks)) / 2**20,
+            "peak_rss_mib_all": [x / 2**20 for x in peaks],
             "output_channels": warm["n_channels"],
             "output_sfreq": warm["sfreq"],
             "output_samples": warm["n_samples"],
@@ -252,41 +263,48 @@ def main() -> None:
             "numpy": np.__version__,
             "precision": "float64 throughout (MNE default); no GPU involved on either arm",
             "memory_definition": "peak resident set size of the worker process (ru_maxrss), "
-                                 "one fresh process per repetition",
-            "timing_definition": "wall clock around the full task inside the worker, "
-                                 "excluding interpreter start-up",
+            "one fresh process per repetition",
+            "timing_definition": "wall clock around the full task inside the worker, excluding interpreter start-up",
         },
         "arms": results,
-        "speedup_current_over_legacy": results["legacy"]["elapsed_seconds_mean"] /
-                                       results["current"]["elapsed_seconds_mean"],
-        "memory_ratio_current_over_legacy": results["current"]["peak_rss_mib_mean"] /
-                                            results["legacy"]["peak_rss_mib_mean"],
-        "speedup_matched_over_legacy": results["legacy"]["elapsed_seconds_mean"] /
-                                       results["current_matched"]["elapsed_seconds_mean"],
+        "speedup_current_over_legacy": results["legacy"]["elapsed_seconds_mean"]
+        / results["current"]["elapsed_seconds_mean"],
+        "memory_ratio_current_over_legacy": results["current"]["peak_rss_mib_mean"]
+        / results["legacy"]["peak_rss_mib_mean"],
+        "speedup_matched_over_legacy": results["legacy"]["elapsed_seconds_mean"]
+        / results["current_matched"]["elapsed_seconds_mean"],
         "parity": par,
         "parity_against_shipped_default": par_default,
         "parity_note": "The registered parity check compares the legacy arm against "
-                       "'current_matched' — the v2 pipeline with the post-averaging "
-                       "realignment switched off, i.e. the same algorithm. "
-                       "'parity_against_shipped_default' additionally shows how far the "
-                       "shipped default moves the result, which is a feature difference, "
-                       "not a refactoring defect.",
+        "'current_matched' — the v2 pipeline with the post-averaging "
+        "realignment switched off, i.e. the same algorithm. "
+        "'parity_against_shipped_default' additionally shows how far the "
+        "shipped default moves the result, which is a feature difference, "
+        "not a refactoring defect.",
     }
     out = args.out / "benchmark_legacy_vs_v2.json"
     out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    print(f"\nLaufzeit  legacy {results['legacy']['elapsed_seconds_mean']:.2f} ± "
-          f"{results['legacy']['elapsed_seconds_sd']:.2f} s | "
-          f"v2 {results['current']['elapsed_seconds_mean']:.2f} ± "
-          f"{results['current']['elapsed_seconds_sd']:.2f} s "
-          f"(Faktor {payload['speedup_current_over_legacy']:.2f})")
-    print(f"Peak-RSS  legacy {results['legacy']['peak_rss_mib_mean']:.0f} MiB | "
-          f"v2 {results['current']['peak_rss_mib_mean']:.0f} MiB "
-          f"(Faktor {payload['memory_ratio_current_over_legacy']:.2f})")
-    print(f"Parität (gleicher Algorithmus)  {par['verdict']}: Median relative Differenz "
-          f"{par['median_relative_difference']:.4f}, Median r {par['median_pearson_r']:.4f}")
-    print(f"Parität (v2-Voreinstellung)     {par_default['verdict']}: Median relative Differenz "
-          f"{par_default['median_relative_difference']:.4f}, Median r {par_default['median_pearson_r']:.4f}")
+    print(
+        f"\nLaufzeit  legacy {results['legacy']['elapsed_seconds_mean']:.2f} ± "
+        f"{results['legacy']['elapsed_seconds_sd']:.2f} s | "
+        f"v2 {results['current']['elapsed_seconds_mean']:.2f} ± "
+        f"{results['current']['elapsed_seconds_sd']:.2f} s "
+        f"(Faktor {payload['speedup_current_over_legacy']:.2f})"
+    )
+    print(
+        f"Peak-RSS  legacy {results['legacy']['peak_rss_mib_mean']:.0f} MiB | "
+        f"v2 {results['current']['peak_rss_mib_mean']:.0f} MiB "
+        f"(Faktor {payload['memory_ratio_current_over_legacy']:.2f})"
+    )
+    print(
+        f"Parität (gleicher Algorithmus)  {par['verdict']}: Median relative Differenz "
+        f"{par['median_relative_difference']:.4f}, Median r {par['median_pearson_r']:.4f}"
+    )
+    print(
+        f"Parität (v2-Voreinstellung)     {par_default['verdict']}: Median relative Differenz "
+        f"{par_default['median_relative_difference']:.4f}, Median r {par_default['median_pearson_r']:.4f}"
+    )
     print(f"\nwrote {out}")
 
 

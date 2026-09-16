@@ -52,7 +52,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--model-kwargs",
         default="{}",
-        help='JSON of the architecture kwargs the run was trained with, e.g. \'{"attention_levels": 2}\'. '
+        help="JSON of the architecture kwargs the run was trained with, e.g. '{\"attention_levels\": 2}'. "
         "Defaults differing from the trained config make the checkpoint unloadable.",
     )
     p.add_argument(
@@ -110,9 +110,9 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.0,
         help="Widen the spike core label by this many ms in both directions before "
-             "computing the metrics. The builder labels only +/-3 samples around the "
-             "marker, while the injected IED occupies tens of ms; dilating lets the "
-             "morphology metric score the whole waveform instead of the peak core.",
+        "computing the metrics. The builder labels only +/-3 samples around the "
+        "marker, while the injected IED occupies tens of ms; dilating lets the "
+        "morphology metric score the whole waveform instead of the peak core.",
     )
     p.add_argument(
         "--epoch-duration-s",
@@ -128,7 +128,9 @@ def _resolve(spec: str):
     return getattr(import_module(module_name), attr)
 
 
-def _load_model(checkpoint: Path, input_shape: tuple[int, int, int], device: str, factory: str, kwargs: dict) -> torch.nn.Module:
+def _load_model(
+    checkpoint: Path, input_shape: tuple[int, int, int], device: str, factory: str, kwargs: dict
+) -> torch.nn.Module:
     state = torch.load(checkpoint, map_location="cpu", weights_only=False)
     for key in ("model_state_dict", "state_dict", "model"):
         if isinstance(state, dict) and key in state and isinstance(state[key], dict):
@@ -191,8 +193,7 @@ def main() -> None:
         shift = max(-guard, min(int(args.window_shift), guard))
         misalign = max(-guard, min(int(args.trigger_misalign), guard))
         if shift != args.window_shift or misalign != args.trigger_misalign:
-            print(f"note: shifts clipped to the guard band of {guard} samples "
-                  f"(window {shift}, misalign {misalign})")
+            print(f"note: shifts clipped to the guard band of {guard} samples (window {shift}, misalign {misalign})")
         sl = slice(guard + shift, guard + shift + core)
         # The template keeps its own crop so a misalignment can be simulated: the
         # signal moves, the template does not, which is what an imperfect trigger
@@ -206,7 +207,7 @@ def main() -> None:
             are cut at load time: the resident set then holds what the model
             actually sees rather than three full copies of the dataset.
             """
-            arr = b[key][val]                                    # (n, ep, ch, L)
+            arr = b[key][val]  # (n, ep, ch, L)
             if args.max_channels is not None:
                 # Must mirror the training config: the builder writes the target
                 # electrode first, so a prefix is "target plus nearest N-1 neighbours".
@@ -215,7 +216,7 @@ def main() -> None:
             window = sl_t if key.endswith("_template") else sl
             return arr[..., window]
 
-        clean_ctx = _ctx("clean_context")                        # (n, ep, ch, core)
+        clean_ctx = _ctx("clean_context")  # (n, ep, ch, core)
         artifact_ctx = _ctx("artifact_context")
         if args.residual_mode:
             if "artifact_context_template" not in b.files:
@@ -225,8 +226,8 @@ def main() -> None:
                 )
             # Exactly what NPZSpatioTemporalDataset(residual_mode=True) builds.
             artifact_ctx = artifact_ctx - _ctx("artifact_context_template")
-        clean = b["clean_center"][val][:, 0, sl]                 # true clean (with IEDs)
-        artifact = b["artifact_center"][val][:, 0, sl]           # enriched artifact
+        clean = b["clean_center"][val][:, 0, sl]  # true clean (with IEDs)
+        artifact = b["artifact_center"][val][:, 0, sl]  # enriched artifact
         template = b["artifact_center_template"][val][:, 0, sl_t]  # AAS-removable part
         spikes = b["spike_labels"][val][:, 0, sl]
         if args.spike_dilate_ms > 0:
@@ -259,8 +260,8 @@ def main() -> None:
     preds = np.empty_like(artifact)
     with torch.no_grad():
         for i in range(0, noisy_ctx.shape[0], args.batch_size):
-            batch = torch.from_numpy(noisy_ctx[i:i + args.batch_size]).to(args.device)
-            preds[i:i + args.batch_size] = model(batch).cpu().numpy()[:, 0, :]
+            batch = torch.from_numpy(noisy_ctx[i : i + args.batch_size]).to(args.device)
+            preds[i : i + args.batch_size] = model(batch).cpu().numpy()[:, 0, :]
     corrected_aas = noisy - template
     # In residual mode the model's output is subtracted from the FARM-corrected
     # signal, not from the raw one, so the model arm is literally "what the
@@ -280,17 +281,14 @@ def main() -> None:
 
     arms = {"model": corrected_model, "aas_ideal": corrected_aas, "null_output": corrected_null}
     results = {
-        name: compute_spike_metrics(est, clean, spikes, neighborhood_samples=margin)
-        for name, est in arms.items()
+        name: compute_spike_metrics(est, clean, spikes, neighborhood_samples=margin) for name, est in arms.items()
     }
     per_example = {
         name: compute_spike_metrics_per_example(est, clean, spikes, neighborhood_samples=margin)
         for name, est in arms.items()
     }
     for name, res in results.items():
-        res["overall_rmse_uv"] = float(
-            np.sqrt(np.mean((arms[name] - clean).astype(np.float64) ** 2))
-        ) * 1e6
+        res["overall_rmse_uv"] = float(np.sqrt(np.mean((arms[name] - clean).astype(np.float64) ** 2))) * 1e6
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     # Per-example values as CSV, one row per spike-bearing example per arm. This is
@@ -304,8 +302,9 @@ def main() -> None:
         for name, block in per_example.items():
             for row in range(block["example_index"].size):
                 i = int(block["example_index"][row])
-                writer.writerow([name, i, int(center_epoch[i]), int(target_channel[i]),
-                                 *(f"{block[k][row]:.10g}" for k in keys)])
+                writer.writerow(
+                    [name, i, int(center_epoch[i]), int(target_channel[i]), *(f"{block[k][row]:.10g}" for k in keys)]
+                )
     # Bulk per-example table, covering ALL validation examples rather than only
     # the spike-bearing ones. The headline artifact-correction claim lives here:
     # the validation split holds 162 epoch-disjoint centre epochs, so a paired
@@ -314,19 +313,27 @@ def main() -> None:
     bulk_path = args.output_dir / "run6_bulk_per_example.csv"
     with bulk_path.open("w", encoding="utf-8", newline="") as fh:
         writer = csv.writer(fh)
-        writer.writerow(["arm", "example_index", "epoch_id", "target_channel",
-                         "rmse_uv", "clean_snr_db", "has_spike"])
+        writer.writerow(["arm", "example_index", "epoch_id", "target_channel", "rmse_uv", "clean_snr_db", "has_spike"])
         clean_power = np.mean(clean.astype(np.float64) ** 2, axis=1)
         spike_any = spikes.any(axis=1)
         for name, est in arms.items():
             err = (est - clean).astype(np.float64)
-            rmse = np.sqrt(np.mean(err ** 2, axis=1)) * 1e6
-            err_power = np.mean(err ** 2, axis=1)
+            rmse = np.sqrt(np.mean(err**2, axis=1)) * 1e6
+            err_power = np.mean(err**2, axis=1)
             with np.errstate(divide="ignore", invalid="ignore"):
                 snr = 10.0 * np.log10(np.where(err_power > 0, clean_power / err_power, np.inf))
             for i in range(clean.shape[0]):
-                writer.writerow([name, i, int(center_epoch[i]), int(target_channel[i]),
-                                 f"{rmse[i]:.10g}", f"{snr[i]:.10g}", int(spike_any[i])])
+                writer.writerow(
+                    [
+                        name,
+                        i,
+                        int(center_epoch[i]),
+                        int(target_channel[i]),
+                        f"{rmse[i]:.10g}",
+                        f"{snr[i]:.10g}",
+                        int(spike_any[i]),
+                    ]
+                )
 
     spike_rows = per_example["model"]["example_index"].astype(int)
     events = sorted({int(center_epoch[i]) for i in spike_rows})
@@ -335,10 +342,9 @@ def main() -> None:
         "n_rows_per_arm": int(spike_rows.size),
         "n_spike_events": len(events),
         "spike_event_ids": events,
-        "rows_per_event": {str(e): int(sum(1 for i in spike_rows if int(center_epoch[i]) == e))
-                           for e in events},
+        "rows_per_event": {str(e): int(sum(1 for i in spike_rows if int(center_epoch[i]) == e)) for e in events},
         "clustering_note": "One row per target electrode per injected event. The event id is the "
-                           "unit of independence; rows sharing it are replicates of one spike.",
+        "unit of independence; rows sharing it are replicates of one spike.",
         "bulk_per_example_csv": bulk_path.name,
         "n_bulk_rows_per_arm": int(clean.shape[0]),
         "n_bulk_epochs": len({int(e) for e in center_epoch}),
@@ -353,7 +359,7 @@ def main() -> None:
         "window_shift_samples": shift,
         "trigger_misalign_samples": misalign,
         "shift_note": "window_shift moves signal and template together; trigger_misalign moves "
-                      "only the signal, simulating a template estimated off-position",
+        "only the signal, simulating a template estimated off-position",
         "residual_mode": bool(args.residual_mode),
         "model_arm": (
             "noisy - template - model(clean + artifact - template)   [cascade]"
@@ -365,7 +371,8 @@ def main() -> None:
         "neighborhood_samples": margin,
         "spike_dilate_ms": args.spike_dilate_ms,
         "spike_dilate_samples": int(round(args.spike_dilate_ms * 1e-3 * core / args.epoch_duration_s))
-        if args.spike_dilate_ms > 0 else 0,
+        if args.spike_dilate_ms > 0
+        else 0,
         "aas_reference": "noisy - artifact_center_template (ideal AAS: perfect template recovery)",
         "null_reference": "clean_hat = 0 (trivial corrector; overall_rmse_uv equals RMS(clean))",
         "per_example": meta_per_example,
@@ -384,8 +391,10 @@ def main() -> None:
         ("spike_peak_latency_drift_samples", "peak latency drift (samples)"),
         ("overall_rmse_uv", "overall RMSE (uV)"),
     ]
-    print(f"\nRun 6 · spike preservation — {int(val.size)} validation examples, "
-          f"{int(results['model']['n_spike_examples'])} with spikes\n")
+    print(
+        f"\nRun 6 · spike preservation — {int(val.size)} validation examples, "
+        f"{int(results['model']['n_spike_examples'])} with spikes\n"
+    )
     print(f"{'metric':<42}{'model':>12}{'AAS (ideal)':>14}")
     print("-" * 68)
     for key, label in keys:

@@ -1,9 +1,10 @@
 """Plot the recorded proof-fit example used to illustrate gradient-artifact amplitude."""
 
-from pathlib import Path
-import numpy as np
-import matplotlib.pyplot as plt
 import argparse
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--dataset", type=Path, required=True)

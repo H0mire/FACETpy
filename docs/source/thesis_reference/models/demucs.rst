@@ -27,3 +27,9 @@ Source-paper record
 -------------------
 
 Défossez et al. (2019), Music Source Separation in the Waveform Domain. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-demucs` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

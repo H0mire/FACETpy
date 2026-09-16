@@ -19,7 +19,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 ROOT = Path(__file__).resolve().parents[2]
 ARMS = ROOT / "output/pipeline_demo/deployment_first/arms"
 TABLE = ROOT / "masterthesis_guide/results/table_phase2_pipeline_results/metrics.csv"
@@ -115,7 +114,7 @@ def main() -> None:
         else plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
     )
     axes = axes.ravel()
-    for ax, (arm, label) in zip(axes, chosen):
+    for ax, (arm, label) in zip(axes, chosen, strict=False):
         data, arm_names, arm_sfreq, arm_window = load_arm(arm)
         if arm_names != names or arm_sfreq != sfreq or arm_window != window or data.shape != raw.shape:
             raise ValueError(f"Mismatched channels, sampling, crop or shape in {arm}")

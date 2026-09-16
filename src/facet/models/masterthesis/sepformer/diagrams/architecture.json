@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/sepformer",
+  "title": "SepFormer",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Flatten epochs in time"
+    },
+    {
+      "title": "Dual-path attention",
+      "description": "Within and between latent chunks"
+    },
+    {
+      "title": "Mask + decoder",
+      "description": "Reconstruct the waveform"
+    },
+    {
+      "title": "Centre slice",
+      "description": "Single-channel artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Epoch context",
+      "description": [
+        "Flatten consecutive epochs to one waveform."
+      ],
+      "row": 0
+    },
+    {
+      "id": "encode",
+      "title": "Analysis encoder",
+      "description": [
+        "Strided Conv1d and activation produce latent time frames."
+      ],
+      "row": 1
+    },
+    {
+      "id": "chunk",
+      "title": "Normalise and chunk",
+      "description": [
+        "LayerNorm and linear projection; overlapping feature chunks.",
+        "Chunks are feature-space windows, not individual EEG epochs."
+      ],
+      "row": 2
+    },
+    {
+      "id": "dual",
+      "title": "Dual-path Transformers",
+      "description": [
+        "Intra-chunk attention, then inter-chunk attention.",
+        "Residual paths preserve features; repeated configurable stacks."
+      ],
+      "row": 3
+    },
+    {
+      "id": "mask",
+      "title": "Overlap-add and mask",
+      "description": [
+        "Overlap-add chunk features; configurable mask activation."
+      ],
+      "row": 4
+    },
+    {
+      "id": "multiply",
+      "title": "Mask encoded features",
+      "description": [
+        "Elementwise multiply the mask and original analysis features."
+      ],
+      "row": 5
+    },
+    {
+      "id": "decode",
+      "title": "Waveform decoder",
+      "description": [
+        "Transposed convolution; adjust padding and length."
+      ],
+      "row": 6
+    },
+    {
+      "id": "output",
+      "title": "Centre artifact",
+      "description": [
+        "Reshape to epoch context and select the centre epoch."
+      ],
+      "row": 7
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "encode",
+      "kind": "flow",
+      "label": "Epoch context to Analysis encoder"
+    },
+    {
+      "source": "encode",
+      "target": "chunk",
+      "kind": "flow",
+      "label": "Analysis encoder to Normalise and chunk"
+    },
+    {
+      "source": "chunk",
+      "target": "dual",
+      "kind": "flow",
+      "label": "Normalise and chunk to Dual-path Transformers"
+    },
+    {
+      "source": "dual",
+      "target": "mask",
+      "kind": "flow",
+      "label": "Dual-path Transformers to Overlap-add and mask"
+    },
+    {
+      "source": "mask",
+      "target": "multiply",
+      "kind": "flow",
+      "label": "Overlap-add and mask to Mask encoded features"
+    },
+    {
+      "source": "multiply",
+      "target": "decode",
+      "kind": "flow",
+      "label": "Mask encoded features to Waveform decoder"
+    },
+    {
+      "source": "decode",
+      "target": "output",
+      "kind": "flow",
+      "label": "Waveform decoder to Centre artifact"
+    },
+    {
+      "source": "encode",
+      "target": "multiply",
+      "kind": "skip",
+      "label": "Original analysis features"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/sepformer/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/sepformer/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

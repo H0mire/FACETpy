@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/sepformer/deployment",
+  "title": "SepFormer",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "Dual-path attention",
+      "description": "Within and between latent chunks"
+    },
+    {
+      "title": "Mask + decoder",
+      "description": "Reconstruct the waveform"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Epoch context",
+      "description": [
+        "Flatten consecutive epochs to one waveform."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encode",
+      "title": "Analysis encoder",
+      "description": [
+        "Strided Conv1d and activation produce latent time frames."
+      ],
+      "row": 2
+    },
+    {
+      "id": "chunk",
+      "title": "Normalise and chunk",
+      "description": [
+        "LayerNorm and linear projection; overlapping feature chunks.",
+        "Chunks are feature-space windows, not individual EEG epochs."
+      ],
+      "row": 3
+    },
+    {
+      "id": "dual",
+      "title": "Dual-path Transformers",
+      "description": [
+        "Intra-chunk attention, then inter-chunk attention.",
+        "Residual paths preserve features; repeated configurable stacks."
+      ],
+      "row": 4
+    },
+    {
+      "id": "mask",
+      "title": "Overlap-add and mask",
+      "description": [
+        "Overlap-add chunk features; configurable mask activation."
+      ],
+      "row": 5
+    },
+    {
+      "id": "multiply",
+      "title": "Mask encoded features",
+      "description": [
+        "Elementwise multiply the mask and original analysis features."
+      ],
+      "row": 6
+    },
+    {
+      "id": "decode",
+      "title": "Waveform decoder",
+      "description": [
+        "Transposed convolution; adjust padding and length."
+      ],
+      "row": 7
+    },
+    {
+      "id": "output",
+      "title": "Centre artifact",
+      "description": [
+        "Reshape to epoch context and select the centre epoch."
+      ],
+      "row": 8
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 9
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Epoch context"
+    },
+    {
+      "source": "input",
+      "target": "encode",
+      "kind": "flow",
+      "label": "Epoch context to Analysis encoder"
+    },
+    {
+      "source": "encode",
+      "target": "chunk",
+      "kind": "flow",
+      "label": "Analysis encoder to Normalise and chunk"
+    },
+    {
+      "source": "chunk",
+      "target": "dual",
+      "kind": "flow",
+      "label": "Normalise and chunk to Dual-path Transformers"
+    },
+    {
+      "source": "dual",
+      "target": "mask",
+      "kind": "flow",
+      "label": "Dual-path Transformers to Overlap-add and mask"
+    },
+    {
+      "source": "mask",
+      "target": "multiply",
+      "kind": "flow",
+      "label": "Overlap-add and mask to Mask encoded features"
+    },
+    {
+      "source": "multiply",
+      "target": "decode",
+      "kind": "flow",
+      "label": "Mask encoded features to Waveform decoder"
+    },
+    {
+      "source": "decode",
+      "target": "output",
+      "kind": "flow",
+      "label": "Waveform decoder to Centre artifact"
+    },
+    {
+      "source": "encode",
+      "target": "multiply",
+      "kind": "skip",
+      "label": "Original analysis features"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Centre artifact to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/sepformer/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/sepformer/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

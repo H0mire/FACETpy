@@ -88,8 +88,10 @@ def main() -> None:
     size_in = args.input.stat().st_size
     size_out = args.output.stat().st_size
     print(f"in  {args.input}  {size_in / 1e9:.2f} GB  ({n_channels} electrodes)")
-    print(f"out {args.output}  {size_out / 1e9:.2f} GB  ({keep} electrodes)"
-          f"{'  [context template dropped]' if args.drop_context_template else ''}")
+    print(
+        f"out {args.output}  {size_out / 1e9:.2f} GB  ({keep} electrodes)"
+        f"{'  [context template dropped]' if args.drop_context_template else ''}"
+    )
     print(f"    {size_in / max(size_out, 1):.1f}x smaller")
 
     meta_in = args.input.with_name(args.input.stem + "_metadata.json")
@@ -98,9 +100,13 @@ def main() -> None:
         meta |= {
             "derived_from": str(args.input),
             "k_neighbors": keep - 1,
-            "input_shape": [meta.get("context_epochs", 7), keep, meta.get("core_samples", 512) + 2 * meta.get("guard_samples", 32)],
+            "input_shape": [
+                meta.get("context_epochs", 7),
+                keep,
+                meta.get("core_samples", 512) + 2 * meta.get("guard_samples", 32),
+            ],
             "note": "Channel subset written by tools/dataset_building/export_channel_subset.py. "
-                    "Electrode 0 is the target channel; the rest are its nearest geodesic neighbours.",
+            "Electrode 0 is the target channel; the rest are its nearest geodesic neighbours.",
         }
         meta_out = args.output.with_name(args.output.stem + "_metadata.json")
         meta_out.write_text(json.dumps(meta, indent=2), encoding="utf-8")

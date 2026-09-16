@@ -31,3 +31,9 @@ Source-paper record
 -------------------
 
 Chuang et al. (2022), IC-U-Net. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-ic-unet` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

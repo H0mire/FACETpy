@@ -34,8 +34,12 @@ import numpy as np
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dataset", type=Path, required=True)
-    p.add_argument("--locked-fraction", type=float, default=0.5,
-                   help="Share of the validation EPOCHS (the later ones) that become locked.")
+    p.add_argument(
+        "--locked-fraction",
+        type=float,
+        default=0.5,
+        help="Share of the validation EPOCHS (the later ones) that become locked.",
+    )
     p.add_argument("--dry-run", action="store_true")
     args = p.parse_args()
 
@@ -65,7 +69,7 @@ def main() -> None:
 
     new_split = split.copy()
     dropped = 0
-    for i, (sp, ep) in enumerate(zip(split, epoch)):
+    for i, (sp, ep) in enumerate(zip(split, epoch, strict=False)):
         if sp != 1:
             continue
         e = int(ep)
@@ -74,7 +78,7 @@ def main() -> None:
         elif e in select_epochs:
             new_split[i] = 1
         else:
-            new_split[i] = -1                 # guard band, excluded everywhere
+            new_split[i] = -1  # guard band, excluded everywhere
             dropped += 1
 
     report = {
@@ -92,7 +96,7 @@ def main() -> None:
         "locked_epoch_range": [int(min(locked_epochs)), int(max(locked_epochs))] if locked_epochs else [],
         "epoch_overlap": sorted(select_epochs & locked_epochs),
         "note": "example_split: 0 train, 1 selection/early stopping, 2 locked holdout, "
-                "-1 guard band at the seam (used nowhere).",
+        "-1 guard band at the seam (used nowhere).",
     }
     print(json.dumps(report, indent=2, ensure_ascii=False))
     if report["epoch_overlap"]:

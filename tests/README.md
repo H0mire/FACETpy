@@ -91,7 +91,7 @@ Creates a simple MNE Raw object with random data.
 
 ```python
 def test_with_raw(sample_raw):
-    assert sample_raw.info['sfreq'] == 250
+    assert sample_raw.info["sfreq"] == 250
 ```
 
 #### `sample_raw_with_artifacts`
@@ -153,6 +153,7 @@ def test_export(temp_dir):
 import pytest
 from facet.core import Processor
 
+
 @pytest.mark.unit
 class TestMyProcessor:
     """Tests for MyProcessor."""
@@ -185,18 +186,14 @@ class TestMyProcessor:
 import pytest
 from facet.core import Pipeline
 
+
 @pytest.mark.integration
 class TestMyWorkflow:
     """Integration tests for my workflow."""
 
     def test_complete_workflow(self, sample_edf_file):
         """Test complete processing workflow."""
-        pipeline = Pipeline([
-            Loader(path=str(sample_edf_file)),
-            MyProcessor1(),
-            MyProcessor2(),
-            MyProcessor3()
-        ])
+        pipeline = Pipeline([Loader(path=str(sample_edf_file)), MyProcessor1(), MyProcessor2(), MyProcessor3()])
 
         result = pipeline.run()
 
@@ -280,6 +277,7 @@ Test data is generated automatically. To use your own data:
 @pytest.fixture
 def my_data():
     return load_my_test_data()
+
 
 def test_with_my_data(my_data):
     # Test with your data

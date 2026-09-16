@@ -1,4 +1,4 @@
-from facet import load, export
+from facet import export, load
 
 INPUT_FILE = "./examples/datasets/NiazyFMRI.set"
 OUTPUT_FILE = "./examples/datasets/NiazyFMRI.bdf"

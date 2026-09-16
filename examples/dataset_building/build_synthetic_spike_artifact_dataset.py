@@ -32,7 +32,9 @@ DEFAULT_SEED = 7
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--clean-file", type=Path, required=True, help="Path to the clean annotated spike EEG recording")
+    parser.add_argument(
+        "--clean-file", type=Path, required=True, help="Path to the clean annotated spike EEG recording"
+    )
     parser.add_argument(
         "--artifact-windows",
         type=Path,
@@ -110,7 +112,9 @@ def _extract_spike_windows(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     events, event_id = mne.events_from_annotations(raw, regexp=annotation_regex, verbose=False)
     if events.size == 0:
-        raise ValueError(f"No annotations matched regex {annotation_regex!r} in {raw.filenames[0] if raw.filenames else 'raw'}")
+        raise ValueError(
+            f"No annotations matched regex {annotation_regex!r} in {raw.filenames[0] if raw.filenames else 'raw'}"
+        )
 
     descriptions_by_code = {value: key for key, value in event_id.items()}
     half_window = window_size // 2

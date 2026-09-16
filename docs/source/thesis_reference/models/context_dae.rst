@@ -22,3 +22,9 @@ Experiments and evidence
 Use :doc:`../../masterthesis_guide/catalog` to select the phase, exact variant,
 configuration and weights. :doc:`../selected_variants` explains how comparisons
 differ. The family reference is not a claim of validated paper fidelity.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-cascaded-context-dae` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

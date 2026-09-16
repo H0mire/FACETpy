@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/d4pm/deployment",
+  "title": "D4PM",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Pair + noise",
+      "description": "Training corruption at a sampled level"
+    },
+    {
+      "title": "Two paths",
+      "description": "Noised target and observed EEG"
+    },
+    {
+      "title": "Conditioned predictor",
+      "description": "Transformers, FiLM and epsilon head"
+    },
+    {
+      "title": "Training output",
+      "description": "Recovered waveform + epsilon terms"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Training pair and corruption",
+      "description": [
+        "Condition y plus target artifact h0; sample noise and timestep.",
+        "Form h_t from the configured diffusion schedule."
+      ],
+      "row": 0
+    },
+    {
+      "id": "noisy",
+      "title": "Noised-target path",
+      "description": [
+        "Conv1d / token projection and Transformer layers."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "condition",
+      "title": "Conditioning path",
+      "description": [
+        "Conv1d / token projection and separate Transformer layers."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "film",
+      "title": "Conditioning and fusion",
+      "description": [
+        "Noise-level embedding; add conditioning features and apply FiLM."
+      ],
+      "row": 2
+    },
+    {
+      "id": "epsilon",
+      "title": "Noise prediction head",
+      "description": [
+        "Project back to waveform features; convolution predicts epsilon."
+      ],
+      "row": 3
+    },
+    {
+      "id": "output",
+      "title": "Training output",
+      "description": [
+        "Recover h0 analytically; return artifact estimate, predicted noise, target noise and waveform mask."
+      ],
+      "row": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "noisy",
+      "kind": "flow",
+      "label": "Training pair and corruption to Noised-target path"
+    },
+    {
+      "source": "input",
+      "target": "condition",
+      "kind": "flow",
+      "label": "Training pair and corruption to Conditioning path"
+    },
+    {
+      "source": "noisy",
+      "target": "film",
+      "kind": "merge",
+      "label": "Noised-target path to Conditioning and fusion"
+    },
+    {
+      "source": "condition",
+      "target": "film",
+      "kind": "conditioning",
+      "label": "Conditioning path to Conditioning and fusion"
+    },
+    {
+      "source": "input",
+      "target": "film",
+      "kind": "conditioning",
+      "label": "Noise level"
+    },
+    {
+      "source": "film",
+      "target": "epsilon",
+      "kind": "flow",
+      "label": "Conditioning and fusion to Noise prediction head"
+    },
+    {
+      "source": "epsilon",
+      "target": "output",
+      "kind": "flow",
+      "label": "Noise prediction head to Training output"
+    }
+  ],
+  "notes": [
+    "Training forward is not one-pass artifact inference: generation requires the iterative sampler.",
+    "Deployment normalises the pair and limits the waveform term to configured timesteps.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/d4pm/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/d4pm/training.py",
+      "label": "Shared diffusion predictor and schedule"
+    }
+  ]
+}

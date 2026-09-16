@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/ic_unet",
+  "title": "IC-U-Net",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Multiple EEG channels"
+    },
+    {
+      "title": "Representation",
+      "description": "Sensor space; optional ICA"
+    },
+    {
+      "title": "U-Net",
+      "description": "Encoder, skip connections, decoder"
+    },
+    {
+      "title": "Output",
+      "description": "Clean or configured artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Sensor-space context",
+      "description": [
+        "Multichannel EEG concatenated in time; configurable normalisation."
+      ],
+      "row": 0
+    },
+    {
+      "id": "ica",
+      "title": "Optional frozen ICA",
+      "description": [
+        "Disabled by default; enabled only by use_frozen_ica."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encoder",
+      "title": "U-Net encoder",
+      "description": [
+        "ReLU convolution / BatchNorm blocks and temporal downsampling."
+      ],
+      "row": 2
+    },
+    {
+      "id": "decoder",
+      "title": "U-Net decoder",
+      "description": [
+        "Learned transposed convolutions; concatenate encoder skips."
+      ],
+      "row": 3
+    },
+    {
+      "id": "output",
+      "title": "Centre reconstruction",
+      "description": [
+        "If ICA is enabled, inverse-project to sensors before selecting the centre.",
+        "Default: clean EEG; optional artifact = noisy centre - reconstructed clean centre."
+      ],
+      "row": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "ica",
+      "kind": "flow",
+      "label": "Sensor-space context to Optional frozen ICA"
+    },
+    {
+      "source": "ica",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Optional frozen ICA to U-Net encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "U-Net encoder to U-Net decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "U-Net decoder to Centre reconstruction"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "skip",
+      "label": "Matching encoder feature maps"
+    }
+  ],
+  "notes": [
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/ic_unet/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/ic_unet/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

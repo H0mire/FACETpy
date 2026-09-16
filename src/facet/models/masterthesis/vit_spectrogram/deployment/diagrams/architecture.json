@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/vit_spectrogram/deployment",
+  "title": "ViT Spectrogram",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "STFT + patches",
+      "description": "Tokens from log-magnitude"
+    },
+    {
+      "title": "Transformer",
+      "description": "Complex masking"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Temporal context",
+      "description": [
+        "Flatten channel-wise context to one waveform."
+      ],
+      "row": 1
+    },
+    {
+      "id": "stft",
+      "title": "Complex STFT",
+      "description": [
+        "Retain complex coefficients and cropped frequency/time geometry."
+      ],
+      "row": 2
+    },
+    {
+      "id": "tokens",
+      "title": "Magnitude patches",
+      "description": [
+        "log(1 + magnitude), non-overlapping patches and token projection."
+      ],
+      "row": 3
+    },
+    {
+      "id": "encoder",
+      "title": "Masked-token encoder",
+      "description": [
+        "Replace masked tokens, add positions and apply pre-norm Transformer blocks."
+      ],
+      "row": 4
+    },
+    {
+      "id": "decoder",
+      "title": "Complex mask head",
+      "description": [
+        "Predict real and imaginary masks; bounded tanh on each component."
+      ],
+      "row": 5
+    },
+    {
+      "id": "reconstruct",
+      "title": "Spectral reconstruction",
+      "description": [
+        "Multiply the complex mask by the input complex STFT."
+      ],
+      "row": 6
+    },
+    {
+      "id": "output",
+      "title": "Inverse STFT and centre",
+      "description": [
+        "Restore spectral padding; inverse STFT; select the centre waveform."
+      ],
+      "row": 7
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 8
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Temporal context"
+    },
+    {
+      "source": "input",
+      "target": "stft",
+      "kind": "flow",
+      "label": "Temporal context to Complex STFT"
+    },
+    {
+      "source": "stft",
+      "target": "tokens",
+      "kind": "flow",
+      "label": "Complex STFT to Magnitude patches"
+    },
+    {
+      "source": "tokens",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Magnitude patches to Masked-token encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Masked-token encoder to Complex mask head"
+    },
+    {
+      "source": "decoder",
+      "target": "reconstruct",
+      "kind": "flow",
+      "label": "Complex mask head to Spectral reconstruction"
+    },
+    {
+      "source": "reconstruct",
+      "target": "output",
+      "kind": "flow",
+      "label": "Spectral reconstruction to Inverse STFT and centre"
+    },
+    {
+      "source": "stft",
+      "target": "reconstruct",
+      "kind": "skip",
+      "label": "Input complex spectrum"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Inverse STFT and centre to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Magnitude and complex-mask variants have different output heads.",
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/vit_spectrogram/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/vit_spectrogram/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

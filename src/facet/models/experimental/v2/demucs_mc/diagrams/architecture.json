@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/v2/demucs_mc",
+  "title": "Multichannel Demucs",
+  "subtitle": "Experimental",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Neighbour electrodes and epochs"
+    },
+    {
+      "title": "Encoder",
+      "description": "Convolution + electrode attention"
+    },
+    {
+      "title": "BiLSTM + decoder",
+      "description": "Temporal modelling and skip reconstruction"
+    },
+    {
+      "title": "Prediction",
+      "description": "Target-channel centre artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Temporal context",
+      "description": [
+        "Concatenate epochs in time per electrode."
+      ],
+      "row": 0
+    },
+    {
+      "id": "pad",
+      "title": "Input preparation",
+      "description": [
+        "Pad to the encoder stride product."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encoder",
+      "title": "Convolutional encoder",
+      "description": [
+        "Shared Conv1d / GELU / GLU per electrode; attention mixes electrodes at configured levels."
+      ],
+      "row": 2
+    },
+    {
+      "id": "lstm",
+      "title": "Temporal bottleneck",
+      "description": [
+        "Bidirectional LSTM plus linear projection; per electrode."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Mirrored decoder",
+      "description": [
+        "Add matching encoder skips; GLU and transposed convolutions.",
+        "Align lengths before each skip addition."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Target artifact",
+      "description": [
+        "Select centre epoch; 1x1 head mixes electrodes to the target channel."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "pad",
+      "kind": "flow",
+      "label": "Temporal context to Input preparation"
+    },
+    {
+      "source": "pad",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Input preparation to Convolutional encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "lstm",
+      "kind": "flow",
+      "label": "Convolutional encoder to Temporal bottleneck"
+    },
+    {
+      "source": "lstm",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Temporal bottleneck to Mirrored decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "Mirrored decoder to Target artifact"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "skip",
+      "label": "Level-matched additive skips"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/v2/demucs_mc/training.py",
+      "label": "Variant implementation and forward contract"
+    }
+  ]
+}

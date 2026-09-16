@@ -8,16 +8,16 @@ Call results.print_summary() for a formatted table — no manual formatting need
 """
 
 from facet import (
-    Pipeline,
-    TriggerDetector,
+    AASCorrection,
+    DownSample,
     HighPassFilter,
     LowPassFilter,
-    UpSample,
-    DownSample,
-    AASCorrection,
-    SNRCalculator,
     MetricsReport,
+    Pipeline,
+    SNRCalculator,
+    TriggerDetector,
     TriggerEditor,
+    UpSample,
 )
 
 INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
@@ -29,21 +29,24 @@ INPUT_FILES = [INPUT_FILE, INPUT_FILE, INPUT_FILE]
 # ---------------------------------------------------------------------------
 # Define the correction pipeline — do not add Loader, map() handles it
 # ---------------------------------------------------------------------------
-pipeline = Pipeline([
-    TriggerDetector(regex=r"\b1\b"),
-    TriggerEditor(),
-    HighPassFilter(freq=1.0),
-    UpSample(factor=10),
-    AASCorrection(window_size=30),
-    DownSample(factor=10),
-    LowPassFilter(freq=70),
-    SNRCalculator(),
-    MetricsReport(),
-], name="Batch Correction")
+pipeline = Pipeline(
+    [
+        TriggerDetector(regex=r"\b1\b"),
+        TriggerEditor(),
+        HighPassFilter(freq=1.0),
+        UpSample(factor=10),
+        AASCorrection(window_size=30),
+        DownSample(factor=10),
+        LowPassFilter(freq=70),
+        SNRCalculator(),
+        MetricsReport(),
+    ],
+    name="Batch Correction",
+)
 
 results = pipeline.map(
     INPUT_FILES,
-    on_error="continue",   # log failures, keep going
+    on_error="continue",  # log failures, keep going
 )
 
 # ---------------------------------------------------------------------------

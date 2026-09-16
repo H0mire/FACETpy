@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/vit_spectrogram",
+  "title": "ViT Spectrogram",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Time-domain EEG"
+    },
+    {
+      "title": "STFT + patches",
+      "description": "Tokens from log-magnitude"
+    },
+    {
+      "title": "Transformer",
+      "description": "Magnitude reconstruction"
+    },
+    {
+      "title": "Inverse STFT",
+      "description": "Centre waveform"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Temporal context",
+      "description": [
+        "Flatten channel-wise context to one waveform."
+      ],
+      "row": 0
+    },
+    {
+      "id": "stft",
+      "title": "Complex STFT",
+      "description": [
+        "Retain complex coefficients and cropped frequency/time geometry."
+      ],
+      "row": 1
+    },
+    {
+      "id": "tokens",
+      "title": "Magnitude patches",
+      "description": [
+        "log(1 + magnitude), non-overlapping patches and token projection."
+      ],
+      "row": 2
+    },
+    {
+      "id": "encoder",
+      "title": "Masked-token encoder",
+      "description": [
+        "Replace masked tokens, add positions and apply pre-norm Transformer blocks."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Magnitude head",
+      "description": [
+        "Decode patch log-magnitudes; expm1 and non-negative clamp."
+      ],
+      "row": 4
+    },
+    {
+      "id": "reconstruct",
+      "title": "Spectral reconstruction",
+      "description": [
+        "Combine predicted magnitude with the retained noisy phase."
+      ],
+      "row": 5
+    },
+    {
+      "id": "output",
+      "title": "Inverse STFT and centre",
+      "description": [
+        "Restore spectral padding; inverse STFT; select the centre waveform."
+      ],
+      "row": 6
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "stft",
+      "kind": "flow",
+      "label": "Temporal context to Complex STFT"
+    },
+    {
+      "source": "stft",
+      "target": "tokens",
+      "kind": "flow",
+      "label": "Complex STFT to Magnitude patches"
+    },
+    {
+      "source": "tokens",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Magnitude patches to Masked-token encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Masked-token encoder to Magnitude head"
+    },
+    {
+      "source": "decoder",
+      "target": "reconstruct",
+      "kind": "flow",
+      "label": "Magnitude head to Spectral reconstruction"
+    },
+    {
+      "source": "reconstruct",
+      "target": "output",
+      "kind": "flow",
+      "label": "Spectral reconstruction to Inverse STFT and centre"
+    },
+    {
+      "source": "stft",
+      "target": "reconstruct",
+      "kind": "skip",
+      "label": "Noisy phase"
+    }
+  ],
+  "notes": [
+    "Magnitude and complex-mask variants have different output heads.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/vit_spectrogram/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/vit_spectrogram/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

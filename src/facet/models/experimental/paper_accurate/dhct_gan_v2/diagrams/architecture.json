@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/dhct_gan_v2",
+  "title": "DHCT-GAN v2",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Input",
+      "description": "Context tensor"
+    },
+    {
+      "title": "Hybrid branches",
+      "description": "Shared encoder and dual decoders"
+    },
+    {
+      "title": "Fusion + heads",
+      "description": "Clean and artifact estimates"
+    },
+    {
+      "title": "Output",
+      "description": "Artifact from fused clean"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Context channels",
+      "description": [
+        "Epochs are convolutional input channels; keep the noisy centre."
+      ],
+      "row": 0
+    },
+    {
+      "id": "encoder",
+      "title": "Shared CNN / Transformer",
+      "description": [
+        "CNN stem; encoder levels with local and global attention.",
+        "Store skip features before downsampling.",
+        "Configurable repeated LGTB blocks and paper-style local blocks."
+      ],
+      "row": 1
+    },
+    {
+      "id": "bottleneck",
+      "title": "Shared bottleneck",
+      "description": [
+        "Process deepest features before splitting into decoder branches."
+      ],
+      "row": 2
+    },
+    {
+      "id": "clean",
+      "title": "Clean decoder branch",
+      "description": [
+        "Upsample, concatenate encoder skips, CNN refinement.",
+        "Linear interpolation and waveform head."
+      ],
+      "row": 3,
+      "column": 0
+    },
+    {
+      "id": "artifact",
+      "title": "Artifact decoder branch",
+      "description": [
+        "Independent decoder weights with the same encoder skips.",
+        "Linear interpolation and artifact head."
+      ],
+      "row": 3,
+      "column": 1
+    },
+    {
+      "id": "gate",
+      "title": "Gated clean fusion",
+      "description": [
+        "Two independent tanh masks combine clean and input-minus-artifact."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Returned waveform",
+      "description": [
+        "forward returns noisy centre - fused clean."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Context channels to Shared CNN / Transformer"
+    },
+    {
+      "source": "encoder",
+      "target": "bottleneck",
+      "kind": "flow",
+      "label": "Shared CNN / Transformer to Shared bottleneck"
+    },
+    {
+      "source": "bottleneck",
+      "target": "clean",
+      "kind": "flow",
+      "label": "Shared bottleneck to Clean decoder branch"
+    },
+    {
+      "source": "bottleneck",
+      "target": "artifact",
+      "kind": "flow",
+      "label": "Shared bottleneck to Artifact decoder branch"
+    },
+    {
+      "source": "encoder",
+      "target": "clean",
+      "kind": "skip",
+      "label": "Matching feature levels"
+    },
+    {
+      "source": "encoder",
+      "target": "artifact",
+      "kind": "skip",
+      "label": "Matching feature levels"
+    },
+    {
+      "source": "clean",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Clean decoder branch to Gated clean fusion"
+    },
+    {
+      "source": "artifact",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Artifact decoder branch to Gated clean fusion"
+    },
+    {
+      "source": "input",
+      "target": "gate",
+      "kind": "skip",
+      "label": "Noisy centre"
+    },
+    {
+      "source": "gate",
+      "target": "output",
+      "kind": "flow",
+      "label": "Gated clean fusion to Returned waveform"
+    }
+  ],
+  "notes": [
+    "Discriminators and adversarial objectives are training-only; they are not in the inference signal path.",
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/dhct_gan_v2/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/dhct_gan_v2/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

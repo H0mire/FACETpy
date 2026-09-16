@@ -66,7 +66,12 @@ def extract_pretrigger_clean(
     from facet import DropChannels, HighPassFilter, TriggerDetector, load  # noqa: PLC0415
 
     ctx = load(str(edf_path), preload=True, artifact_to_trigger_offset=-0.005)
-    ctx = ctx | DropChannels(channels=["EKG", "EMG", "EOG", "ECG"]) | TriggerDetector(regex=trigger_regex) | HighPassFilter(freq=1.0)
+    ctx = (
+        ctx
+        | DropChannels(channels=["EKG", "EMG", "EOG", "ECG"])
+        | TriggerDetector(regex=trigger_regex)
+        | HighPassFilter(freq=1.0)
+    )
     raw = ctx.get_raw()
     sfreq = float(raw.info["sfreq"])
     first_trigger = int(np.min(ctx.get_triggers()))
@@ -75,7 +80,9 @@ def extract_pretrigger_clean(
     start = int(skip_s * sfreq)
     stop = first_trigger - int(guard_s * sfreq)
     if stop - start < int(sfreq):
-        raise SystemExit(f"Pre-trigger segment too short ({(stop - start) / sfreq:.1f}s); first trigger at {first_trigger / sfreq:.1f}s")
+        raise SystemExit(
+            f"Pre-trigger segment too short ({(stop - start) / sfreq:.1f}s); first trigger at {first_trigger / sfreq:.1f}s"
+        )
     clean = raw._data[picks, start:stop].astype(np.float64)
     if line_freq and line_freq > 0:
         freqs = np.arange(line_freq, sfreq / 2.0, line_freq)
@@ -88,8 +95,25 @@ def extract_pretrigger_clean(
 # Authoritative 29-channel order of the VEPISET IED dataset (github.com/vepiset/vepiset_dataset);
 # rows 0-18 are the 19 standard 10-20 EEG channels.
 VEPISET_EEG19 = [
-    "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4", "O1", "O2",
-    "F7", "F8", "T3", "T4", "T5", "T6", "Fz", "Cz", "Pz",
+    "Fp1",
+    "Fp2",
+    "F3",
+    "F4",
+    "C3",
+    "C4",
+    "P3",
+    "P4",
+    "O1",
+    "O2",
+    "F7",
+    "F8",
+    "T3",
+    "T4",
+    "T5",
+    "T6",
+    "Fz",
+    "Cz",
+    "Pz",
 ]
 
 
@@ -177,9 +201,21 @@ def parse_args() -> argparse.Namespace:
         default=Path("./examples/datasets/NiazyFMRI.edf"),
         help="Niazy EDF for clean_source=niazy_pretrigger (real brain+BCG, GA-free pre-trigger segment)",
     )
-    p.add_argument("--pretrigger-guard-s", type=float, default=1.0, help="Stop the clean segment this many s before the first trigger")
-    p.add_argument("--pretrigger-skip-s", type=float, default=1.0, help="Skip this many s at the start (filter edge transient)")
-    p.add_argument("--line-freq", type=float, default=50.0, help="Mains notch (Hz) for the pre-trigger clean; harmonics up to Nyquist. 0 disables.")
+    p.add_argument(
+        "--pretrigger-guard-s",
+        type=float,
+        default=1.0,
+        help="Stop the clean segment this many s before the first trigger",
+    )
+    p.add_argument(
+        "--pretrigger-skip-s", type=float, default=1.0, help="Skip this many s at the start (filter edge transient)"
+    )
+    p.add_argument(
+        "--line-freq",
+        type=float,
+        default=50.0,
+        help="Mains notch (Hz) for the pre-trigger clean; harmonics up to Nyquist. 0 disables.",
+    )
     p.add_argument("--inject-spikes", action="store_true", help="run_6 spike-preservation foundation")
     p.add_argument("--spike-source", choices=["synthetic", "real_ied"], default="synthetic")
     p.add_argument(
@@ -188,11 +224,25 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="VEPISET IED dataset dir for --spike-source real_ied (real annotated spikes)",
     )
-    p.add_argument("--max-ieds", type=int, default=None, help="cap the IED pool (default: load ALL, for full patient diversity)")
+    p.add_argument(
+        "--max-ieds", type=int, default=None, help="cap the IED pool (default: load ALL, for full patient diversity)"
+    )
     p.add_argument("--spike-rate-hz", type=float, default=0.7)
-    p.add_argument("--spike-amplitude-uv", type=float, default=40.0, help="Fixed focal amplitude for --spike-source synthetic")
-    p.add_argument("--spike-amplitude-scale", type=float, default=1.0, help="Multiplier on the REAL IED amplitude (1.0 = untouched; deviate only for ablations)")
-    p.add_argument("--spike-taper-s", type=float, default=0.05, help="Raised-cosine edge taper (s) used to isolate the injected IED from its source background")
+    p.add_argument(
+        "--spike-amplitude-uv", type=float, default=40.0, help="Fixed focal amplitude for --spike-source synthetic"
+    )
+    p.add_argument(
+        "--spike-amplitude-scale",
+        type=float,
+        default=1.0,
+        help="Multiplier on the REAL IED amplitude (1.0 = untouched; deviate only for ablations)",
+    )
+    p.add_argument(
+        "--spike-taper-s",
+        type=float,
+        default=0.05,
+        help="Raised-cosine edge taper (s) used to isolate the injected IED from its source background",
+    )
     p.add_argument("--spike-width-ms", type=float, default=20.0)
     p.add_argument(
         "--val-fraction",
@@ -207,9 +257,18 @@ def parse_args() -> argparse.Namespace:
         help="Disable the AAS failure modes. Off by default: without them the target IS the AAS+OBS "
         "template, so the model can only reproduce AAS and has no in-band headroom (run_3 §2).",
     )
-    p.add_argument("--epoch-amplitude-jitter", type=float, default=0.03, help="Per-epoch artifact gain variation (sd, relative)")
-    p.add_argument("--epoch-timing-jitter-samples", type=float, default=0.05, help="Per-epoch sub-sample timing jitter (sd, samples)")
-    p.add_argument("--motion-drift-depth", type=float, default=0.05, help="Depth of slow motion-like amplitude modulation")
+    p.add_argument(
+        "--epoch-amplitude-jitter", type=float, default=0.03, help="Per-epoch artifact gain variation (sd, relative)"
+    )
+    p.add_argument(
+        "--epoch-timing-jitter-samples",
+        type=float,
+        default=0.05,
+        help="Per-epoch sub-sample timing jitter (sd, samples)",
+    )
+    p.add_argument(
+        "--motion-drift-depth", type=float, default=0.05, help="Depth of slow motion-like amplitude modulation"
+    )
     p.add_argument("--motion-drift-hz", type=float, default=0.05, help="Rate of the slow motion-like modulation")
     p.add_argument("--helium-pump-uv", type=float, default=2.0, help="Helium-pump line amplitude (uV); 0 disables")
     p.add_argument("--helium-pump-hz", type=float, default=46.0, help="Helium-pump line frequency (Hz)")
@@ -243,7 +302,9 @@ def main() -> None:
             guard_s=args.pretrigger_guard_s,
             line_freq=args.line_freq,
         )
-        print(f"  pre-trigger clean: {pretrigger_clean.shape[0]} ch, {pretrigger_clean.shape[1] / pretrigger_sfreq:.1f}s @ {pretrigger_sfreq:.0f} Hz")
+        print(
+            f"  pre-trigger clean: {pretrigger_clean.shape[0]} ch, {pretrigger_clean.shape[1] / pretrigger_sfreq:.1f}s @ {pretrigger_sfreq:.0f} Hz"
+        )
 
     real_ied_pool = None
     real_ied_sfreq = None

@@ -27,3 +27,9 @@ Source-paper record
 -------------------
 
 Yang et al. (2025), End-to-End EEG Artifact Removal Method via Nested Generative Adversarial Network. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-nested-gan` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

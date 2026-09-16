@@ -1,0 +1,169 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/ic_unet/deployment",
+  "title": "IC-U-Net",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "Representation",
+      "description": "Frozen ICA transform"
+    },
+    {
+      "title": "U-Net",
+      "description": "Encoder, skip connections, decoder"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Multichannel context",
+      "description": [
+        "Electrodes x concatenated temporal context."
+      ],
+      "row": 1
+    },
+    {
+      "id": "ica",
+      "title": "ICA projection",
+      "description": [
+        "Apply frozen ICA matrix W after configured input demeaning."
+      ],
+      "row": 2
+    },
+    {
+      "id": "encoder",
+      "title": "Component U-Net encoder",
+      "description": [
+        "Double Conv1d / BatchNorm / LeakyReLU; three max-pool down stages."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Component U-Net decoder",
+      "description": [
+        "Upsampling, concatenate matching skips, double convolutions.",
+        "1x1 head predicts component-space reconstruction.",
+        "Identity initialisation adds input components to the U-Net correction when enabled."
+      ],
+      "row": 4
+    },
+    {
+      "id": "inverse",
+      "title": "Inverse ICA",
+      "description": [
+        "Apply pseudoinverse W+; select centre epoch."
+      ],
+      "row": 5
+    },
+    {
+      "id": "output",
+      "title": "Centre artifact",
+      "description": [
+        "Noisy centre minus reconstructed clean centre."
+      ],
+      "row": 6
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 7
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Multichannel context"
+    },
+    {
+      "source": "input",
+      "target": "ica",
+      "kind": "flow",
+      "label": "Multichannel context to ICA projection"
+    },
+    {
+      "source": "ica",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "ICA projection to Component U-Net encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Component U-Net encoder to Component U-Net decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "inverse",
+      "kind": "flow",
+      "label": "Component U-Net decoder to Inverse ICA"
+    },
+    {
+      "source": "inverse",
+      "target": "output",
+      "kind": "flow",
+      "label": "Inverse ICA to Centre artifact"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "skip",
+      "label": "Matching encoder feature maps"
+    },
+    {
+      "source": "input",
+      "target": "output",
+      "kind": "skip",
+      "label": "Noisy centre"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Centre artifact to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Identity initialisation optionally adds the original ICA components before inverse projection.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/ic_unet/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/ic_unet/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

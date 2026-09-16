@@ -116,8 +116,7 @@ def compile_snippets(snippets: list[Snippet]) -> list[str]:
             compile(code, name, "exec")
         except SyntaxError as exc:
             errors.append(
-                f"{snippet.path}:{snippet.start_line}: SyntaxError: {exc.msg} "
-                f"(line {exc.lineno}, offset {exc.offset})"
+                f"{snippet.path}:{snippet.start_line}: SyntaxError: {exc.msg} (line {exc.lineno}, offset {exc.offset})"
             )
     return errors
 

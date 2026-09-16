@@ -6,17 +6,16 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 TOOLKIT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLKIT_DIR))
 
 from facetpy_svg import (  # noqa: E402
-    C,
     CANVAS_W,
+    C,
     Diagram,
-    card,
     capsule,
+    card,
     container,
     decision,
     edge,
@@ -100,9 +99,7 @@ def build() -> Diagram:
 
     # A single training inlet keeps the fan-out legible while retaining the
     # four clearly separated source configuration groups above.
-    training_config = pill(
-        220, 490, 300, 34, "data · factories · training settings"
-    )
+    training_config = pill(220, 490, 300, 34, "data · factories · training settings")
     diagram.add(training_config)
     diagram.add_edge(
         edge(
@@ -119,15 +116,11 @@ def build() -> Diagram:
     # Training side.
     # ------------------------------------------------------------------
     data_construction = card(50, 550, 310, 270, "Data construction")
-    context_route = pill(
-        70, 600, 270, 40, "context_factory → EEGArtifactDataset"
-    )
+    context_route = pill(70, 600, 270, 40, "context_factory → EEGArtifactDataset")
     augmentation = note(100, 646, 210, 30, "optional augmentation")
     route_or = decision(205, 696, 64, 30, "OR")
     custom_route = pill(70, 718, 270, 40, "dataset_factory → custom dataset")
-    deterministic_split = pill(
-        70, 770, 270, 34, "deterministic train / validation splits"
-    )
+    deterministic_split = pill(70, 770, 270, 34, "deterministic train / validation splits")
 
     factories = card(
         385,

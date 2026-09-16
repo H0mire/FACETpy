@@ -6,7 +6,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 TOOLKIT_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(TOOLKIT_DIR))
@@ -15,8 +14,8 @@ from facetpy_svg import (  # noqa: E402
     CANVAS_W,
     C,
     Diagram,
-    card,
     capsule,
+    card,
     container,
     edge,
     note,
@@ -45,9 +44,7 @@ def build() -> Diagram:
     correction = container(20, 810, 960, 590, "FACETpy correction paths")
     common = container(50, 850, 900, 105, "Common preprocessing")
     direct_lane = container(50, 975, 900, 135, "Direct models · most families")
-    residual_lane = container(
-        50, 1130, 900, 150, "Residual Demucs cascade only"
-    )
+    residual_lane = container(50, 1130, 900, 150, "Residual Demucs cascade only")
     shared_cleanup = container(50, 1300, 900, 90, "Shared final cleanup")
     diagram.add(
         orchestration,
@@ -63,9 +60,7 @@ def build() -> Diagram:
     # A. Experiment orchestration: the local queue dispatches independent jobs
     # to a pool of single-GPU workers. This is task parallelism, not one model
     # distributed across GPUs.
-    model_worktree = card(
-        70, 145, 220, 92, "Model worktree", ["architecture-specific code"]
-    )
+    model_worktree = card(70, 145, 220, 92, "Model worktree", ["architecture-specific code"])
     yaml_config = card(
         70,
         280,
@@ -74,9 +69,7 @@ def build() -> Diagram:
         "YAML configuration",
         ["model · data · training", "callbacks · export"],
     )
-    fleet_queue = card(
-        355, 205, 245, 96, "Local fleet queue", ["dispatches independent jobs"]
-    )
+    fleet_queue = card(355, 205, 245, 96, "Local fleet queue", ["dispatches independent jobs"])
     gpu_pool = card(
         650,
         140,
@@ -85,9 +78,7 @@ def build() -> Diagram:
         "RunPod GPU pool",
         ["single-GPU workers", "2 initially · 6 in Run 7", "one job per GPU"],
     )
-    parallelism_note = note(
-        360, 340, 300, 42, "task parallelism · not distributed training"
-    )
+    parallelism_note = note(360, 340, 300, 42, "task parallelism · not distributed training")
     diagram.add(
         model_worktree,
         yaml_config,
@@ -103,9 +94,7 @@ def build() -> Diagram:
     )
 
     # Each independent GPU job enters the same facet-train dataset factory.
-    diagram.add_edge(
-        edge([(795, 293), (795, 420), (145, 420), (145, 482)])
-    )
+    diagram.add_edge(edge([(795, 293), (795, 420), (145, 420), (145, 482)]))
 
     # B. facet-train harness and retained outputs.
     dataset_factory = pill(60, 485, 170, 52, "dataset factory")
@@ -119,9 +108,7 @@ def build() -> Diagram:
         edge([(623, 511), (642, 511)]),
     )
 
-    output_trunk = edge(
-        [(745, 540), (745, 595), (185, 595), (765, 595)], marker_end=None
-    )
+    output_trunk = edge([(745, 540), (745, 595), (185, 595), (765, 595)], marker_end=None)
     checkpoints = card(75, 630, 220, 70, "Checkpoints / logs")
     exported_model = card(365, 630, 220, 70, "Exported model")
     inference_config = card(655, 630, 220, 70, "Inference config")
@@ -223,9 +210,7 @@ def build() -> Diagram:
     corrected = capsule(705, 1332, 180, 48, "Corrected EEG")
     diagram.add(cleanup_pca, downsample, corrected)
     diagram.add_edge(
-        edge(
-            [(900, 1049), (900, 1290), (332.5, 1290), (332.5, 1329)]
-        ),
+        edge([(900, 1049), (900, 1290), (332.5, 1290), (332.5, 1329)]),
         edge([(408, 1356), (442, 1356)]),
         edge([(668, 1356), (702, 1356)]),
     )

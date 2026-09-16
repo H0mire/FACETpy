@@ -21,11 +21,6 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 
-from facet.evaluation import ModelEvaluationWriter
-from facet.models.masterthesis.cascaded_dae import CascadedDenoisingAutoencoderCorrection
-from facet.models.masterthesis.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
-from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
-
 from facet import (
     DownSample,
     DropChannels,
@@ -35,6 +30,10 @@ from facet import (
     UpSample,
     load,
 )
+from facet.evaluation import ModelEvaluationWriter
+from facet.models.experimental.examples.demo01 import EpochContextDeepLearningCorrection
+from facet.models.masterthesis.cascaded_context_dae import CascadedContextDenoisingAutoencoderCorrection
+from facet.models.masterthesis.cascaded_dae import CascadedDenoisingAutoencoderCorrection
 
 DEFAULT_CHECKPOINT = Path(
     "./training_output/sevenepochcontextartifactnet_20260429_204945/exports/seven_epoch_context_artifact_net.ts"
@@ -60,7 +59,9 @@ MODEL_DESCRIPTIONS = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT, help="TorchScript checkpoint.")
-    parser.add_argument("--synthetic-dataset", type=Path, default=DEFAULT_SYNTHETIC_DATASET, help="Synthetic NPZ dataset.")
+    parser.add_argument(
+        "--synthetic-dataset", type=Path, default=DEFAULT_SYNTHETIC_DATASET, help="Synthetic NPZ dataset."
+    )
     parser.add_argument("--niazy-input", type=Path, default=DEFAULT_NIAZY_INPUT, help="Niazy EDF recording.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Directory for metrics and plots.")
     parser.add_argument("--run-id", default=None, help="Stable evaluation run id. Defaults to a timestamp.")
@@ -165,11 +166,10 @@ def _predict_synthetic(checkpoint: Path, noisy_context: np.ndarray, batch_size: 
     return np.concatenate(predictions, axis=0)
 
 
-def _build_synthetic_model_input(args: argparse.Namespace, noisy_context: np.ndarray, noisy_center: np.ndarray) -> np.ndarray:
-    if args.model_id == "cascaded_dae":
-        model_input = noisy_center
-    else:
-        model_input = noisy_context
+def _build_synthetic_model_input(
+    args: argparse.Namespace, noisy_context: np.ndarray, noisy_center: np.ndarray
+) -> np.ndarray:
+    model_input = noisy_center if args.model_id == "cascaded_dae" else noisy_context
     if not args.keep_input_mean:
         model_input = model_input - model_input.mean(axis=-1, keepdims=True)
     return model_input
@@ -215,12 +215,16 @@ def evaluate_synthetic(args: argparse.Namespace, output_dir: Path) -> dict[str, 
         "prediction_mean_removed": not args.keep_prediction_mean,
     }
     edge_width = min(8, pred_artifact.shape[-1] // 4)
-    edge_abs = np.mean(np.abs(np.concatenate([pred_artifact[..., :edge_width], pred_artifact[..., -edge_width:]], axis=-1)))
+    edge_abs = np.mean(
+        np.abs(np.concatenate([pred_artifact[..., :edge_width], pred_artifact[..., -edge_width:]], axis=-1))
+    )
     center_abs = np.mean(np.abs(pred_artifact[..., edge_width:-edge_width]))
     metrics["predicted_artifact_edge_abs_mean_uv"] = float(edge_abs * 1e6)
     metrics["predicted_artifact_center_abs_mean_uv"] = float(center_abs * 1e6)
     metrics["predicted_artifact_edge_to_center_abs_ratio"] = float(edge_abs / (center_abs + 1e-20))
-    metrics["clean_mse_reduction_pct"] = 100.0 * (1.0 - metrics["clean_mse_after"] / (metrics["clean_mse_before"] + 1e-20))
+    metrics["clean_mse_reduction_pct"] = 100.0 * (
+        1.0 - metrics["clean_mse_after"] / (metrics["clean_mse_before"] + 1e-20)
+    )
     metrics["clean_snr_improvement_db"] = metrics["clean_snr_db_after"] - metrics["clean_snr_db_before"]
 
     _plot_synthetic_examples(
@@ -292,7 +296,9 @@ def _plot_synthetic_summary(path: Path, metrics: dict[str, Any]) -> None:
     plt.close(fig)
 
 
-def _epoch_boundaries(triggers: np.ndarray, offset_seconds: float, sfreq: float, n_times: int) -> tuple[np.ndarray, np.ndarray]:
+def _epoch_boundaries(
+    triggers: np.ndarray, offset_seconds: float, sfreq: float, n_times: int
+) -> tuple[np.ndarray, np.ndarray]:
     offset_samples = int(round(offset_seconds * sfreq))
     starts = triggers[:-1] + offset_samples
     stops = triggers[1:] + offset_samples
@@ -309,7 +315,9 @@ def _resample_epoch(epoch: np.ndarray, target_samples: int) -> np.ndarray:
 
 
 def _trigger_locked_stack(data: np.ndarray, starts: np.ndarray, stops: np.ndarray, target_samples: int) -> np.ndarray:
-    return np.stack([_resample_epoch(data[:, start:stop], target_samples) for start, stop in zip(starts, stops, strict=False)])
+    return np.stack(
+        [_resample_epoch(data[:, start:stop], target_samples) for start, stop in zip(starts, stops, strict=False)]
+    )
 
 
 def evaluate_niazy(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]:
@@ -374,8 +382,7 @@ def evaluate_niazy(args: argparse.Namespace, output_dir: Path) -> dict[str, Any]
         1.0 - metrics["template_rms_after"] / (metrics["template_rms_before"] + 1e-20)
     )
     metrics["template_peak_to_peak_reduction_pct"] = 100.0 * (
-        1.0
-        - metrics["template_peak_to_peak_median_after"] / (metrics["template_peak_to_peak_median_before"] + 1e-20)
+        1.0 - metrics["template_peak_to_peak_median_after"] / (metrics["template_peak_to_peak_median_before"] + 1e-20)
     )
 
     _plot_niazy_templates(

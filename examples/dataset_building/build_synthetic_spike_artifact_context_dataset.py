@@ -61,7 +61,9 @@ class ArtifactLibrarySource:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--clean-file", type=Path, required=True, help="Path to the clean annotated spike EEG recording")
+    parser.add_argument(
+        "--clean-file", type=Path, required=True, help="Path to the clean annotated spike EEG recording"
+    )
     parser.add_argument(
         "--artifact-bundle",
         type=Path,
@@ -447,7 +449,9 @@ def _build_single_channel_context_dataset(
     if n_artifact_channels != 1:
         raise ValueError("Artifact contexts must be flattened to single-channel contexts before dataset construction")
 
-    flat_clean = clean_contexts.transpose(0, 2, 1, 3).reshape(n_clean_examples * n_clean_channels, context_epochs, 1, epoch_samples)
+    flat_clean = clean_contexts.transpose(0, 2, 1, 3).reshape(
+        n_clean_examples * n_clean_channels, context_epochs, 1, epoch_samples
+    )
     repeated_onset_offsets = np.repeat(onset_offsets, n_clean_channels)
     repeated_descriptions = np.repeat(spike_descriptions, n_clean_channels)
     repeated_channel_names = np.tile(np.asarray(clean_channel_names, dtype=object), n_clean_examples)
@@ -562,7 +566,9 @@ def main() -> None:
     target_sfreq = float(first_bundle["sfreq"][0])
     starts, stops, _offset = _artifact_epoch_boundaries(first_bundle)
     raw_lengths = (stops - starts).astype(np.int64, copy=False)
-    target_epoch_samples = int(args.target_epoch_samples) if args.target_epoch_samples > 0 else int(np.median(raw_lengths))
+    target_epoch_samples = (
+        int(args.target_epoch_samples) if args.target_epoch_samples > 0 else int(np.median(raw_lengths))
+    )
     if target_epoch_samples < 8:
         raise ValueError("target epoch length must be at least 8 samples")
 
@@ -580,9 +586,7 @@ def main() -> None:
         artifact_source_ids_by_context,
         artifact_source_paths_by_context,
         artifact_source_channel_indices_by_context,
-    ) = _concatenate_artifact_sources(
-        artifact_sources
-    )
+    ) = _concatenate_artifact_sources(artifact_sources)
 
     clean_raw = _load_clean_raw(args.clean_file)
     clean_raw = _resample_if_needed(clean_raw, target_sfreq)

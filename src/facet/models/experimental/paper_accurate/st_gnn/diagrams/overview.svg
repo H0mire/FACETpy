@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 386" width="190mm" height="73.34mm" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif">
+<title>ST-GNN — overview</title>
+<defs>
+  <linearGradient id="fp-header" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#0f2537"/><stop offset="1" stop-color="#2f6d94"/>
+  </linearGradient>
+  <linearGradient id="fp-bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef6fb"/>
+  </linearGradient>
+  <pattern id="fp-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M40 0 L0 0 0 40" fill="none" stroke="#173147" stroke-opacity="0.045" stroke-width="1"/>
+  </pattern>
+  <filter id="fp-shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="4" stdDeviation="7" flood-color="#0f2537" flood-opacity="0.13"/>
+  </filter>
+  <marker id="fp-arrow" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto">
+    <path d="M1 1 L9 5 L1 9" fill="none" stroke="#173147" stroke-opacity="0.7" stroke-width="1.5"/>
+  </marker>
+  <marker id="fp-arrow-open" markerWidth="13" markerHeight="12" refX="10" refY="5" orient="auto">
+    <path d="M1 1 L10 5 L1 9" fill="none" stroke="#173147" stroke-opacity="0.6" stroke-width="1.3"/>
+  </marker>
+  <marker id="fp-diamond" markerWidth="18" markerHeight="12" refX="1" refY="5" orient="auto">
+    <path d="M1 5 L8 1.5 L15 5 L8 8.5 Z" fill="#173147" fill-opacity="0.75" stroke="#173147" stroke-width="1"/>
+  </marker>
+  <marker id="fp-diamond-open" markerWidth="18" markerHeight="12" refX="1" refY="5" orient="auto">
+    <path d="M1 5 L8 1.5 L15 5 L8 8.5 Z" fill="#ffffff" stroke="#173147" stroke-width="1.3"/>
+  </marker>
+  <marker id="fp-triangle" markerWidth="16" markerHeight="14" refX="13" refY="6" orient="auto">
+    <path d="M1 1 L13 6 L1 11 Z" fill="#ffffff" stroke="#173147" stroke-width="1.4"/>
+  </marker>
+</defs>
+<rect x="0" y="0" width="1000" height="386" fill="url(#fp-grid)"/>
+<polyline points="474,149.0 500,149.0 500,149.0 526,149.0" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<polyline points="740.0,204 740.0,218 260.0,218 260.0,232" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<polyline points="474,287.0 500,287.0 500,287.0 526,287.0" fill="none" stroke="#173147" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#fp-arrow)"/>
+<text x="40" y="38" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="27" fill="#173147" font-weight="600">ST-GNN · Paper variant</text>
+<text x="40" y="70" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="17" fill="#5b7488">Model overview</text>
+<polyline points="790.0,65.0 792.7,65.0 795.3,65.0 798.0,65.0 800.7,65.0 803.3,65.0 806.0,65.0 808.7,65.0 811.3,65.0 814.0,65.0 816.7,65.0 819.3,65.0 822.0,65.0 824.7,65.0 827.3,65.0 830.0,65.0 832.7,62.0 835.3,59.8 838.0,59.0 840.7,59.8 843.3,62.0 846.0,65.0 848.7,68.0 851.3,70.2 854.0,71.0 856.7,70.2 859.3,68.0 862.0,65.0 864.7,62.0 867.3,59.8 870.0,59.0 872.7,59.8 875.3,62.0 878.0,65.0 880.7,54.8 883.3,46.2 886.0,40.7 888.7,39.0 891.3,41.5 894.0,47.8 896.7,56.8 899.3,65.0 902.0,65.0 904.7,65.0 907.3,65.0 910.0,65.0 912.7,65.0 915.3,65.0 918.0,65.0 920.7,65.0 923.3,65.0 926.0,65.0 928.7,65.0 931.3,65.0 934.0,65.0 936.7,65.0 939.3,65.0 942.0,65.0 944.7,65.0 947.3,65.0 950.0,65.0" fill="none" stroke="#7eb8d2" stroke-opacity="0.9" stroke-width="2" stroke-linejoin="round"/>
+<rect x="50" y="98" width="420" height="102" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M50 110 A12 12 0 0 1 62 98 L458 98 A12 12 0 0 1 470 110 L470 147 L50 147 Z" fill="url(#fp-header)"/><circle cx="71" cy="122" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="90" y="127" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#ffffff" font-weight="600">1. EEG + montage</text><text x="68" y="175" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="20" fill="#173147">Temporal context and electrode graph</text>
+<rect x="530" y="98" width="420" height="102" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M530 110 A12 12 0 0 1 542 98 L938 98 A12 12 0 0 1 950 110 L950 147 L530 147 Z" fill="url(#fp-header)"/><circle cx="551" cy="122" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="570" y="127" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#ffffff" font-weight="600">2. ST blocks</text><text x="548" y="175" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="20" fill="#173147">Temporal gates and graph filters</text>
+<rect x="50" y="236" width="420" height="102" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M50 248 A12 12 0 0 1 62 236 L458 236 A12 12 0 0 1 470 248 L470 285 L50 285 Z" fill="url(#fp-header)"/><circle cx="71" cy="260" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="90" y="265" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#ffffff" font-weight="600">3. Projection</text><text x="68" y="313" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="20" fill="#173147">Waveform at each electrode</text>
+<rect x="530" y="236" width="420" height="102" rx="12" fill="#ffffff" stroke="#173147" stroke-opacity="0.16" stroke-width="1.25" filter="url(#fp-shadow)"/><path d="M530 248 A12 12 0 0 1 542 236 L938 236 A12 12 0 0 1 950 248 L950 285 L530 285 Z" fill="url(#fp-header)"/><circle cx="551" cy="260" r="4.5" fill="#aedbec" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2"/><text x="570" y="265" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="23" fill="#ffffff" font-weight="600">4. Centre slice</text><text x="548" y="313" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="20" fill="#173147">Multichannel artifact</text>
+<text x="980" y="368" font-family="'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', sans-serif" font-size="11" fill="#5b7488" text-anchor="end" fill-opacity="0.8">Made with FACETpy</text>
+</svg>

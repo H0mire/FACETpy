@@ -48,8 +48,11 @@ def main() -> None:
         "cpu" if ".demucs.deployment." in config["model"]["factory"] else args.device
     )
     dataset = build_weg_a_packed_dataset(
-        args.dataset, packing=config["data"]["kwargs"]["packing"],
-        include_spike=True, max_shift=0, background_mix_prob=0.0,
+        args.dataset,
+        packing=config["data"]["kwargs"]["packing"],
+        include_spike=True,
+        max_shift=0,
+        background_mix_prob=0.0,
     )
     with np.load(args.dataset, allow_pickle=True) as archive:
         split = archive["example_split"]
@@ -59,9 +62,7 @@ def main() -> None:
     if not len(indices):
         raise ValueError("No locked holdout examples (example_split == 2)")
     factory_module, factory_name = config["model"]["factory"].split(":")
-    model = getattr(importlib.import_module(factory_module), factory_name)(
-        **config["model"]["kwargs"]
-    )
+    model = getattr(importlib.import_module(factory_module), factory_name)(**config["model"]["kwargs"])
     checkpoint = torch.load(args.checkpoint, map_location="cpu", weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"], strict=True)
     models = {
@@ -72,7 +73,7 @@ def main() -> None:
     targets, masks, inputs = [], [], []
     with torch.inference_mode():
         for offset in range(0, len(indices), args.batch_size):
-            pairs = [dataset[int(i)] for i in indices[offset:offset + args.batch_size]]
+            pairs = [dataset[int(i)] for i in indices[offset : offset + args.batch_size]]
             x = torch.from_numpy(np.stack([pair[0] for pair in pairs])).to(args.device)
             y = np.stack([pair[1] for pair in pairs])
             clean, noisy, mask = y[:, 1, 0], y[:, 2, 0], y[:, 3, 0]
@@ -98,28 +99,39 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     report = {
         "scope": "Locked Weg-A checkpoint comparison; not an isolated loss ablation",
-        "split": 2, "n_examples": len(indices), "epoch_duration_s": 0.194,
-        "device": args.device, "baseline_device": baseline_device,
-        "neighborhood_ms": 50, "spike_dilate_ms": 0,
+        "split": 2,
+        "n_examples": len(indices),
+        "epoch_duration_s": 0.194,
+        "device": args.device,
+        "baseline_device": baseline_device,
+        "neighborhood_ms": 50,
+        "spike_dilate_ms": 0,
         "dataset_sha256": sha256(args.dataset),
-        "baseline": str(args.baseline), "baseline_sha256": sha256(args.baseline),
-        "checkpoint": str(args.checkpoint), "checkpoint_sha256": sha256(args.checkpoint),
-        "config": config, "metrics": {},
+        "baseline": str(args.baseline),
+        "baseline_sha256": sha256(args.baseline),
+        "checkpoint": str(args.checkpoint),
+        "checkpoint_sha256": sha256(args.checkpoint),
+        "config": config,
+        "metrics": {},
     }
     for name, prediction in predictions.items():
         metrics = compute_spike_metrics(prediction, target, mask, neighborhood_samples=neighborhood)
         metrics["rmse_uv"] = float(np.sqrt(np.mean((prediction - target) ** 2)) * 1e6)
         report["metrics"][name] = metrics
         per_example = compute_spike_metrics_per_example(
-            prediction, target, mask, neighborhood_samples=neighborhood,
+            prediction,
+            target,
+            mask,
+            neighborhood_samples=neighborhood,
         )
         per_example["dataset_index"] = indices[per_example["example_index"]]
         with (args.output_dir / f"{name}_per_example.csv").open("w", newline="") as handle:
             writer = csv.writer(handle)
             writer.writerow(per_example)
             writer.writerows(zip(*per_example.values(), strict=True))
-    np.savez_compressed(args.output_dir / "predictions.npz", dataset_index=indices,
-                        target=target, spike_mask=mask, **predictions)
+    np.savez_compressed(
+        args.output_dir / "predictions.npz", dataset_index=indices, target=target, spike_mask=mask, **predictions
+    )
     (args.output_dir / "comparison.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report["metrics"], indent=2), flush=True)
 

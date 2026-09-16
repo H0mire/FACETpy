@@ -24,16 +24,13 @@ from __future__ import annotations
 import argparse
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
 
-DEFAULT_DATASET = Path(
-    "./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+DEFAULT_DATASET = Path("./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 DEFAULT_OUTPUT_ROOT = Path("./output/model_evaluations")
 MODEL_ID = "conv_tasnet"
 MODEL_NAME = "Conv-TasNet"
@@ -161,10 +158,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20))
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -238,7 +232,9 @@ def _plot_examples(
         axes[row, 0].plot(time_ms, noisy[idx] * 1e6, label="noisy mixture", color="#9a3412", linewidth=1.0)
         axes[row, 0].plot(time_ms, clean[idx] * 1e6, label="clean target", color="#0f766e", linewidth=1.1)
         axes[row, 0].plot(time_ms, corrected[idx] * 1e6, label="corrected", color="#1d4ed8", linewidth=1.0)
-        axes[row, 0].plot(time_ms, pred_clean[idx] * 1e6, label="predicted clean", color="#7c3aed", alpha=0.7, linewidth=0.9)
+        axes[row, 0].plot(
+            time_ms, pred_clean[idx] * 1e6, label="predicted clean", color="#7c3aed", alpha=0.7, linewidth=0.9
+        )
         axes[row, 0].set_title(f"Conv-TasNet sample {int(idx)}: clean vs corrected")
         axes[row, 0].set_ylabel("uV")
         axes[row, 0].legend(loc="upper right", fontsize=8)

@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/cascaded_context_dae",
+  "title": "Cascaded Context DAE",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Input",
+      "description": "Single-channel context"
+    },
+    {
+      "title": "First DAE",
+      "description": "Initial artifact estimate"
+    },
+    {
+      "title": "Residual + second DAE",
+      "description": "Refine the residual artifact"
+    },
+    {
+      "title": "Sum",
+      "description": "Centre-epoch artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Epoch context",
+      "description": [
+        "One EEG channel; epoch and context sizes follow the configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "stage1",
+      "title": "First dense autoencoder",
+      "description": [
+        "Flatten input; Linear / LeakyReLU / Dropout encoder and decoder.",
+        "Map the context to the centre artifact."
+      ],
+      "row": 1
+    },
+    {
+      "id": "residual",
+      "title": "Subtract first estimate",
+      "description": [
+        "Copy the context and subtract stage 1 only from its centre epoch."
+      ],
+      "row": 2
+    },
+    {
+      "id": "stage2",
+      "title": "Second dense autoencoder",
+      "description": [
+        "Predict residual artifact from the modified context."
+      ],
+      "row": 3
+    },
+    {
+      "id": "sum",
+      "title": "Sum both predictions",
+      "description": [
+        "Artifact = stage 1 + stage 2; output preserves the centre epoch length."
+      ],
+      "row": 4
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "stage1",
+      "kind": "flow",
+      "label": "Epoch context to First dense autoencoder"
+    },
+    {
+      "source": "stage1",
+      "target": "residual",
+      "kind": "flow",
+      "label": "First dense autoencoder to Subtract first estimate"
+    },
+    {
+      "source": "residual",
+      "target": "stage2",
+      "kind": "flow",
+      "label": "Subtract first estimate to Second dense autoencoder"
+    },
+    {
+      "source": "stage2",
+      "target": "sum",
+      "kind": "flow",
+      "label": "Second dense autoencoder to Sum both predictions"
+    },
+    {
+      "source": "input",
+      "target": "residual",
+      "kind": "skip",
+      "label": "Original input"
+    },
+    {
+      "source": "stage1",
+      "target": "sum",
+      "kind": "skip",
+      "label": "First artifact estimate"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/cascaded_context_dae/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/cascaded_context_dae/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

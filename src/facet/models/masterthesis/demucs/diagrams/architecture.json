@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/demucs",
+  "title": "Demucs",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Context",
+      "description": "Epochs concatenated in time"
+    },
+    {
+      "title": "Encoder",
+      "description": "Convolutional feature pyramid"
+    },
+    {
+      "title": "BiLSTM + decoder",
+      "description": "Temporal modelling and skip reconstruction"
+    },
+    {
+      "title": "Prediction",
+      "description": "Context waveform"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Temporal context",
+      "description": [
+        "One channel with consecutive epochs concatenated in time."
+      ],
+      "row": 0
+    },
+    {
+      "id": "pad",
+      "title": "Input preparation",
+      "description": [
+        "Use an input length compatible with all encoder and decoder stages."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encoder",
+      "title": "Convolutional encoder",
+      "description": [
+        "Strided Conv1d / ReLU, then 1x1 convolution / GLU at each level."
+      ],
+      "row": 2
+    },
+    {
+      "id": "lstm",
+      "title": "Temporal bottleneck",
+      "description": [
+        "Bidirectional LSTM across the bottleneck sequence; linear projection."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Mirrored decoder",
+      "description": [
+        "Add matching encoder skips; Conv1d / GLU and transposed convolution.",
+        "Last stage permits signed output."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Waveform prediction",
+      "description": [
+        "Predict the artifact across the full temporal context."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "pad",
+      "kind": "flow",
+      "label": "Temporal context to Input preparation"
+    },
+    {
+      "source": "pad",
+      "target": "encoder",
+      "kind": "flow",
+      "label": "Input preparation to Convolutional encoder"
+    },
+    {
+      "source": "encoder",
+      "target": "lstm",
+      "kind": "flow",
+      "label": "Convolutional encoder to Temporal bottleneck"
+    },
+    {
+      "source": "lstm",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Temporal bottleneck to Mirrored decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "Mirrored decoder to Waveform prediction"
+    },
+    {
+      "source": "encoder",
+      "target": "decoder",
+      "kind": "skip",
+      "label": "Level-matched additive skips"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/demucs/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/demucs/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

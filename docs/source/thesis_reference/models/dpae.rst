@@ -27,3 +27,9 @@ Source-paper record
 -------------------
 
 Xiong et al. (2023), A general dual-pathway network for EEG denoising. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-dpae` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

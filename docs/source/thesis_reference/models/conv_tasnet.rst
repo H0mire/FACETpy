@@ -27,3 +27,9 @@ Source-paper record
 -------------------
 
 Luo and Mesgarani (2019), Conv-TasNet. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-conv-tasnet` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

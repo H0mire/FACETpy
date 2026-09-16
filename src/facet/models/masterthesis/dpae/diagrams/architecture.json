@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/dpae",
+  "title": "DPAE",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Noisy epoch",
+      "description": "One channel"
+    },
+    {
+      "title": "Parallel pathways",
+      "description": "Fine and coarse temporal features"
+    },
+    {
+      "title": "Fusion + decoder",
+      "description": "Combine scales and reconstruct"
+    },
+    {
+      "title": "Output",
+      "description": "Artifact estimate"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Single-channel epoch",
+      "description": [
+        "Input waveform, batch x 1 x samples."
+      ],
+      "row": 0
+    },
+    {
+      "id": "local",
+      "title": "Fine-scale pathway",
+      "description": [
+        "Small kernels and dilated convolutions; pooled latent features."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "global",
+      "title": "Coarse-scale pathway",
+      "description": [
+        "Larger-kernel convolutions; pooling."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "concat",
+      "title": "Concatenate latents",
+      "description": [
+        "Concatenate both pathway latents along the channel axis."
+      ],
+      "row": 2
+    },
+    {
+      "id": "fusion",
+      "title": "Pointwise fusion",
+      "description": [
+        "1x1 convolution, BatchNorm and activation fuse the pathways."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Waveform decoder",
+      "description": [
+        "Upsampling convolutional decoder; restore the input length."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Artifact prediction",
+      "description": [
+        "Add learned residual_scale x input to the decoded artifact."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "local",
+      "kind": "flow",
+      "label": "Single-channel epoch to Fine-scale pathway"
+    },
+    {
+      "source": "input",
+      "target": "global",
+      "kind": "flow",
+      "label": "Single-channel epoch to Coarse-scale pathway"
+    },
+    {
+      "source": "local",
+      "target": "concat",
+      "kind": "merge",
+      "label": "Fine-scale pathway to Concatenate latents"
+    },
+    {
+      "source": "global",
+      "target": "concat",
+      "kind": "merge",
+      "label": "Coarse-scale pathway to Concatenate latents"
+    },
+    {
+      "source": "concat",
+      "target": "fusion",
+      "kind": "flow",
+      "label": "Concatenate latents to Pointwise fusion"
+    },
+    {
+      "source": "fusion",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Pointwise fusion to Waveform decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "Waveform decoder to Artifact prediction"
+    },
+    {
+      "source": "input",
+      "target": "output",
+      "kind": "skip",
+      "label": "Learned scalar input shortcut"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/dpae/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/dpae/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

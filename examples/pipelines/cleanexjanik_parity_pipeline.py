@@ -38,8 +38,8 @@ from facet import (  # noqa: E402
     HighPassFilter,
     Loader,
     LowPassFilter,
-    PCACorrection,
     PasteAcquisitionWindow,
+    PCACorrection,
     Pipeline,
     RawTransform,
     SliceAligner,
@@ -148,9 +148,7 @@ class ParityProbe:
             channels_compared=len(channel_names),
             samples_compared=int(n_samples),
             sfreq_hz=float(raw.info["sfreq"]),
-            artifact_length_samples=int(context.metadata.artifact_length)
-            if context.metadata.artifact_length
-            else None,
+            artifact_length_samples=int(context.metadata.artifact_length) if context.metadata.artifact_length else None,
             mae=mae,
             rmse=rmse,
             rel_rmse_percent=float(rel_rmse),
@@ -295,7 +293,7 @@ def render_markdown(
         "## Setup",
         "",
         f"- Input: `{INPUT_FILE}`",
-        f"- Pipeline run mode: `channel_sequential=True`",
+        "- Pipeline run mode: `channel_sequential=True`",
         "- Console mode: `classic`",
         f"- MATLAB references: `{', '.join(Path(REFERENCE_FILES[s]).name for s in order)}`",
         "",
@@ -319,8 +317,7 @@ def render_markdown(
         "",
         f"- ANC HP cutoff: `{anc_mu.get('hp_cutoff_hz', 'n/a')}` Hz",
         f"- FACETpy ANC filter order `N`: `{anc_mu.get('n_current_facetpy', 'n/a')}`",
-        f"- MATLAB-equivalent ANC filter order `N` (native sample units): "
-        f"`{anc_mu.get('n_matlab_equivalent', 'n/a')}`",
+        f"- MATLAB-equivalent ANC filter order `N` (native sample units): `{anc_mu.get('n_matlab_equivalent', 'n/a')}`",
         f"- Legacy reference (if `artifact_length` were still in upsampled units): "
         f"`{anc_mu.get('n_legacy_upsampled_unit_reference', 'n/a')}`",
     ]

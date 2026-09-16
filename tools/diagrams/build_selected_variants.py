@@ -56,7 +56,7 @@ def wire(d: Diagram, pts, *, dashed=False):
 def title(d: Diagram, name: str, selection: str, summary: str):
     d.add(
         text(48, 43, name, size=25, weight=700, fill=C["ink"]),
-        f'<rect x="48" y="53" width="250" height="3" rx="1.5" fill="url(#fp-header)"/>',
+        '<rect x="48" y="53" width="250" height="3" rx="1.5" fill="url(#fp-header)"/>',
         text(48, 81, selection, size=12.5, weight=650, fill=C["blue"]),
         text(48, 104, summary, size=12.1, fill=C["slate"]),
     )
@@ -81,7 +81,7 @@ def common(name, selection, summary, blocks, config, result, *, skips=(), note="
     # Main flow runs across two rows.  Each profile supplies coordinates and verified labels.
     for item in blocks:
         box(d, *item)
-    for a, b in zip(blocks, blocks[1:]):
+    for a, b in zip(blocks, blocks[1:], strict=False):
         if a[1] == b[1] and abs((a[0] + a[2]) - b[0]) < 100:
             wire(d, [(a[0] + a[2] + 4, a[1] + 37), (b[0] - 4, b[1] + 37)])
     for pts, dashed in skips:
@@ -356,7 +356,10 @@ SELECTED = {
 
 
 def selected_profiles():
-    import csv, copy, yaml
+    import copy
+    import csv
+
+    import yaml
 
     sys.path.insert(0, str(ROOT))
     from masterthesis_guide.reproduce import load_catalog

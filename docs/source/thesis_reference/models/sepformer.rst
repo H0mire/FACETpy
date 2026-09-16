@@ -27,3 +27,9 @@ Source-paper record
 -------------------
 
 Subakan et al. (2021), Attention is All You Need in Speech Separation. The citation is retained from the thesis source records.
+
+Architecture diagrams
+---------------------
+
+See :ref:`diagram-masterthesis-sepformer` for the compact overview and detailed implementation diagram.
+The :doc:`model diagram gallery </model_diagrams>` also lists the separate variants.

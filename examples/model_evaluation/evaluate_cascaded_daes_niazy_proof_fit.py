@@ -30,7 +30,6 @@ Example:
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -39,9 +38,7 @@ import numpy as np
 
 from facet.evaluation import ModelEvaluationWriter
 
-DEFAULT_DATASET = Path(
-    "./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+DEFAULT_DATASET = Path("./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 DEFAULT_OUTPUT_ROOT = Path("./output/model_evaluations")
 
 VARIANT_META = {
@@ -74,9 +71,7 @@ def parse_args() -> argparse.Namespace:
         help="Which cascaded DAE variant to evaluate.",
     )
     parser.add_argument("--checkpoint", type=Path, required=True, help="TorchScript checkpoint.")
-    parser.add_argument(
-        "--dataset", type=Path, default=DEFAULT_DATASET, help="Niazy proof-fit NPZ bundle."
-    )
+    parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET, help="Niazy proof-fit NPZ bundle.")
     parser.add_argument("--output-dir", type=Path, default=None, help="Output run directory.")
     parser.add_argument("--run-id", default=None, help="Stable evaluation run id.")
     parser.add_argument("--device", default="cpu", help="PyTorch device.")
@@ -118,9 +113,7 @@ def _load_split(args: argparse.Namespace) -> dict[str, np.ndarray]:
         clean_center = bundle["clean_center"].astype(np.float32, copy=False)
         artifact_center = bundle["artifact_center"].astype(np.float32, copy=False)
         noisy_context = (
-            bundle["noisy_context"].astype(np.float32, copy=False)
-            if args.variant == "cascaded_context_dae"
-            else None
+            bundle["noisy_context"].astype(np.float32, copy=False) if args.variant == "cascaded_context_dae" else None
         )
         sfreq = float(bundle["sfreq"][0])
 
@@ -207,13 +200,7 @@ def _mse(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0
-        * np.log10(
-            (np.mean(np.square(reference)) + 1e-20)
-            / (np.mean(np.square(error)) + 1e-20)
-        )
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -259,9 +246,7 @@ def _compute_metrics(
     metrics["clean_mse_reduction_pct"] = 100.0 * (
         1.0 - metrics["clean_mse_after"] / (metrics["clean_mse_before"] + 1e-20)
     )
-    metrics["clean_snr_improvement_db"] = (
-        metrics["clean_snr_db_after"] - metrics["clean_snr_db_before"]
-    )
+    metrics["clean_snr_improvement_db"] = metrics["clean_snr_db_after"] - metrics["clean_snr_db_before"]
     return metrics
 
 
@@ -309,10 +294,7 @@ def main() -> int:
     meta = VARIANT_META[args.variant]
 
     payload = _load_split(args)
-    print(
-        f"Loaded val split: n_pairs={payload['n_pairs']}, sfreq={payload['sfreq']:.1f} Hz, "
-        f"variant={args.variant}"
-    )
+    print(f"Loaded val split: n_pairs={payload['n_pairs']}, sfreq={payload['sfreq']:.1f} Hz, variant={args.variant}")
 
     started = datetime.now(UTC)
     pred_artifact = _run_inference(

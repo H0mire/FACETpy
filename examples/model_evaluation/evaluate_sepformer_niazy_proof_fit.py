@@ -33,13 +33,8 @@ from facet.models.masterthesis.sepformer.training import (
 )
 from facet.training.dataset import NPZContextArtifactDataset
 
-
-DEFAULT_CHECKPOINT = Path(
-    "training_output/sepformerniazyprooffit_20260510_230104/exports/sepformer.ts"
-)
-DEFAULT_DATASET = Path(
-    "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-)
+DEFAULT_CHECKPOINT = Path("training_output/sepformerniazyprooffit_20260510_230104/exports/sepformer.ts")
+DEFAULT_DATASET = Path("output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz")
 MODEL_ID = "sepformer"
 MODEL_NAME = "SepFormer"
 MODEL_DESCRIPTION = (
@@ -102,11 +97,7 @@ def _mae(a: np.ndarray, b: np.ndarray) -> float:
 
 
 def _snr_db(reference: np.ndarray, error: np.ndarray) -> float:
-    return float(
-        10.0 * np.log10(
-            (np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)
-        )
-    )
+    return float(10.0 * np.log10((np.mean(np.square(reference)) + 1e-20) / (np.mean(np.square(error)) + 1e-20)))
 
 
 def _corrcoef(a: np.ndarray, b: np.ndarray) -> float:
@@ -182,9 +173,7 @@ def _compute_metrics(
     artifact_mae = _mae(pred_artifact, artifact_center)
     artifact_corr = _corrcoef(pred_artifact, artifact_center)
     artifact_snr_db = _snr_db(artifact_center, pred_artifact - artifact_center)
-    residual_rms_ratio = _rms(corrected - clean_center) / max(
-        _rms(noisy_center - clean_center), 1e-20
-    )
+    residual_rms_ratio = _rms(corrected - clean_center) / max(_rms(noisy_center - clean_center), 1e-20)
     return {
         "n_examples": int(noisy_center.shape[0]),
         "samples_per_epoch": int(samples_per_epoch),
@@ -261,7 +250,7 @@ def _plot_metric_summary(
 
     fig, axes = plt.subplots(1, len(keys), figsize=(3.4 * len(keys), 4.0), constrained_layout=True)
     y_pos = np.arange(len(models))
-    for i, (ax, key, label) in enumerate(zip(axes, keys, labels)):
+    for i, (ax, _key, label) in enumerate(zip(axes, keys, labels, strict=False)):
         values = [row[i] for row in matrix]
         colors = ["C0"] + ["#888888"] * len(baselines)
         ax.barh(y_pos, values, color=colors)

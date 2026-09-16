@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/conv_tasnet/deployment",
+  "title": "Conv-TasNet",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Waveform",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "Encoder + TCN",
+      "description": "Learn temporal source masks"
+    },
+    {
+      "title": "Mask + decoder",
+      "description": "Decode each separated source"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Noisy waveform",
+      "description": [
+        "Batch x 1 x samples."
+      ],
+      "row": 1
+    },
+    {
+      "id": "encode",
+      "title": "Learned analysis filters",
+      "description": [
+        "Strided Conv1d followed by ReLU."
+      ],
+      "row": 2
+    },
+    {
+      "id": "bottle",
+      "title": "Normalise and project",
+      "description": [
+        "Global layer normalisation and 1x1 bottleneck."
+      ],
+      "row": 3
+    },
+    {
+      "id": "tcn",
+      "title": "Temporal convolution stack",
+      "description": [
+        "Repeated dilated depthwise-convolution blocks.",
+        "Each block emits a residual update and a skip contribution."
+      ],
+      "row": 4
+    },
+    {
+      "id": "mask",
+      "title": "Source mask head",
+      "description": [
+        "Sum skip outputs; PReLU and 1x1 projection.",
+        "Configured mask activation for each source."
+      ],
+      "row": 5
+    },
+    {
+      "id": "apply",
+      "title": "Apply masks to encoding",
+      "description": [
+        "Multiply each source mask by the original encoded features."
+      ],
+      "row": 6
+    },
+    {
+      "id": "decode",
+      "title": "Shared synthesis decoder",
+      "description": [
+        "Transposed convolution per source; crop to input length."
+      ],
+      "row": 7
+    },
+    {
+      "id": "output",
+      "title": "Ordered sources",
+      "description": [
+        "Source 0: clean EEG; source 1: gradient artifact for the two-source setup."
+      ],
+      "row": 8
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 9
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Noisy waveform"
+    },
+    {
+      "source": "input",
+      "target": "encode",
+      "kind": "flow",
+      "label": "Noisy waveform to Learned analysis filters"
+    },
+    {
+      "source": "encode",
+      "target": "bottle",
+      "kind": "flow",
+      "label": "Learned analysis filters to Normalise and project"
+    },
+    {
+      "source": "bottle",
+      "target": "tcn",
+      "kind": "flow",
+      "label": "Normalise and project to Temporal convolution stack"
+    },
+    {
+      "source": "tcn",
+      "target": "mask",
+      "kind": "flow",
+      "label": "Temporal convolution stack to Source mask head"
+    },
+    {
+      "source": "mask",
+      "target": "apply",
+      "kind": "flow",
+      "label": "Source mask head to Apply masks to encoding"
+    },
+    {
+      "source": "apply",
+      "target": "decode",
+      "kind": "flow",
+      "label": "Apply masks to encoding to Shared synthesis decoder"
+    },
+    {
+      "source": "decode",
+      "target": "output",
+      "kind": "flow",
+      "label": "Shared synthesis decoder to Ordered sources"
+    },
+    {
+      "source": "encode",
+      "target": "apply",
+      "kind": "skip",
+      "label": "Unmasked encoded features"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Ordered sources to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/conv_tasnet/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/conv_tasnet/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

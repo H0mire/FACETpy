@@ -11,31 +11,31 @@ Covers:
 from pathlib import Path
 
 from facet import (
-    Pipeline,
-    Loader,
-    TriggerDetector,
-    HighPassFilter,
-    LowPassFilter,
-    UpSample,
-    DownSample,
     AASCorrection,
-    PCACorrection,
-    SNRCalculator,
-    LegacySNRCalculator,
-    RMSCalculator,
-    RMSResidualCalculator,
-    MedianArtifactCalculator,
+    DownSample,
     FFTAllenCalculator,
     FFTNiazyCalculator,
+    HighPassFilter,
+    LegacySNRCalculator,
+    Loader,
+    LowPassFilter,
+    MedianArtifactCalculator,
     MetricsReport,
+    PCACorrection,
+    Pipeline,
+    RMSCalculator,
+    RMSResidualCalculator,
+    SNRCalculator,
+    TriggerDetector,
+    UpSample,
 )
 
 OUTPUT_DIR = Path("./output")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_FILE    = "./examples/datasets/NiazyFMRI.edf"
+INPUT_FILE = "./examples/datasets/NiazyFMRI.edf"
 TRIGGER_REGEX = r"\b1\b"
-UPSAMPLE      = 10
+UPSAMPLE = 10
 
 
 # ---------------------------------------------------------------------------

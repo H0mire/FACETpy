@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/experimental/paper_accurate/dpae",
+  "title": "DPAE",
+  "subtitle": "Paper variant",
+  "overview": [
+    {
+      "title": "Noisy epoch",
+      "description": "One channel"
+    },
+    {
+      "title": "Parallel pathways",
+      "description": "Fine and coarse temporal features"
+    },
+    {
+      "title": "Fusion + decoder",
+      "description": "Combine scales and reconstruct"
+    },
+    {
+      "title": "Output",
+      "description": "Clean EEG or configured artifact"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Single-channel epoch",
+      "description": [
+        "Input waveform, batch x 1 x samples."
+      ],
+      "row": 0
+    },
+    {
+      "id": "local",
+      "title": "Fine-scale pathway",
+      "description": [
+        "Small-kernel convolutions; pooling."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "global",
+      "title": "Coarse-scale pathway",
+      "description": [
+        "Larger-kernel convolutions; pooling."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "concat",
+      "title": "Concatenate latents",
+      "description": [
+        "Align temporal lengths and concatenate feature channels."
+      ],
+      "row": 2
+    },
+    {
+      "id": "fusion",
+      "title": "Symmetric fusion",
+      "description": [
+        "BatchNorm; 1x1 compression and expansion with a feature residual."
+      ],
+      "row": 3
+    },
+    {
+      "id": "decoder",
+      "title": "Waveform decoder",
+      "description": [
+        "Upsampling convolutional decoder; restore the input length."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Reconstruction",
+      "description": [
+        "Target type selects clean EEG (default) or artifact."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "local",
+      "kind": "flow",
+      "label": "Single-channel epoch to Fine-scale pathway"
+    },
+    {
+      "source": "input",
+      "target": "global",
+      "kind": "flow",
+      "label": "Single-channel epoch to Coarse-scale pathway"
+    },
+    {
+      "source": "local",
+      "target": "concat",
+      "kind": "merge",
+      "label": "Fine-scale pathway to Concatenate latents"
+    },
+    {
+      "source": "global",
+      "target": "concat",
+      "kind": "merge",
+      "label": "Coarse-scale pathway to Concatenate latents"
+    },
+    {
+      "source": "concat",
+      "target": "fusion",
+      "kind": "flow",
+      "label": "Concatenate latents to Symmetric fusion"
+    },
+    {
+      "source": "fusion",
+      "target": "decoder",
+      "kind": "flow",
+      "label": "Symmetric fusion to Waveform decoder"
+    },
+    {
+      "source": "decoder",
+      "target": "output",
+      "kind": "flow",
+      "label": "Waveform decoder to Reconstruction"
+    },
+    {
+      "source": "concat",
+      "target": "fusion",
+      "kind": "skip",
+      "label": "Feature residual"
+    }
+  ],
+  "notes": [
+    "Experimental paper_accurate package; this depicts repository behavior, not a claim of complete paper equivalence.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/experimental/paper_accurate/dpae/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/experimental/paper_accurate/dpae/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

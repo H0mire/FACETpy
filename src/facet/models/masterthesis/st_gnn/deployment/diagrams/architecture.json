@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/st_gnn/deployment",
+  "title": "ST-GNN",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "EEG + montage",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "ST blocks",
+      "description": "Temporal gates and graph filters"
+    },
+    {
+      "title": "Projection",
+      "description": "Waveform at each electrode"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Multichannel context",
+      "description": [
+        "Rearrange to batch x features x electrodes x time."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "graph",
+      "title": "Electrode graph",
+      "description": [
+        "Montage-derived adjacency and scaled graph Laplacian."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "blocks",
+      "title": "Two spatiotemporal blocks",
+      "description": [
+        "Temporal tanh/sigmoid gate -> Chebyshev convolution -> temporal gate.",
+        "Residual projection and GroupNorm complete each block."
+      ],
+      "row": 2
+    },
+    {
+      "id": "head",
+      "title": "Output head",
+      "description": [
+        "1x1 convolution predicts the artifact for every electrode."
+      ],
+      "row": 3
+    },
+    {
+      "id": "output",
+      "title": "Centre-epoch artifact",
+      "description": [
+        "Slice the centre epoch; output batch x electrodes x samples."
+      ],
+      "row": 4
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Deployment input normalisation to Multichannel context"
+    },
+    {
+      "source": "input",
+      "target": "blocks",
+      "kind": "flow",
+      "label": "Multichannel context to Two spatiotemporal blocks"
+    },
+    {
+      "source": "graph",
+      "target": "blocks",
+      "kind": "conditioning",
+      "label": "Laplacian for Chebyshev filters"
+    },
+    {
+      "source": "blocks",
+      "target": "head",
+      "kind": "flow",
+      "label": "Two spatiotemporal blocks to Output head"
+    },
+    {
+      "source": "head",
+      "target": "output",
+      "kind": "flow",
+      "label": "Output head to Centre-epoch artifact"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Centre-epoch artifact to Deployment artifact output"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/st_gnn/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/st_gnn/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

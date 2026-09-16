@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/denoise_mamba",
+  "title": "DenoiseMamba",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Epoch",
+      "description": "Single-channel waveform"
+    },
+    {
+      "title": "Feature encoder",
+      "description": "Pointwise input projection"
+    },
+    {
+      "title": "State-space model",
+      "description": "Gated selective scan blocks"
+    },
+    {
+      "title": "Prediction",
+      "description": "Pointwise artifact head"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Single-channel waveform",
+      "description": [
+        "Batch x 1 x samples."
+      ],
+      "row": 0
+    },
+    {
+      "id": "project",
+      "title": "Input projection",
+      "description": [
+        "1x1 Conv1d; transpose into a temporal token sequence."
+      ],
+      "row": 1
+    },
+    {
+      "id": "split",
+      "title": "Begin repeated Mamba block",
+      "description": [
+        "LayerNorm and input projection split features into signal and gate."
+      ],
+      "row": 2
+    },
+    {
+      "id": "scan",
+      "title": "Signal and selective scan",
+      "description": [
+        "Causal depthwise Conv1d and SiLU.",
+        "Sequential selective scan with input-dependent step, B and C.",
+        "The scan includes its learned D shortcut."
+      ],
+      "row": 3,
+      "column": 0
+    },
+    {
+      "id": "gate",
+      "title": "Gate branch",
+      "description": [
+        "Apply SiLU to the projected gate features."
+      ],
+      "row": 3,
+      "column": 1
+    },
+    {
+      "id": "merge",
+      "title": "Gate and residual update",
+      "description": [
+        "Multiply scan output by the SiLU gate.",
+        "Dropout and linear projection; add the block input."
+      ],
+      "row": 4
+    },
+    {
+      "id": "output",
+      "title": "Output projection",
+      "description": [
+        "After all configured blocks: LayerNorm, transpose and 1x1 Conv1d.",
+        "Return the single-channel artifact waveform."
+      ],
+      "row": 5
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "project",
+      "kind": "flow",
+      "label": "Waveform"
+    },
+    {
+      "source": "project",
+      "target": "split",
+      "kind": "flow",
+      "label": "Embedded sequence"
+    },
+    {
+      "source": "split",
+      "target": "scan",
+      "kind": "flow",
+      "label": "Signal features"
+    },
+    {
+      "source": "split",
+      "target": "gate",
+      "kind": "flow",
+      "label": "Gate features"
+    },
+    {
+      "source": "scan",
+      "target": "merge",
+      "kind": "merge",
+      "label": "Scan output"
+    },
+    {
+      "source": "gate",
+      "target": "merge",
+      "kind": "merge",
+      "label": "SiLU gate"
+    },
+    {
+      "source": "project",
+      "target": "merge",
+      "kind": "skip",
+      "label": "Block input; repeated for each block"
+    },
+    {
+      "source": "merge",
+      "target": "output",
+      "kind": "flow",
+      "label": "Features after all repeated blocks"
+    }
+  ],
+  "notes": [
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration.",
+    "The split, scan, gate and residual update form one block; that block repeats according to the configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/denoise_mamba/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/models/masterthesis/denoise_mamba/processor.py",
+      "label": "Pipeline input/output adapter"
+    }
+  ]
+}

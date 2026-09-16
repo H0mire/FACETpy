@@ -16,45 +16,40 @@ For shorter introductions, see:
   synthetic_eeg.py      — generating synthetic EEG for testing
 """
 
+import os
 from pathlib import Path
-
-from mne import verbose
 
 from facet import (
     AASCorrection,
     ANCCorrection,
-    TriggerEditor,
-    FARMCorrection,
-    MagicErasor,
-    Pipeline,
-    Loader,
-    EDFExporter,
-    SignalIntervalSelector,
-    TriggerAligner,
-    HighPassFilter,
-    LowPassFilter,
-    UpSample,
     DownSample,
     DropChannels,
-    QRSTriggerDetector,
-    RawTransform,
-    PCACorrection,
-    SNRCalculator,
-    LegacySNRCalculator,
-    RMSCalculator,
-    RMSResidualCalculator,
-    MedianArtifactCalculator,
+    EDFExporter,
+    FARMCorrection,
     FFTAllenCalculator,
     FFTNiazyCalculator,
+    HighPassFilter,
+    LegacySNRCalculator,
+    Loader,
+    LowPassFilter,
+    MagicErasor,
+    MedianArtifactCalculator,
     MetricsReport,
+    PCACorrection,
+    Pipeline,
+    QRSTriggerDetector,
     RawPlotter,
-    VolumeTriggerCorrection,
-    load,
+    RawTransform,
+    RMSCalculator,
+    RMSResidualCalculator,
+    SignalIntervalSelector,
+    SNRCalculator,
+    TriggerAligner,
+    TriggerEditor,
+    UpSample,
 )
 from facet.evaluation import ReferenceIntervalSelector
 from facet.preprocessing import TriggerExplorer
-
-import os
 
 # Ensure that per-run log files are created by setting the FACET_LOG_FILE environment variable.
 os.environ["FACET_LOG_FILE"] = "1"
@@ -62,16 +57,16 @@ os.environ["FACET_LOG_FILE"] = "1"
 # ---------------------------------------------------------------------------
 # Paths and shared settings — adjust these for your study
 # ---------------------------------------------------------------------------
-INPUT_FILE  = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
-OUTPUT_DIR  = Path("./output")
+INPUT_FILE = "/Volumes/JanikProSSD/DataSets/EEG Datasets/EEGfMRI_20250519_20180312_004257.mff"
+OUTPUT_DIR = Path("./output")
 OUTPUT_FILE = str(OUTPUT_DIR / "corrected_fMRI_BCG_EEGfMRI_20250519_20180312_004257.edf")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-TRIGGER_REGEX    = r"^TR\s+\d+$"   # regex matching the fMRI slice trigger value
-UPSAMPLE         = 10          # upsample factor for sub-sample trigger alignment
-RECORDING_START  = 0        # seconds — crop start: triggers begin at ~1307 s
-RECORDING_END    = None        # seconds — crop end (None keeps until the end)
+TRIGGER_REGEX = r"^TR\s+\d+$"  # regex matching the fMRI slice trigger value
+UPSAMPLE = 10  # upsample factor for sub-sample trigger alignment
+RECORDING_START = 0  # seconds — crop start: triggers begin at ~1307 s
+RECORDING_END = None  # seconds — crop end (None keeps until the end)
 
 # Optional: list channel names to drop before processing (non-EEG channels).
 # Keep ECG for BCG correction.
@@ -83,8 +78,10 @@ def _remove_channel_from_bads(raw, channel_name):
     raw_copy.info["bads"] = [ch for ch in raw_copy.info["bads"] if ch != channel_name]
     return raw_copy
 
+
 def anc_skipped(ctx):
     return ctx
+
 
 # ---------------------------------------------------------------------------
 # Enable costly ANC correction
@@ -102,43 +99,31 @@ steps = [
         path=INPUT_FILE,
         preload=True,
     ),
-
     # 2. Remove non-EEG channels present in the EDF file
     DropChannels(channels=NON_EEG_CHANNELS),
-
     # 3. Remove unrelevant data
     # Crop(tmin=RECORDING_START, tmax=RECORDING_END),
-
     # 4. Detect fMRI slice-onset triggers
     TriggerExplorer(),
-
     TriggerEditor(),
-
     ReferenceIntervalSelector(),
     # 5. High-pass filter to remove slow drifts before correction
     HighPassFilter(freq=1.0),
-
     # 6. Upsample for sub-sample precision in trigger alignment
     UpSample(factor=UPSAMPLE),
-
     # 7. Align all triggers to a shared reference using cross-correlation
     TriggerAligner(ref_trigger_index=0, upsample_for_alignment=False),
-
     # 8. Averaged Artifact Subtraction — the primary correction step
     FARMCorrection(
         window_size=30,
         realign_after_averaging=True,
     ),
-
     # 9. PCA — remove systematic residual artifact components
     PCACorrection(n_components=0.95, hp_freq=1.0),
-
     # 10. Downsample back to the original recording rate
     DownSample(factor=UPSAMPLE),
-
     # 11. Low-pass filter to remove high-frequency noise
     LowPassFilter(freq=70.0),
-
     # 12. Ensure ECG is not excluded before BCG trigger/offset handling
     RawTransform(
         "remove_ecg_from_bads",
@@ -162,12 +147,11 @@ steps = [
     FFTAllenCalculator(verbose=True),
     FFTNiazyCalculator(verbose=True),
     MetricsReport(),
-
     # 17. Plot a before/after comparison for a single channel
     RawPlotter(
         mode="mne",
         channel="Fp1",
-        duration=20, 
+        duration=20,
         overlay_original=False,
         save_path=str(OUTPUT_DIR / "before_after.png"),
         show=True,

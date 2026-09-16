@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/dhct_gan/strict",
+  "title": "DHCT-GAN strict",
+  "subtitle": "Thesis model",
+  "overview": [
+    {
+      "title": "Input",
+      "description": "Context tensor"
+    },
+    {
+      "title": "Hybrid branches",
+      "description": "Independent CNN/Transformer branches"
+    },
+    {
+      "title": "Fusion + heads",
+      "description": "Clean and artifact estimates"
+    },
+    {
+      "title": "Output",
+      "description": "Clean/noise/fused dictionary"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "input",
+      "title": "Context and scaling",
+      "description": [
+        "Map context/electrodes to branch input; normalise by configured scale."
+      ],
+      "row": 0
+    },
+    {
+      "id": "clean",
+      "title": "Independent clean branch",
+      "description": [
+        "Preprocessing and CNN/LGTB feature blocks.",
+        "Configured FC or convolutional decoder predicts clean waveform."
+      ],
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "artifact",
+      "title": "Independent noise branch",
+      "description": [
+        "Separate parameters and CNN/LGTB feature blocks.",
+        "Predict the artifact waveform."
+      ],
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "gate",
+      "title": "Two gating masks",
+      "description": [
+        "Masks come from the scaled input.",
+        "Fused clean = mask1 x clean + mask2 x (input - noise)."
+      ],
+      "row": 2
+    },
+    {
+      "id": "output",
+      "title": "Rescale and select centre",
+      "description": [
+        "Return clean, noise and fused outputs; optional channel bridge.",
+        "Artifact export uses noisy centre minus the selected clean output."
+      ],
+      "row": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "input",
+      "target": "clean",
+      "kind": "flow",
+      "label": "Context and scaling to Independent clean branch"
+    },
+    {
+      "source": "input",
+      "target": "artifact",
+      "kind": "flow",
+      "label": "Context and scaling to Independent noise branch"
+    },
+    {
+      "source": "input",
+      "target": "gate",
+      "kind": "conditioning",
+      "label": "Gating input"
+    },
+    {
+      "source": "clean",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Independent clean branch to Two gating masks"
+    },
+    {
+      "source": "artifact",
+      "target": "gate",
+      "kind": "merge",
+      "label": "Independent noise branch to Two gating masks"
+    },
+    {
+      "source": "gate",
+      "target": "output",
+      "kind": "flow",
+      "label": "Two gating masks to Rescale and select centre"
+    }
+  ],
+  "notes": [
+    "Discriminators and adversarial objectives are training-only; they are not in the inference signal path.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/dhct_gan/strict/training.py",
+      "label": "Variant implementation and forward contract"
+    }
+  ]
+}

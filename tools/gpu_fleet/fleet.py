@@ -12,7 +12,7 @@ import sys
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ SESSION_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]+$")
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def log(message: str) -> None:
@@ -52,8 +52,7 @@ def run(
         cwd=REPO_ROOT,
         check=check,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         env=full_env,
     )
 
@@ -63,10 +62,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
         raise SystemExit(f"Worker config not found: {path}")
     with path.open("r", encoding="utf-8") as handle:
         text = handle.read()
-    if yaml is not None:
-        data = yaml.safe_load(text) or {}
-    else:
-        data = parse_simple_workers_yaml(text)
+    data = yaml.safe_load(text) or {} if yaml is not None else parse_simple_workers_yaml(text)
     if not isinstance(data.get("workers"), dict):
         raise SystemExit(f"Worker config must contain a 'workers' mapping: {path}")
     return data
@@ -169,7 +165,7 @@ class Worker:
     identity_file: str | None = None
 
     @classmethod
-    def from_config(cls, name: str, raw: dict[str, Any]) -> "Worker":
+    def from_config(cls, name: str, raw: dict[str, Any]) -> Worker:
         return cls(
             name=name,
             ssh=str(raw["ssh"]),
@@ -194,10 +190,7 @@ class Worker:
 
 def workers_from_config(path: Path) -> dict[str, Worker]:
     data = load_yaml(path)
-    return {
-        name: Worker.from_config(name, raw)
-        for name, raw in data["workers"].items()
-    }
+    return {name: Worker.from_config(name, raw) for name, raw in data["workers"].items()}
 
 
 def tmux_sessions(worker: Worker) -> set[str]:
@@ -259,32 +252,26 @@ def refresh_state(state: dict[str, Any], workers: dict[str, Worker]) -> list[str
             job["status"] = new_status
             job["exit_code"] = exit_code
             job["finished_at"] = utc_now()
-            transitions.append(
-                f"{worker_name} {new_status} {job['id']} ({job['session']}) exit={exit_code}"
-            )
+            transitions.append(f"{worker_name} {new_status} {job['id']} ({job['session']}) exit={exit_code}")
             continue
 
         started_at = job.get("started_at")
         if started_at:
             started = datetime.fromisoformat(started_at)
-            elapsed_seconds = (datetime.now(timezone.utc) - started).total_seconds()
+            elapsed_seconds = (datetime.now(UTC) - started).total_seconds()
             if elapsed_seconds < 60:
                 continue
         if job["status"] == "running":
             job["status"] = "finished_unknown"
             job["finished_at"] = utc_now()
             transitions.append(
-                f"{worker_name} session vanished without exit code: {job['id']} "
-                f"({job['session']}) -> finished_unknown"
+                f"{worker_name} session vanished without exit code: {job['id']} ({job['session']}) -> finished_unknown"
             )
     return transitions
 
 
 def worker_is_available(worker_name: str, worker: Worker, state: dict[str, Any]) -> bool:
-    for job in state["jobs"]:
-        if job["status"] == "running" and job.get("worker") == worker_name:
-            return False
-    return True
+    return all(not (job["status"] == "running" and job.get("worker") == worker_name) for job in state["jobs"])
 
 
 def cmd_submit(args: argparse.Namespace) -> int:
@@ -382,10 +369,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
     log(f"fleet dispatcher starting ({'loop' if args.loop else 'single shot'})")
     log(f"  state file: {args.state}")
     for worker_name, worker in workers.items():
-        log(
-            f"  worker {worker_name}: {worker.ssh}:{worker.port} "
-            f"gpu={worker.gpu} repo={worker.remote_repo}"
-        )
+        log(f"  worker {worker_name}: {worker.ssh}:{worker.port} gpu={worker.gpu} repo={worker.remote_repo}")
     if args.loop:
         log(f"listening for pending jobs (interval={args.interval}s, Ctrl+C to stop)")
 
@@ -427,10 +411,7 @@ def cmd_dispatch(args: argparse.Namespace) -> int:
         if not any_change:
             pending = sum(1 for j in state["jobs"] if j["status"] == "pending")
             running = sum(1 for j in state["jobs"] if j["status"] == "running")
-            idle_workers = [
-                name for name in workers
-                if worker_is_available(name, workers[name], state)
-            ]
+            idle_workers = [name for name in workers if worker_is_available(name, workers[name], state)]
             busy_workers = [name for name in workers if name not in idle_workers]
             log(
                 f"idle — pending={pending} running={running} "
@@ -451,10 +432,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     counts: dict[str, int] = {}
     for job in state["jobs"]:
         counts[job["status"]] = counts.get(job["status"], 0) + 1
-    summary = (
-        ", ".join(f"{n} {s}" for s, n in sorted(counts.items()))
-        if counts else "empty queue"
-    )
+    summary = ", ".join(f"{n} {s}" for s, n in sorted(counts.items())) if counts else "empty queue"
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] queue: {summary}")
     for line in transitions:
@@ -462,10 +440,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
     print("\nworkers")
     for worker_name, worker in workers.items():
-        running = [
-            job for job in state["jobs"]
-            if job["status"] == "running" and job.get("worker") == worker_name
-        ]
+        running = [job for job in state["jobs"] if job["status"] == "running" and job.get("worker") == worker_name]
         label = running[0]["session"] if running else "idle"
         print(f"  {worker_name}: {label} ({worker.ssh}, gpu={worker.gpu})")
 

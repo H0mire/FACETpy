@@ -1,13 +1,15 @@
 """Summarize the fixed, completed checkpoint and paired-pipeline comparisons."""
 
-import csv, json
+import json
 from pathlib import Path
-import numpy as np
+
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import argparse
+
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--data-root", type=Path, required=True)

@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "model_dir": "src/facet/models/masterthesis/denoise_mamba/deployment",
+  "title": "DenoiseMamba",
+  "subtitle": "Deployment",
+  "overview": [
+    {
+      "title": "Epoch",
+      "description": "Normalise the configured input packing"
+    },
+    {
+      "title": "Feature encoder",
+      "description": "Pointwise input projection"
+    },
+    {
+      "title": "State-space model",
+      "description": "Gated selective scan blocks"
+    },
+    {
+      "title": "Artifact in input units",
+      "description": "Centre selection, optional DC removal and rescaling"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "normalise",
+      "title": "Deployment input normalisation",
+      "description": [
+        "Demean across configured axes; optionally divide by input standard deviation.",
+        "Packing and context axis come from the run configuration."
+      ],
+      "row": 0
+    },
+    {
+      "id": "input",
+      "title": "Single-channel waveform",
+      "description": [
+        "Batch x 1 x samples."
+      ],
+      "row": 1
+    },
+    {
+      "id": "project",
+      "title": "Input projection",
+      "description": [
+        "1x1 Conv1d; transpose into a temporal token sequence."
+      ],
+      "row": 2
+    },
+    {
+      "id": "split",
+      "title": "Begin repeated Mamba block",
+      "description": [
+        "LayerNorm and input projection split features into signal and gate."
+      ],
+      "row": 3
+    },
+    {
+      "id": "scan",
+      "title": "Signal and selective scan",
+      "description": [
+        "Causal depthwise Conv1d and SiLU.",
+        "Parallel affine scan with input-dependent state parameters.",
+        "The scan includes its learned D shortcut."
+      ],
+      "row": 4,
+      "column": 0
+    },
+    {
+      "id": "gate",
+      "title": "Gate branch",
+      "description": [
+        "Apply SiLU to the projected gate features."
+      ],
+      "row": 4,
+      "column": 1
+    },
+    {
+      "id": "merge",
+      "title": "Gate and residual update",
+      "description": [
+        "Multiply scan output by the SiLU gate.",
+        "Dropout and linear projection; add the block input."
+      ],
+      "row": 5
+    },
+    {
+      "id": "output",
+      "title": "Output projection",
+      "description": [
+        "After all configured blocks: LayerNorm, transpose and 1x1 Conv1d.",
+        "Return the single-channel artifact waveform."
+      ],
+      "row": 6
+    },
+    {
+      "id": "deployment_output",
+      "title": "Deployment artifact output",
+      "description": [
+        "Convert the configured core output to a centre artifact.",
+        "Optionally remove prediction DC; restore the input scale."
+      ],
+      "row": 7
+    }
+  ],
+  "edges": [
+    {
+      "source": "normalise",
+      "target": "input",
+      "kind": "flow",
+      "label": "Normalised input"
+    },
+    {
+      "source": "input",
+      "target": "project",
+      "kind": "flow",
+      "label": "Waveform"
+    },
+    {
+      "source": "project",
+      "target": "split",
+      "kind": "flow",
+      "label": "Embedded sequence"
+    },
+    {
+      "source": "split",
+      "target": "scan",
+      "kind": "flow",
+      "label": "Signal features"
+    },
+    {
+      "source": "split",
+      "target": "gate",
+      "kind": "flow",
+      "label": "Gate features"
+    },
+    {
+      "source": "scan",
+      "target": "merge",
+      "kind": "merge",
+      "label": "Scan output"
+    },
+    {
+      "source": "gate",
+      "target": "merge",
+      "kind": "merge",
+      "label": "SiLU gate"
+    },
+    {
+      "source": "project",
+      "target": "merge",
+      "kind": "skip",
+      "label": "Block input; repeated for each block"
+    },
+    {
+      "source": "merge",
+      "target": "output",
+      "kind": "flow",
+      "label": "Features after all repeated blocks"
+    },
+    {
+      "source": "output",
+      "target": "deployment_output",
+      "kind": "flow",
+      "label": "Core artifact"
+    }
+  ],
+  "notes": [
+    "Deployment changes normalisation and objective; architecture parameters remain configuration-dependent.",
+    "Dimensions and repeated-block counts are configurable; consult the linked implementation and run configuration.",
+    "The split, scan, gate and residual update form one block; that block repeats according to the configuration."
+  ],
+  "sources": [
+    {
+      "path": "src/facet/models/masterthesis/denoise_mamba/deployment/training.py",
+      "label": "Variant implementation and forward contract"
+    },
+    {
+      "path": "src/facet/training/deployment_model.py",
+      "label": "Self-normalising deployment wrapper"
+    },
+    {
+      "path": "src/facet/models/masterthesis/denoise_mamba/training.py",
+      "label": "Shared core architecture"
+    }
+  ]
+}

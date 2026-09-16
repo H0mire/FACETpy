@@ -16,12 +16,15 @@ from scipy.signal import butter, sosfiltfilt
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from masterthesis_guide.reproduce import adapter as catalog_adapter  # noqa: E402
+
 from facet.core import Pipeline  # noqa: E402
 from facet.correction.deep_learning import _resample_1d  # noqa: E402
 from facet.models.masterthesis import pipeline as reference_chain  # noqa: E402
-from facet.models.masterthesis.adapters import FamilyAdapter, predict_from_context
-from masterthesis_guide.reproduce import adapter as catalog_adapter  # noqa: E402
-
+from facet.models.masterthesis.adapters import (  # noqa: E402 - repository path is set before checkout-only imports
+    FamilyAdapter,
+    predict_from_context,
+)
 
 EDF = ROOT / "examples/datasets/NiazyFMRI.edf"
 OUT = ROOT / "output/thesis_results_by_phase/phase_2_pipeline_deployment"
@@ -123,7 +126,7 @@ def main() -> None:
     def render(path: Path, *, lowpass_outputs: bool) -> None:
         fig, axes = plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
         sos = butter(4, 70.0, btype="lowpass", fs=sfreq, output="sos")
-        for ax, (model_id, label) in zip(axes.ravel(), MODELS):
+        for ax, (model_id, label) in zip(axes.ravel(), MODELS, strict=False):
             corrected = output[model_id]
             if lowpass_outputs:
                 corrected = sosfiltfilt(sos, corrected)
@@ -142,7 +145,6 @@ def main() -> None:
             ax.axis("off")
         handles, labels = axes.ravel()[0].get_legend_handles_labels()
         fig.legend(handles, labels, loc="lower center", ncol=2, frameon=False, fontsize=9, bbox_to_anchor=(0.5, 0.015))
-        suffix = "with_70hz_output_lowpass" if lowpass_outputs else "prefilter"
         title = (
             "Phase 2: model corrections with 70-Hz output low-pass"
             if lowpass_outputs

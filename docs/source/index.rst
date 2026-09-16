@@ -106,6 +106,7 @@ Documentation Overview
    :caption: Deep learning and thesis reproduction
 
    user_guide/deep_learning
+   model_diagrams
    thesis_reference/index
    masterthesis_guide/index
    development/releasing
