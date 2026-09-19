@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "model": "dhct_gan_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_dhct_gan",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_dhct_gan/provenance/training.jsonl",
+          "sha256": "0eef77cd837491629d04e6fe20f41dba2ce5f084c1e4715d077080edeb68e8f5"
+        }
+      },
+      "recorded_epochs": 52,
+      "artifacts": {
+        "deployment_dhct_gan_dhct_gan_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/dhct_gan_deployment_edition/deployment_dhct_gan/dhct_gan_deployment.ts",
+          "source": "training_output/dhctgandeploymentniazyprooffit_20260826_195301/exports/dhct_gan_deployment.ts",
+          "owner": "deployment_dhct_gan",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 2738337,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "345165b2eaa00c6645648cfcab1ffae047dcaf49d1b6fedc11cf7c6a3a53651f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_dhct_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_dhct_gan --out /path/to/new-results/deployment_dhct_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_dhct_gan.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_dhct_gan --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_dhct_gan_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_dhct_gan",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_dhct_gan/provenance/training.jsonl",
+          "sha256": "0eef77cd837491629d04e6fe20f41dba2ce5f084c1e4715d077080edeb68e8f5"
+        }
+      },
+      "recorded_epochs": 52,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_dhct_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_dhct_gan --out /path/to/new-results/training_run7_dhct_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_dhct_gan.yaml"
+      }
+    },
+    {
+      "experiment": "run8_dhct_gan_lr0_0001_bc8_sisdr0_s42",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "3cce4a506bd5edb5bd3681e5c5c20524127979c7a0f33df2f64be8ed46c0799c"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_dhct_gan_lr0_0001_bc8_sisdr0_s42_epoch0076_val_loss0_3325_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/dhct_gan_deployment_edition/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42/epoch0076_val_loss0.3325.pt",
+          "source": "output/run8_fetched/gridpod3/grids/run8/dhct_gan/lr0.0001_bc8_sisdr0_s42/grid_dhct_gan_lr0.0001_bc8_sisdr0_s42_20260912_203924/checkpoints/epoch0076_val_loss0.3325.pt",
+          "owner": "run8_dhct_gan_lr0_0001_bc8_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1945100,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "05d76b8e553ddc23794b0ee118299ddda0a03d9477aeccfd212ab4d693d7eafd"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_dhct_gan_lr0_0001_bc8_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42 --out /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_dhct_gan_lr0_0001_bc8_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_dhct_gan_lr0_0001_bc8_sisdr1_s42",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "e87e4172e41ba91e55403847aadef86dee7cfcbec099bfaa2ad491d486312f17"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_dhct_gan_lr0_0001_bc8_sisdr1_s42_epoch0076_val_loss_0_2966_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/dhct_gan_deployment_edition/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42/epoch0076_val_loss-0.2966.pt",
+          "source": "output/run8_fetched/gridpod3/grids/run8/dhct_gan/lr0.0001_bc8_sisdr1_s42/grid_dhct_gan_lr0.0001_bc8_sisdr1_s42_20260913_014227/checkpoints/epoch0076_val_loss-0.2966.pt",
+          "owner": "run8_dhct_gan_lr0_0001_bc8_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1946010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "134fc471383239703d9db1f79314504fdd66a3196ffb4512934cb67c2977e7bd"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_dhct_gan_lr0_0001_bc8_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42 --out /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_dhct_gan_lr0_0001_bc8_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_dhct_gan_lr0_0001_bc8_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_dhct_gan_lr0_0001_bc8_sisdr0_s42",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "a558d65e6c8cd8e221b407981dac82e2049d3db59e1aa90ca347875b05204e96"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_dhct_gan_lr0_0001_bc8_sisdr0_s42_epoch0073_val_loss4_8582_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/dhct_gan_deployment_edition/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42/epoch0073_val_loss4.8582.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/dhct_gan/lr0.0001_bc8_sisdr0_s42/grid_dhct_gan_lr0.0001_bc8_sisdr0_s42_20260912_234237/checkpoints/epoch0073_val_loss4.8582.pt",
+          "owner": "wega_dhct_gan_lr0_0001_bc8_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1945531,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "df7ecd53105d764d89e9588203b18e40c46765dd49f0ffbaeafc98357c0d3861"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_dhct_gan_lr0_0001_bc8_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42 --out /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_dhct_gan_lr0_0001_bc8_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_dhct_gan_lr0_0001_bc8_sisdr1_s42",
+      "model": "dhct_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "4386571e46c86ce49b6f399f40d19f07e6fba5f2e5da1a0864741f67e0224a59"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_dhct_gan_lr0_0001_bc8_sisdr1_s42_epoch0077_val_loss5_7550_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/dhct_gan_deployment_edition/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42/epoch0077_val_loss5.7550.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/dhct_gan/lr0.0001_bc8_sisdr1_s42/grid_dhct_gan_lr0.0001_bc8_sisdr1_s42_20260913_025802/checkpoints/epoch0077_val_loss5.7550.pt",
+          "owner": "wega_dhct_gan_lr0_0001_bc8_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1945531,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f8a4ebe100f2a70b8b79d503a03800a3607dfd3a4c3943b0975d016f67bcdcf7"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_dhct_gan_lr0_0001_bc8_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42 --out /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_dhct_gan_lr0_0001_bc8_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_dhct_gan_lr0_0001_bc8_sisdr1_s42_raw.fif"
+      }
+    }
+  ]
+}

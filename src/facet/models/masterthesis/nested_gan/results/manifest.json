@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "nested_gan",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_nested_gan",
+      "model": "nested_gan",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_nested_gan/provenance/training.jsonl",
+          "sha256": "caf45fd578de4c0e102d491ceeaaeb2d62ac86e5c9eec9cff4f6483d5e95de0b"
+        }
+      },
+      "recorded_epochs": 52,
+      "artifacts": {
+        "holdout_nested_gan_nested_gan_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/nested_gan/holdout_nested_gan/nested_gan.ts",
+          "source": "training_output/nestedganniazyprooffit_20260510_222546/exports/nested_gan.ts",
+          "owner": "holdout_nested_gan",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 4834234,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5b56c89f02c94b2ccbb549f853692042dabe1d36f19b75fb006a51a8391a2231"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_nested_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_nested_gan --out /path/to/new-results/holdout_nested_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_nested_gan.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_nested_gan --data-root /path/to/thesis-data --out /path/to/new-results/holdout_nested_gan.json"
+      }
+    }
+  ]
+}

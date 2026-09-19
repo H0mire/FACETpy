@@ -1,0 +1,2184 @@
+{
+  "schema_version": 1,
+  "model": "nested_gan_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_nested_gan",
+      "model": "nested_gan_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_nested_gan/provenance/training.jsonl",
+          "sha256": "927dbd52c7d680a08d04480e893983025e01efb519e15290c1c03b36e43275e9"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "deployment_nested_gan_nested_gan_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/nested_gan_deployment_edition/deployment_nested_gan/nested_gan_deployment.ts",
+          "source": "training_output/nestedgandeploymentniazyprooffit_20260826_195137/exports/nested_gan_deployment.ts",
+          "owner": "deployment_nested_gan",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 4847000,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "febdc5e69b7908de2061adc49da195c0917392361ff53a869bdcedda2f8ac715"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_nested_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_nested_gan --out /path/to/new-results/deployment_nested_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_nested_gan.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_nested_gan --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_nested_gan_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_nested_gan",
+      "model": "nested_gan_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_nested_gan/provenance/training.jsonl",
+          "sha256": "927dbd52c7d680a08d04480e893983025e01efb519e15290c1c03b36e43275e9"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_nested_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_nested_gan --out /path/to/new-results/training_run7_nested_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_nested_gan.yaml"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "e6c8329e7e28e402b4e60696955c2fb842180a5157c1333318439e5399b9e49e"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch32_sisdr0_s42_epoch0080_val_loss0_1165_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch32_sisdr0_s42/epoch0080_val_loss0.1165.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch32_sisdr0_s42/grid_nested_gan_lr0.00015_ch32_sisdr0_s42_20260912_175729/checkpoints/epoch0080_val_loss0.1165.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13453678,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "64c0e8f4f81da6ec157c6c65df6a247acc332242f2fee23ea7962d03c8b159af"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "148b2c54e969f4e42947bba096c1505621833b7b535ab1788b451455e7602616"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch32_sisdr1_s42_epoch0080_val_loss_0_6612_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch32_sisdr1_s42/epoch0080_val_loss-0.6612.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch32_sisdr1_s42/grid_nested_gan_lr0.00015_ch32_sisdr1_s42_20260912_182649/checkpoints/epoch0080_val_loss-0.6612.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "49a511ccb5a0982a8f67a9682b432d5910c2192099307286ee5f28b16b03a957"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "24cc8cd0c0ba4d509b24374b1f85b70c2b5cf0e321343078cd2879291930e001"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch32_sisdr3_s42_epoch0078_val_loss_2_2468_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch32_sisdr3_s42/epoch0078_val_loss-2.2468.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch32_sisdr3_s42/grid_nested_gan_lr0.00015_ch32_sisdr3_s42_20260912_185614/checkpoints/epoch0078_val_loss-2.2468.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "54c8ede9fe8a54147851c05cf0ab56ed72ce680bb62cad9fcf65616e182fcbdb"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "768b34a8ec16076d9d2d1991e14022c7f92d621dba2be6d4b16caed08ec2c605"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch48_sisdr0_s42_epoch0074_val_loss0_1154_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch48_sisdr0_s42/epoch0074_val_loss0.1154.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch48_sisdr0_s42/grid_nested_gan_lr0.00015_ch48_sisdr0_s42_20260912_192606/checkpoints/epoch0074_val_loss0.1154.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126446,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "679a66f3dacd104e356633e97a9bc7c083df85842be8a277a3522cb3bbdfe4f4"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3b6c8d10a86a7eed93e3c0a17416d67271fe07e8b597036a28cfa9c15ff18497"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch48_sisdr1_s42_epoch0076_val_loss_0_6819_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch48_sisdr1_s42/epoch0076_val_loss-0.6819.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch48_sisdr1_s42/grid_nested_gan_lr0.00015_ch48_sisdr1_s42_20260912_195456/checkpoints/epoch0076_val_loss-0.6819.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "41115e9667fffe4fd37bfb621ef75edf330557e699437afa0718ef7b16923d77"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "161c588aee8b8df06834d896525984e1d3909d41d8ba4830ccdc7c27fa48c338"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch48_sisdr3_s42_epoch0076_val_loss_2_2806_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch48_sisdr3_s42/epoch0076_val_loss-2.2806.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch48_sisdr3_s42/grid_nested_gan_lr0.00015_ch48_sisdr3_s42_20260912_202246/checkpoints/epoch0076_val_loss-2.2806.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "9725f6474b26ebf2f27ab0a05c6c18638673cc2b05553192cc819b9280790734"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "65e3c22bf7bc5e5dca8a7d7820426c941847ec19aecadea87d0fa68cbcb915a6"
+        }
+      },
+      "recorded_epochs": 70,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch72_sisdr0_s42_epoch0050_val_loss0_1109_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch72_sisdr0_s42/epoch0050_val_loss0.1109.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch72_sisdr0_s42/grid_nested_gan_lr0.00015_ch72_sisdr0_s42_20260912_205644/checkpoints/epoch0050_val_loss0.1109.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594478,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f8e97f49b5ac36de4d6b87465bc479ae3fd80c4777ed17871ff0bc4f1205bedc"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "498f123eb88c1364bf7773805b5ea17bda60870058caf138cc40258c9d0153c3"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch72_sisdr1_s42_epoch0080_val_loss_0_6896_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch72_sisdr1_s42/epoch0080_val_loss-0.6896.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch72_sisdr1_s42/grid_nested_gan_lr0.00015_ch72_sisdr1_s42_20260912_212648/checkpoints/epoch0080_val_loss-0.6896.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b606551939f6731711ab39963d24edf871397c9002c263cbc48c96c7a23aaf13"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_00015_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_00015_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "abfaddb4893d5267ea74b490ea53a1137de7047a00dde92d6d29c2f19c8dcf69"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_00015_ch72_sisdr3_s42_epoch0080_val_loss_2_3020_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_00015_ch72_sisdr3_s42/epoch0080_val_loss-2.3020.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch72_sisdr3_s42/grid_nested_gan_lr0.00015_ch72_sisdr3_s42_20260912_220119/checkpoints/epoch0080_val_loss-2.3020.pt",
+          "owner": "run8_nested_gan_lr0_00015_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "cdd4771af8acbb6659a14f995bbfa65d0a320c1205f8b0fcf7c552f23a613dc8"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_00015_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_00015_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_00015_ch72_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "9415d59d3821abd313bdc2076ed3cad7c7f57e7572b3ecfac8005c59016b9b95"
+        }
+      },
+      "recorded_epochs": 70,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch32_sisdr0_s42_epoch0050_val_loss0_1082_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch32_sisdr0_s42/epoch0050_val_loss0.1082.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch32_sisdr0_s42/grid_nested_gan_lr0.0005_ch32_sisdr0_s42_20260912_223523/checkpoints/epoch0050_val_loss0.1082.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13453678,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bb67615e23fdc4ba1ed5cf6b14982f8e51e05301443ea37a459ef62e56799523"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "e0722b93e973093647501a9ab6068881fc07f258b235a04fb71b56f28dc858d6"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch32_sisdr1_s42_epoch0076_val_loss_0_7004_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch32_sisdr1_s42/epoch0076_val_loss-0.7004.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch32_sisdr1_s42/grid_nested_gan_lr0.0005_ch32_sisdr1_s42_20260912_230308/checkpoints/epoch0076_val_loss-0.7004.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a0167a22511841261df9f110675550f4672fda7fc8c35d8ee060c3b8ee9a9b00"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "64b8012334a643b678599fde39b8225d52bd878fb2b69f7eae21aded8fd17e9a"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch32_sisdr3_s42_epoch0078_val_loss_2_3288_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch32_sisdr3_s42/epoch0078_val_loss-2.3288.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch32_sisdr3_s42/grid_nested_gan_lr0.0005_ch32_sisdr3_s42_20260912_233546/checkpoints/epoch0078_val_loss-2.3288.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c2856fb14741f9d9c95c70b5b420e88087fbd77e94cb64d354eab5240e2ed96d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "67916ed32ded4a5fa99781a739e45cdcab0a642f798e493f55e0f85dffbf8618"
+        }
+      },
+      "recorded_epochs": 56,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch48_sisdr0_s42_epoch0036_val_loss0_1129_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch48_sisdr0_s42/epoch0036_val_loss0.1129.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch48_sisdr0_s42/grid_nested_gan_lr0.0005_ch48_sisdr0_s42_20260913_000927/checkpoints/epoch0036_val_loss0.1129.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126446,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "011ed3848e64dfbc750c15fb9a0f53e9509762983d352ba1f5f440e781f3cc7b"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "a8c94642a036f5da365de605704cc6cdbde30e27c996ad5e7dfdac4ed4676051"
+        }
+      },
+      "recorded_epochs": 64,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch48_sisdr1_s42_epoch0044_val_loss_0_6917_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch48_sisdr1_s42/epoch0044_val_loss-0.6917.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch48_sisdr1_s42/grid_nested_gan_lr0.0005_ch48_sisdr1_s42_20260913_003446/checkpoints/epoch0044_val_loss-0.6917.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "041edb996185bd1e037b5cfb2f08a1ffffb8552142368191e6cd02f6947f0301"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "fa8ed8e8c868cae4e79d3e55e75200ac56383e219dc02d85a4446c611e4b5ebc"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch48_sisdr3_s42_epoch0064_val_loss_2_3169_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch48_sisdr3_s42/epoch0064_val_loss-2.3169.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch48_sisdr3_s42/grid_nested_gan_lr0.0005_ch48_sisdr3_s42_20260913_010315/checkpoints/epoch0064_val_loss-2.3169.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4ece725a77d4290d6a596d9bc3315cc8facac54c440e140421b52a5f46e16936"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "a90d37f59e9b5d6d8307a1ce18de6e5fc8cb5d42dd0ffd6ad211a3a3d8231892"
+        }
+      },
+      "recorded_epochs": 51,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch72_sisdr0_s42_epoch0031_val_loss0_1069_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch72_sisdr0_s42/epoch0031_val_loss0.1069.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch72_sisdr0_s42/grid_nested_gan_lr0.0005_ch72_sisdr0_s42_20260913_013656/checkpoints/epoch0031_val_loss0.1069.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594478,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "158ccf21e66ed3822db493d7f987a9da083e90f5c6d303d88a7c55be0aa84195"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "472e8d86c5480076f6e2d5b7a44259cf4b9e42ff5bf7c2e34bfe3ffe1b9b9fcc"
+        }
+      },
+      "recorded_epochs": 63,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch72_sisdr1_s42_epoch0043_val_loss_0_6890_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch72_sisdr1_s42/epoch0043_val_loss-0.6890.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch72_sisdr1_s42/grid_nested_gan_lr0.0005_ch72_sisdr1_s42_20260913_020041/checkpoints/epoch0043_val_loss-0.6890.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "30788e2a457b5ae5c51368dbe24979cb541fecd0a8b35c5392f4842793e4ac2b"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0005_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0005_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "012895ed906085abf7242f0deb7cc159326040949a713189823fc8834237d182"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0005_ch72_sisdr3_s42_epoch0076_val_loss_2_3132_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0005_ch72_sisdr3_s42/epoch0076_val_loss-2.3132.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0005_ch72_sisdr3_s42/grid_nested_gan_lr0.0005_ch72_sisdr3_s42_20260913_022919/checkpoints/epoch0076_val_loss-2.3132.pt",
+          "owner": "run8_nested_gan_lr0_0005_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a875121f0de3b19e0fe05b1b6fe15477ac65656e92ce66aaae4f2f24937aaff7"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0005_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0005_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0005_ch72_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "f6a3e6a76f7fbb6521728f02636d4d9e21265dcc2896fce2f48b31e27266992c"
+        }
+      },
+      "recorded_epochs": 51,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch32_sisdr0_s42_epoch0031_val_loss0_1106_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch32_sisdr0_s42/epoch0031_val_loss0.1106.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch32_sisdr0_s42/grid_nested_gan_lr0.0015_ch32_sisdr0_s42_20260913_030401/checkpoints/epoch0031_val_loss0.1106.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13453678,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "ebf93665724a641c64e792ccace398384175d035ef93f0937bfc051e9a31f744"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "5fc8bd3865c2457ef46cf7d6c203a3674bf3eb9090f487d8276810e20e866c7c"
+        }
+      },
+      "recorded_epochs": 65,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch32_sisdr1_s42_epoch0045_val_loss_0_6744_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch32_sisdr1_s42/epoch0045_val_loss-0.6744.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch32_sisdr1_s42/grid_nested_gan_lr0.0015_ch32_sisdr1_s42_20260913_032703/checkpoints/epoch0045_val_loss-0.6744.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f5daeb583ae8caf6a41fafe27f62412e3f4a851261121698d1e460ad3eb35bbc"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "eae18865c0cf650981784bf7e76af3ef533ca09d8d2780f8c01a1e21a0b50648"
+        }
+      },
+      "recorded_epochs": 74,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch32_sisdr3_s42_epoch0054_val_loss_1_9012_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch32_sisdr3_s42/epoch0054_val_loss-1.9012.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch32_sisdr3_s42/grid_nested_gan_lr0.0015_ch32_sisdr3_s42_20260913_035541/checkpoints/epoch0054_val_loss-1.9012.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454010,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4e305d13ade230f7fe8b680809adfa0d8e6d5da20e0da7f65bf357448ef27f39"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "5857fcd4012f57eb87d150e678924b38df9be911b5e21c0359460c898d438a4a"
+        }
+      },
+      "recorded_epochs": 51,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch48_sisdr0_s42_epoch0031_val_loss0_1109_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch48_sisdr0_s42/epoch0031_val_loss0.1109.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch48_sisdr0_s42/grid_nested_gan_lr0.0015_ch48_sisdr0_s42_20260913_042806/checkpoints/epoch0031_val_loss0.1109.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126446,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "13b3ac60437480eed68f30cd0ea041dfce60ff0dea8d93898c02b6dcb745eee5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "2154b3c2e19c6db0ca22a172ee7152a6c6cf94e9177f4542f4ebfb989855c5a4"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch48_sisdr1_s42_epoch0070_val_loss_0_6916_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch48_sisdr1_s42/epoch0070_val_loss-0.6916.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch48_sisdr1_s42/grid_nested_gan_lr0.0015_ch48_sisdr1_s42_20260913_045337/checkpoints/epoch0070_val_loss-0.6916.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7d96566320c41e73d321be4503c38d60aa29e62003c90e4191b54c7cd9ea4045"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "7fcec356ea6ca4ebad7392ebb6df72e81b290eb1f37185c4fac426c39f914e59"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch48_sisdr3_s42_epoch0069_val_loss_1_9745_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch48_sisdr3_s42/epoch0069_val_loss-1.9745.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch48_sisdr3_s42/grid_nested_gan_lr0.0015_ch48_sisdr3_s42_20260913_052926/checkpoints/epoch0069_val_loss-1.9745.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126778,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "6032bc9ec5859d7972b57771ca99d3284cc31bb157938ee45eb620c42cd4b8c6"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "5a17ab99da6bef13b06a312a33477e87707d7b02135370a4ee1d0c93529ce690"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch72_sisdr0_s42_epoch0040_val_loss0_1110_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch72_sisdr0_s42/epoch0040_val_loss0.1110.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch72_sisdr0_s42/grid_nested_gan_lr0.0015_ch72_sisdr0_s42_20260913_060701/checkpoints/epoch0040_val_loss0.1110.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594478,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "8a890645f670c9e2c06ae14c19640e89ad652613700143da6985cf53c1c093c3"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr0_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "40424ec7e1c245f1b438fba8e34be06c64c78784532656d36fdfa1ca9c2a641f"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch72_sisdr1_s42_epoch0073_val_loss_0_6725_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch72_sisdr1_s42/epoch0073_val_loss-0.6725.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch72_sisdr1_s42/grid_nested_gan_lr0.0015_ch72_sisdr1_s42_20260913_063359/checkpoints/epoch0073_val_loss-0.6725.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "dd6d775a1d0acc92d07db49291033819b55d640e026c409ffa8c27a9e4697734"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr1_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_nested_gan_lr0_0015_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_nested_gan_lr0_0015_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "a7e29a03e297b9942bceb27a60d1ef830a5b48f961bc049667ad8d129a0ec7d9"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "run8_nested_gan_lr0_0015_ch72_sisdr3_s42_epoch0078_val_loss_2_3274_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/run8_nested_gan_lr0_0015_ch72_sisdr3_s42/epoch0078_val_loss-2.3274.pt",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.0015_ch72_sisdr3_s42/grid_nested_gan_lr0.0015_ch72_sisdr3_s42_20260913_070850/checkpoints/epoch0078_val_loss-2.3274.pt",
+          "owner": "run8_nested_gan_lr0_0015_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b4bd6537d32d4b97a5a4f2ed3ab655a282c284bab4e0881b61c2a1919d891385"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_nested_gan_lr0_0015_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42 --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_nested_gan_lr0_0015_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "spike_aware_nested_gan",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v10_locked",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "spike_comparison",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/training.jsonl",
+          "sha256": "abde91fe628bbab44482ecd7b485e67dfc2c4a2cdba4b186a361224d724c8d19"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "spike_aware_nested_gan_epoch0079_val_loss1_5766_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/epoch0079_val_loss1.5766.pt",
+          "source": "output/phase3_spike_aware_comparison/retrieved/nested_gan/training_output/phase3nestedganwegaspikeaware_20260914_121744/checkpoints/epoch0079_val_loss1.5766.pt",
+          "owner": "spike_aware_nested_gan",
+          "kind": "checkpoint",
+          "role": "evaluated_best_checkpoint",
+          "bytes": 14126446,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d927eaa50d0c7035d502eedc6a3237df76b583e9e37f5c9e87f6185e630b84ca"
+        },
+        "spike_aware_nested_gan_best_checkpoint_cuda_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/best_checkpoint_cuda.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/nested_gan/output/phase3_spike_aware_comparison/nested_gan/pipeline/best_checkpoint_cuda.ts",
+          "owner": "spike_aware_nested_gan",
+          "kind": "export",
+          "role": "evaluated_pipeline_export",
+          "bytes": 4836760,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "8a099500fd7970445109145971c36ecb4ffc44e3b63b1bcb8b4dff60d421267b"
+        },
+        "spike_aware_nested_gan_best_checkpoint_cpu_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/best_checkpoint_cpu.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/nested_gan/output/phase3_spike_aware_comparison/nested_gan/pipeline_cpu_partial/best_checkpoint_cpu.ts",
+          "owner": "spike_aware_nested_gan",
+          "kind": "export",
+          "role": "cpu_reexport",
+          "bytes": 4836248,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "132287f0ae6fb6bd0d13d58ea52b7ed1cb6ad68bf02a4dc6003086477740485b"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config spike_aware_nested_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/spike_aware_nested_gan --out /path/to/new-results/spike_aware_nested_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/spike_aware_nested_gan.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model spike_aware_nested_gan --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/spike_aware_nested_gan_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "3b81587820b0cd97cfa42868a5037e5a6855cc3dec80d8c2a2fbfe6e627ebc3f"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch32_sisdr0_s42_epoch0077_val_loss1_8833_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch32_sisdr0_s42/epoch0077_val_loss1.8833.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch32_sisdr0_s42/grid_nested_gan_lr0.00015_ch32_sisdr0_s42_20260912_234231/checkpoints/epoch0077_val_loss1.8833.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7009b9e02ce6adf48325cf8b70c514931f5278616d3b87e129fecb460618afad"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c7c72827c474130f6e075d523600c11287790f0bea9ebf72bd117c2940c9049b"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch32_sisdr1_s42_epoch0079_val_loss1_8087_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch32_sisdr1_s42/epoch0079_val_loss1.8087.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch32_sisdr1_s42/grid_nested_gan_lr0.00015_ch32_sisdr1_s42_20260912_234940/checkpoints/epoch0079_val_loss1.8087.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "77e5abf1984d49512f8ac20f0e4014c6bffad4277b4e6aeb91109b51121ea3b2"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "92178568f77998b06d39c74d890a4965227bf70897da1cac8894b8afa64e53d5"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch32_sisdr3_s42_epoch0077_val_loss1_4974_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch32_sisdr3_s42/epoch0077_val_loss1.4974.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch32_sisdr3_s42/grid_nested_gan_lr0.00015_ch32_sisdr3_s42_20260912_235640/checkpoints/epoch0077_val_loss1.4974.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "cf38e0a5f1c3485c1961d273443574bed7d999adbe1e8b8006f74649fbcee40a"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "c3ef92b0db8a1219820fee658860d45def36964e025b28f691d32518ada09678"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch48_sisdr0_s42_epoch0076_val_loss1_7495_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch48_sisdr0_s42/epoch0076_val_loss1.7495.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch48_sisdr0_s42/grid_nested_gan_lr0.00015_ch48_sisdr0_s42_20260913_000337/checkpoints/epoch0076_val_loss1.7495.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "637fbbcdaaac7a41f7c0ce5eecf4c4a622e4cbfa34cf25a93d5f855e6b3b7983"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "53b7be8c677ab855b142c4df63fe12810f076bc5f3d7e16cd22d3a79a0676670"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch48_sisdr1_s42_epoch0079_val_loss1_6051_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch48_sisdr1_s42/epoch0079_val_loss1.6051.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch48_sisdr1_s42/grid_nested_gan_lr0.00015_ch48_sisdr1_s42_20260913_001314/checkpoints/epoch0079_val_loss1.6051.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "94d9aa96d2815200067abc9c3ffa33f587f95b6ca25bde53da66c0820dfd4049"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "d79acf43b1d926aeba02f76662b7d033039ab6962ab8f23955e2e2f5561b4269"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch48_sisdr3_s42_epoch0079_val_loss1_6734_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch48_sisdr3_s42/epoch0079_val_loss1.6734.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch48_sisdr3_s42/grid_nested_gan_lr0.00015_ch48_sisdr3_s42_20260913_002243/checkpoints/epoch0079_val_loss1.6734.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5e9c553bc57ad18a98584aa1c700c7473073a1ed8c63455d18124c482492a509"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "218cb6ef4ec22f331bccf4bb33023f1227c385120d57463fb32779d6c221e5fb"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch72_sisdr0_s42_epoch0078_val_loss1_7329_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch72_sisdr0_s42/epoch0078_val_loss1.7329.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch72_sisdr0_s42/grid_nested_gan_lr0.00015_ch72_sisdr0_s42_20260913_003206/checkpoints/epoch0078_val_loss1.7329.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5f60962377092f47f2db7de50950aa3bc9e83e0c246dc3b6b59882b32a8251ee"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "720d94d256b66c05acbb31298d145eb22f6e6ead706dc319cd3b194a2703089c"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch72_sisdr1_s42_epoch0077_val_loss1_5811_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch72_sisdr1_s42/epoch0077_val_loss1.5811.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch72_sisdr1_s42/grid_nested_gan_lr0.00015_ch72_sisdr1_s42_20260913_004555/checkpoints/epoch0077_val_loss1.5811.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "afbd41baa9a58b66e1a6749d7275d9397ff7877e61d617d1af84269de32fbe4d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_00015_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_00015_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "0326437846099bcf2f7e86b2f4604a2fdfb0d6b7920ec8d69682e47cc31ade3a"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_00015_ch72_sisdr3_s42_epoch0076_val_loss1_5599_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_00015_ch72_sisdr3_s42/epoch0076_val_loss1.5599.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.00015_ch72_sisdr3_s42/grid_nested_gan_lr0.00015_ch72_sisdr3_s42_20260913_005953/checkpoints/epoch0076_val_loss1.5599.pt",
+          "owner": "wega_nested_gan_lr0_00015_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f0d501ed4053fdffa3d03afebab8044e9de900792c0fbaaf8c22d271e9c02a29"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_00015_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_00015_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_00015_ch72_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "8d0f2d080bb5c3c3038d8187632f25bf3dbbf718a1c2efb952075b09933cdda5"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch32_sisdr0_s42_epoch0076_val_loss1_3657_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch32_sisdr0_s42/epoch0076_val_loss1.3657.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch32_sisdr0_s42/grid_nested_gan_lr0.0005_ch32_sisdr0_s42_20260913_011349/checkpoints/epoch0076_val_loss1.3657.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "abf4ea7595f24337b29a768cfa877a3835cbe0a796fcc5aa15e9902f393aaa4f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c601e0e1929d730e3bbbac790d6228390073b57ab4395dcfd81ec96efe537f82"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch32_sisdr1_s42_epoch0077_val_loss1_1089_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch32_sisdr1_s42/epoch0077_val_loss1.1089.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch32_sisdr1_s42/grid_nested_gan_lr0.0005_ch32_sisdr1_s42_20260913_012033/checkpoints/epoch0077_val_loss1.1089.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bac52c2db751c89afc478c7eaee19e1cd34bc89ebc99751849c2c7adc758f3fb"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "6196472759093f6a10375bb1fb7f2714018e179170b1fc91d8755ce8da1091bb"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch32_sisdr3_s42_epoch0080_val_loss0_5922_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch32_sisdr3_s42/epoch0080_val_loss0.5922.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch32_sisdr3_s42/grid_nested_gan_lr0.0005_ch32_sisdr3_s42_20260913_012728/checkpoints/epoch0080_val_loss0.5922.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "fef1d1e406f7a28ab450bd2f966c8044cbc4e8b1d6e7afd31fa9c81d55427829"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "b536dfd5d11a040515de2e73779ab9d507a5a4a411085e1e9f5528e77a44b9b8"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch48_sisdr0_s42_epoch0077_val_loss1_3465_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch48_sisdr0_s42/epoch0077_val_loss1.3465.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch48_sisdr0_s42/grid_nested_gan_lr0.0005_ch48_sisdr0_s42_20260913_013420/checkpoints/epoch0077_val_loss1.3465.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bc93b0e0c18bf07475e02461fd50cb0c7fd4f19390188a416560299b4f46925a"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "e577aebc8a736a108e3d564a2abf77702c7b89c1425f26b83889679e68f3911b"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch48_sisdr1_s42_epoch0077_val_loss1_0067_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch48_sisdr1_s42/epoch0077_val_loss1.0067.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch48_sisdr1_s42/grid_nested_gan_lr0.0005_ch48_sisdr1_s42_20260913_014335/checkpoints/epoch0077_val_loss1.0067.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "53eb6e28b99b35a30670bd8cbce550cab883c0b027e94619031a53f60c7b0f11"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "221bdb4cb36f14937d8afba1356078a9599f5bf59021c949eff448dd9f95234e"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch48_sisdr3_s42_epoch0077_val_loss0_5362_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch48_sisdr3_s42/epoch0077_val_loss0.5362.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch48_sisdr3_s42/grid_nested_gan_lr0.0005_ch48_sisdr3_s42_20260913_015258/checkpoints/epoch0077_val_loss0.5362.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "542cd1438226f32a5e1aeacc125fe537dfa3718276888703a411fe233409c04e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "ce2bc9b8fcc5b40aa6ae1eb737b04a586b6064a6c0355c10fdec071c94c198ca"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch72_sisdr0_s42_epoch0066_val_loss1_3109_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch72_sisdr0_s42/epoch0066_val_loss1.3109.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch72_sisdr0_s42/grid_nested_gan_lr0.0005_ch72_sisdr0_s42_20260913_020225/checkpoints/epoch0066_val_loss1.3109.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "159491f2d84e0635738adb0ce68380bc94bc786e526cd64781ab71521268c28c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "39b29101afb3d9f14923ba5220c3ee12bb3f1ec1d0f2308e983d2d621fa52c29"
+        }
+      },
+      "recorded_epochs": 70,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch72_sisdr1_s42_epoch0050_val_loss3_1086_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch72_sisdr1_s42/epoch0050_val_loss3.1086.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch72_sisdr1_s42/grid_nested_gan_lr0.0005_ch72_sisdr1_s42_20260913_021612/checkpoints/epoch0050_val_loss3.1086.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d46d09b3e837c558fd6995efdeafaf9d17ab5c85aee5e0f3b534092bbaab3a4c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0005_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0005_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "803a84102a2207e4b604b7f3019695cac159b2140fe88a43c4d99371c472f6f1"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0005_ch72_sisdr3_s42_epoch0064_val_loss0_4536_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0005_ch72_sisdr3_s42/epoch0064_val_loss0.4536.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0005_ch72_sisdr3_s42/grid_nested_gan_lr0.0005_ch72_sisdr3_s42_20260913_022838/checkpoints/epoch0064_val_loss0.4536.pt",
+          "owner": "wega_nested_gan_lr0_0005_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "71fd6106b65aa387cd767e616217ba90da65bfc693f2de3638a3c3b04727bc54"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0005_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0005_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0005_ch72_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch32_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "00f7d9b9248df3a9a3e39fc337cf38bcb1979b0d37d1780b87be60e18dcf8924"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch32_sisdr0_s42_epoch0073_val_loss1_7954_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch32_sisdr0_s42/epoch0073_val_loss1.7954.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch32_sisdr0_s42/grid_nested_gan_lr0.0015_ch32_sisdr0_s42_20260913_024244/checkpoints/epoch0073_val_loss1.7954.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "87a511787e3e78062e0b0d79d4b5317f4dd7e853df1a6d4f411398a8e2e5c982"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch32_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c11348f4e7ae006714ff564db57f348e61045665b13be6d225091360b29135fb"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch32_sisdr1_s42_epoch0072_val_loss1_2293_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch32_sisdr1_s42/epoch0072_val_loss1.2293.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch32_sisdr1_s42/grid_nested_gan_lr0.0015_ch32_sisdr1_s42_20260913_024933/checkpoints/epoch0072_val_loss1.2293.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "9f5593a496dbf7e9fb7910891b5ca187ebde44cb24f598c53dd4667235e7089b"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch32_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "08f5f60b1ece81b1476e07779aae9b66d0b58f9076baf9f8d60e592e27d72bb7"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch32_sisdr3_s42_epoch0077_val_loss0_6700_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch32_sisdr3_s42/epoch0077_val_loss0.6700.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch32_sisdr3_s42/grid_nested_gan_lr0.0015_ch32_sisdr3_s42_20260913_025630/checkpoints/epoch0077_val_loss0.6700.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 13454109,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d346168329f2a5e448e73ce927e5a13baab78d9308e0bea5afb8acbcf6722a2f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch48_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch48_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "963210416ad6318368480be75834c358bdda79344acc20b9577e786bb3897621"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch48_sisdr0_s42_epoch0069_val_loss1_4802_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch48_sisdr0_s42/epoch0069_val_loss1.4802.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch48_sisdr0_s42/grid_nested_gan_lr0.0015_ch48_sisdr0_s42_20260913_030325/checkpoints/epoch0069_val_loss1.4802.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch48_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "dd5efca7409f62c55900977b8bae1d2f3099cc655ca9f1af645d667dcca09eb7"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch48_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch48_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch48_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch48_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "4dedebc64cfaac4cc024d49eeac9c74b83dce84aeb5533e68fd0f0d517009659"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch48_sisdr1_s42_epoch0072_val_loss1_6985_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch48_sisdr1_s42/epoch0072_val_loss1.6985.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch48_sisdr1_s42/grid_nested_gan_lr0.0015_ch48_sisdr1_s42_20260913_031246/checkpoints/epoch0072_val_loss1.6985.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch48_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "e1af03e2b30f0053fbb788f2e14287fce1159b4fcea3ca97585532265e5b8b81"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch48_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch48_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch48_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch48_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "6ed9333f2fcc2dd2b5bfa8c8f6021628f8bc31c7049d1a0e35b6c365c9a2a7f6"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch48_sisdr3_s42_epoch0066_val_loss0_6095_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch48_sisdr3_s42/epoch0066_val_loss0.6095.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch48_sisdr3_s42/grid_nested_gan_lr0.0015_ch48_sisdr3_s42_20260913_032209/checkpoints/epoch0066_val_loss0.6095.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch48_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 14126877,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b1883871b56ded5857ec807445d15122f9bbdaa7ff27cd1a1f20d1b80a2bd317"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch48_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch48_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch48_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch72_sisdr0_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch72_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "4a30bdcbe1b031f77a6be00117fea0b2e64f07b3576f51cbe53724637ad2ee63"
+        }
+      },
+      "recorded_epochs": 78,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch72_sisdr0_s42_epoch0058_val_loss1_3818_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch72_sisdr0_s42/epoch0058_val_loss1.3818.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch72_sisdr0_s42/grid_nested_gan_lr0.0015_ch72_sisdr0_s42_20260913_033141/checkpoints/epoch0058_val_loss1.3818.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch72_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "acfac44cca1bbdd05cf67ff27559c6326e601bb4f38fb65335b70b3d4f00a3f3"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch72_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr0_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch72_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch72_sisdr1_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch72_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "660a45adba819c115cde3579135421360888c12d87b367d4ac27b57f34447e2d"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch72_sisdr1_s42_epoch0069_val_loss1_0167_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch72_sisdr1_s42/epoch0069_val_loss1.0167.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch72_sisdr1_s42/grid_nested_gan_lr0.0015_ch72_sisdr1_s42_20260913_034513/checkpoints/epoch0069_val_loss1.0167.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch72_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4d03e2ed11332bd8156c137a9c188d61caae0dab30ad323733b49765fa08a1d9"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch72_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr1_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch72_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_nested_gan_lr0_0015_ch72_sisdr3_s42",
+      "model": "nested_gan_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_nested_gan_lr0_0015_ch72_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "12c9b4bec88402e12b9373f565caa36eb54272741e445730685c41860e99e2d4"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "wega_nested_gan_lr0_0015_ch72_sisdr3_s42_epoch0073_val_loss0_5570_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/nested_gan_deployment_edition/wega_nested_gan_lr0_0015_ch72_sisdr3_s42/epoch0073_val_loss0.5570.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/nested_gan/lr0.0015_ch72_sisdr3_s42/grid_nested_gan_lr0.0015_ch72_sisdr3_s42_20260913_035914/checkpoints/epoch0073_val_loss0.5570.pt",
+          "owner": "wega_nested_gan_lr0_0015_ch72_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 15594973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "1e51a8247b5700e5fb5a478bd426a967ae8e8580da5c80b3fadb583b39798427"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_nested_gan_lr0_0015_ch72_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr3_s42 --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_nested_gan_lr0_0015_ch72_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_nested_gan_lr0_0015_ch72_sisdr3_s42_raw.fif"
+      }
+    }
+  ]
+}

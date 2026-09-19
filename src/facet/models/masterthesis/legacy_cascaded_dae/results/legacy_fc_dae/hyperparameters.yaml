@@ -1,0 +1,20 @@
+experiment: legacy_fc_dae
+model: legacy_cascaded_dae
+phase: 0
+dataset: niazy_recording
+training_dataset: null
+protocol: legacy_original
+status: partial_training_record
+source:
+  path: masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_dl_training.json
+  sha256: 1b505a3c24163de113a56beb93be67833a228d4c536717e32576f6f5641d77b4
+reproduction_config: null
+configuration_provenance: null
+parameters:
+  lambda_noise: 0.5
+  learning_rate: 0.0001
+  epochs_per_stage: 500
+  batch_size: 32
+  validation_split: 0.2
+  optimizer: RMSprop
+  architecture: FC-DAE 8-4-8 ueber (Kanaele x Zeitpunkte) flach

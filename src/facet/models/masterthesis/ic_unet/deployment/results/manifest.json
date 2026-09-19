@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "model": "ic_unet_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_ic_unet",
+      "model": "ic_unet_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "invalid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_ic_unet/provenance/training.jsonl",
+          "sha256": "99d1f55e9accc87461b237c00174c7f72d1e91af8fb5eb1f804a6fb259d93444"
+        }
+      },
+      "recorded_epochs": 887,
+      "artifacts": {
+        "deployment_ic_unet_ic_unet_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/ic_unet_deployment_edition/deployment_ic_unet/ic_unet_deployment.ts",
+          "source": "training_output/icunetdeploymentniazyprooffit_20260826_200640/exports/ic_unet_deployment.ts",
+          "owner": "deployment_ic_unet",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 11870739,
+          "availability": "local",
+          "identity": "source_note_and_matching_long_run_export",
+          "sha256": "ddfd7fde621e996464e1808da259c9bc873d521acb7a8c8faf0a3833c16a62f3",
+          "equivalent_sources": [
+            "training_output/icunetdeploymentniazyprooffitlong_20260826_200640/exports/ic_unet_deployment_long_cpu.ts"
+          ]
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_ic_unet --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_ic_unet --out /path/to/new-results/deployment_ic_unet.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_ic_unet.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_ic_unet --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_ic_unet_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_ic_u_net",
+      "model": "ic_unet_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_ic_u_net/provenance/training.jsonl",
+          "sha256": "2a7e69b15db98577174d4ea3eaf14a4eb9f7e94b2bd659ddde20a57f5cef099e"
+        }
+      },
+      "recorded_epochs": 120,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_ic_u_net --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_ic_u_net --out /path/to/new-results/training_run7_ic_u_net.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_ic_u_net.yaml"
+      }
+    }
+  ]
+}

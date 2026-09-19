@@ -1,0 +1,30 @@
+{
+  "experiment": "training_run7_cascaded_dae",
+  "model": "cascaded_dae_deployment_edition",
+  "phase": 2,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Training histories and their own resolved configurations; not necessarily the export selected for a pipeline table.",
+    "code": [
+      "src/facet/training/cli.py"
+    ]
+  },
+  "status": "unavailable",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [],
+  "shared_collections": [],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_cascaded_dae/provenance/summary.json",
+      "sha256": "70917f019040e1ae98cb6feed49954c1db720fc35550dfa5fef6b5362166d55c"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_cascaded_dae/provenance/training.jsonl",
+      "sha256": "44dfe819480c878b1b28ff572321b8b1b5ab99eafedff6d564b9777caf483e94"
+    }
+  ]
+}

@@ -109,6 +109,17 @@ Spatiotemporal graph convolution network. Temporal convolutions and graph filter
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/st_gnn/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/st_gnn/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-st-gnn-deployment:
 
 ST-GNN — deployment
@@ -145,6 +156,17 @@ Spatiotemporal graph convolution network. Temporal convolutions and graph filter
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/st_gnn/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/st_gnn/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-st-gnn:
 
 ST-GNN — experimental paper_accurate
@@ -180,5 +202,16 @@ Spatiotemporal graph convolution network. This experimental variant uses linear-
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/st_gnn/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/st_gnn/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/st_gnn/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "model": "st_gnn_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_st_gnn",
+      "model": "st_gnn_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "invalid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_st_gnn/provenance/training.jsonl",
+          "sha256": "47c47f12feb46d44e553c9228993169de784c883c74f74abb6f839d41e586a05"
+        }
+      },
+      "recorded_epochs": 50,
+      "artifacts": {
+        "deployment_st_gnn_st_gnn_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/st_gnn_deployment_edition/deployment_st_gnn/st_gnn_deployment.ts",
+          "source": "training_output/stgnndeploymentniazyprooffit_20260826_195217/exports/st_gnn_deployment.ts",
+          "owner": "deployment_st_gnn",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 69577,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "a4bb7f4692f3e8308ecfa171e16c54af0e344b5f5a7ef482af30299fd20ddd13"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_st_gnn --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_st_gnn --out /path/to/new-results/deployment_st_gnn.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_st_gnn.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_st_gnn --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_st_gnn_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_st_gnn",
+      "model": "st_gnn_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_st_gnn/provenance/training.jsonl",
+          "sha256": "47c47f12feb46d44e553c9228993169de784c883c74f74abb6f839d41e586a05"
+        }
+      },
+      "recorded_epochs": 50,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_st_gnn --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_st_gnn --out /path/to/new-results/training_run7_st_gnn.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_st_gnn.yaml"
+      }
+    }
+  ]
+}

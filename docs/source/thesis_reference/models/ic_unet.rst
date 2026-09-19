@@ -107,6 +107,17 @@ Multichannel U-Net denoising autoencoder. A multichannel U-Net operates between 
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/ic_unet/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/ic_unet/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-ic-unet-deployment:
 
 IC-U-Net — deployment
@@ -143,6 +154,17 @@ Multichannel U-Net denoising autoencoder. A multichannel U-Net operates between 
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/ic_unet/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/ic_unet/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-ic-unet:
 
 IC-U-Net — experimental paper_accurate
@@ -178,5 +200,16 @@ Multichannel U-Net denoising autoencoder. This experimental variant defaults to 
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/ic_unet/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/ic_unet/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/ic_unet/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

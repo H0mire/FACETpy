@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "model": "dpae_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_dpae",
+      "model": "dpae_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_dpae/provenance/training.jsonl",
+          "sha256": "c1fd0fe115570f10c949e3e311eee8986cec5f3575958e9c92945b72ce950283"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "deployment_dpae_dpae_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/dpae_deployment_edition/deployment_dpae/dpae_deployment.ts",
+          "source": "training_output/dpaedeploymentniazyprooffit_20260826_195137/exports/dpae_deployment.ts",
+          "owner": "deployment_dpae",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 1148805,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "138b74d7fea8404b0cd85cf0e2e5a46ce1b02fcc068673a12640ec43d314c4e0"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_dpae --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_dpae --out /path/to/new-results/deployment_dpae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_dpae.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_dpae --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_dpae_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_dpae",
+      "model": "dpae_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_dpae/provenance/training.jsonl",
+          "sha256": "c1fd0fe115570f10c949e3e311eee8986cec5f3575958e9c92945b72ce950283"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_dpae --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_dpae --out /path/to/new-results/training_run7_dpae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_dpae.yaml"
+      }
+    }
+  ]
+}

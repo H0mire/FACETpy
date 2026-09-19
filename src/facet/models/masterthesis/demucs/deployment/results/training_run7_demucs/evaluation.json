@@ -1,0 +1,30 @@
+{
+  "experiment": "training_run7_demucs",
+  "model": "demucs_deployment_edition",
+  "phase": 2,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Training histories and their own resolved configurations; not necessarily the export selected for a pipeline table.",
+    "code": [
+      "src/facet/training/cli.py"
+    ]
+  },
+  "status": "unavailable",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [],
+  "shared_collections": [],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_demucs/provenance/summary.json",
+      "sha256": "c850fa3cf4dfa23f250f2b6675b7d46df314d57793c80e7e3e1dd4c1860f90ed"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_demucs/provenance/training.jsonl",
+      "sha256": "22d22a54bcc6dc6966b5fb99906c4bb231b27f397fd707394675403b67bb3f47"
+    }
+  ]
+}

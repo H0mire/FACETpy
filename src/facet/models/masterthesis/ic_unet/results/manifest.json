@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "ic_unet",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_ic_unet",
+      "model": "ic_unet",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_ic_unet/provenance/training.jsonl",
+          "sha256": "a06d813258dcfef2983f9a60857fcd8d45961238b8cda2f35264c19ac6163f21"
+        }
+      },
+      "recorded_epochs": 16,
+      "artifacts": {
+        "holdout_ic_unet_ic_unet_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/ic_unet/holdout_ic_unet/ic_unet.ts",
+          "source": "training_output/icunetniazyprooffit_20260510_223556/exports/ic_unet.ts",
+          "owner": "holdout_ic_unet",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 11865717,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4bfd5cf16742cc6633a062d9781ec265aa61915e42ed975bc5db5ba4f3fe5bf5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_ic_unet --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_ic_unet --out /path/to/new-results/holdout_ic_unet.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_ic_unet.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_ic_unet --data-root /path/to/thesis-data --out /path/to/new-results/holdout_ic_unet.json"
+      }
+    }
+  ]
+}

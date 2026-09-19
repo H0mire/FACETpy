@@ -41,3 +41,27 @@ Regenerate and check diagrams with::
 
 PNG previews are optional local review files. Rendering them requires librsvg's
 ``rsvg-convert``; generating and checking SVGs requires only Python.
+
+Per-model result views
+----------------------
+
+Each model package has a ``results/`` directory. Its ``index.rst`` and
+``manifest.json`` list experiments assigned to that exact variant in the thesis
+catalog. Each experiment has ``hyperparameters.yaml`` and ``evaluation.json``.
+A ``training_curve.svg`` is added only when an epoch history exists.
+
+The original records remain under ``masterthesis_guide``. Generated views retain
+source paths, hashes, dataset and protocol. Shared comparison tables stay shared
+unless the catalog specifies a row or the table names the experiment explicitly.
+A missing association must not be filled from a similarly named model. Original
+record keys and values remain unchanged, including historical language.
+
+Regenerate and check the result views with::
+
+    uv run python -m masterthesis_guide.reproduce model-results
+    uv run python -m masterthesis_guide.reproduce model-results --check
+
+The model pages include these indexes below each variant's diagrams. The curve
+shows recorded training and validation loss without smoothing. Its objective and
+scale belong to that run; losses from different objectives are not comparable.
+Weights remain in the Git LFS artifact tree and datasets remain external.

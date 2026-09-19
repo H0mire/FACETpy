@@ -1,0 +1,233 @@
+{
+  "experiment": "legacy_fc_dae",
+  "model": "legacy_cascaded_dae",
+  "phase": 0,
+  "dataset": "niazy_recording",
+  "training_dataset": null,
+  "protocol": {
+    "description": "Original legacy execution and native metrics; exact environment remains unresolved.",
+    "code": [
+      "src/facet/models/masterthesis/legacy_cascaded_dae/processor.py"
+    ],
+    "limitation": "The current adapter is not an equivalent original pipeline."
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "blocked",
+  "notes": {
+    "identity_note": "Earlier diagnostic checkpoint; do not substitute for the checkpoint used by the delivered historical metric figure.",
+    "verification_reason": "Original full training environment and exact end-to-end equivalence are not established; current pipeline adapter has different epoch handling."
+  },
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_dl_training.json",
+        "sha256": "1b505a3c24163de113a56beb93be67833a228d4c536717e32576f6f5641d77b4"
+      },
+      "selection": "agreement_with_aas",
+      "values": {
+        "n_epochs": 840,
+        "n_val_epochs": 168,
+        "target_definition": "noisy - AAS_corrected (die AAS-Schaetzung selbst)",
+        "rms_target_uv": 2043.0402072682289,
+        "rms_residual_all_uv": 208.57992600755085,
+        "rms_residual_val_uv": 225.12391774803484,
+        "reproduction_pct_all": 89.79070870629387,
+        "reproduction_pct_val": 88.60355403987123
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_eval_variants.json",
+        "sha256": "89ed1c917b0eb8da2c672de867af0042deb8a64709e63ad9a99776f4fbe1d056"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "AAS": {
+          "name": "AAS",
+          "SNR": 15.525161835437732,
+          "RMS": 63.922175778438614,
+          "RMS2": 1.0650942960321097,
+          "MEDIAN": 5.816382617083982e-05
+        },
+        "DAE_orig_raw": {
+          "name": "DAE_orig",
+          "SNR": 0.030340141568784628,
+          "RMS": 8.208487228199154,
+          "RMS2": 7.7668538520755295,
+          "MEDIAN": 0.0009229739945489735
+        },
+        "DAE_orig_postproc": {
+          "name": "DAE_orig_pp",
+          "SNR": 6.026270383154613,
+          "RMS": 57.097378485115186,
+          "RMS2": 1.1863378816887822,
+          "MEDIAN": 9.267659777536292e-05
+        },
+        "DAE_aas_raw": {
+          "name": "DAE_aas",
+          "SNR": 0.0003774930960402422,
+          "RMS": 1.0567642235086137,
+          "RMS2": 64.1359142709789,
+          "MEDIAN": 0.01413638116247798
+        },
+        "DAE_aas_postproc": {
+          "name": "DAE_aas_pp",
+          "SNR": 0.007640051384635671,
+          "RMS": 5.9224437769777225,
+          "RMS2": 13.755276660952397,
+          "MEDIAN": 0.0018832988959128346
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_metric_reproduction.json",
+        "sha256": "4332925239dc94d72e4b1ae7ea8e5003961fc8cada3da7644f130e17e3074917"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "measures": {
+          "SNR": "|var(ausserhalb Scan) / (var(im Scan) - var(ausserhalb Scan))| — Varianzabgleich mit Betrag, unterscheidet Ueber- von Unterkorrektur nicht und explodiert bei Gleichheit",
+          "RMS": "RMS unkorrigiert zu korrigiert",
+          "RMS2": "RMS korrigiert zu unbeeintraechtigt",
+          "MEDIAN": "Median ueber Epochen des kanalgemittelten Peak-to-Peak — niedriger ist besser, misst den verbliebenen Artefaktausschlag"
+        },
+        "results": {
+          "AAS": {
+            "name": "AAS",
+            "SNR": 15.525161835437732,
+            "RMS": 63.922175778438614,
+            "RMS2": 1.0650942960321097,
+            "MEDIAN": 5.816382617083982e-05
+          },
+          "DAE": {
+            "name": "DAE",
+            "SNR": 0.030340141568784628,
+            "RMS": 8.208487228199154,
+            "RMS2": 7.7668538520755295,
+            "MEDIAN": 0.0009229739945489735
+          }
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_vs_current.json",
+        "sha256": "792a955459d9f3744c0023c5b4bcf20e2c282cece4494d37bd5af76f9dab02f7"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "question": "Korrigierte die 0.1.0-DAE-Variante besser als AAS?",
+        "answer": "Nein — auf der Kennzahl, die den verbliebenen Artefaktausschlag misst, ist sie schlechter. Besser ist sie nur auf einem SNR-Mass, das Ueber- und Unterkorrektur nicht unterscheiden kann.",
+        "reproduction_check": {
+          "note": "AAS reproduziert die historische Auswertung praktisch exakt, die Kette stimmt also. Das hier trainierte DAE ist ein anderes Modell als das historische und darf nicht mit ihm verwechselt werden.",
+          "aas_here": {
+            "SNR": 15.525161835437732,
+            "RMS": 63.922175778438614,
+            "RMS2": 1.0650942960321097,
+            "MEDIAN": 5.816382617083982e-05
+          },
+          "aas_historical": {
+            "SNR": 15.53,
+            "RMS": 66.86,
+            "RMS2": 1.07,
+            "MEDIAN": 6e-05
+          },
+          "dae_here": {
+            "SNR": 6.026270383154613,
+            "RMS": 57.097378485115186,
+            "RMS2": 1.1863378816887822,
+            "MEDIAN": 9.267659777536292e-05
+          },
+          "dae_historical": {
+            "SNR": 17.53,
+            "RMS": 67.5,
+            "RMS2": 1.07,
+            "MEDIAN": 0.00044
+          }
+        },
+        "residual_artifact_median_p2p": {
+          "aas": 5.816382617083982e-05,
+          "dae_here_vs_aas": 1.59,
+          "dae_historical_vs_aas": 7.33,
+          "reading": "Beide Reproduktionen sagen dasselbe: das DAE laesst mehr Artefakt stehen als AAS — hier Faktor 1.6, historisch Faktor 7.3. Das hier trainierte Modell ist auf dieser Achse also sogar besser als das historische."
+        },
+        "why_the_snr_bar_disagrees": {
+          "definition": "SNR = |var(ausserhalb Scan) / (var(im Scan) - var(ausserhalb Scan))|",
+          "equivalent_form": "SNR = 1 / |Varianzverhaeltnis - 1|",
+          "implied_variance_ratio": {
+            "aas_historical": 1.0644,
+            "dae_historical": 1.057
+          },
+          "reading": "Die beiden Balken 15.53 und 17.53 entsprechen Restvarianzen von 6.44 % und 5.70 % ueber der Referenz — 0.74 Prozentpunkte Unterschied, vom Kehrwert auf 13 % aufgeblasen. Der Betrag macht zudem Ueber- und Unterkorrektur ununterscheidbar: ein Verfahren, das 5.7 % zu VIEL entfernt, bekommt denselben Wert."
+        },
+        "application_path_matters": {
+          "note": "clean_continuous_data(use_noisy_original=True) zieht die Schaetzung vom UNVERARBEITETEN Original ab — ohne 1-Hz-Hochpass und 70-Hz-Tiefpass. Gegen die nachverarbeitete AAS-Ausgabe gestellt vergleicht das ueberwiegend Filterzustaende, nicht Korrektoren.",
+          "variants": {
+            "AAS": {
+              "SNR": 15.525161835437732,
+              "RMS2": 1.0650942960321097,
+              "MEDIAN": 5.816382617083982e-05
+            },
+            "DAE_orig_raw": {
+              "SNR": 0.030340141568784628,
+              "RMS2": 7.7668538520755295,
+              "MEDIAN": 0.0009229739945489735
+            },
+            "DAE_orig_postproc": {
+              "SNR": 6.026270383154613,
+              "RMS2": 1.1863378816887822,
+              "MEDIAN": 9.267659777536292e-05
+            },
+            "DAE_aas_raw": {
+              "SNR": 0.0003774930960402422,
+              "RMS2": 64.1359142709789,
+              "MEDIAN": 0.01413638116247798
+            },
+            "DAE_aas_postproc": {
+              "SNR": 0.007640051384635671,
+              "RMS2": 13.755276660952397,
+              "MEDIAN": 0.0018832988959128346
+            }
+          }
+        },
+        "retracted": "Eine fruehere Fassung dieser Datei nannte '74 % der Samples korrigiert' als Defekt. Das war falsch: die Epochen kacheln zu 100.7 % des Triggerabstands, die restlichen 26 % liegen ausserhalb des Scans, wo nichts zu korrigieren ist."
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase0_legacy_aas_comparison",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase0_legacy_aas_comparison/metrics.csv",
+        "sha256": "10947f6912397b3e1695b95281a78e3dfe7290434d5765c8f0dfec833d54c154"
+      },
+      "scope": "Separate current-pipeline residual comparison; not the historical metrics in Figure 21.",
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_dl_training.json",
+      "sha256": "1b505a3c24163de113a56beb93be67833a228d4c536717e32576f6f5641d77b4"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_eval_variants.json",
+      "sha256": "89ed1c917b0eb8da2c672de867af0042deb8a64709e63ad9a99776f4fbe1d056"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_metric_reproduction.json",
+      "sha256": "4332925239dc94d72e4b1ae7ea8e5003961fc8cada3da7644f130e17e3074917"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_legacy_vs_current.json",
+      "sha256": "792a955459d9f3744c0023c5b4bcf20e2c282cece4494d37bd5af76f9dab02f7"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_0/legacy_fc_dae/provenance/legacy_dl_torch_sweep.json",
+      "sha256": "debb9a60ed8d4f24c670b94854d37e2c39ff4625c49911263a1f5d9108bfdb78"
+    }
+  ]
+}

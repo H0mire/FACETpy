@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "cascaded_context_dae",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_cascaded_context_dae",
+      "model": "cascaded_context_dae",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_context_dae/provenance/training.jsonl",
+          "sha256": "b1580b973b5c5a5a5e48672426f22b7aa1e174ab00a25f2b0d881b67f2e6a719"
+        }
+      },
+      "recorded_epochs": 25,
+      "artifacts": {
+        "holdout_cascaded_context_dae_cascaded_context_dae_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/cascaded_context_dae/holdout_cascaded_context_dae/cascaded_context_dae.ts",
+          "source": "training_output/cascadedcontextdenoisingautoencoderniazyprooffit_20260516_152603/exports/cascaded_context_dae.ts",
+          "owner": "holdout_cascaded_context_dae",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 17884058,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bc533af07368c968e0e15e128007274cc9d12dc779c1b498f4388a4e73c85061"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_cascaded_context_dae --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_cascaded_context_dae --out /path/to/new-results/holdout_cascaded_context_dae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_cascaded_context_dae.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_cascaded_context_dae --data-root /path/to/thesis-data --out /path/to/new-results/holdout_cascaded_context_dae.json"
+      }
+    }
+  ]
+}

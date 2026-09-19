@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "conv_tasnet",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_conv_tasnet",
+      "model": "conv_tasnet",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/provenance/training.jsonl",
+          "sha256": "661c95f29599c6d3eb219702a528dd25e2d6bdca33f0df05e3a8e0bc34f54026"
+        }
+      },
+      "recorded_epochs": 13,
+      "artifacts": {
+        "holdout_conv_tasnet_conv_tasnet_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/conv_tasnet/holdout_conv_tasnet/conv_tasnet.ts",
+          "source": "training_output/convtasnetniazyprooffit_20260510_202818/exports/conv_tasnet.ts",
+          "owner": "holdout_conv_tasnet",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 7190290,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "0d96617a760d2fd13508e28febe04dbfb43367dc3a705c68cce07636e0b98e9e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_conv_tasnet --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_conv_tasnet --out /path/to/new-results/holdout_conv_tasnet.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_conv_tasnet.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_conv_tasnet --data-root /path/to/thesis-data --out /path/to/new-results/holdout_conv_tasnet.json"
+      }
+    }
+  ]
+}

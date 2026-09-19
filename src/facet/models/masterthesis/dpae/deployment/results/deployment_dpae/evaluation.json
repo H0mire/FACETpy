@@ -1,0 +1,78 @@
+{
+  "experiment": "deployment_dpae",
+  "model": "dpae_deployment_edition",
+  "phase": 2,
+  "dataset": "niazy_recording",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Recorded preprocessing and cleanup; residual comb RMS plus seam checks, 29.5-160 s of the original recording.",
+    "code": [
+      "src/facet/models/masterthesis/pipeline.py",
+      "tools/pipeline_demo/measure_arms.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {
+    "identity_note": "Export selected by the frozen family adapter pattern; pipeline table did not record an artifact checksum. Association must not be described as independently verified."
+  },
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/results/phase2_holdout_replay/metrics.csv",
+        "sha256": "c7787715a8e3acee0cf7f2734abc77effcedd94c11dc6e71fad14497e1c29b16"
+      },
+      "selection": {
+        "experiment": "deployment_dpae"
+      },
+      "values": [
+        {
+          "experiment": "deployment_dpae",
+          "snr_gain_db": "22.680728912353516"
+        }
+      ],
+      "scope": "New CPU rerun on all 166 saved proof-fit holdout windows with the 13 retained primary deployment artifacts; not the missing original Figure-27 CSV. SNR uses global signal/error power, not a median across windows."
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase2_pipeline_results",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase2_pipeline_results/metrics.csv",
+        "sha256": "21cd15bcabe87ff076487c40c2e39127b09be3c5c5f0be9fe1b81649f7513026"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase2_selected_variant_results",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase2_selected_variant_results/metrics.csv",
+        "sha256": "b5417e8c0d0f10f5d0614f3c7b6cddca80eee2d9f23b482071a8fad4f2897ba7"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "phase2_holdout_replay",
+      "source": {
+        "path": "masterthesis_guide/results/phase2_holdout_replay/metrics.csv",
+        "sha256": "c7787715a8e3acee0cf7f2734abc77effcedd94c11dc6e71fad14497e1c29b16"
+      },
+      "scope": "New CPU rerun on all 166 saved proof-fit holdout windows with the 13 retained primary deployment artifacts; not the missing original Figure-27 CSV. SNR uses global signal/error power, not a median across windows.",
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_2/deployment_dpae/provenance/summary.json",
+      "sha256": "aeed6c71c86f9186465e133bf424e2805c38c70cb222005854c512524585a0b4"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_2/deployment_dpae/provenance/training.jsonl",
+      "sha256": "c1fd0fe115570f10c949e3e311eee8986cec5f3575958e9c92945b72ce950283"
+    }
+  ]
+}

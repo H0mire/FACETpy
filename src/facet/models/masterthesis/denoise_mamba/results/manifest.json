@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "model": "denoise_mamba",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_denoise_mamba",
+      "model": "denoise_mamba",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_denoise_mamba/provenance/training.jsonl",
+          "sha256": "ad094252256eb92bdb62121b3b08436f9a4a32f4f40be950b6da01057517a2e1"
+        }
+      },
+      "recorded_epochs": 11,
+      "artifacts": {
+        "holdout_denoise_mamba_denoise_mamba_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/denoise_mamba/holdout_denoise_mamba/denoise_mamba.ts",
+          "source": "training_output/denoisemambaniazyprooffit_20260510_193847/exports/denoise_mamba.ts",
+          "owner": "holdout_denoise_mamba",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 1301405,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "01710ab02ce54f1f08b6f608f534f1940956dac0e04603d697a08b7c9caa4421"
+        },
+        "holdout_denoise_mamba_last_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_1/denoise_mamba/holdout_denoise_mamba/last.pt",
+          "source": "training_output/denoisemambaniazyprooffit_20260510_193847/checkpoints/last.pt",
+          "owner": "holdout_denoise_mamba",
+          "kind": "checkpoint",
+          "role": "source_loader",
+          "bytes": 1680773,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "9601b29bcf5f0ebcb309859d107d81d751e9442ba2862eb42f9a1a1f221b77d5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_denoise_mamba --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_denoise_mamba --out /path/to/new-results/holdout_denoise_mamba.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_denoise_mamba.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_denoise_mamba --data-root /path/to/thesis-data --out /path/to/new-results/holdout_denoise_mamba.json"
+      }
+    }
+  ]
+}

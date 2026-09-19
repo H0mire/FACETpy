@@ -1,0 +1,158 @@
+{
+  "experiment": "holdout_conv_tasnet",
+  "model": "conv_tasnet",
+  "phase": 1,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Saved 166 proof-fit windows; family-specific packing; recovered clean = noisy - predicted artifact.",
+    "code": [
+      "src/facet/evaluation/thesis_metrics.py",
+      "src/facet/models/masterthesis/adapters.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/evaluation_manifest.json",
+        "sha256": "bc530419773f48b6729e86997c227d9862a16267e41b17f889c07f80abe3e89d"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "schema_version": "facetpy.model_evaluation.v1",
+        "model_id": "conv_tasnet",
+        "model_name": "Conv-TasNet",
+        "model_description": "Audio source separation TCN (per-channel single-epoch)",
+        "run_id": "holdout_v1",
+        "created_at": "2026-05-12T17:29:02",
+        "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1",
+        "docs_dir": "src/facet/models/conv_tasnet/documentation",
+        "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/metrics.json",
+        "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/evaluation_summary.md",
+        "artifacts": {
+          "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/conv_tasnet/holdout_v1/plots/holdout_examples.png"
+        },
+        "config": {
+          "model_id": "conv_tasnet",
+          "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/convtasnetniazyprooffit_20260510_202818/exports/conv_tasnet.ts",
+          "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+          "device": "cpu",
+          "holdout_split_hash": "sha256:ddaa64a504e062fd",
+          "holdout_seed": 42,
+          "holdout_val_ratio": 0.2,
+          "holdout_n_windows": 166,
+          "family": "Audio (TCN)",
+          "notes": "(1,1,512) in → (1,2,512) sources out. source[1] = artifact."
+        },
+        "primary_comparison_contract": {
+          "metrics_json": "metrics.json",
+          "flat_metrics_key": "flat_metrics",
+          "summary_markdown": "evaluation_summary.md"
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/metrics.json",
+        "sha256": "aa751a8a6a84a7cbc2445e8e3583ff90e14dc1cf646df41a350d3188255282e2"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "metrics": {
+          "unified_holdout": {
+            "n_examples": 166,
+            "n_channels": 30,
+            "samples_per_epoch": 512,
+            "sfreq_hz": 4096.0,
+            "clean_mse_before": 3.556095862222719e-06,
+            "clean_mse_after": 1.8929787515276075e-08,
+            "clean_mae_before": 0.0009214178426191211,
+            "clean_mae_after": 7.061777432681993e-05,
+            "clean_snr_db_before": -10.9449462890625,
+            "clean_snr_db_after": 11.793331146240234,
+            "artifact_mse": 1.8929787515276075e-08,
+            "artifact_mae": 7.061777432681993e-05,
+            "artifact_corr": 0.9973348568204654,
+            "artifact_snr_db": 22.738277435302734,
+            "residual_error_rms_ratio": 0.07296021925890112,
+            "rms_recovery_ratio": 1.0923101902008057,
+            "rms_recovery_distance": 0.3121434450149536,
+            "rms_baseline_noisy_ratio": 7.25469446182251,
+            "clean_mse_reduction_pct": 99.46768061805162,
+            "clean_snr_improvement_db": 22.738277435302734,
+            "inference_seconds": 699.4307457089999,
+            "device": "cpu",
+            "inference_seconds_legacy": 922.983013,
+            "inference_timing_note": "remeasured 2026-05-16 with cold-start isolation (fresh subprocess per model, 1 warmup pass excluded, median of 3 timed passes)"
+          }
+        },
+        "flat_metrics": {
+          "unified_holdout.n_examples": 166,
+          "unified_holdout.n_channels": 30,
+          "unified_holdout.samples_per_epoch": 512,
+          "unified_holdout.sfreq_hz": 4096.0,
+          "unified_holdout.clean_mse_before": 3.556095862222719e-06,
+          "unified_holdout.clean_mse_after": 1.8929787515276075e-08,
+          "unified_holdout.clean_mae_before": 0.0009214178426191211,
+          "unified_holdout.clean_mae_after": 7.061777432681993e-05,
+          "unified_holdout.clean_snr_db_before": -10.9449462890625,
+          "unified_holdout.clean_snr_db_after": 11.793331146240234,
+          "unified_holdout.artifact_mse": 1.8929787515276075e-08,
+          "unified_holdout.artifact_mae": 7.061777432681993e-05,
+          "unified_holdout.artifact_corr": 0.9973348568204654,
+          "unified_holdout.artifact_snr_db": 22.738277435302734,
+          "unified_holdout.residual_error_rms_ratio": 0.07296021925890112,
+          "unified_holdout.rms_recovery_ratio": 1.0923101902008057,
+          "unified_holdout.rms_recovery_distance": 0.3121434450149536,
+          "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
+          "unified_holdout.clean_mse_reduction_pct": 99.46768061805162,
+          "unified_holdout.clean_snr_improvement_db": 22.738277435302734,
+          "unified_holdout.inference_seconds": 699.4307457089999
+        }
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase1_inference_cost",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_inference_cost/metrics.csv",
+        "sha256": "4db84861feb1d1ee478e8f75a513ddbc63264cfccc8f81390bae3289a35758c0"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase1_unified_holdout_ranking",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_unified_holdout_ranking/metrics.csv",
+        "sha256": "3ab9da9a2e8f8898fa6163ea25f7929d665fa362046f3d714ac81814bbae087b"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/evaluation_manifest.json",
+      "sha256": "bc530419773f48b6729e86997c227d9862a16267e41b17f889c07f80abe3e89d"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/metrics.json",
+      "sha256": "aa751a8a6a84a7cbc2445e8e3583ff90e14dc1cf646df41a350d3188255282e2"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/provenance/summary.json",
+      "sha256": "c10cd47222f684f3ddbdd3542e83d767df1fbd85f98241d46ff4c6c7a71d08ba"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_conv_tasnet/provenance/training.jsonl",
+      "sha256": "661c95f29599c6d3eb219702a528dd25e2d6bdca33f0df05e3a8e0bc34f54026"
+    }
+  ]
+}

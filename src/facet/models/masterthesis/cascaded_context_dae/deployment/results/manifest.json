@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "model": "cascaded_context_dae_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_cascaded_context_dae",
+      "model": "cascaded_context_dae_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_cascaded_context_dae/provenance/training.jsonl",
+          "sha256": "0f3b62f47bcbc59c03005efe89755d2bd667b8476d5f21a98fa2f8a91e89c247"
+        }
+      },
+      "recorded_epochs": 50,
+      "artifacts": {
+        "deployment_cascaded_context_dae_cascaded_context_dae_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/cascaded_context_dae_deployment_edition/deployment_cascaded_context_dae/cascaded_context_dae_deployment.ts",
+          "source": "training_output/cascadedcontextdaedeploymentniazyprooffit_20260826_200317/exports/cascaded_context_dae_deployment.ts",
+          "owner": "deployment_cascaded_context_dae",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 17889457,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "c0b5a6f9a51b00339d0a53ef363daf97eec917a6312ee2d1a2974a936deb081d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_cascaded_context_dae --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_cascaded_context_dae --out /path/to/new-results/deployment_cascaded_context_dae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_cascaded_context_dae.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_cascaded_context_dae --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_cascaded_context_dae_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_cascaded_context_dae",
+      "model": "cascaded_context_dae_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_cascaded_context_dae/provenance/training.jsonl",
+          "sha256": "0f3b62f47bcbc59c03005efe89755d2bd667b8476d5f21a98fa2f8a91e89c247"
+        }
+      },
+      "recorded_epochs": 50,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_cascaded_context_dae --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_cascaded_context_dae --out /path/to/new-results/training_run7_cascaded_context_dae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_cascaded_context_dae.yaml"
+      }
+    }
+  ]
+}

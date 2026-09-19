@@ -113,6 +113,17 @@ Fully connected denoising autoencoder. Two fully connected stages predict an art
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/cascaded_dae/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/cascaded_dae/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-legacy-cascaded-dae:
 
 Legacy Cascaded DAE
@@ -149,6 +160,17 @@ Fully connected denoising autoencoder. Migrated Phase-0 adapter: two fully conne
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/legacy_cascaded_dae/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/legacy_cascaded_dae/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-cascaded-dae-deployment:
 
 Cascaded DAE — deployment
@@ -184,5 +206,16 @@ Fully connected denoising autoencoder. Two fully connected stages predict an art
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/masterthesis/cascaded_dae/deployment/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/cascaded_dae/deployment/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/cascaded_dae/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

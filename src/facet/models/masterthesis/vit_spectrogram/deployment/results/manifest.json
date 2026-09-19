@@ -1,0 +1,2184 @@
+{
+  "schema_version": 1,
+  "model": "vit_spectrogram_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_vit_spectrogram",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_vit_spectrogram/provenance/training.jsonl",
+          "sha256": "045b0df617a6c8f057a53b2eeddb9801368f3e6d4b5ba36237f707adc0de4087"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "deployment_vit_spectrogram_vit_spectrogram_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/vit_spectrogram_deployment_edition/deployment_vit_spectrogram/vit_spectrogram_deployment.ts",
+          "source": "training_output/vitspectrogramdeploymentniazyprooffit_20260826_192922/exports/vit_spectrogram_deployment.ts",
+          "owner": "deployment_vit_spectrogram",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 11021262,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "3f84203899b990aaf801275eb1f8a347b3d5e07b78370b93ca03579500ff212f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_vit_spectrogram --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_vit_spectrogram --out /path/to/new-results/deployment_vit_spectrogram.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_vit_spectrogram.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_vit_spectrogram --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_vit_spectrogram_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_vision_transformer",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_vision_transformer/provenance/training.jsonl",
+          "sha256": "045b0df617a6c8f057a53b2eeddb9801368f3e6d4b5ba36237f707adc0de4087"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_vision_transformer --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_vision_transformer --out /path/to/new-results/training_run7_vision_transformer.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_vision_transformer.yaml"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "c209de11741ae7455c396c5d6c3bb30de4d439e594144ccea97e9011c21dfd15"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42_epoch0042_val_loss0_1268_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42/epoch0042_val_loss0.1268.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr0_s42_20260912_175744/checkpoints/epoch0042_val_loss0.1268.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973226,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c1c047075df3679fb4f80ab0d2448d07d0aecdb9c85878f65b05b07c8b4b9288"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3029b6762ed87fa1eac0c723878dcd2ade88cb0b948c312113697cc9db31e20e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42_epoch0054_val_loss_0_6295_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42/epoch0054_val_loss-0.6295.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr1_s42_20260912_181934/checkpoints/epoch0054_val_loss-0.6295.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f9b8efe9656716b9a0f4c9d5ab16569335396d241dadf587337dba38dcb7d461"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "bf358cf60496687729ebd0485e56ffccf03762bb5938f93def172129e45e5d5e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42_epoch0058_val_loss_2_0728_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42/epoch0058_val_loss-2.0728.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr3_s42_20260912_184117/checkpoints/epoch0058_val_loss-2.0728.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "957622af6d7d06d168d5f24edb8011b7b9ca06b2f6ce4aff2787cda1a8d3ef27"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "0c7bbd7a684c9f1227f9732e4a3815cdb396da51c4483c40b1dc76666eb361c3"
+        }
+      },
+      "recorded_epochs": 52,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42_epoch0032_val_loss0_1364_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42/epoch0032_val_loss0.1364.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr0_s42_20260912_190255/checkpoints/epoch0032_val_loss0.1364.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644330,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "304bd3213c277a79c13aeba090709f259c3938b0b4847640bf4080b1d679d08c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3e0508c4d12012e2f18798b48f1d9f0e2d6f76a9b42fcf4aa5de43e3d7824e52"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42_epoch0058_val_loss_0_6461_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42/epoch0058_val_loss-0.6461.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr1_s42_20260912_192647/checkpoints/epoch0058_val_loss-0.6461.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "ba857c0e9643f0b51126dbeea516b06a72a122455827281390b0bf765442dd8c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "9e3cb2e239c795c2da67ef916f572cabd30e2c5d88551e8d06cefce4fc551dbd"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42_epoch0057_val_loss_2_1295_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42/epoch0057_val_loss-2.1295.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr3_s42_20260912_194759/checkpoints/epoch0057_val_loss-2.1295.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "1089311fe51442e0cacf531c988b41eed50036e37e900f65b3e9ac4178394065"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "9b9467b823ae0f25d69611da56e3e5e73616383cbf728b3211388311a639460b"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42_epoch0047_val_loss0_1362_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42/epoch0047_val_loss0.1362.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr0_s42_20260912_200832/checkpoints/epoch0047_val_loss0.1362.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801194,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "96e6b6ff083966046dc4cc6eaea496a73e1bf0a0e5540ec268e74b4dea147c44"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "1c56e051c6890f7e6197c331657ba375da239199f65d620be3e041f18d15b0e1"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42_epoch0057_val_loss_0_6435_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42/epoch0057_val_loss-0.6435.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr1_s42_20260912_202955/checkpoints/epoch0057_val_loss-0.6435.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "ab93763b1ac91d07100123c465953e6396c45fc877ffbe98543b8bcd6ae15e97"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "8de0926eedbef720c9760caf7cd8a022557284b60431e2c28034febb8a07cc3d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42_epoch0058_val_loss_2_2299_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42/epoch0058_val_loss-2.2299.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.00015_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr3_s42_20260912_205309/checkpoints/epoch0058_val_loss-2.2299.pt",
+          "owner": "run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "67ab80e87b4931d285ea7b0e8597df0a41eeabe1e02967ef731e32aa23cf43e0"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_00015_dim288_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "89a5b32bd4a67cfdbc6dc9fc5e0b5674afc46df62db552bb990b1e48f999f991"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42_epoch0057_val_loss0_1390_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42/epoch0057_val_loss0.1390.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr0_s42_20260912_211553/checkpoints/epoch0057_val_loss0.1390.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973226,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "643b9348a97161785dfd55ebd1cc798ca8d78db24c3da78f47b78dc3d77a40f1"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "05516596dd2c24acfee6e68e64ad7851a54f8f375ee83fd4de399ce5e6bc2fff"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42_epoch0049_val_loss_0_6434_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42/epoch0049_val_loss-0.6434.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr1_s42_20260912_213657/checkpoints/epoch0049_val_loss-0.6434.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "360fb2d0e5ed5c0b8f7f5dab4542e3439ec8c7ea0c7864c7c73deab731b3e76d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "ed757d19653b39d4ab56be59f4f5375cc5b1794c1964d0a39c4d41b9a51451b0"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42_epoch0059_val_loss_2_1583_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42/epoch0059_val_loss-2.1583.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr3_s42_20260912_215936/checkpoints/epoch0059_val_loss-2.1583.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "97b5e3bd6d44c2b62eacbb9c5b4daad72f05c7db2a3a9589fda6fa790eeb76dc"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "65bda96eec64d4eab6e6f00bcd4353e9aab94d91fc9002ef313176350bfe5ba0"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42_epoch0042_val_loss0_1345_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42/epoch0042_val_loss0.1345.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr0_s42_20260912_222207/checkpoints/epoch0042_val_loss0.1345.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644330,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "66d71f03d012cfee80b90cecbd85c4ecb8309ff8777b594e3d985338ee821cec"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "dfbafddfb68cfcf91f1c6f5bae746b552bbd88ae5adf6591eca41f8d2bada26d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42_epoch0048_val_loss_0_6404_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42/epoch0048_val_loss-0.6404.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr1_s42_20260912_224340/checkpoints/epoch0048_val_loss-0.6404.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "007f3b0695070c3e5133c939105274d171e94ed9c4caabf59f5eda8ea9ad75c5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "7a718796559ea26b50146e2e04c9363632628012cdb9b66eb0483aeaf72f3e2f"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42_epoch0057_val_loss_2_2335_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42/epoch0057_val_loss-2.2335.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr3_s42_20260912_230541/checkpoints/epoch0057_val_loss-2.2335.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "31c9167708fb2142958d21177bd111febd0b388e3607f42511b3e337d029c848"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "e37b9a1939b021c0a285de9224da168b435e0fe936a7ea58f490d2d8d95b4ec7"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42_epoch0049_val_loss0_1295_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42/epoch0049_val_loss0.1295.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr0_s42_20260912_232854/checkpoints/epoch0049_val_loss0.1295.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801194,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "669a0fa1ae46e9a482d295e5284534b2aba0fe2e2d976ad296c2e02a68d3728c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "9c0aa65b89d10adfcde94f5dd978df0373edea88f2ce70a4a043e636fb11cef8"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42_epoch0058_val_loss_0_6505_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42/epoch0058_val_loss-0.6505.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr1_s42_20260912_235012/checkpoints/epoch0058_val_loss-0.6505.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5988531d2168d233e8af93fb856ba612d1f56a6788c19855ddb09da5846cf117"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "acb40cd30e27e402e90ab867aa91be5c50d0309cbc3c8432e0584f8b1fa80f51"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42_epoch0053_val_loss_2_0939_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42/epoch0053_val_loss-2.0939.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.0003_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr3_s42_20260913_001312/checkpoints/epoch0053_val_loss-2.0939.pt",
+          "owner": "run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bc10b88bac208f44471f9398d365c7962cbc094198f1a3082fd250dd940b4281"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_0003_dim288_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "972c2118098043f6353fb796b58a0d39d6641872ecfd1d7e3a224de5944d639b"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42_epoch0056_val_loss0_1335_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42/epoch0056_val_loss0.1335.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr0_s42_20260913_003557/checkpoints/epoch0056_val_loss0.1335.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973226,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "0b8103babe7a6fa93b59618d75c79750a9937a2d401635fd652386580a7a2475"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3385f53438aa7dca7cfb7514873428c82a184454ccaad78d1ff0765bef33550d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42_epoch0059_val_loss_0_6339_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42/epoch0059_val_loss-0.6339.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr1_s42_20260913_005755/checkpoints/epoch0059_val_loss-0.6339.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "89494ecd1c22bbe25e3743aa108171ccf285a4506d1004b418a963fbf37b3950"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "ac5675bd96da60a18361bafa9264e015dc8f7922a8000d445c9b7dd1d58c59bf"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42_epoch0056_val_loss_2_1485_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42/epoch0056_val_loss-2.1485.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr3_s42_20260913_011935/checkpoints/epoch0056_val_loss-2.1485.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973562,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "72cfd2761b4936c4a5f116d40b435866c9a222045e2872b267402658cff5a722"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "365422c7809672d62618d743585c2e6e9151691556aaefd531da7bdd1b7a223e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42_epoch0050_val_loss0_1256_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42/epoch0050_val_loss0.1256.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr0_s42_20260913_014036/checkpoints/epoch0050_val_loss0.1256.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644330,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "6cfaf8680e57b3eb687772783756f6093ab9acdfb036ced63c92540ab90d0f9e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "a9e6a24c68484fa09917b8bca5373455c9ae6975377e5a5a91be449f0ae0dfb4"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42_epoch0047_val_loss_0_6089_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42/epoch0047_val_loss-0.6089.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_020252/checkpoints/epoch0047_val_loss-0.6089.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "fc99057e34c8dd78751c136f57e1e901e219ba2523c060fa0de2f86f8b3fb6d1"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "038eb60a960a62ab1909fde7f055772274c64b1e1be910ef5f4f3f8db8de379a"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42_epoch0058_val_loss_2_1225_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42/epoch0058_val_loss-2.1225.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr3_s42_20260913_022539/checkpoints/epoch0058_val_loss-2.1225.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644666,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "33998d1bdb03ca34527d1e5364fd05afd74c349375cce78b9ad2204c0c3c39ee"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "660587fa7cfdf6965d1b821f3c392202f884fa66ce0ba81dfbd198779b68f6e9"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42_epoch0060_val_loss0_1719_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42/epoch0060_val_loss0.1719.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr0_s42_20260913_024807/checkpoints/epoch0060_val_loss0.1719.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801194,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d7de1201cb11ba25bc4e75a775cf06cea5e2641730d225de3fbd124499d21b30"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "261b99b4a6151bf9c14bd0b6d816a2c5ff64628597a50a3ef33431fd4a95cd2d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42_epoch0059_val_loss_0_5565_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42/epoch0059_val_loss-0.5565.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr1_s42_20260913_030940/checkpoints/epoch0059_val_loss-0.5565.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "836c2255b2e259132e63b83a95172bfaa0344d871e8c6f2120f6d6dfbc5c7e58"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "7f8a64bd19ce1bd7235d92839b884c5ea3c02b47744124197074a8ff2898d66f"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42_epoch0053_val_loss_1_8869_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42/epoch0053_val_loss-1.8869.pt",
+          "source": "output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr3_s42_20260913_033229/checkpoints/epoch0053_val_loss-1.8869.pt",
+          "owner": "run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b81fc54f0fc595d3b42217b2be318d68b775acb831aa243f7c45825780063a7e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "spike_aware_vit_spectrogram",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v10_locked",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "spike_comparison",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/training.jsonl",
+          "sha256": "b933997ee57d7421fc9800be18a437e7b22453c46b1789ead438921f68999340"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "spike_aware_vit_spectrogram_epoch0058_val_loss4_2328_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/epoch0058_val_loss4.2328.pt",
+          "source": "output/phase3_spike_aware_comparison/retrieved/vit_spectrogram/training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/checkpoints/epoch0058_val_loss4.2328.pt",
+          "owner": "spike_aware_vit_spectrogram",
+          "kind": "checkpoint",
+          "role": "evaluated_best_checkpoint",
+          "bytes": 32644330,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4e6bf737d756877f59ecc3d93807a3433407ced93b6e3eeb6fe46bddbf5f92ee"
+        },
+        "spike_aware_vit_spectrogram_best_checkpoint_cuda_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/best_checkpoint_cuda.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/vit_spectrogram/output/phase3_spike_aware_comparison/vit_spectrogram/pipeline/best_checkpoint_cuda.ts",
+          "owner": "spike_aware_vit_spectrogram",
+          "kind": "export",
+          "role": "evaluated_pipeline_export",
+          "bytes": 11007010,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "d2577053e367ef91dfe58bd4c70fe2b3f768698f6f251ae1102a3e016e846a45"
+        },
+        "spike_aware_vit_spectrogram_best_checkpoint_cpu_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/best_checkpoint_cpu.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/vit_spectrogram/output/phase3_spike_aware_comparison/vit_spectrogram/pipeline_cpu_partial/best_checkpoint_cpu.ts",
+          "owner": "spike_aware_vit_spectrogram",
+          "kind": "export",
+          "role": "cpu_reexport",
+          "bytes": 11006672,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "979d6285e6ddfa8da995aa1ce878d9999546cf933e0a6dbc347a40df6f15d365"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config spike_aware_vit_spectrogram --data-root /path/to/thesis-data --output-dir /path/to/new-results/spike_aware_vit_spectrogram --out /path/to/new-results/spike_aware_vit_spectrogram.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/spike_aware_vit_spectrogram.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model spike_aware_vit_spectrogram --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/spike_aware_vit_spectrogram_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "cad6974cc08b71277f9e34117232152022dd4065500948a5fd747cdf30484bb2"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42_epoch0060_val_loss2_8657_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42/epoch0060_val_loss2.8657.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr0_s42_20260912_234238/checkpoints/epoch0060_val_loss2.8657.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "3993baff6c46d2fdfe57f4747a99dc5f0cbc831cda0c29ea139a393e61b5eebf"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "0f19b5ab983586367c950cbe266927baddc18429a2561c61a72ac617373b1faf"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42_epoch0060_val_loss3_1592_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42/epoch0060_val_loss3.1592.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr1_s42_20260912_234614/checkpoints/epoch0060_val_loss3.1592.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "8dd80f282c8c226c599e6afa87d958771fd07f27915106bca18c6d568f2283ab"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "2d7f10990e0776c0e20161c7972a7c421f59b0f9bc56720e7c1c10315ccb7e04"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42_epoch0055_val_loss3_8845_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42/epoch0055_val_loss3.8845.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim120_sisdr3_s42_20260912_234957/checkpoints/epoch0055_val_loss3.8845.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "0bcee310dce59619afeec4a72f54fd324715e99082628b00b4286378382c36b7"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "49875c21e80e1628416d1b824b12c3cbdd480892a95344e87f60a94753150389"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42_epoch0060_val_loss2_5707_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42/epoch0060_val_loss2.5707.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr0_s42_20260912_235327/checkpoints/epoch0060_val_loss2.5707.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5dfa899d68f76aa574d1a6bf06bc5d47a6aa571ba8927f23a97726e4aa5abc72"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "9bf73425a6a726fd772f1394deb6a04c7c44b7afaad92f25334dcfd877ccb601"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42_epoch0060_val_loss2_8888_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42/epoch0060_val_loss2.8888.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr1_s42_20260912_235747/checkpoints/epoch0060_val_loss2.8888.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "83d09906c94ff84c7ab1ba68e8e2e940e458da91942ff39b2a288d050adf0028"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "af235e95a3a43d71a151cb1fc155fe99b6cd592ff518391f5ee040c66a12b071"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42_epoch0059_val_loss3_3856_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42/epoch0059_val_loss3.3856.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim192_sisdr3_s42_20260913_000239/checkpoints/epoch0059_val_loss3.3856.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "da4581680e035fdd004deb764ef35b6fa480f88717fdca937e5fe75b6b22dd62"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "4351b6aa8b1e4392e0cc23626b273871f96625bcf4ae5a6aeb4b1089f37fe11c"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42_epoch0060_val_loss2_5461_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42/epoch0060_val_loss2.5461.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr0_s42_20260913_000731/checkpoints/epoch0060_val_loss2.5461.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "03a955689bd8cb599cc235906e27c8dcbd4fbdf6af24b7dd5e289c2fa7afac6e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3176b22d3e3137efb252e9851941052bb8beeace915546d4be545f4866160e8d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42_epoch0059_val_loss3_0968_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42/epoch0059_val_loss3.0968.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr1_s42_20260913_001420/checkpoints/epoch0059_val_loss3.0968.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "76aed79360cbaaad8ce20c3cd21d40bf1234afcd121250ee97a187ae786bdcfa"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "19ca39e1afea0692c09e31f50ec687177674b821a8402c9b363e3b784e0b9b8e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42_epoch0059_val_loss3_6111_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42/epoch0059_val_loss3.6111.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.00015_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.00015_dim288_sisdr3_s42_20260913_002055/checkpoints/epoch0059_val_loss3.6111.pt",
+          "owner": "wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "65e61d60ad231bf7185b49d03ae06f734daa33bebbd5c2b6001fbd133b16dcfa"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_00015_dim288_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "fe2e0e5ab899f7ba65908037e27478e2a433c16858c1f69d9e1ff6af7551a032"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42_epoch0060_val_loss2_6364_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42/epoch0060_val_loss2.6364.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr0_s42_20260913_002740/checkpoints/epoch0060_val_loss2.6364.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b604cef8ff6a8167fa9d88bd9d5e7deffe25ed58c0e9e348c033ff2566102e89"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "44055e76622d84d30f003c34ca15a7fc9bf7e06d023f85bf8afe10fde9b53967"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42_epoch0060_val_loss3_1320_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42/epoch0060_val_loss3.1320.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr1_s42_20260913_003058/checkpoints/epoch0060_val_loss3.1320.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "daf58ac1dbc688615da5173831d7e9b9216d370096c7a072f63a57510ea14bec"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "326f627555c38fff535817e58906e2a29a67766eba5a296d95c26e81e2f839e2"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42_epoch0054_val_loss4_0338_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42/epoch0054_val_loss4.0338.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim120_sisdr3_s42_20260913_003441/checkpoints/epoch0054_val_loss4.0338.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7df5d758de6d643a24417898fa9016c4a57d86e8730287b2c9b0c44340b5db8e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "5b98efc09075ad82625bf8c895b2be7b26b22920c6416c485dd67dd7cfba9abe"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42_epoch0057_val_loss2_6325_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42/epoch0057_val_loss2.6325.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr0_s42_20260913_003824/checkpoints/epoch0057_val_loss2.6325.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "328c65fc748512397fd1fd291d61f4acfa8a508dd9efccce932eb2598e295350"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "6eda3cae916f181cc582cd461258ca5c67ba33bdf4e3ad6f8c5cd7ce352f41b2"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42_epoch0053_val_loss3_1085_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42/epoch0053_val_loss3.1085.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr1_s42_20260913_004307/checkpoints/epoch0053_val_loss3.1085.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a0d28046fd05a5da032d4d320bff753fe8098ceff6525e1d09d5fc41e9d0561c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "ffce23701ffd71576a8b3b50732bb81f612f500110144f53183e7ae43137c607"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42_epoch0056_val_loss3_8538_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42/epoch0056_val_loss3.8538.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim192_sisdr3_s42_20260913_004741/checkpoints/epoch0056_val_loss3.8538.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c7e130acfcf12fcd4e99d44a05cf542c2b00261bcff1a964b7a93bdcd8ccf3f2"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "ea8d2f98107c4396e39c48fa46341f2f9d8ed7c89d1ea360b64ca8257369cec6"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42_epoch0058_val_loss2_6008_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42/epoch0058_val_loss2.6008.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr0_s42_20260913_005208/checkpoints/epoch0058_val_loss2.6008.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "bdbc1656d61467c5b35c1379182730bdc00e7e6c5ba3f98fd6d1caa3ea8c5238"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "0b5b80eab16b9c3f21e94573eb46a1aa616f05af39a85253ee80b74fa656f768"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42_epoch0052_val_loss3_5551_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42/epoch0052_val_loss3.5551.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr1_s42_20260913_005834/checkpoints/epoch0052_val_loss3.5551.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "8c4047e8e7d7b32eca09d0c4b326800ed3b292a68d773e7edeb7b22eafe0065e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "a5adde6ef73df29ca8e11ac5af5359e1026a413dae2823d07d3a82e9e369a336"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42_epoch0054_val_loss4_4912_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42/epoch0054_val_loss4.4912.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.0003_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.0003_dim288_sisdr3_s42_20260913_010504/checkpoints/epoch0054_val_loss4.4912.pt",
+          "owner": "wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "e53f61b1b8007f0f9d04bc4c46364acfa529910c5e648b49075fa91477fe033a"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_0003_dim288_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "8e47da0a8dd2797a1a1e81296992974c71388645c6249e6e35e8dc64e584da80"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42_epoch0060_val_loss2_8028_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42/epoch0060_val_loss2.8028.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim120_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr0_s42_20260913_011137/checkpoints/epoch0060_val_loss2.8028.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "2af8a1a7c31bf5e1511be83237cce5e2100be5873d97b566f7ad22be217732bb"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "10bd5b6f554bd07783ad43e065070074e2beb70f0a4c4652e1037ebdd5a149dc"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42_epoch0058_val_loss3_4131_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42/epoch0058_val_loss3.4131.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim120_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr1_s42_20260913_011458/checkpoints/epoch0058_val_loss3.4131.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "2d3bad9a8907420021cdf2fdf466c57121b63544926d2f6eb00416568a34b259"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "88bde8446f3561a7991adcb925e4b316422d8463ac4dcd8148695ef9d90d3288"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42_epoch0058_val_loss4_2850_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42/epoch0058_val_loss4.2850.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim120_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim120_sisdr3_s42_20260913_011823/checkpoints/epoch0058_val_loss4.2850.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 12973721,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a4120782712ee41a88f1ede13e7d6fdb2f4bba21d01a5a09f899e6cc303ae9ef"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim120_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "fd49c6d13fe8d2784789da18b30a079e79de2bb6a78ba2f78eea9d7aa3f7f58d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42_epoch0058_val_loss3_1333_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42/epoch0058_val_loss3.1333.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim192_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr0_s42_20260913_012150/checkpoints/epoch0058_val_loss3.1333.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "80ba459131695d5eee278cf49898be36eb7ba6e7accb538ff42457b9f72f68f4"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "fb86b762cac33e9861e80aded630ff01df3012ad061513e334a18b94ab3a681e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42_epoch0060_val_loss3_6385_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42/epoch0060_val_loss3.6385.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim192_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr1_s42_20260913_012616/checkpoints/epoch0060_val_loss3.6385.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "eb45ddd7da0fbf00ba7a7de180b5314269a348b017e782ddc959c3caddcd02aa"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "ffed5cdb49df047a3da6bea1f26f4ffc57ee302d034bac302f8841c2ce1bfa22"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42_epoch0055_val_loss4_7138_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42/epoch0055_val_loss4.7138.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim192_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim192_sisdr3_s42_20260913_013040/checkpoints/epoch0055_val_loss4.7138.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 32644761,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f39ac87cca3be349cbe4c4eae6458666664803b6d22e3db4b94607438e24c1a5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim192_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "2fc48c3f4698aaa09881137f495208a9e3ab739519764707a7cf2f2f5307be66"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42_epoch0058_val_loss5_0533_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42/epoch0058_val_loss5.0533.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim288_sisdr0_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr0_s42_20260913_013502/checkpoints/epoch0058_val_loss5.0533.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "cd4d9af93b4dde30e6c7f516d3b1fa8570ea85e3654bd83d98d53c2a809702d0"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c463ae4292688112af0dbafc9ead21a354abfa51afe1bf1b7090008ff6142b2a"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42_epoch0060_val_loss4_3686_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42/epoch0060_val_loss4.3686.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim288_sisdr1_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr1_s42_20260913_014126/checkpoints/epoch0060_val_loss4.3686.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "55da431392df28a4099a867510ca165dc66db09efae4ba4a06b9250baddf7e04"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42",
+      "model": "vit_spectrogram_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "7c14fbeda4e0d48193843d37faa8dfab178611e70c8a2239bad9d5cd9e80b78f"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42_epoch0049_val_loss5_5802_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/vit_spectrogram_deployment_edition/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42/epoch0049_val_loss5.5802.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/vit_spectrogram/lr0.001_dim288_sisdr3_s42/grid_vit_spectrogram_lr0.001_dim288_sisdr3_s42_20260913_014801/checkpoints/epoch0049_val_loss5.5802.pt",
+          "owner": "wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 72801689,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7c022e3958bd20fa209482b8c3cb1361c3654aae992d236cc4a63da4ad94fad9"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_vit_spectrogram_lr0_001_dim288_sisdr3_s42_raw.fif"
+      }
+    }
+  ]
+}

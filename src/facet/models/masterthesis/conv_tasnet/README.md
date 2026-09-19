@@ -14,6 +14,10 @@ Factories: `facet.models.masterthesis.conv_tasnet.training`.
 
 Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
+## Results
+
+[Recorded results](results/index.rst) lists this variant's experiments, hyperparameters, training curves and evaluations. [Manifest](results/manifest.json) records source and checkpoint associations. Unassigned results are marked explicitly.
+
 ## Architecture diagrams
 
 [Compact overview](diagrams/overview.svg) · [Detailed architecture](diagrams/architecture.svg).

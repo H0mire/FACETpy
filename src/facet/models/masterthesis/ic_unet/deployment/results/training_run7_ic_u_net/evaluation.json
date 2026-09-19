@@ -1,0 +1,30 @@
+{
+  "experiment": "training_run7_ic_u_net",
+  "model": "ic_unet_deployment_edition",
+  "phase": 2,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Training histories and their own resolved configurations; not necessarily the export selected for a pipeline table.",
+    "code": [
+      "src/facet/training/cli.py"
+    ]
+  },
+  "status": "unavailable",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [],
+  "shared_collections": [],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_ic_u_net/provenance/summary.json",
+      "sha256": "b9929a0fc6c5ea93c1e5c7f9159854d28e654258a632b027bd50a04bacb7f22f"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_ic_u_net/provenance/training.jsonl",
+      "sha256": "2a7e69b15db98577174d4ea3eaf14a4eb9f7e94b2bd659ddde20a57f5cef099e"
+    }
+  ]
+}

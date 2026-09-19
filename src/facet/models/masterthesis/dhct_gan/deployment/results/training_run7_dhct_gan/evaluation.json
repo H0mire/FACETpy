@@ -1,0 +1,30 @@
+{
+  "experiment": "training_run7_dhct_gan",
+  "model": "dhct_gan_deployment_edition",
+  "phase": 2,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Training histories and their own resolved configurations; not necessarily the export selected for a pipeline table.",
+    "code": [
+      "src/facet/training/cli.py"
+    ]
+  },
+  "status": "unavailable",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [],
+  "shared_collections": [],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_dhct_gan/provenance/summary.json",
+      "sha256": "cf444affd83b5cd28bc2f43a910e701e200c19093f72612cb0f4a75359547fbf"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_2/training_run7_dhct_gan/provenance/training.jsonl",
+      "sha256": "0eef77cd837491629d04e6fe20f41dba2ce5f084c1e4715d077080edeb68e8f5"
+    }
+  ]
+}

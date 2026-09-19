@@ -102,4 +102,15 @@ Waveform encoder-decoder with electrode attention. This experimental Demucs exte
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/v2/demucs_mc/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/v2/demucs_mc/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. model-diagrams-end

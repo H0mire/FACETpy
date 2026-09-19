@@ -1,0 +1,158 @@
+{
+  "experiment": "holdout_dhct_gan",
+  "model": "dhct_gan",
+  "phase": 1,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Saved 166 proof-fit windows; family-specific packing; recovered clean = noisy - predicted artifact.",
+    "code": [
+      "src/facet/evaluation/thesis_metrics.py",
+      "src/facet/models/masterthesis/adapters.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/evaluation_manifest.json",
+        "sha256": "f7f858443a21b5b558ea6d9357c14bb81e760ece0ff9d93fc8df3aa4cc810ddb"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "schema_version": "facetpy.model_evaluation.v1",
+        "model_id": "dhct_gan",
+        "model_name": "DHCT-GAN (v1, deprecated)",
+        "model_description": "Hybrid CNN+Transformer GAN, single-epoch input (deprecated due to input-contract bug)",
+        "run_id": "holdout_v1",
+        "created_at": "2026-05-12T17:22:38",
+        "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan/holdout_v1",
+        "docs_dir": "src/facet/models/dhct_gan/documentation",
+        "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan/holdout_v1/metrics.json",
+        "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan/holdout_v1/evaluation_summary.md",
+        "artifacts": {
+          "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/dhct_gan/holdout_v1/plots/holdout_examples.png"
+        },
+        "config": {
+          "model_id": "dhct_gan",
+          "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/dhctganniazyprooffit_20260510_213159/exports/dhct_gan.ts",
+          "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+          "device": "cpu",
+          "holdout_split_hash": "sha256:ddaa64a504e062fd",
+          "holdout_seed": 42,
+          "holdout_val_ratio": 0.2,
+          "holdout_n_windows": 166,
+          "family": "GAN (single-epoch input, failed)",
+          "notes": "(1,1,512) in → (1,1,512) artifact out. Single epoch only, no context. Kept for completeness."
+        },
+        "primary_comparison_contract": {
+          "metrics_json": "metrics.json",
+          "flat_metrics_key": "flat_metrics",
+          "summary_markdown": "evaluation_summary.md"
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/metrics.json",
+        "sha256": "d107d44f4415a35aea8f464e28f5db33e9f0706ed82fe48de59fe452a74efe0b"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "metrics": {
+          "unified_holdout": {
+            "n_examples": 166,
+            "n_channels": 30,
+            "samples_per_epoch": 512,
+            "sfreq_hz": 4096.0,
+            "clean_mse_before": 3.556095862222719e-06,
+            "clean_mse_after": 1.8304128388990648e-05,
+            "clean_mae_before": 0.0009214178426191211,
+            "clean_mae_after": 0.0012767703738063574,
+            "clean_snr_db_before": -10.9449462890625,
+            "clean_snr_db_after": -18.060701370239258,
+            "artifact_mse": 1.8304128388990648e-05,
+            "artifact_mae": 0.0012767703738063574,
+            "artifact_corr": 0.15728382457439363,
+            "artifact_snr_db": -7.115756034851074,
+            "residual_error_rms_ratio": 2.268755995514912,
+            "rms_recovery_ratio": 21.993982315063477,
+            "rms_recovery_distance": 20.993982315063477,
+            "rms_baseline_noisy_ratio": 7.25469446182251,
+            "clean_mse_reduction_pct": -414.72539262621837,
+            "clean_snr_improvement_db": -7.115755081176758,
+            "inference_seconds": 19.924418624999817,
+            "device": "cpu",
+            "inference_seconds_legacy": 27.101549,
+            "inference_timing_note": "remeasured 2026-05-16 with cold-start isolation (fresh subprocess per model, 1 warmup pass excluded, median of 3 timed passes)"
+          }
+        },
+        "flat_metrics": {
+          "unified_holdout.n_examples": 166,
+          "unified_holdout.n_channels": 30,
+          "unified_holdout.samples_per_epoch": 512,
+          "unified_holdout.sfreq_hz": 4096.0,
+          "unified_holdout.clean_mse_before": 3.556095862222719e-06,
+          "unified_holdout.clean_mse_after": 1.8304128388990648e-05,
+          "unified_holdout.clean_mae_before": 0.0009214178426191211,
+          "unified_holdout.clean_mae_after": 0.0012767703738063574,
+          "unified_holdout.clean_snr_db_before": -10.9449462890625,
+          "unified_holdout.clean_snr_db_after": -18.060701370239258,
+          "unified_holdout.artifact_mse": 1.8304128388990648e-05,
+          "unified_holdout.artifact_mae": 0.0012767703738063574,
+          "unified_holdout.artifact_corr": 0.15728382457439363,
+          "unified_holdout.artifact_snr_db": -7.115756034851074,
+          "unified_holdout.residual_error_rms_ratio": 2.268755995514912,
+          "unified_holdout.rms_recovery_ratio": 21.993982315063477,
+          "unified_holdout.rms_recovery_distance": 20.993982315063477,
+          "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
+          "unified_holdout.clean_mse_reduction_pct": -414.72539262621837,
+          "unified_holdout.clean_snr_improvement_db": -7.115755081176758,
+          "unified_holdout.inference_seconds": 19.924418624999817
+        }
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase1_inference_cost",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_inference_cost/metrics.csv",
+        "sha256": "4db84861feb1d1ee478e8f75a513ddbc63264cfccc8f81390bae3289a35758c0"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase1_unified_holdout_ranking",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_unified_holdout_ranking/metrics.csv",
+        "sha256": "3ab9da9a2e8f8898fa6163ea25f7929d665fa362046f3d714ac81814bbae087b"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/evaluation_manifest.json",
+      "sha256": "f7f858443a21b5b558ea6d9357c14bb81e760ece0ff9d93fc8df3aa4cc810ddb"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/metrics.json",
+      "sha256": "d107d44f4415a35aea8f464e28f5db33e9f0706ed82fe48de59fe452a74efe0b"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/provenance/summary.json",
+      "sha256": "a4bf8aee77ece0cd2ecac11212a5ecca131d1dab19d4e0d239a22e7cb1e8d203"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/provenance/training.jsonl",
+      "sha256": "f4ec4e39ef1567b263d0409d4e9573f55a5fab2355f25a2a2669fd35988a3016"
+    }
+  ]
+}

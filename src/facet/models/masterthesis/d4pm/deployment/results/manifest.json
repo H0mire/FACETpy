@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "model": "d4pm_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_d4pm",
+      "model": "d4pm_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": null,
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "blocked",
+      "hyperparameters_status": "unavailable",
+      "evaluation_status": "shared_collections_only",
+      "training": {
+        "status": "unavailable",
+        "source": null
+      },
+      "recorded_epochs": 0,
+      "artifacts": {},
+      "commands": {}
+    },
+    {
+      "experiment": "training_run7_d4pm",
+      "model": "d4pm_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_d4pm/provenance/training.jsonl",
+          "sha256": "7a09b31ca1ad6de43f6250a348fdc2e25f94c284385bf8064185301ed3996474"
+        }
+      },
+      "recorded_epochs": 30,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_d4pm --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_d4pm --out /path/to/new-results/training_run7_d4pm.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_d4pm.yaml"
+      }
+    }
+  ]
+}

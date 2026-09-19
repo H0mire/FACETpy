@@ -103,6 +103,17 @@ Waveform encoder-decoder with recurrent processing. A convolutional encoder, bid
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/demucs/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/demucs/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-demucs-deployment:
 
 Demucs — deployment
@@ -139,6 +150,17 @@ Waveform encoder-decoder with recurrent processing. A convolutional encoder, bid
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/demucs/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/demucs/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-demucs:
 
 Demucs — experimental paper_accurate
@@ -174,5 +196,16 @@ Waveform encoder-decoder with recurrent processing. This experimental variant ad
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/demucs/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/demucs/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/demucs/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

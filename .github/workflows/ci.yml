@@ -77,6 +77,7 @@ jobs:
         run: |
           uv run python -m masterthesis_guide.reproduce validate
           uv run python -m masterthesis_guide.reproduce index --check
+          uv run python -m masterthesis_guide.reproduce model-results --check
       - name: Check model diagram sources and generated SVGs
         run: uv run python tools/diagrams/build_model_diagrams.py --check
       - name: Build docs (warnings as errors)

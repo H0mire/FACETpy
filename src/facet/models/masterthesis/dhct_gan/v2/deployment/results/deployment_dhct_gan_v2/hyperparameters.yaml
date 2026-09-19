@@ -1,0 +1,97 @@
+experiment: deployment_dhct_gan_v2
+model: dhct_gan_v2_deployment_edition
+phase: 2
+dataset: niazy_recording
+training_dataset: proof_fit
+protocol: pipeline
+status: original_resolved
+source:
+  path: masterthesis_guide/experiments/phase_2/deployment_dhct_gan_v2/provenance/facet_train_config.resolved.json
+  sha256: 9dddf199878a0189ac6198206ad80b3a3bc5bcd7703e818546aaf5432a1a9385
+reproduction_config: masterthesis_guide/experiments/phase_2/deployment_dhct_gan_v2/config.yaml
+configuration_provenance: null
+parameters:
+  model:
+    framework: pytorch
+    factory: facet.models.dhct_gan_v2_deployment_edition.training:build_model
+    kwargs:
+      context_epochs: 7
+      base_channels: 16
+      depth: 4
+      num_heads: 4
+      window_size: 16
+    loss_factory: facet.models.dhct_gan_v2_deployment_edition.training:build_loss
+    loss_kwargs:
+      name: recovered_clean
+      amplitude_weight: 1.0
+      velocity_weight: 1.0
+      acceleration_weight: 1.0
+      frequency_weight: 0.046
+      si_sdr_weight: 1.0
+      si_sdr_max: 30.0
+      freq_band:
+      - 1.0
+      - 70.0
+    wrapper_factory: null
+    wrapper_kwargs: {}
+    device: cuda
+    optimizer_factory: null
+    optimizer_kwargs: {}
+    scheduler_factory: null
+    scheduler_kwargs: {}
+  data:
+    context_factory: null
+    dataset_factory: facet.models.dhct_gan_v2_deployment_edition.training:build_dataset
+    kwargs:
+      path: ./output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz
+    eeg_only: true
+  training:
+    model_name: DhctGanV2DeploymentNiazyProofFit
+    chunk_size: 512
+    val_ratio: 0.2
+    trigger_aligned: true
+    overlap: 0.0
+    target_type: artifact
+    max_epochs: 80
+    batch_size: 64
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    grad_clip_norm: 1.0
+    seed: 42
+    run_name: null
+    output_dir: training_output
+    checkpoint:
+      dirpath: checkpoints
+      monitor: val_loss
+      mode: min
+      save_top_k: 2
+      save_last: true
+      filename_template: epoch{epoch:04d}_{monitor}{value:.4f}
+    early_stopping:
+      monitor: val_loss
+      mode: min
+      patience: 20
+      min_delta: 0.0
+      min_delta_rel: 0.001
+    augmentation:
+      enabled: false
+      trigger_jitter_samples: 0
+      noise_scale_range:
+      - 1.0
+      - 1.0
+      channel_dropout_prob: 0.0
+      sign_flip_prob: 0.0
+    logging:
+      log_every_n_steps: 10
+      val_every_n_epochs: 1
+      rich_live: true
+      log_file: training.jsonl
+      loss_plot_file: loss.png
+      progress_bar: true
+    prediction_samples:
+      enabled: false
+      n_samples: 4
+      every_n_epochs: 5
+      seed: 7
+      output_subdir: predictions
+    extra: {}

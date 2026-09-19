@@ -103,6 +103,17 @@ Fully connected context autoencoder. Two fully connected stages read seven epoch
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/cascaded_context_dae/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/cascaded_context_dae/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-cascaded-context-dae-deployment:
 
 Cascaded Context DAE — deployment
@@ -138,5 +149,16 @@ Fully connected context autoencoder. Two fully connected stages read seven epoch
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/masterthesis/cascaded_context_dae/deployment/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/cascaded_context_dae/deployment/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/cascaded_context_dae/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

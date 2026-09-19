@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "cascaded_dae",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_cascaded_dae",
+      "model": "cascaded_dae",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/provenance/training.jsonl",
+          "sha256": "ffdd3762291dafb5047e42e25bbb766f2bdeaa0e24e7b8e8a591da3f3f7aa4e0"
+        }
+      },
+      "recorded_epochs": 28,
+      "artifacts": {
+        "holdout_cascaded_dae_cascaded_dae_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/cascaded_dae/holdout_cascaded_dae/cascaded_dae.ts",
+          "source": "training_output/cascadeddenoisingautoencoderniazyprooffit_20260516_152448/exports/cascaded_dae.ts",
+          "owner": "holdout_cascaded_dae",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 5298630,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f53f9b5cd2e5ad738c6a828e793de89647f344ac11839689a42913289c966216"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_cascaded_dae --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_cascaded_dae --out /path/to/new-results/holdout_cascaded_dae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_cascaded_dae.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_cascaded_dae --data-root /path/to/thesis-data --out /path/to/new-results/holdout_cascaded_dae.json"
+      }
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "model": "legacy_cascaded_dae",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "legacy_delivery",
+      "model": "legacy_cascaded_dae",
+      "phase": 0,
+      "dataset": "niazy_recording",
+      "training_dataset": null,
+      "protocol": "legacy_original",
+      "outcome": "valid",
+      "verification": "blocked",
+      "hyperparameters_status": "unavailable",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "unavailable",
+        "source": null
+      },
+      "recorded_epochs": 0,
+      "artifacts": {
+        "legacy_fc_dae_dae_plotted_model_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_0/legacy_cascaded_dae/legacy_delivery/dae_plotted_model.pt",
+          "source": "output/legacy_dl_delivery/dae_plotted_model.pt",
+          "owner": "legacy_delivery",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1206735,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "3c3476679d7bee02d9576f1edbae56b2907944e00518bbf487ae28c96b93caf9"
+        }
+      },
+      "commands": {
+        "pipeline": "uv run python -m masterthesis_guide.examples.reproduce_phase0 --checkpoint artifacts/checkpoints/masterthesis/phase_0/legacy_cascaded_dae/legacy_fc_dae/dae_plotted_model.pt --edf /path/to/NiazyFMRI.edf --out /path/to/legacy-adapted_raw.fif",
+        "scope": "Current-pipeline adaptation, not an original-run reproduction."
+      }
+    },
+    {
+      "experiment": "legacy_fc_dae",
+      "model": "legacy_cascaded_dae",
+      "phase": 0,
+      "dataset": "niazy_recording",
+      "training_dataset": null,
+      "protocol": "legacy_original",
+      "outcome": "valid",
+      "verification": "blocked",
+      "hyperparameters_status": "partial_training_record",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "unavailable",
+        "source": null
+      },
+      "recorded_epochs": 0,
+      "artifacts": {
+        "legacy_fc_dae_legacy_dl_cascade_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_0/legacy_cascaded_dae/legacy_fc_dae/legacy_dl_cascade.pt",
+          "source": "output/legacy_dl/legacy_dl_cascade.pt",
+          "owner": "legacy_fc_dae",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 1207119,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "0e269d7ab4d33afb9228d92f9091e09ba00e07f7eb6cbb5740ae25f43b3af4e1"
+        }
+      },
+      "commands": {
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model legacy_fc_dae --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/legacy_fc_dae_raw.fif",
+        "scope": "Current-pipeline adaptation; not the original Phase-0 pipeline."
+      }
+    }
+  ]
+}

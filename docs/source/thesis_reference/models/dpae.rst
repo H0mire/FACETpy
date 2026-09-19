@@ -103,6 +103,17 @@ Dual-pathway convolutional autoencoder. Two convolutional pathways combine fine 
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dpae/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dpae/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-dpae-deployment:
 
 DPAE — deployment
@@ -139,6 +150,17 @@ Dual-pathway convolutional autoencoder. Two convolutional pathways combine fine 
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dpae/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dpae/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-dpae:
 
 DPAE — experimental paper_accurate
@@ -174,5 +196,16 @@ Dual-pathway convolutional autoencoder. This experimental variant adds a compres
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/dpae/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/dpae/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/dpae/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

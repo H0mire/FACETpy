@@ -104,6 +104,17 @@ Spectral generator followed by temporal refinement. A spectral generator and tem
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/nested_gan/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/nested_gan/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-nested-gan-deployment:
 
 Nested-GAN — deployment
@@ -140,6 +151,17 @@ Spectral generator followed by temporal refinement. A spectral generator and tem
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/nested_gan/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/nested_gan/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-nested-gan:
 
 Nested-GAN — experimental paper_accurate
@@ -175,5 +197,16 @@ Spectral generator followed by temporal refinement. This experimental variant ad
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/nested_gan/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/nested_gan/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/nested_gan/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

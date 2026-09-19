@@ -1,0 +1,166 @@
+{
+  "experiment": "wega_dhct_gan_lr0_0001_bc8_sisdr0_s42",
+  "model": "dhct_gan_deployment_edition",
+  "phase": 3,
+  "dataset": "weg_a_v7",
+  "training_dataset": "weg_a_v10_locked_1ch",
+  "protocol": {
+    "description": "Recorded preprocessing and cleanup; residual comb RMS plus seam checks, 29.5-160 s of the original recording.",
+    "code": [
+      "src/facet/models/masterthesis/pipeline.py",
+      "tools/pipeline_demo/measure_arms.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/results/wega_dhct_gan/screen.json",
+        "sha256": "6d0074efceca9761b5748dda6dcc8efec32f124db9bd77289d18c07c6ed4b7fa"
+      },
+      "selection": {
+        "key": "zeilen",
+        "row": 0
+      },
+      "values": {
+        "tag": "lr0.0001_bc8_sisdr0_s42",
+        "seed": 42,
+        "lr": 0.0001,
+        "kapazitaet": 8,
+        "si_sdr": 0.0,
+        "train_s": 11711.3,
+        "val_loss": 4.8582,
+        "checkpoint": "grids/wega/dhct_gan/lr0.0001_bc8_sisdr0_s42/grid_dhct_gan_lr0.0001_bc8_sisdr0_s42_20260912_234237/checkpoints/epoch0073_val_loss4.8582.pt",
+        "err_uv": 18.6945,
+        "err_uv_null": 45.3128,
+        "corr_clean": 0.9218,
+        "besser_als_null": true,
+        "n_selektion": 4110,
+        "bewertung_s": 13.5,
+        "hinweis": "",
+        "status": "ok"
+      },
+      "context": {
+        "familie": "dhct_gan",
+        "phase": "screen",
+        "datensatz": "wega",
+        "achsen": [
+          "lr",
+          "kapazitaet",
+          "si_sdr"
+        ],
+        "basis_werte_run7": {
+          "lr": 0.001,
+          "kapazitaet": 16,
+          "si_sdr": 1.0,
+          "wd": 0.0001,
+          "freq": 17.220293178786243,
+          "fenster": 16
+        },
+        "gitterwerte": {
+          "lr": [
+            0.0001,
+            0.001,
+            0.003
+          ],
+          "kapazitaet": [
+            8,
+            16,
+            32
+          ],
+          "si_sdr": [
+            0.0,
+            1.0,
+            3.0
+          ]
+        },
+        "fest_geblieben": {
+          "wd": 0.0001,
+          "freq": 17.220293178786243,
+          "fenster": 16
+        },
+        "basis_konfig": "configs/run8_wega_dhct_gan.yaml",
+        "model_id": "dhct_gan_deployment",
+        "abweichung_von_run7": {
+          "config": "/workspace/facetpy/configs/run8_wega_dhct_gan.yaml",
+          "grund": "Weg A: unabhaengige Clean-Quelle, Verlustgewichte neu hergeleitet",
+          "packing": "b1ts",
+          "context": "stack"
+        },
+        "fenster_s": [
+          25.0,
+          160.0
+        ],
+        "analyse_s": [
+          4.5,
+          135.0
+        ],
+        "farm_ga_rest_uv": 0.248,
+        "naht_verworfen_ab": 2.5,
+        "dc_mode": "as_evaluated",
+        "bewertung": "Kammrest in der vollen Korrekturkette; Nahtsprung als Ausschluss. Nicht val_loss — der erklaert in run 7 nur 37 % der Pipeline-Rangvarianz."
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "wega_dhct_gan",
+      "source": {
+        "path": "masterthesis_guide/results/wega_dhct_gan/screen.json",
+        "sha256": "6d0074efceca9761b5748dda6dcc8efec32f124db9bd77289d18c07c6ed4b7fa"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase3_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_grid_runs/metrics.csv",
+        "sha256": "0449071cda8662b6bdb9b338de5a06309552c31aea1c7cde368c812c0949af53"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_legacy_spike_preservation",
+      "source": {
+        "path": "masterthesis_guide/results/table_legacy_spike_preservation/metrics.tsv",
+        "sha256": "50746850e33cd2c6931a48e5ea00df1f82fb63c5723275b44e1a7fafc136d8fd"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_spike_checkpoint_comparison",
+      "source": {
+        "path": "masterthesis_guide/results/table_spike_checkpoint_comparison/metrics.tsv",
+        "sha256": "fa5a575600baed0e5fae23e362cc5a71f293ac4c3927a804b6cadbdff642d749"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase3_wega_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_wega_grid_runs/metrics.csv",
+        "sha256": "29538feb1c8fdb5d62b1bcd9261f71f18a05d9c9de6a091df9d2ba7283e78518"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_3/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42/provenance/summary.json",
+      "sha256": "34656760486f08fe01876fe09a858d0dc9311473c50e1189da07a9dae14f3929"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/wega_dhct_gan_lr0_0001_bc8_sisdr0_s42/provenance/training.jsonl",
+      "sha256": "a558d65e6c8cd8e221b407981dac82e2049d3db59e1aa90ca347875b05204e96"
+    }
+  ]
+}

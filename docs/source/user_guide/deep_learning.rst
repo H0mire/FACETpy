@@ -126,6 +126,17 @@ A small context convolution network for synthetic spike-artifact examples. It st
 |
 :download:`Editable profile (JSON) <../../../src/facet/models/experimental/examples/demo01/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../src/facet/models/experimental/examples/demo01/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. model-diagrams-end
 
 Verification scope

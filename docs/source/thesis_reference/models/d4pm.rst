@@ -108,6 +108,17 @@ Conditional diffusion model. A conditional noise predictor learns the artifact d
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/d4pm/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/d4pm/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-d4pm-deployment:
 
 D4PM — deployment
@@ -144,6 +155,17 @@ Conditional diffusion model. This deployment variant normalizes the training pai
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/d4pm/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/d4pm/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-d4pm:
 
 D4PM — experimental paper_accurate
@@ -179,5 +201,16 @@ Conditional diffusion model. This experimental variant adds continuous noise-lev
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/d4pm/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/d4pm/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/d4pm/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

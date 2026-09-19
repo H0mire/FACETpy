@@ -459,6 +459,17 @@ def render_model_sections(entries, document):
                 "|",
                 f":download:`Editable profile (JSON) <{directory}/architecture.json>`",
                 "",
+                ".. raw:: html",
+                "",
+                '   <details class="model-results">',
+                "   <summary>Results: hyperparameters, training curves and evaluation</summary>",
+                "",
+                f".. include:: {directory}/../results/index.rst",
+                "",
+                ".. raw:: html",
+                "",
+                "   </details>",
+                "",
             ]
         )
     lines.extend([".. model-diagrams-end", ""])

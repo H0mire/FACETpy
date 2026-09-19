@@ -102,6 +102,17 @@ Convolutional source separator. A learned waveform encoder, temporal convolution
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/conv_tasnet/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/conv_tasnet/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-conv-tasnet-deployment:
 
 Conv-TasNet — deployment
@@ -138,6 +149,17 @@ Convolutional source separator. A learned waveform encoder, temporal convolution
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/conv_tasnet/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/conv_tasnet/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-conv-tasnet:
 
 Conv-TasNet — experimental paper_accurate
@@ -173,5 +195,16 @@ Convolutional source separator. This experimental variant uses a linear encoder 
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/conv_tasnet/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/conv_tasnet/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/conv_tasnet/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

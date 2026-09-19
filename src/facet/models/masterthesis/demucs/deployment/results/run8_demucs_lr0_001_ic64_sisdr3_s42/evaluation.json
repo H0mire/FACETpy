@@ -1,0 +1,159 @@
+{
+  "experiment": "run8_demucs_lr0_001_ic64_sisdr3_s42",
+  "model": "demucs_deployment_edition",
+  "phase": 3,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Recorded preprocessing and cleanup; residual comb RMS plus seam checks, 29.5-160 s of the original recording.",
+    "code": [
+      "src/facet/models/masterthesis/pipeline.py",
+      "tools/pipeline_demo/measure_arms.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/results/run8_demucs/screen.json",
+        "sha256": "0ea69aab252ba123cf0df8c75af01f3d6306bb2e12f1839b52bac63738e81182"
+      },
+      "selection": {
+        "key": "zeilen",
+        "row": 23
+      },
+      "values": {
+        "tag": "lr0.001_ic64_sisdr3_s42",
+        "seed": 42,
+        "lr": 0.001,
+        "kapazitaet": 64,
+        "si_sdr": 3.0,
+        "train_s": 1366.9,
+        "val_loss": -2.0063,
+        "checkpoint": "grids/run8/demucs/lr0.001_ic64_sisdr3_s42/grid_demucs_lr0.001_ic64_sisdr3_s42_20260913_081830/checkpoints/epoch0045_val_loss-2.0063.pt",
+        "pipeline_device": "cpu",
+        "ga_rest_uv": 3.1165,
+        "rms_uv": 30.1009,
+        "naht_ratio": 1.4183,
+        "x_farm": 12.57,
+        "pipeline_s": 995.6,
+        "hinweis": "",
+        "status": "ok"
+      },
+      "context": {
+        "familie": "demucs",
+        "phase": "screen",
+        "achsen": [
+          "lr",
+          "kapazitaet",
+          "si_sdr"
+        ],
+        "basis_werte_run7": {
+          "lr": 0.0003,
+          "kapazitaet": 64,
+          "si_sdr": 1.0,
+          "wd": 0.0,
+          "freq": 0.046,
+          "tiefe": 4
+        },
+        "gitterwerte": {
+          "lr": [
+            0.0001,
+            0.0003,
+            0.001
+          ],
+          "kapazitaet": [
+            32,
+            64,
+            96
+          ],
+          "si_sdr": [
+            0.0,
+            1.0,
+            3.0
+          ]
+        },
+        "fest_geblieben": {
+          "wd": 0.0,
+          "freq": 0.046,
+          "tiefe": 4
+        },
+        "basis_konfig": "src/facet/models/demucs_deployment_edition/training_niazy_proof_fit.yaml",
+        "model_id": "demucs_deployment",
+        "fenster_s": [
+          25.0,
+          160.0
+        ],
+        "analyse_s": [
+          4.5,
+          135.0
+        ],
+        "farm_ga_rest_uv": 0.248,
+        "naht_verworfen_ab": 2.5,
+        "dc_mode": "as_evaluated",
+        "bewertung": "Kammrest in der vollen Korrekturkette; Nahtsprung als Ausschluss. Nicht val_loss — der erklaert in run 7 nur 37 % der Pipeline-Rangvarianz."
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "run8_demucs",
+      "source": {
+        "path": "masterthesis_guide/results/run8_demucs/screen.json",
+        "sha256": "0ea69aab252ba123cf0df8c75af01f3d6306bb2e12f1839b52bac63738e81182"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase3_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_grid_runs/metrics.csv",
+        "sha256": "0449071cda8662b6bdb9b338de5a06309552c31aea1c7cde368c812c0949af53"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_legacy_spike_preservation",
+      "source": {
+        "path": "masterthesis_guide/results/table_legacy_spike_preservation/metrics.tsv",
+        "sha256": "50746850e33cd2c6931a48e5ea00df1f82fb63c5723275b44e1a7fafc136d8fd"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_spike_checkpoint_comparison",
+      "source": {
+        "path": "masterthesis_guide/results/table_spike_checkpoint_comparison/metrics.tsv",
+        "sha256": "fa5a575600baed0e5fae23e362cc5a71f293ac4c3927a804b6cadbdff642d749"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase3_wega_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_wega_grid_runs/metrics.csv",
+        "sha256": "29538feb1c8fdb5d62b1bcd9261f71f18a05d9c9de6a091df9d2ba7283e78518"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic64_sisdr3_s42/provenance/summary.json",
+      "sha256": "533c23379eb103f17533293357a97b2c4d67c4f9814d620c8353f3a73c010cfd"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic64_sisdr3_s42/provenance/training.jsonl",
+      "sha256": "f2bb58068f22d2dde1a1420ee4c0425ffda443b84acb96cb12ab6fb17a123638"
+    }
+  ]
+}

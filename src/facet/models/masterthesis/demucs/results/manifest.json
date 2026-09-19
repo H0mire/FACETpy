@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "model": "demucs",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_demucs",
+      "model": "demucs",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_demucs/provenance/training.jsonl",
+          "sha256": "79560bc1359d17940e59809dfda5b7a405d4dc55f270429de7f8c598e654a688"
+        }
+      },
+      "recorded_epochs": 52,
+      "artifacts": {
+        "holdout_demucs_demucs_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/demucs/holdout_demucs/demucs.ts",
+          "source": "training_output/demucsniazyprooffit_20260510_224653/exports/demucs.ts",
+          "owner": "holdout_demucs",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 66349434,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f67fd1f66a6495441ee3be19b36de92d891a87dfe5cdf8ffbeecd10aca44ecf5"
+        },
+        "holdout_demucs_demucs_cpu_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/demucs/holdout_demucs/demucs_cpu.ts",
+          "source": "training_output/demucsniazyprooffit_20260510_224653/exports/demucs_cpu.ts",
+          "owner": "holdout_demucs",
+          "kind": "export",
+          "role": "cpu_export",
+          "bytes": 66355810,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b7a34039e232208c45da1b7026c594c2e676cabb59ed918662819ff07305ffe4"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_demucs --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_demucs --out /path/to/new-results/holdout_demucs.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_demucs.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_demucs --data-root /path/to/thesis-data --out /path/to/new-results/holdout_demucs.json"
+      }
+    }
+  ]
+}

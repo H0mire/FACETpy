@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "dpae",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_dpae",
+      "model": "dpae",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_dpae/provenance/training.jsonl",
+          "sha256": "15ae373649b9f20414d226f0ea70ff6c6c6f385c491aafa2ced42360450bd75c"
+        }
+      },
+      "recorded_epochs": 19,
+      "artifacts": {
+        "holdout_dpae_dpae_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/dpae/holdout_dpae/dpae.ts",
+          "source": "training_output/dualpathwayautoencoderniazyprooffit_20260510_192929/exports/dpae.ts",
+          "owner": "holdout_dpae",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 1140228,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7687bdb07b515d1b47cc048e9b366e4c5d746feecd8096a32804654e51e7d04e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_dpae --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_dpae --out /path/to/new-results/holdout_dpae.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_dpae.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_dpae --data-root /path/to/thesis-data --out /path/to/new-results/holdout_dpae.json"
+      }
+    }
+  ]
+}

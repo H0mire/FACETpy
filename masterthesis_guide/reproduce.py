@@ -414,6 +414,8 @@ def main(argv=None) -> int:
     validation.add_argument("--hashes", action="store_true", help="Also read and hash all selected weight files")
     index = actions.add_parser("index", help="Generate the repository and Sphinx experiment indexes")
     index.add_argument("--check", action="store_true")
+    results = actions.add_parser("model-results", help="Build per-model parameter, curve and evaluation views")
+    results.add_argument("--check", action="store_true")
     configuration = actions.add_parser("config", help="Write a resolved training configuration")
     configuration.add_argument("experiment")
     configuration.add_argument("--data-root", type=Path)
@@ -429,6 +431,10 @@ def main(argv=None) -> int:
         return int(bool(errors))
     if args.action == "index":
         generate_indexes(catalog, check=args.check)
+    if args.action == "model-results":
+        from masterthesis_guide.model_results import generate_model_results
+
+        print(generate_model_results(catalog, check=args.check))
     if args.action == "config":
         config = executable_config(
             args.experiment, catalog, data_root=args.data_root, output_dir=args.output_dir, device=args.device

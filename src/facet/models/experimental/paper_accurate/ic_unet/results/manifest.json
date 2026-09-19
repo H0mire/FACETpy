@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "model": "ic_unet_paper_accurate_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": []
+}

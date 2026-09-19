@@ -1,0 +1,11 @@
+experiment: deployment_d4pm
+model: d4pm_deployment_edition
+phase: 2
+dataset: niazy_recording
+training_dataset: null
+protocol: pipeline
+status: unavailable
+source: null
+reproduction_config: null
+configuration_provenance: null
+parameters: {}

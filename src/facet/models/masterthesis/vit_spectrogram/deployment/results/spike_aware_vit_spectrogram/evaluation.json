@@ -1,0 +1,410 @@
+{
+  "experiment": "spike_aware_vit_spectrogram",
+  "model": "vit_spectrogram_deployment_edition",
+  "phase": 3,
+  "dataset": "weg_a_v10_locked",
+  "training_dataset": "weg_a_v10_locked_1ch",
+  "protocol": {
+    "description": "Matched injected/no-injection pipeline arms; four identical synthetic injections on all EEG channels, measured on Fp1; separate from the labelled holdout.",
+    "code": [
+      "tools/pipeline_demo/inject_spikes.py",
+      "tools/pipeline_demo/measure_spike_preservation.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {
+    "selection_note": "Use the checkpoint hash recorded in comparison.json. The trainer export is retained separately and must not silently replace that checkpoint."
+  },
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/comparison.json",
+        "sha256": "c38e106435f0231c60ee1c2aa01a6b62fb92924364165c6763bf9166c210b236"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "scope": "Locked Weg-A checkpoint comparison; not an isolated loss ablation",
+        "split": 2,
+        "n_examples": 4110,
+        "epoch_duration_s": 0.194,
+        "device": "cuda",
+        "baseline_device": "cuda",
+        "neighborhood_ms": 50,
+        "spike_dilate_ms": 0,
+        "dataset_sha256": "4c3dc8a5861d71db5c8ddb1a4c8545b2fbe9bf6b1dc5bfe79b087b55b4a44357",
+        "baseline": "/workspace/phase3_baseline.ts",
+        "baseline_sha256": "00a8800084420079ae70b3a0857bb45df72a17f898ff631f6b0e62adaa64916d",
+        "checkpoint": "/workspace/facetpy/training_output/phase3vitspectrogramwegaspikeaware_20260914_122724/checkpoints/epoch0058_val_loss4.2328.pt",
+        "checkpoint_sha256": "4e6bf737d756877f59ecc3d93807a3433407ced93b6e3eeb6fe46bddbf5f92ee",
+        "config": {
+          "model": {
+            "framework": "pytorch",
+            "factory": "facet.models.vit_spectrogram_deployment_edition.training:build_model",
+            "kwargs": {
+              "n_fft": 64,
+              "hop_length": 16,
+              "freq_bins": 32,
+              "time_frames": 224,
+              "patch_freq": 4,
+              "patch_time": 16,
+              "embed_dim": 192,
+              "depth": 6,
+              "n_heads": 6,
+              "mlp_ratio": 4.0,
+              "dropout": 0.0,
+              "mask_margin_patches": 1
+            },
+            "loss_factory": "facet.models.vit_spectrogram_deployment_edition.training:build_loss",
+            "loss_kwargs": {
+              "name": "recovered_clean",
+              "prediction_is": "artifact",
+              "rows": [
+                "artifact",
+                "clean",
+                "noisy",
+                "spike"
+              ],
+              "amplitude_weight": 1.0,
+              "velocity_weight": 0.00017043934156734243,
+              "acceleration_weight": 1.3597193525429164e-05,
+              "frequency_weight": 17.220293178786243,
+              "si_sdr_weight": 1.0,
+              "si_sdr_max": 30.0,
+              "freq_band": [
+                1.0,
+                70.0
+              ],
+              "spike_weight": 20.0
+            },
+            "device": "cuda"
+          },
+          "data": {
+            "dataset_factory": "facet.training.deployment_data:build_weg_a_packed_dataset",
+            "kwargs": {
+              "path": "./output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz",
+              "packing": "bt1s",
+              "include_spike": true
+            },
+            "eeg_only": true
+          },
+          "training": {
+            "model_name": "Phase3VitSpectrogramWegASpikeAware",
+            "chunk_size": 512,
+            "target_type": "artifact",
+            "trigger_aligned": true,
+            "val_ratio": 0.2,
+            "max_epochs": 60,
+            "batch_size": 64,
+            "learning_rate": 0.001,
+            "weight_decay": 0.05,
+            "grad_clip_norm": 1.0,
+            "seed": 42,
+            "output_dir": "training_output"
+          },
+          "checkpoint": {
+            "monitor": "val_loss",
+            "mode": "min",
+            "save_top_k": 2,
+            "save_last": true
+          },
+          "early_stopping": {
+            "monitor": "val_loss",
+            "mode": "min",
+            "patience": 20,
+            "min_delta": 0.0,
+            "min_delta_rel": 0.001
+          },
+          "logging": {
+            "rich_live": true,
+            "log_file": "training.jsonl",
+            "loss_plot_file": "loss.png",
+            "val_every_n_epochs": 1,
+            "progress_bar": true
+          },
+          "export": {
+            "enabled": true,
+            "format": "torchscript",
+            "path": "exports/vit_spectrogram_phase3_spike_aware.ts",
+            "write_inference_config": false
+          }
+        },
+        "metrics": {
+          "phase3": {
+            "spike_neighborhood_snr_db": -9.628952930319052,
+            "non_spike_snr_db": -17.14432903163124,
+            "spike_peak_over_residual": 2.286726026438691,
+            "spike_metrics_reliable": 1.0,
+            "spike_amplitude_ratio": 7.711432098272826,
+            "spike_contrast_db": 2.7946818392789905,
+            "spike_morphology_corr": 0.12262230363986286,
+            "spike_peak_latency_drift_samples": -1.1207430340557276,
+            "n_spike_examples": 323.0,
+            "rmse_uv": 279.51889205724
+          },
+          "spike_aware": {
+            "spike_neighborhood_snr_db": 13.311212577442388,
+            "non_spike_snr_db": 8.646474376958619,
+            "spike_peak_over_residual": 3.7338044760496882,
+            "spike_metrics_reliable": 1.0,
+            "spike_amplitude_ratio": 1.6703150345306714,
+            "spike_contrast_db": 8.79979674489883,
+            "spike_morphology_corr": 0.24517238108695796,
+            "spike_peak_latency_drift_samples": 0.4179566563467492,
+            "n_spike_examples": 323.0,
+            "rmse_uv": 14.35745525668608
+          },
+          "uncorrected": {
+            "spike_neighborhood_snr_db": -26.22797623412575,
+            "non_spike_snr_db": -34.05464944611015,
+            "spike_peak_over_residual": 1.4035850015111244,
+            "spike_metrics_reliable": 1.0,
+            "spike_amplitude_ratio": 57.20769357191379,
+            "spike_contrast_db": -0.6043356106928635,
+            "spike_morphology_corr": 0.08619767592082593,
+            "spike_peak_latency_drift_samples": -0.48606811145510836,
+            "n_spike_examples": 323.0,
+            "rmse_uv": 1958.274282515049
+          }
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/residual_metrics.csv",
+        "sha256": "033dbc034135cf74e7bab513b425b6634264d5e0bf8f1aa29635ae72082a9c9e"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": [
+        {
+          "arm": "vit_spectrogram_tuned",
+          "rms_uv": "22.887",
+          "ga_rest_uv": "2.222",
+          "naht_ratio": "1.236",
+          "median_sample_step_uv": "0.3616",
+          "step_channel": "Fp1",
+          "n_harmonics": "9",
+          "epoch_rate_hz": "7.0137",
+          "x_reference": "1.0",
+          "hinweis": ""
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/residual_metrics.meta.json",
+        "sha256": "1a1b9860279b9d164dd4475ee135f8f9395dcfd4e44d6c62ec9d1116b45658b9"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "arm_dir": "output/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/without",
+        "window_s": [
+          29.5,
+          160.0
+        ],
+        "reference_arm": "vit_spectrogram_tuned",
+        "step_channel": "Fp1",
+        "metrics": {
+          "ga_rest_uv": "GradientArtifactResidualCalculator.comb_rms_uv, fmax 70 Hz",
+          "naht_ratio": "EpochSeamStepCalculator.ratio; FARM = 1.11, unkorrigiert = 5.69",
+          "median_sample_step_uv": "Median |diff| auf step_channel; trennt Treppe vom Zackenzug"
+        },
+        "caveat": "Der Kammwert ist fensterabhängig — dasselbe Signal über 5,5 s gemessen ergibt rund das Siebenfache. Er sieht ausserdem nur epochenperiodische Reste; breitbandig Aufgeprägtes findet erst der Nahtsprung. Siehe run_7_stand_fuer_kapitel_5.md §2.2."
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/spike_preservation.csv",
+        "sha256": "cbcaffcbc7d75f0ee40883000e6316406ed6402a38a2971f451d321860efb5df"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": [
+        {
+          "arm": "vit_spectrogram_tuned",
+          "spike_30s_uv": "62.58",
+          "spike_31.5s_uv": "63.19",
+          "spike_33s_uv": "62.18",
+          "spike_34.5s_uv": "62.82",
+          "mittel_uv": "62.69",
+          "erhalt_pct": "62.7",
+          "erhalt_vs_unkorrigiert_pct": ""
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.csv",
+        "sha256": "0608ea754d54955cbc61b2eb58bcb3977eeeaeb82a82a44c2ec208a4a0f905a7"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": [
+        {
+          "arm": "vit_spectrogram_tuned",
+          "rms_uv": "23.622",
+          "ga_rest_uv": "2.102",
+          "naht_ratio": "1.784",
+          "median_sample_step_uv": "0.4485",
+          "step_channel": "Fp1",
+          "n_harmonics": "9",
+          "epoch_rate_hz": "7.0137",
+          "x_reference": "1.0",
+          "hinweis": ""
+        }
+      ]
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.meta.json",
+        "sha256": "cd9fd5a31fa34f4708e37a5615d910bd3a97ee8aab6fe7e9cf69996369ced82b"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "arm_dir": "output/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/without",
+        "window_s": [
+          29.5,
+          160.0
+        ],
+        "reference_arm": "vit_spectrogram_tuned",
+        "step_channel": "Fp1",
+        "metrics": {
+          "ga_rest_uv": "GradientArtifactResidualCalculator.comb_rms_uv, fmax 70 Hz",
+          "naht_ratio": "EpochSeamStepCalculator.ratio; FARM = 1.11, unkorrigiert = 5.69",
+          "median_sample_step_uv": "Median |diff| auf step_channel; trennt Treppe vom Zackenzug"
+        },
+        "caveat": "Der Kammwert ist fensterabhängig — dasselbe Signal über 5,5 s gemessen ergibt rund das Siebenfache. Er sieht ausserdem nur epochenperiodische Reste; breitbandig Aufgeprägtes findet erst der Nahtsprung. Siehe run_7_stand_fuer_kapitel_5.md §2.2."
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/spike_preservation.csv",
+        "sha256": "56886c881a787ae143c8436fd04b26eaa7ac02a40428b6744fa7a80f58109eda"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": [
+        {
+          "arm": "vit_spectrogram_tuned",
+          "spike_30s_uv": "81.69",
+          "spike_31.5s_uv": "39.32",
+          "spike_33s_uv": "80.97",
+          "spike_34.5s_uv": "77.63",
+          "mittel_uv": "69.9",
+          "erhalt_pct": "69.9",
+          "erhalt_vs_unkorrigiert_pct": ""
+        }
+      ]
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase3_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_grid_runs/metrics.csv",
+        "sha256": "0449071cda8662b6bdb9b338de5a06309552c31aea1c7cde368c812c0949af53"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_legacy_spike_preservation",
+      "source": {
+        "path": "masterthesis_guide/results/table_legacy_spike_preservation/metrics.tsv",
+        "sha256": "50746850e33cd2c6931a48e5ea00df1f82fb63c5723275b44e1a7fafc136d8fd"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_spike_checkpoint_comparison",
+      "source": {
+        "path": "masterthesis_guide/results/table_spike_checkpoint_comparison/metrics.tsv",
+        "sha256": "fa5a575600baed0e5fae23e362cc5a71f293ac4c3927a804b6cadbdff642d749"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase3_wega_grid_runs",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase3_wega_grid_runs/metrics.csv",
+        "sha256": "29538feb1c8fdb5d62b1bcd9261f71f18a05d9c9de6a091df9d2ba7283e78518"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "spike_pipeline_summary",
+      "source": {
+        "path": "masterthesis_guide/results/spike_pipeline_summary/pipeline_summary.csv",
+        "sha256": "7cf12715a36c527a3934231f7591d0cae0ab7ae823652747a449af03fbb5e0d4"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "spike_holdout_summary",
+      "source": {
+        "path": "masterthesis_guide/results/spike_holdout_summary/holdout_summary.csv",
+        "sha256": "ad0e5397c885833c414233791da806d36504bff94206d2c10e8912ae1d799b8d"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "spike_NiazyFMRI_spikes.truth",
+      "source": {
+        "path": "masterthesis_guide/results/spike_NiazyFMRI_spikes.truth/NiazyFMRI_spikes.truth.json",
+        "sha256": "9c68fd8e2b741cfbf0528e78d12c1cc8eae80623ad2dc091297f9452d5e0f8df"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/VERIFIED.json",
+      "sha256": "26b1b8d8cad46788a60de2531148298a8daf58bd527701bfb6c3a718abb99c93"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/summary.json",
+      "sha256": "060d408dc62374222002c6a6689dae7ac9eb6378594d5d710da7c33702ebf029"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/training.jsonl",
+      "sha256": "b933997ee57d7421fc9800be18a437e7b22453c46b1789ead438921f68999340"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/comparison.json",
+      "sha256": "c38e106435f0231c60ee1c2aa01a6b62fb92924364165c6763bf9166c210b236"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/export_equivalence.json",
+      "sha256": "6cd20d880e17f137891e47c39f6f32d4af27a374fbad623792bdbcbd8e2a4fff"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/residual_metrics.csv",
+      "sha256": "033dbc034135cf74e7bab513b425b6634264d5e0bf8f1aa29635ae72082a9c9e"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/residual_metrics.meta.json",
+      "sha256": "1a1b9860279b9d164dd4475ee135f8f9395dcfd4e44d6c62ec9d1116b45658b9"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/phase3/spike_preservation.csv",
+      "sha256": "cbcaffcbc7d75f0ee40883000e6316406ed6402a38a2971f451d321860efb5df"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.csv",
+      "sha256": "0608ea754d54955cbc61b2eb58bcb3977eeeaeb82a82a44c2ec208a4a0f905a7"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.meta.json",
+      "sha256": "cd9fd5a31fa34f4708e37a5615d910bd3a97ee8aab6fe7e9cf69996369ced82b"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/spike_preservation.csv",
+      "sha256": "56886c881a787ae143c8436fd04b26eaa7ac02a40428b6744fa7a80f58109eda"
+    }
+  ]
+}

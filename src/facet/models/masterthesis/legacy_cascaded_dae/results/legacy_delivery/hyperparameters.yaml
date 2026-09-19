@@ -1,0 +1,11 @@
+experiment: legacy_delivery
+model: legacy_cascaded_dae
+phase: 0
+dataset: niazy_recording
+training_dataset: null
+protocol: legacy_original
+status: unavailable
+source: null
+reproduction_config: null
+configuration_provenance: null
+parameters: {}

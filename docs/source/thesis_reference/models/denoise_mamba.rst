@@ -108,6 +108,17 @@ Convolutional and state-space model. A flat stack of local convolution and Mamba
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/denoise_mamba/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/denoise_mamba/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-denoise-mamba-deployment:
 
 DenoiseMamba — deployment
@@ -144,6 +155,17 @@ Convolutional and state-space model. A flat stack of local convolution and Mamba
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/denoise_mamba/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/denoise_mamba/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-denoise-mamba:
 
 DenoiseMamba — experimental paper_accurate
@@ -179,5 +201,16 @@ Convolutional and state-space model. This experimental variant uses a U-shaped C
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/denoise_mamba/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/denoise_mamba/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/denoise_mamba/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

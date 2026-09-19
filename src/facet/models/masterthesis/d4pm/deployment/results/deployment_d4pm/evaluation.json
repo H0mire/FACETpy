@@ -1,0 +1,43 @@
+{
+  "experiment": "deployment_d4pm",
+  "model": "d4pm_deployment_edition",
+  "phase": 2,
+  "dataset": "niazy_recording",
+  "training_dataset": null,
+  "protocol": {
+    "description": "Recorded preprocessing and cleanup; residual comb RMS plus seam checks, 29.5-160 s of the original recording.",
+    "code": [
+      "src/facet/models/masterthesis/pipeline.py",
+      "tools/pipeline_demo/measure_arms.py"
+    ]
+  },
+  "status": "shared_collections_only",
+  "catalog_outcome": "unavailable",
+  "verification": "blocked",
+  "notes": {
+    "verification_reason": "No final Phase-2 pipeline result; sampler was not wired into the original deployment adapter."
+  },
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [],
+  "shared_collections": [
+    {
+      "collection": "table_phase2_pipeline_results",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase2_pipeline_results/metrics.csv",
+        "sha256": "21cd15bcabe87ff076487c40c2e39127b09be3c5c5f0be9fe1b81649f7513026"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase2_selected_variant_results",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase2_selected_variant_results/metrics.csv",
+        "sha256": "b5417e8c0d0f10f5d0614f3c7b6cddca80eee2d9f23b482071a8fad4f2897ba7"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": []
+}

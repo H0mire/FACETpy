@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "st_gnn",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_st_gnn",
+      "model": "st_gnn",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/provenance/training.jsonl",
+          "sha256": "43111e8bb1736e3fdd3d28d4242bcea61a0a4029372da3b1eff664cc82571283"
+        }
+      },
+      "recorded_epochs": 13,
+      "artifacts": {
+        "holdout_st_gnn_st_gnn_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/st_gnn/holdout_st_gnn/st_gnn.ts",
+          "source": "training_output/spatiotemporalgnnniazyprooffit_20260510_211512/exports/st_gnn.ts",
+          "owner": "holdout_st_gnn",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 63656,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c779c9268496c76981a46e2236d28857fb123a4bb4ff80da5ce3b5c1fe5a3cdc"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_st_gnn --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_st_gnn --out /path/to/new-results/holdout_st_gnn.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_st_gnn.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_st_gnn --data-root /path/to/thesis-data --out /path/to/new-results/holdout_st_gnn.json"
+      }
+    }
+  ]
+}

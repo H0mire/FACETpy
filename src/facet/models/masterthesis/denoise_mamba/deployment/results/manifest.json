@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "model": "denoise_mamba_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_denoise_mamba",
+      "model": "denoise_mamba_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_denoise_mamba/provenance/training.jsonl",
+          "sha256": "b43358100895652884479357c55fe44d8726aa8cdc9d5e645ef4b8ff69356ba8"
+        }
+      },
+      "recorded_epochs": 35,
+      "artifacts": {
+        "deployment_denoise_mamba_denoise_mamba_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/denoise_mamba_deployment_edition/deployment_denoise_mamba/denoise_mamba_deployment.ts",
+          "source": "training_output/denoisemambadeploymentniazyprooffit_20260826_210335/exports/denoise_mamba_deployment.ts",
+          "owner": "deployment_denoise_mamba",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 652100,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "4207828b8ee9ae0a77042ded8a70a9ff1ceb3b120aa86024550048e111656aeb",
+          "equivalent_sources": [
+            "training_output/denoisemambadeploymentniazyprooffit_20260826_210335/exports/denoise_mamba_deployment_cpu.ts"
+          ]
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_denoise_mamba --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_denoise_mamba --out /path/to/new-results/deployment_denoise_mamba.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_denoise_mamba.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_denoise_mamba --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_denoise_mamba_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_denoisemamba",
+      "model": "denoise_mamba_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_denoisemamba/provenance/training.jsonl",
+          "sha256": "b43358100895652884479357c55fe44d8726aa8cdc9d5e645ef4b8ff69356ba8"
+        }
+      },
+      "recorded_epochs": 35,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_denoisemamba --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_denoisemamba --out /path/to/new-results/training_run7_denoisemamba.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_denoisemamba.yaml"
+      }
+    }
+  ]
+}

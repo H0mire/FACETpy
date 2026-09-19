@@ -108,6 +108,17 @@ Spectrogram Transformer with masked reconstruction. A patch Transformer reconstr
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/vit_spectrogram/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/vit_spectrogram/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-vit-spectrogram-deployment:
 
 ViT Spectrogram — deployment
@@ -144,6 +155,17 @@ Spectrogram Transformer with masked reconstruction. This deployment variant repl
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/vit_spectrogram/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/vit_spectrogram/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-vit-spectrogram:
 
 ViT Spectrogram — experimental paper_accurate
@@ -179,5 +201,16 @@ Spectrogram Transformer with masked reconstruction. This experimental variant en
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/vit_spectrogram/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/vit_spectrogram/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/vit_spectrogram/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

@@ -110,6 +110,17 @@ Dual-branch convolution and attention model. A shared encoder and two decoders e
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dhct_gan/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dhct_gan/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-dhct-gan-deployment:
 
 DHCT-GAN — deployment
@@ -145,6 +156,17 @@ Dual-branch convolution and attention model. A shared encoder and two decoders e
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/masterthesis/dhct_gan/deployment/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dhct_gan/deployment/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dhct_gan/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. _diagram-masterthesis-dhct-gan-strict:
 
@@ -182,6 +204,17 @@ Dual-branch convolution and attention model. Independent CNN/Transformer branche
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dhct_gan/strict/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dhct_gan/strict/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-dhct-gan-v2:
 
 DHCT-GAN v2
@@ -217,6 +250,17 @@ Dual-branch convolution and attention model. This thesis V2 variant stacks seven
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/masterthesis/dhct_gan/v2/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dhct_gan/v2/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dhct_gan/v2/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. _diagram-masterthesis-dhct-gan-v2-deployment:
 
@@ -254,6 +298,17 @@ Dual-branch convolution and attention model. The V2 core reads neighbouring epoc
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/dhct_gan/v2/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/dhct_gan/v2/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-dhct-gan:
 
 DHCT-GAN — experimental paper_accurate
@@ -290,6 +345,17 @@ Dual-branch convolution and attention model. This experimental variant adds sepa
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/dhct_gan/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/dhct_gan/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-dhct-gan-v2:
 
 DHCT-GAN v2 — experimental paper_accurate
@@ -325,5 +391,16 @@ Dual-branch convolution and attention model. This experimental context variant u
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/dhct_gan_v2/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/dhct_gan_v2/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/dhct_gan_v2/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

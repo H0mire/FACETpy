@@ -102,6 +102,17 @@ Dual-path attention source separator. Dual-path attention connects samples withi
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/sepformer/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/sepformer/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-masterthesis-sepformer-deployment:
 
 SepFormer — deployment
@@ -138,6 +149,17 @@ Dual-path attention source separator. Dual-path attention connects samples withi
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/masterthesis/sepformer/deployment/diagrams/architecture.json>`
 
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/masterthesis/sepformer/deployment/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
+
 .. _diagram-experimental-paper-accurate-sepformer:
 
 SepFormer — experimental paper_accurate
@@ -173,5 +195,16 @@ Dual-path attention source separator. This experimental variant revises the mask
 :download:`Detailed architecture (SVG) <../../../../src/facet/models/experimental/paper_accurate/sepformer/diagrams/architecture.svg>`
 |
 :download:`Editable profile (JSON) <../../../../src/facet/models/experimental/paper_accurate/sepformer/diagrams/architecture.json>`
+
+.. raw:: html
+
+   <details class="model-results">
+   <summary>Results: hyperparameters, training curves and evaluation</summary>
+
+.. include:: ../../../../src/facet/models/experimental/paper_accurate/sepformer/diagrams/../results/index.rst
+
+.. raw:: html
+
+   </details>
 
 .. model-diagrams-end

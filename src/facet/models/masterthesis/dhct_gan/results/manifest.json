@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "dhct_gan",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_dhct_gan",
+      "model": "dhct_gan",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_dhct_gan/provenance/training.jsonl",
+          "sha256": "f4ec4e39ef1567b263d0409d4e9573f55a5fab2355f25a2a2669fd35988a3016"
+        }
+      },
+      "recorded_epochs": 16,
+      "artifacts": {
+        "holdout_dhct_gan_dhct_gan_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/dhct_gan/holdout_dhct_gan/dhct_gan.ts",
+          "source": "training_output/dhctganniazyprooffit_20260510_213159/exports/dhct_gan.ts",
+          "owner": "holdout_dhct_gan",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 2711842,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "02397c57378772407e92dc4713963d357842ba63e979b1bcf5aec6fa7b05573e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_dhct_gan --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_dhct_gan --out /path/to/new-results/holdout_dhct_gan.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_dhct_gan.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_dhct_gan --data-root /path/to/thesis-data --out /path/to/new-results/holdout_dhct_gan.json"
+      }
+    }
+  ]
+}

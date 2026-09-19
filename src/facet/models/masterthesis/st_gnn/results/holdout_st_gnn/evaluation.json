@@ -1,0 +1,158 @@
+{
+  "experiment": "holdout_st_gnn",
+  "model": "st_gnn",
+  "phase": 1,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Saved 166 proof-fit windows; family-specific packing; recovered clean = noisy - predicted artifact.",
+    "code": [
+      "src/facet/evaluation/thesis_metrics.py",
+      "src/facet/models/masterthesis/adapters.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/evaluation_manifest.json",
+        "sha256": "3cc296c963c683277c0f7ee5521b59bb9f18ee1af0ab39b3e2b05100944eb4b9"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "schema_version": "facetpy.model_evaluation.v1",
+        "model_id": "st_gnn",
+        "model_name": "ST-GNN",
+        "model_description": "Spatiotemporal Graph Neural Network (multichannel 7-epoch context)",
+        "run_id": "holdout_v1",
+        "created_at": "2026-05-12T17:22:11",
+        "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/st_gnn/holdout_v1",
+        "docs_dir": "src/facet/models/st_gnn/documentation",
+        "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/st_gnn/holdout_v1/metrics.json",
+        "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/st_gnn/holdout_v1/evaluation_summary.md",
+        "artifacts": {
+          "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/st_gnn/holdout_v1/plots/holdout_examples.png"
+        },
+        "config": {
+          "model_id": "st_gnn",
+          "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/spatiotemporalgnnniazyprooffit_20260510_211512/exports/st_gnn.ts",
+          "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+          "device": "cpu",
+          "holdout_split_hash": "sha256:ddaa64a504e062fd",
+          "holdout_seed": 42,
+          "holdout_val_ratio": 0.2,
+          "holdout_n_windows": 166,
+          "family": "Graph (GNN)",
+          "notes": "(1,7,30,512) in → (1,30,512) artifact out. Channel order is load-bearing."
+        },
+        "primary_comparison_contract": {
+          "metrics_json": "metrics.json",
+          "flat_metrics_key": "flat_metrics",
+          "summary_markdown": "evaluation_summary.md"
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/metrics.json",
+        "sha256": "228f6a5cc945777805e829a1630ce7f3e73d25231c28588dc15477f92344c22b"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "metrics": {
+          "unified_holdout": {
+            "n_examples": 166,
+            "n_channels": 30,
+            "samples_per_epoch": 512,
+            "sfreq_hz": 4096.0,
+            "clean_mse_before": 3.556095862222719e-06,
+            "clean_mse_after": 2.821745681558241e-07,
+            "clean_mae_before": 0.0009214178426191211,
+            "clean_mae_after": 0.0002699291508179158,
+            "clean_snr_db_before": -10.9449462890625,
+            "clean_snr_db_after": 0.0596097894012928,
+            "artifact_mse": 2.821745681558241e-07,
+            "artifact_mae": 0.0002699291508179158,
+            "artifact_corr": 0.959546257527632,
+            "artifact_snr_db": 11.004556655883789,
+            "residual_error_rms_ratio": 0.2816905038575326,
+            "rms_recovery_ratio": 0.3433266878128052,
+            "rms_recovery_distance": 0.7080376148223877,
+            "rms_baseline_noisy_ratio": 7.25469446182251,
+            "clean_mse_reduction_pct": 92.06504607613553,
+            "clean_snr_improvement_db": 11.004556078463793,
+            "inference_seconds": 4.186244207998243,
+            "device": "cpu",
+            "inference_seconds_legacy": 5.347203,
+            "inference_timing_note": "remeasured 2026-05-16 with cold-start isolation (fresh subprocess per model, 1 warmup pass excluded, median of 3 timed passes)"
+          }
+        },
+        "flat_metrics": {
+          "unified_holdout.n_examples": 166,
+          "unified_holdout.n_channels": 30,
+          "unified_holdout.samples_per_epoch": 512,
+          "unified_holdout.sfreq_hz": 4096.0,
+          "unified_holdout.clean_mse_before": 3.556095862222719e-06,
+          "unified_holdout.clean_mse_after": 2.821745681558241e-07,
+          "unified_holdout.clean_mae_before": 0.0009214178426191211,
+          "unified_holdout.clean_mae_after": 0.0002699291508179158,
+          "unified_holdout.clean_snr_db_before": -10.9449462890625,
+          "unified_holdout.clean_snr_db_after": 0.0596097894012928,
+          "unified_holdout.artifact_mse": 2.821745681558241e-07,
+          "unified_holdout.artifact_mae": 0.0002699291508179158,
+          "unified_holdout.artifact_corr": 0.959546257527632,
+          "unified_holdout.artifact_snr_db": 11.004556655883789,
+          "unified_holdout.residual_error_rms_ratio": 0.2816905038575326,
+          "unified_holdout.rms_recovery_ratio": 0.3433266878128052,
+          "unified_holdout.rms_recovery_distance": 0.7080376148223877,
+          "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
+          "unified_holdout.clean_mse_reduction_pct": 92.06504607613553,
+          "unified_holdout.clean_snr_improvement_db": 11.004556078463793,
+          "unified_holdout.inference_seconds": 4.186244207998243
+        }
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase1_inference_cost",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_inference_cost/metrics.csv",
+        "sha256": "4db84861feb1d1ee478e8f75a513ddbc63264cfccc8f81390bae3289a35758c0"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase1_unified_holdout_ranking",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_unified_holdout_ranking/metrics.csv",
+        "sha256": "3ab9da9a2e8f8898fa6163ea25f7929d665fa362046f3d714ac81814bbae087b"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/evaluation_manifest.json",
+      "sha256": "3cc296c963c683277c0f7ee5521b59bb9f18ee1af0ab39b3e2b05100944eb4b9"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/metrics.json",
+      "sha256": "228f6a5cc945777805e829a1630ce7f3e73d25231c28588dc15477f92344c22b"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/provenance/summary.json",
+      "sha256": "45099d2be00bb593fb9540fcd5712afae84a00a7fb7a76c95ebbfd1a09849307"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_st_gnn/provenance/training.jsonl",
+      "sha256": "43111e8bb1736e3fdd3d28d4242bcea61a0a4029372da3b1eff664cc82571283"
+    }
+  ]
+}

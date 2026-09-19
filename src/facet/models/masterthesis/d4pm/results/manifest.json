@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "model": "d4pm",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_d4pm",
+      "model": "d4pm",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_d4pm/provenance/training.jsonl",
+          "sha256": "96da884e2071ca03de1d8ec82457c770edcbb151da548c6df8fbebd56a8c54d5"
+        }
+      },
+      "recorded_epochs": 14,
+      "artifacts": {
+        "holdout_d4pm_d4pm_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/d4pm/holdout_d4pm/d4pm.ts",
+          "source": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/exports/d4pm.ts",
+          "owner": "holdout_d4pm",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 3757944,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "16e0f7f1871e575aa2c3b8252c5c1492b6465e11db67c583405ff7fc77677186"
+        },
+        "holdout_d4pm_last_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_1/d4pm/holdout_d4pm/last.pt",
+          "source": "training_output/d4pmartifactdiffusionniazyprooffit_20260510_201242/checkpoints/last.pt",
+          "owner": "holdout_d4pm",
+          "kind": "checkpoint",
+          "role": "source_loader",
+          "bytes": 11139824,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f14286c100c048e9901f6421ed40cffbda7236b5109f3da9731212dbe743788c"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_d4pm --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_d4pm --out /path/to/new-results/holdout_d4pm.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_d4pm.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_d4pm --data-root /path/to/thesis-data --out /path/to/new-results/holdout_d4pm.json"
+      }
+    }
+  ]
+}

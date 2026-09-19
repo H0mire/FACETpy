@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "model": "vit_spectrogram",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "holdout_vit_spectrogram",
+      "model": "vit_spectrogram",
+      "phase": 1,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "unified_holdout",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_1/holdout_vit_spectrogram/provenance/training.jsonl",
+          "sha256": "b4c83cb561aafcccbc4cd412c36757856fbfd05a861a8f710b3020f4d2fe3557"
+        }
+      },
+      "recorded_epochs": 13,
+      "artifacts": {
+        "holdout_vit_spectrogram_vit_spectrogram_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/vit_spectrogram/holdout_vit_spectrogram/vit_spectrogram.ts",
+          "source": "training_output/vitspectrograminpainterniazyprooffit_20260510_211842/exports/vit_spectrogram.ts",
+          "owner": "holdout_vit_spectrogram",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 10956861,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "f0d67ab4aef2f82048b5d02f7c2f757f1a9231479a953326e3b9a154442ca16f"
+        },
+        "holdout_vit_spectrogram_vit_spectrogram_cpu_ts": {
+          "path": "artifacts/exports/masterthesis/phase_1/vit_spectrogram/holdout_vit_spectrogram/vit_spectrogram_cpu.ts",
+          "source": "training_output/vitspectrograminpainterniazyprooffit_20260510_211842/exports/vit_spectrogram_cpu.ts",
+          "owner": "holdout_vit_spectrogram",
+          "kind": "export",
+          "role": "cpu_export",
+          "bytes": 10954225,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "95b869e785cd1538402132d71cee2e656557ba4feca849c5a9e33a44540a5d58"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config holdout_vit_spectrogram --data-root /path/to/thesis-data --output-dir /path/to/new-results/holdout_vit_spectrogram --out /path/to/new-results/holdout_vit_spectrogram.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/holdout_vit_spectrogram.yaml",
+        "evaluate": "uv run python -m masterthesis_guide.examples.evaluate_model holdout_vit_spectrogram --data-root /path/to/thesis-data --out /path/to/new-results/holdout_vit_spectrogram.json"
+      }
+    }
+  ]
+}

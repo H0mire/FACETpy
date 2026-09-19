@@ -1,0 +1,158 @@
+{
+  "experiment": "holdout_cascaded_dae",
+  "model": "cascaded_dae",
+  "phase": 1,
+  "dataset": "proof_fit",
+  "training_dataset": "proof_fit",
+  "protocol": {
+    "description": "Saved 166 proof-fit windows; family-specific packing; recovered clean = noisy - predicted artifact.",
+    "code": [
+      "src/facet/evaluation/thesis_metrics.py",
+      "src/facet/models/masterthesis/adapters.py"
+    ]
+  },
+  "status": "recorded_evidence",
+  "catalog_outcome": "valid",
+  "verification": "not_run",
+  "notes": {},
+  "nonfinite_values": "Represented as null; see unchanged source files for the original values.",
+  "records": [
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/evaluation_manifest.json",
+        "sha256": "1f5dc15b1e685a6a518447e17f25c32cb303b7179476f13f0508d5316b1122a9"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "schema_version": "facetpy.model_evaluation.v1",
+        "model_id": "cascaded_dae",
+        "model_name": "Cascaded DAE",
+        "model_description": "Two-stage residual fully-connected denoising autoencoder (per-channel single-epoch)",
+        "run_id": "holdout_v1",
+        "created_at": "2026-05-16T17:31:35",
+        "run_dir": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/cascaded_dae/holdout_v1",
+        "docs_dir": "src/facet/models/cascaded_dae/documentation",
+        "metrics_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/cascaded_dae/holdout_v1/metrics.json",
+        "summary_path": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/cascaded_dae/holdout_v1/evaluation_summary.md",
+        "artifacts": {
+          "holdout_examples": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/model_evaluations/cascaded_dae/holdout_v1/plots/holdout_examples.png"
+        },
+        "config": {
+          "model_id": "cascaded_dae",
+          "checkpoint": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/training_output/cascadeddenoisingautoencoderniazyprooffit_20260516_152448/exports/cascaded_dae.ts",
+          "dataset": "/Users/janikmueller/Documents/Projects/FACETpy/git-repos/facetpy/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+          "device": "cpu",
+          "holdout_split_hash": "sha256:ddaa64a504e062fd",
+          "holdout_seed": 42,
+          "holdout_val_ratio": 0.2,
+          "holdout_n_windows": 166,
+          "family": "Autoencoder (cascaded MLP)",
+          "notes": "(1,1,512) in → (1,1,512) artifact out. Per-segment demean. Glob picks newest matching training_output run."
+        },
+        "primary_comparison_contract": {
+          "metrics_json": "metrics.json",
+          "flat_metrics_key": "flat_metrics",
+          "summary_markdown": "evaluation_summary.md"
+        }
+      }
+    },
+    {
+      "source": {
+        "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/metrics.json",
+        "sha256": "587378f608cfcfbd9e17f2fec89cd242f60a5291173b11f2b253acbc8b1a53e1"
+      },
+      "selection": "run-owned evidence (arm names retained)",
+      "values": {
+        "metrics": {
+          "unified_holdout": {
+            "n_examples": 166,
+            "n_channels": 30,
+            "samples_per_epoch": 512,
+            "sfreq_hz": 4096.0,
+            "clean_mse_before": 3.556095862222719e-06,
+            "clean_mse_after": 5.559644478125847e-08,
+            "clean_mae_before": 0.0009214178426191211,
+            "clean_mae_after": 0.00017285050125792623,
+            "clean_snr_db_before": -10.9449462890625,
+            "clean_snr_db_after": 7.114317893981934,
+            "artifact_mse": 5.559644478125847e-08,
+            "artifact_mae": 0.00017285050125792623,
+            "artifact_corr": 0.992279256822137,
+            "artifact_snr_db": 18.05926513671875,
+            "residual_error_rms_ratio": 0.1250364924255337,
+            "rms_recovery_ratio": 1.5324183702468872,
+            "rms_recovery_distance": 0.6103419661521912,
+            "rms_baseline_noisy_ratio": 7.25469446182251,
+            "clean_mse_reduction_pct": 98.43658756863466,
+            "clean_snr_improvement_db": 18.059264183044434,
+            "inference_seconds": 0.04185070799940149,
+            "device": "cpu",
+            "inference_seconds_legacy": 0.490758,
+            "inference_timing_note": "remeasured 2026-05-16 with cold-start isolation (fresh subprocess per model, 1 warmup pass excluded, median of 3 timed passes)"
+          }
+        },
+        "flat_metrics": {
+          "unified_holdout.n_examples": 166,
+          "unified_holdout.n_channels": 30,
+          "unified_holdout.samples_per_epoch": 512,
+          "unified_holdout.sfreq_hz": 4096.0,
+          "unified_holdout.clean_mse_before": 3.556095862222719e-06,
+          "unified_holdout.clean_mse_after": 5.559644478125847e-08,
+          "unified_holdout.clean_mae_before": 0.0009214178426191211,
+          "unified_holdout.clean_mae_after": 0.00017285050125792623,
+          "unified_holdout.clean_snr_db_before": -10.9449462890625,
+          "unified_holdout.clean_snr_db_after": 7.114317893981934,
+          "unified_holdout.artifact_mse": 5.559644478125847e-08,
+          "unified_holdout.artifact_mae": 0.00017285050125792623,
+          "unified_holdout.artifact_corr": 0.992279256822137,
+          "unified_holdout.artifact_snr_db": 18.05926513671875,
+          "unified_holdout.residual_error_rms_ratio": 0.1250364924255337,
+          "unified_holdout.rms_recovery_ratio": 1.5324183702468872,
+          "unified_holdout.rms_recovery_distance": 0.6103419661521912,
+          "unified_holdout.rms_baseline_noisy_ratio": 7.25469446182251,
+          "unified_holdout.clean_mse_reduction_pct": 98.43658756863466,
+          "unified_holdout.clean_snr_improvement_db": 18.059264183044434,
+          "unified_holdout.inference_seconds": 0.04185070799940149
+        }
+      }
+    }
+  ],
+  "shared_collections": [
+    {
+      "collection": "table_phase1_inference_cost",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_inference_cost/metrics.csv",
+        "sha256": "4db84861feb1d1ee478e8f75a513ddbc63264cfccc8f81390bae3289a35758c0"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    },
+    {
+      "collection": "table_phase1_unified_holdout_ranking",
+      "source": {
+        "path": "masterthesis_guide/results/table_phase1_unified_holdout_ranking/metrics.csv",
+        "sha256": "3ab9da9a2e8f8898fa6163ea25f7929d665fa362046f3d714ac81814bbae087b"
+      },
+      "scope": null,
+      "association": "catalog collection; not every row belongs to this run"
+    }
+  ],
+  "evidence_sources": [
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/evaluation_manifest.json",
+      "sha256": "1f5dc15b1e685a6a518447e17f25c32cb303b7179476f13f0508d5316b1122a9"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/metrics.json",
+      "sha256": "587378f608cfcfbd9e17f2fec89cd242f60a5291173b11f2b253acbc8b1a53e1"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/provenance/summary.json",
+      "sha256": "0de28ef41782deff6be15e678f607e2868c17d4c61565fd463bc468c8a8d54cd"
+    },
+    {
+      "path": "masterthesis_guide/experiments/phase_1/holdout_cascaded_dae/provenance/training.jsonl",
+      "sha256": "ffdd3762291dafb5047e42e25bbb766f2bdeaa0e24e7b8e8a591da3f3f7aa4e0"
+    }
+  ]
+}

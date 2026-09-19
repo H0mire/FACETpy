@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "model": "dhct_gan_v2_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_dhct_gan_v2",
+      "model": "dhct_gan_v2_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_dhct_gan_v2/provenance/training.jsonl",
+          "sha256": "4aefeb5837c2a1d95ed9c061fd66ea74a27fd94b46675cc0728ed379e0b506cb"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {
+        "deployment_dhct_gan_v2_dhct_gan_v2_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/dhct_gan_v2_deployment_edition/deployment_dhct_gan_v2/dhct_gan_v2_deployment.ts",
+          "source": "training_output/dhctganv2deploymentniazyprooffit_20260826_195137/exports/dhct_gan_v2_deployment.ts",
+          "owner": "deployment_dhct_gan_v2",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 2745236,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "6cac9dfeb9bdbc7dbfb1e9ae41726398f95e3a553d5fb8d7bfb25580be4d64ba"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_dhct_gan_v2 --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_dhct_gan_v2 --out /path/to/new-results/deployment_dhct_gan_v2.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_dhct_gan_v2.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_dhct_gan_v2 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_dhct_gan_v2_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_dhct_gan_v2",
+      "model": "dhct_gan_v2_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_dhct_gan_v2/provenance/training.jsonl",
+          "sha256": "4aefeb5837c2a1d95ed9c061fd66ea74a27fd94b46675cc0728ed379e0b506cb"
+        }
+      },
+      "recorded_epochs": 80,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_dhct_gan_v2 --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_dhct_gan_v2 --out /path/to/new-results/training_run7_dhct_gan_v2.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_dhct_gan_v2.yaml"
+      }
+    }
+  ]
+}

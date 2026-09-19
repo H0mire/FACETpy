@@ -1,0 +1,2187 @@
+{
+  "schema_version": 1,
+  "model": "demucs_deployment_edition",
+  "catalog": "masterthesis_guide/catalog.yaml",
+  "source_snapshot": "21d689da73eb93cdc3af8b48babed76b7271cc4e",
+  "path_convention": "Source and artifact paths are relative to the repository root.",
+  "experiments": [
+    {
+      "experiment": "deployment_demucs",
+      "model": "demucs_deployment_edition",
+      "phase": 2,
+      "dataset": "niazy_recording",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/deployment_demucs/provenance/training.jsonl",
+          "sha256": "22d22a54bcc6dc6966b5fb99906c4bb231b27f397fd707394675403b67bb3f47"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "deployment_demucs_demucs_deployment_ts": {
+          "path": "artifacts/exports/masterthesis/phase_2/demucs_deployment_edition/deployment_demucs/demucs_deployment.ts",
+          "source": "training_output/demucsdeploymentniazyprooffit_20260826_195217/exports/demucs_deployment.ts",
+          "owner": "deployment_demucs",
+          "kind": "export",
+          "role": "evaluated",
+          "bytes": 66359737,
+          "availability": "local",
+          "identity": "inferred_from_frozen_loader",
+          "sha256": "53bd5fe350848ba3f37ea6127533a19d56481880d1d7f30f7ba5117cb313ca38",
+          "equivalent_sources": [
+            "training_output/demucsdeploymentniazyprooffit_20260826_195217/exports/demucs_deployment_cpu.ts"
+          ]
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config deployment_demucs --data-root /path/to/thesis-data --output-dir /path/to/new-results/deployment_demucs --out /path/to/new-results/deployment_demucs.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/deployment_demucs.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model deployment_demucs --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/deployment_demucs_raw.fif"
+      }
+    },
+    {
+      "experiment": "training_run7_demucs",
+      "model": "demucs_deployment_edition",
+      "phase": 2,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "training",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "unavailable",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_2/training_run7_demucs/provenance/training.jsonl",
+          "sha256": "22d22a54bcc6dc6966b5fb99906c4bb231b27f397fd707394675403b67bb3f47"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {},
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config training_run7_demucs --data-root /path/to/thesis-data --output-dir /path/to/new-results/training_run7_demucs --out /path/to/new-results/training_run7_demucs.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/training_run7_demucs.yaml"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "89f4ee989c54dbfb96df875d0481cdff80c251276934bff81d2ebb042e248a70"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic32_sisdr0_s42_epoch0060_val_loss0_1697_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic32_sisdr0_s42/epoch0060_val_loss0.1697.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic32_sisdr0_s42/grid_demucs_lr0.0001_ic32_sisdr0_s42_20260912_175815/checkpoints/epoch0060_val_loss0.1697.pt",
+          "owner": "run8_demucs_lr0_0001_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843341,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "fc55a71655fcd2ddbb78d71512939a38c2ca37f7b047bbdbb3f0dfe1f5dcebd8"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "reconstructed",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "9a7c88000a70e4e9fad54bcb2148ddb023e135eb8d413c6d6aff573d1f7ea1dd"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic32_sisdr1_s42_epoch0057_val_loss_0_5721_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic32_sisdr1_s42/epoch0057_val_loss-0.5721.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic32_sisdr1_s42/grid_demucs_lr0.0001_ic32_sisdr1_s42_20260912_184729/checkpoints/epoch0057_val_loss-0.5721.pt",
+          "owner": "run8_demucs_lr0_0001_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "35221ca35aefa15a15a2ba95de1d582ca3663e2048ec09986820202352d5263e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "174407c3fa2526093ac8325be19d70806e3ca665354605324f520cba8b3aac99"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic32_sisdr3_s42_epoch0052_val_loss_1_9927_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic32_sisdr3_s42/epoch0052_val_loss-1.9927.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic32_sisdr3_s42/grid_demucs_lr0.0001_ic32_sisdr3_s42_20260912_195759/checkpoints/epoch0052_val_loss-1.9927.pt",
+          "owner": "run8_demucs_lr0_0001_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "09badcc779b72eae08c12169adb7c18c98d5be12ed89ed8832f8aa63b685562f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "f6adffe5d863b0a33491c6637c511919b8c9c2b0a42c1707efcf0c4debdd98c4"
+        }
+      },
+      "recorded_epochs": 37,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic64_sisdr0_s42_epoch0017_val_loss0_1826_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic64_sisdr0_s42/epoch0017_val_loss0.1826.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic64_sisdr0_s42/grid_demucs_lr0.0001_ic64_sisdr0_s42_20260912_203121/checkpoints/epoch0017_val_loss0.1826.pt",
+          "owner": "run8_demucs_lr0_0001_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198912973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "6e4347620295745a3a6c9caa9044b4ce1964a062872fd5408abf2a1e284dba1f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c550eaabd693d5d902b41d7b348557134e22403d43309a5bec047c7dbce290ad"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic64_sisdr1_s42_epoch0057_val_loss_0_6382_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic64_sisdr1_s42/epoch0057_val_loss-0.6382.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic64_sisdr1_s42/grid_demucs_lr0.0001_ic64_sisdr1_s42_20260912_205731/checkpoints/epoch0057_val_loss-0.6382.pt",
+          "owner": "run8_demucs_lr0_0001_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d7ae13e1f6ae2aaf9e607f067020f147255f588a8f47c09db7210fca9c80206d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "6caa2a26a7e93c81bda3fe07e97171d7062b2af6f3429c03ea1564bef5c472c8"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic64_sisdr3_s42_epoch0047_val_loss_2_1672_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic64_sisdr3_s42/epoch0047_val_loss-2.1672.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic64_sisdr3_s42/grid_demucs_lr0.0001_ic64_sisdr3_s42_20260912_213210/checkpoints/epoch0047_val_loss-2.1672.pt",
+          "owner": "run8_demucs_lr0_0001_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "075614c9a429d887cf09252f19d124058ae29288850676801fc9756bd689a5e4"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "78e6d74dfeb64aece98a4b4762cdc6c2c53236cf855004e6aa1de89288cba492"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic96_sisdr0_s42_epoch0060_val_loss0_1022_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic96_sisdr0_s42/epoch0060_val_loss0.1022.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic96_sisdr0_s42/grid_demucs_lr0.0001_ic96_sisdr0_s42_20260912_220726/checkpoints/epoch0060_val_loss0.1022.pt",
+          "owner": "run8_demucs_lr0_0001_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269581,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "7fe5366f77675990a3458b4e3676806214cbd13c7a30bc08842384f6e545bc6d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "4b30ce5ad9e0277e19f970311b5a9d15cec583679380e2471badc30c465b8ae3"
+        }
+      },
+      "recorded_epochs": 48,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic96_sisdr1_s42_epoch0028_val_loss_0_6227_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic96_sisdr1_s42/epoch0028_val_loss-0.6227.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic96_sisdr1_s42/grid_demucs_lr0.0001_ic96_sisdr1_s42_20260912_224434/checkpoints/epoch0028_val_loss-0.6227.pt",
+          "owner": "run8_demucs_lr0_0001_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "3f340f1836905202091f8c439d693cfa7286f331e76952062028e589ae07e7d6"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0001_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0001_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "049dfc1987d72bdf7f114d34e41bcaedd7dc366d145482f4237a449267f44fa9"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0001_ic96_sisdr3_s42_epoch0051_val_loss_2_1902_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0001_ic96_sisdr3_s42/epoch0051_val_loss-2.1902.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0001_ic96_sisdr3_s42/grid_demucs_lr0.0001_ic96_sisdr3_s42_20260912_231920/checkpoints/epoch0051_val_loss-2.1902.pt",
+          "owner": "run8_demucs_lr0_0001_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "caff5d73dd532a82870c6538899c40ef958068cf07c41f0f3dd17f571d714550"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0001_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0001_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0001_ic96_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "444084dcc7aa22d4d0694c6ccaa5c13e4810ea0a713c2f4c916a9adebd551ebe"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic32_sisdr0_s42_epoch0051_val_loss0_1220_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic32_sisdr0_s42/epoch0051_val_loss0.1220.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic32_sisdr0_s42/grid_demucs_lr0.0003_ic32_sisdr0_s42_20260912_235806/checkpoints/epoch0051_val_loss0.1220.pt",
+          "owner": "run8_demucs_lr0_0003_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843341,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "556ddd4919c0778b11b9904cbfcaceade9e74afccd1d0bed32f58547a4ef7801"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "3125606c9c690d578abdba55c206ee44b61d2d6aaa4318639b8161ca37e9ee47"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic32_sisdr1_s42_epoch0057_val_loss_0_6596_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic32_sisdr1_s42/epoch0057_val_loss-0.6596.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic32_sisdr1_s42/grid_demucs_lr0.0003_ic32_sisdr1_s42_20260913_003046/checkpoints/epoch0057_val_loss-0.6596.pt",
+          "owner": "run8_demucs_lr0_0003_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "16e84ad605e5ed54a45d2c6ce9d5109474fbaa4237ed23d4f9ecf2b2b55158ec"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "401c5b867d627ddf7d69d492f009eb1404b5f7d0686060d2bcc6f27a5152876b"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic32_sisdr3_s42_epoch0057_val_loss_2_1694_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic32_sisdr3_s42/epoch0057_val_loss-2.1694.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic32_sisdr3_s42/grid_demucs_lr0.0003_ic32_sisdr3_s42_20260913_010304/checkpoints/epoch0057_val_loss-2.1694.pt",
+          "owner": "run8_demucs_lr0_0003_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d84ae2b1680cd0bfbe2ff090662615f7e3b2af66eef39ff42be5753cb60dc462"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "fef42fe4f8c83585628e1f40966542c8192ddeed911bc8fe6a6beebda799a95d"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic64_sisdr0_s42_epoch0054_val_loss0_0572_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic64_sisdr0_s42/epoch0054_val_loss0.0572.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic64_sisdr0_s42/grid_demucs_lr0.0003_ic64_sisdr0_s42_20260913_013647/checkpoints/epoch0054_val_loss0.0572.pt",
+          "owner": "run8_demucs_lr0_0003_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198912973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "1e62e5dbe8c9d0e11a5ad6f7db7dca19e981f8f5a9bab2315a6d8be0352024ca"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "538af85d0ca01c47975ee7157d0ac83f99af787229b6c09b2e9717f728b79a7a"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic64_sisdr1_s42_epoch0058_val_loss_0_7183_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic64_sisdr1_s42/epoch0058_val_loss-0.7183.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic64_sisdr1_s42/grid_demucs_lr0.0003_ic64_sisdr1_s42_20260913_021044/checkpoints/epoch0058_val_loss-0.7183.pt",
+          "owner": "run8_demucs_lr0_0003_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d4d8b7f6fb74430008d726b14bfe0ab526ccca11c09de2321a92ff52587ca19d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "55c82f53687ab56994459836ba1aa0d0f17b2e7666214c63c5b7986e753b0af8"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic64_sisdr3_s42_epoch0058_val_loss_2_1052_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic64_sisdr3_s42/epoch0058_val_loss-2.1052.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic64_sisdr3_s42/grid_demucs_lr0.0003_ic64_sisdr3_s42_20260913_024622/checkpoints/epoch0058_val_loss-2.1052.pt",
+          "owner": "run8_demucs_lr0_0003_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "2bf92a3c4cdcf6196d38619f4125e6c01b91d474d7f3637c71382eb617430080"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "7ea9a239cd974510737d002f875babfa02187ba90f2edeca8e151e9fede00bdd"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic96_sisdr0_s42_epoch0058_val_loss0_0678_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic96_sisdr0_s42/epoch0058_val_loss0.0678.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic96_sisdr0_s42/grid_demucs_lr0.0003_ic96_sisdr0_s42_20260913_032221/checkpoints/epoch0058_val_loss0.0678.pt",
+          "owner": "run8_demucs_lr0_0003_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269581,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "29e9ebd37e7ccacd9486e862bf93c25402f1a64a83b40a3320b2a690dc17828f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "d95301a03ae79ab7b8f40e9417ee9b9bc6b4d90facec245a685066b5e7de0ad4"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic96_sisdr1_s42_epoch0060_val_loss_0_6901_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic96_sisdr1_s42/epoch0060_val_loss-0.6901.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic96_sisdr1_s42/grid_demucs_lr0.0003_ic96_sisdr1_s42_20260913_035930/checkpoints/epoch0060_val_loss-0.6901.pt",
+          "owner": "run8_demucs_lr0_0003_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d51dfd9e51b84ceb212ecc0a9943912d0340d585bf243c702931dfaa54bfedbb"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_0003_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_0003_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "e222112f20d96fea89621bfd28a189f931b67dd586b0d417f27e2d0482a21c4c"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_0003_ic96_sisdr3_s42_epoch0055_val_loss_2_2474_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_0003_ic96_sisdr3_s42/epoch0055_val_loss-2.2474.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.0003_ic96_sisdr3_s42/grid_demucs_lr0.0003_ic96_sisdr3_s42_20260913_043837/checkpoints/epoch0055_val_loss-2.2474.pt",
+          "owner": "run8_demucs_lr0_0003_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a5909d0dbedaff8c4621bb1590b023c7453cc87df5392fcf76f76e3c685f5402"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_0003_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_0003_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_0003_ic96_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "4ee547ae4ca6cbeab30534078c7433b222c932355545d6a0fe786fd994ab44f9"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic32_sisdr0_s42_epoch0057_val_loss0_0876_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic32_sisdr0_s42/epoch0057_val_loss0.0876.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic32_sisdr0_s42/grid_demucs_lr0.001_ic32_sisdr0_s42_20260913_051726/checkpoints/epoch0057_val_loss0.0876.pt",
+          "owner": "run8_demucs_lr0_001_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843341,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4d43be12142d39020e0e73812b5406e59ae99cc66630376e0bd1d789768796c5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "90d61f48f12d96cd0c026b21279df525909183b52c4f86fb7fe4da428bbd2307"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic32_sisdr1_s42_epoch0051_val_loss_0_6520_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic32_sisdr1_s42/epoch0051_val_loss-0.6520.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic32_sisdr1_s42/grid_demucs_lr0.001_ic32_sisdr1_s42_20260913_054948/checkpoints/epoch0051_val_loss-0.6520.pt",
+          "owner": "run8_demucs_lr0_001_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "dc344f050b96695971f96a2027ff20e403590535d9bb51f2b6167b8a96440fab"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "e3b449d7718fe17a8e9ca34c48c2cb3c014b0a95ca2a13af7b9faca9224f2a4e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic32_sisdr3_s42_epoch0059_val_loss_2_1442_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic32_sisdr3_s42/epoch0059_val_loss-2.1442.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic32_sisdr3_s42/grid_demucs_lr0.001_ic32_sisdr3_s42_20260913_062538/checkpoints/epoch0059_val_loss-2.1442.pt",
+          "owner": "run8_demucs_lr0_001_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843530,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c7fb26f6c29dbc881ff0f81e136620009f4c3e00a37c2374ca24e80724284a68"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "1a7e4041874dc5a5ed9a07a6bb8f9f332548bfaafc0d21c55b86ee406bb5a112"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic64_sisdr0_s42_epoch0057_val_loss0_0876_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic64_sisdr0_s42/epoch0057_val_loss0.0876.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic64_sisdr0_s42/grid_demucs_lr0.001_ic64_sisdr0_s42_20260913_070208/checkpoints/epoch0057_val_loss0.0876.pt",
+          "owner": "run8_demucs_lr0_001_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198912973,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "53cff1d1b9099fba671d864833098506a7aa0022e11145b90b6e60d5d51a8ffc"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "caaaa98720733d3463db1d100f105c872590e01b98c9a0793a067a957c1a0e90"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic64_sisdr1_s42_epoch0060_val_loss_0_6505_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic64_sisdr1_s42/epoch0060_val_loss-0.6505.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic64_sisdr1_s42/grid_demucs_lr0.001_ic64_sisdr1_s42_20260913_074028/checkpoints/epoch0060_val_loss-0.6505.pt",
+          "owner": "run8_demucs_lr0_001_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "20cb322d20fdda14e5271e6846bd022c2f1d5a2eb6dae0ea087709c118f49bbb"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "f2bb58068f22d2dde1a1420ee4c0425ffda443b84acb96cb12ab6fb17a123638"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic64_sisdr3_s42_epoch0045_val_loss_2_0063_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic64_sisdr3_s42/epoch0045_val_loss-2.0063.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic64_sisdr3_s42/grid_demucs_lr0.001_ic64_sisdr3_s42_20260913_081830/checkpoints/epoch0045_val_loss-2.0063.pt",
+          "owner": "run8_demucs_lr0_001_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "a22acbebdb0dcab3801a5a0746689c5347feeaecb63002845ba0190b0a67e04f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "0e22eeae623eaaddd0d3c8f28e9ad4759ec9be04d13fcdea0ac2c336476d682b"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic96_sisdr0_s42_epoch0057_val_loss0_1009_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic96_sisdr0_s42/epoch0057_val_loss0.1009.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic96_sisdr0_s42/grid_demucs_lr0.001_ic96_sisdr0_s42_20260913_085756/checkpoints/epoch0057_val_loss0.1009.pt",
+          "owner": "run8_demucs_lr0_001_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269581,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "196a2919e4168509f5a84517cde3783897a4d68ac83445c94f8ba6dee6ba84bf"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr0_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "c3bad18302bed17997e6c70b66d8b1cc868f60de02f5fe6e1994e09a8be2aceb"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic96_sisdr1_s42_epoch0057_val_loss_0_5991_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic96_sisdr1_s42/epoch0057_val_loss-0.5991.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_093517/checkpoints/epoch0057_val_loss-0.5991.pt",
+          "owner": "run8_demucs_lr0_001_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "2530942af6e8ef2c72f62adc8f8fbb391b080cd30adf13f5416a0b8fcf8e65fe"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr1_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "run8_demucs_lr0_001_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "proof_fit",
+      "training_dataset": "proof_fit",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/run8_demucs_lr0_001_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "cedf4d19f10fec033b35b8b2a0d219f9c591f45112e899db3eb97f6195ce34c2"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "run8_demucs_lr0_001_ic96_sisdr3_s42_epoch0045_val_loss_1_9411_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/run8_demucs_lr0_001_ic96_sisdr3_s42/epoch0045_val_loss-1.9411.pt",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic96_sisdr3_s42/grid_demucs_lr0.001_ic96_sisdr3_s42_20260913_101516/checkpoints/epoch0045_val_loss-1.9411.pt",
+          "owner": "run8_demucs_lr0_001_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447269770,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "917aad76ffef0445f888f68509b4a5c69e4f271e7cc2c987128198c5136e9c70"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config run8_demucs_lr0_001_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr3_s42 --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model run8_demucs_lr0_001_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/run8_demucs_lr0_001_ic96_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "spike_aware_demucs",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v10_locked_1ch",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "spike_comparison",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/training.jsonl",
+          "sha256": "ad5a52452f336b65de39499e0fb5211c8954a4928f66f4fc5c1b13f393e5f3e8"
+        }
+      },
+      "recorded_epochs": 22,
+      "artifacts": {
+        "spike_aware_demucs_epoch0002_val_loss13_2668_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/epoch0002_val_loss13.2668.pt",
+          "source": "output/phase3_spike_aware_comparison/retrieved/demucs/training_output/phase3demucswegaspikeaware_20260914_122757/checkpoints/epoch0002_val_loss13.2668.pt",
+          "owner": "spike_aware_demucs",
+          "kind": "checkpoint",
+          "role": "evaluated_best_checkpoint",
+          "bytes": 198913162,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "26263804079e5d6e4610c461ffa7dd01b75dfee771c7e85c2048afecb424a805"
+        },
+        "spike_aware_demucs_best_checkpoint_cuda_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/best_checkpoint_cuda.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/demucs/output/phase3_spike_aware_comparison/demucs/pipeline/best_checkpoint_cuda.ts",
+          "owner": "spike_aware_demucs",
+          "kind": "export",
+          "role": "evaluated_pipeline_export",
+          "bytes": 66355608,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "f92c447b73a7417be52d73553fe84a00aacb0373e3547c0b4f545136a3bf294a"
+        },
+        "spike_aware_demucs_best_checkpoint_cpu_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/best_checkpoint_cpu.ts",
+          "source": "output/phase3_spike_aware_comparison/retrieved/demucs/output/phase3_spike_aware_comparison/demucs/pipeline_cpu_partial/best_checkpoint_cpu.ts",
+          "owner": "spike_aware_demucs",
+          "kind": "export",
+          "role": "cpu_reexport",
+          "bytes": 66358563,
+          "availability": "local",
+          "identity": "explicit_pipeline_output_path",
+          "sha256": "e509591c6991035905c6293dbd50ea523f6d0efe53d3d556385fef3e2eee6444"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config spike_aware_demucs --data-root /path/to/thesis-data --output-dir /path/to/new-results/spike_aware_demucs --out /path/to/new-results/spike_aware_demucs.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/spike_aware_demucs.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model spike_aware_demucs --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/spike_aware_demucs_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "4de3306cef7040fa0bb222972096814f767653d59142d92a80d3da1b994eb959"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic32_sisdr0_s42_epoch0059_val_loss3_3849_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic32_sisdr0_s42/epoch0059_val_loss3.3849.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic32_sisdr0_s42/grid_demucs_lr0.0001_ic32_sisdr0_s42_20260912_234246/checkpoints/epoch0059_val_loss3.3849.pt",
+          "owner": "wega_demucs_lr0_0001_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "ed0183ddfee9e3313e0c40fce815f417bb903b464c8a5a4f0ea56871d95cff64"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "75004aee3348b3b99c0fee5782cd044e4dcf44487aefd476122e3c55f2a8a590"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic32_sisdr1_s42_epoch0059_val_loss4_8967_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic32_sisdr1_s42/epoch0059_val_loss4.8967.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic32_sisdr1_s42/grid_demucs_lr0.0001_ic32_sisdr1_s42_20260912_234657/checkpoints/epoch0059_val_loss4.8967.pt",
+          "owner": "wega_demucs_lr0_0001_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "1690a4c5e44b59bbfc09c895a7c6b0b69b4cae5b97788e74c4c7cf2b68cd0fdf"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "63a0a7ac38e0c1ac1828f642d7311bb8d4193bf7941b7c804c7f5aaf026dcc2f"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic32_sisdr3_s42_epoch0058_val_loss7_3953_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic32_sisdr3_s42/epoch0058_val_loss7.3953.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic32_sisdr3_s42/grid_demucs_lr0.0001_ic32_sisdr3_s42_20260912_235055/checkpoints/epoch0058_val_loss7.3953.pt",
+          "owner": "wega_demucs_lr0_0001_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d640be4b39bc1092e3e8acc4c138cdcb85e1c76b59ad31a70ded8416ba59098f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "9182ad1a8d92ed150c436072ad843ff8a9d26a706f871725a59ecce130fd4a8e"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic64_sisdr0_s42_epoch0050_val_loss2_0701_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic64_sisdr0_s42/epoch0050_val_loss2.0701.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic64_sisdr0_s42/grid_demucs_lr0.0001_ic64_sisdr0_s42_20260912_235450/checkpoints/epoch0050_val_loss2.0701.pt",
+          "owner": "wega_demucs_lr0_0001_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "406941e1984a8e5bbadb27f6e7d37458ff1d7f82588e7edd0053e0904a92f918"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "645396fb5c4f2552fa2f9b4fbca74c3325b038685f8c10c66bd9040b5df40fca"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic64_sisdr1_s42_epoch0057_val_loss2_1167_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic64_sisdr1_s42/epoch0057_val_loss2.1167.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic64_sisdr1_s42/grid_demucs_lr0.0001_ic64_sisdr1_s42_20260912_235940/checkpoints/epoch0057_val_loss2.1167.pt",
+          "owner": "wega_demucs_lr0_0001_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5700e4433903bf467069b231195324412117606d601f269398fcd07c0bfd6c41"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "ce09e509ff47a8baa932b5f1384666ee9d957602a11f4781da06d6f061933e65"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic64_sisdr3_s42_epoch0057_val_loss4_5462_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic64_sisdr3_s42/epoch0057_val_loss4.5462.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic64_sisdr3_s42/grid_demucs_lr0.0001_ic64_sisdr3_s42_20260913_000445/checkpoints/epoch0057_val_loss4.5462.pt",
+          "owner": "wega_demucs_lr0_0001_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "07e14b6e0b0b6f4888b164d5566dafe95a9f8e9564879affc723110cd51f9432"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "84cd0542ebff5c59142a124773309303563a8dd51325606c8b1bc98d1f48d4cf"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic96_sisdr0_s42_epoch0058_val_loss1_8175_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic96_sisdr0_s42/epoch0058_val_loss1.8175.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic96_sisdr0_s42/grid_demucs_lr0.0001_ic96_sisdr0_s42_20260913_000952/checkpoints/epoch0058_val_loss1.8175.pt",
+          "owner": "wega_demucs_lr0_0001_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "e471d4ec05d6098eb8e475a5c8091d76d1f7d4624bfb92b793705af3107b82a5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "ffaa110a1d170819bd18b0da8420a83294ef040af7ff071b7884601ca55f85ad"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic96_sisdr1_s42_epoch0057_val_loss1_7040_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic96_sisdr1_s42/epoch0057_val_loss1.7040.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic96_sisdr1_s42/grid_demucs_lr0.0001_ic96_sisdr1_s42_20260913_001736/checkpoints/epoch0057_val_loss1.7040.pt",
+          "owner": "wega_demucs_lr0_0001_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "b115d8de15232d93b3f4435e283622c0f5d44d917ec97e0f09486ffb1c34ba35"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0001_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0001_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "9f618d30c8f8f4639e47300c4efc97fe9a9f85b0540041a3a4f1bee062325698"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0001_ic96_sisdr3_s42_epoch0053_val_loss1_5065_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic96_sisdr3_s42/epoch0053_val_loss1.5065.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0001_ic96_sisdr3_s42/grid_demucs_lr0.0001_ic96_sisdr3_s42_20260913_002538/checkpoints/epoch0053_val_loss1.5065.pt",
+          "owner": "wega_demucs_lr0_0001_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "58dde5ff9bc7fe7280160d032a1e593aa1022f16471f687847ae52df93ea7659"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0001_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0001_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0001_ic96_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "c92881042bd67fb9011dae2cafc70cb37fe0df9fbc22e8d9f2225f7da5466912"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic32_sisdr0_s42_epoch0058_val_loss2_0158_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic32_sisdr0_s42/epoch0058_val_loss2.0158.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic32_sisdr0_s42/grid_demucs_lr0.0003_ic32_sisdr0_s42_20260913_003354/checkpoints/epoch0058_val_loss2.0158.pt",
+          "owner": "wega_demucs_lr0_0003_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5e8ffb70c819390d210109011a5d385c8d2367412a49901ca99b8d8d7409e7bf"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "682e18be19ebd87f91005dd3c1933dab7807503cfad70c6d6f9327c511a4aed7"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic32_sisdr1_s42_epoch0058_val_loss2_1068_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic32_sisdr1_s42/epoch0058_val_loss2.1068.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic32_sisdr1_s42/grid_demucs_lr0.0003_ic32_sisdr1_s42_20260913_003726/checkpoints/epoch0058_val_loss2.1068.pt",
+          "owner": "wega_demucs_lr0_0003_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4b423ab90d003efec0179c7c96b35e69ec049ad6012f5d663ad09f35a95883b5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "e7f1f73dbbef7a11ddb4ae05e181760d667fb446157e146943748a5b36061935"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic32_sisdr3_s42_epoch0059_val_loss5_0412_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic32_sisdr3_s42/epoch0059_val_loss5.0412.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic32_sisdr3_s42/grid_demucs_lr0.0003_ic32_sisdr3_s42_20260913_004117/checkpoints/epoch0059_val_loss5.0412.pt",
+          "owner": "wega_demucs_lr0_0003_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "5d19a162a84f372f31b9335e0d7c19d245d5fc023522e2f83ce39090016432ea"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "75ea2c6506886ef13c7eed404326c96784a06cc91b98225c2478e458f3147520"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic64_sisdr0_s42_epoch0057_val_loss1_8825_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic64_sisdr0_s42/epoch0057_val_loss1.8825.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic64_sisdr0_s42/grid_demucs_lr0.0003_ic64_sisdr0_s42_20260913_004514/checkpoints/epoch0057_val_loss1.8825.pt",
+          "owner": "wega_demucs_lr0_0003_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "2f0caa7e56a60a0fdcb045e00aabb1709111e87fae2593e5ea2cc4309404a34f"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "79cf9232e5c330541f188218462916b07767410bc59dae8c7a139c9818c63e24"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic64_sisdr1_s42_epoch0058_val_loss1_9014_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic64_sisdr1_s42/epoch0058_val_loss1.9014.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic64_sisdr1_s42/grid_demucs_lr0.0003_ic64_sisdr1_s42_20260913_005027/checkpoints/epoch0058_val_loss1.9014.pt",
+          "owner": "wega_demucs_lr0_0003_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "43a63e53d498697ce8bbb65060d4bd0450a17288ebb797fe954c76ad49a8e284"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "e4736485b00fa9ccbb4f46abeebc4e63eace634c231bb7b6a3b9e5aca89bd973"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic64_sisdr3_s42_epoch0059_val_loss3_9644_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic64_sisdr3_s42/epoch0059_val_loss3.9644.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic64_sisdr3_s42/grid_demucs_lr0.0003_ic64_sisdr3_s42_20260913_005549/checkpoints/epoch0059_val_loss3.9644.pt",
+          "owner": "wega_demucs_lr0_0003_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "41a4e65c512888e65aeedf59e7013a99ab95fae4ceaa578f00c2906b6b76856d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "46d966bbdfe3616f2941f67c84be0fd74ea65d4a5952bd549d27d46d90ef808c"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic96_sisdr0_s42_epoch0052_val_loss1_8947_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic96_sisdr0_s42/epoch0052_val_loss1.8947.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic96_sisdr0_s42/grid_demucs_lr0.0003_ic96_sisdr0_s42_20260913_010133/checkpoints/epoch0052_val_loss1.8947.pt",
+          "owner": "wega_demucs_lr0_0003_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "da276b51713b38e8772fdabdf84f50cafcc72057c2dac3b2754d0ec2c92853ed"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "b505069b8aaed45f17bbdfc4e331e6bed8599992d58f8174e1277ed392131001"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic96_sisdr1_s42_epoch0057_val_loss1_7964_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic96_sisdr1_s42/epoch0057_val_loss1.7964.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic96_sisdr1_s42/grid_demucs_lr0.0003_ic96_sisdr1_s42_20260913_010934/checkpoints/epoch0057_val_loss1.7964.pt",
+          "owner": "wega_demucs_lr0_0003_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "442f40d9d7f09739d5f699896a2b9ca3a0e026147db33868d6d6153fb7159c9e"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_0003_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_0003_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "49d7bcd795086a09a21db0ceb292dfeef39770f89df3f23138a1036bbf2b0b62"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_0003_ic96_sisdr3_s42_epoch0057_val_loss3_7835_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0003_ic96_sisdr3_s42/epoch0057_val_loss3.7835.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.0003_ic96_sisdr3_s42/grid_demucs_lr0.0003_ic96_sisdr3_s42_20260913_011802/checkpoints/epoch0057_val_loss3.7835.pt",
+          "owner": "wega_demucs_lr0_0003_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "4e6fdc13f3f6e12aa8fea7187c5b3ca3e3a40bf2740eeb851fffe7b455569bb5"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_0003_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_0003_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_0003_ic96_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic32_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic32_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "ff936349b3592564433f45c1b00412b57181b1f1dda2e87cc10327993461fd21"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic32_sisdr0_s42_epoch0057_val_loss2_3044_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic32_sisdr0_s42/epoch0057_val_loss2.3044.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic32_sisdr0_s42/grid_demucs_lr0.001_ic32_sisdr0_s42_20260913_012623/checkpoints/epoch0057_val_loss2.3044.pt",
+          "owner": "wega_demucs_lr0_001_ic32_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "c2ea4c76cdce369a6aa2a86474edaa789d692a991ae5cbc099c4a0667594baa0"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic32_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic32_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic32_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic32_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "b56fbe8b4be3fb59c58acc01261bedd660169dbf32b75e7bb6422816d267df06"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic32_sisdr1_s42_epoch0052_val_loss2_2927_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic32_sisdr1_s42/epoch0052_val_loss2.2927.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic32_sisdr1_s42/grid_demucs_lr0.001_ic32_sisdr1_s42_20260913_013035/checkpoints/epoch0052_val_loss2.2927.pt",
+          "owner": "wega_demucs_lr0_001_ic32_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "caeab4d3ec0332340c5deec64281ac4e45a5e2cca8b811247b39f385804dcf38"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic32_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic32_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic32_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic32_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "b71537821d084c341fb2cececc64256baabf551365fa2fe525c731dfe929a4e2"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic32_sisdr3_s42_epoch0060_val_loss4_5104_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic32_sisdr3_s42/epoch0060_val_loss4.5104.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic32_sisdr3_s42/grid_demucs_lr0.001_ic32_sisdr3_s42_20260913_013457/checkpoints/epoch0060_val_loss4.5104.pt",
+          "owner": "wega_demucs_lr0_001_ic32_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 49843836,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "81158dc43095ce9190c84bb86e4814faed497571e129c52f7b85669d98103fc0"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic32_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic32_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic32_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic64_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "valid",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic64_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "522e04e95bcc19a5c4a14a52ac11831affb49137fbb1525b007103b7f697bff0"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic64_sisdr0_s42_epoch0055_val_loss2_1626_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic64_sisdr0_s42/epoch0055_val_loss2.1626.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic64_sisdr0_s42/grid_demucs_lr0.001_ic64_sisdr0_s42_20260913_013909/checkpoints/epoch0055_val_loss2.1626.pt",
+          "owner": "wega_demucs_lr0_001_ic64_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "81d461d58a31b225731de8bf3f0da3aeecbc55ecd396a9325623e06dd490bff3"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic64_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic64_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic64_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic64_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "a569676fb479b871df4270b0a36428276c62a2e05f15ead1528dc8935df74357"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic64_sisdr1_s42_epoch0057_val_loss4_4680_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic64_sisdr1_s42/epoch0057_val_loss4.4680.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic64_sisdr1_s42/grid_demucs_lr0.001_ic64_sisdr1_s42_20260913_014420/checkpoints/epoch0057_val_loss4.4680.pt",
+          "owner": "wega_demucs_lr0_001_ic64_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "1865c6da8b33c0b3953e39b4e3d8a4e5b2a76bc1014f89382e142d13d12837e3"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic64_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic64_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic64_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic64_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "3ee8b31e4ec1753188732590b2339e97287ac7e705852ea20438472275d5dc19"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic64_sisdr3_s42_epoch0060_val_loss4_6639_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic64_sisdr3_s42/epoch0060_val_loss4.6639.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic64_sisdr3_s42/grid_demucs_lr0.001_ic64_sisdr3_s42_20260913_014943/checkpoints/epoch0060_val_loss4.6639.pt",
+          "owner": "wega_demucs_lr0_001_ic64_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 198913468,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "8cacd8310f78200576be8ea0ea19b725bc5df6857250028a742d6534cdc987ed"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic64_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic64_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic64_sisdr3_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic96_sisdr0_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic96_sisdr0_s42/provenance/training.jsonl",
+          "sha256": "953fca11dec6bc05d6208cc977e7edac9dc8f606930a480733f36710584415d7"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic96_sisdr0_s42_epoch0060_val_loss4_3618_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic96_sisdr0_s42/epoch0060_val_loss4.3618.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic96_sisdr0_s42/grid_demucs_lr0.001_ic96_sisdr0_s42_20260913_015513/checkpoints/epoch0060_val_loss4.3618.pt",
+          "owner": "wega_demucs_lr0_001_ic96_sisdr0_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "d432758e13093bf29ae86deae5e393c484e5f0f95001745dedf491bd5bc063d1"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic96_sisdr0_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr0_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr0_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr0_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic96_sisdr0_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr0_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic96_sisdr1_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic96_sisdr1_s42/provenance/training.jsonl",
+          "sha256": "dea155da3c37ef7bc02464b64a599805a981f6e605a4e2227f3073e6fea48060"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic96_sisdr1_s42_epoch0058_val_loss9_2982_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic96_sisdr1_s42/epoch0058_val_loss9.2982.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic96_sisdr1_s42/grid_demucs_lr0.001_ic96_sisdr1_s42_20260913_020316/checkpoints/epoch0058_val_loss9.2982.pt",
+          "owner": "wega_demucs_lr0_001_ic96_sisdr1_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270076,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "47a8f37c18891abcd23d9b346bc11b6575090a2603ef39e3f554bbb9d95aec0d"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic96_sisdr1_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr1_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr1_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr1_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic96_sisdr1_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr1_s42_raw.fif"
+      }
+    },
+    {
+      "experiment": "wega_demucs_lr0_001_ic96_sisdr3_s42",
+      "model": "demucs_deployment_edition",
+      "phase": 3,
+      "dataset": "weg_a_v7",
+      "training_dataset": "weg_a_v10_locked_1ch",
+      "protocol": "pipeline",
+      "outcome": "unavailable",
+      "verification": "not_run",
+      "hyperparameters_status": "original_resolved",
+      "evaluation_status": "recorded_evidence",
+      "training": {
+        "status": "available",
+        "source": {
+          "path": "masterthesis_guide/experiments/phase_3/wega_demucs_lr0_001_ic96_sisdr3_s42/provenance/training.jsonl",
+          "sha256": "5d09ef2bb4849d37c570e2f14da0953c5a873a4a2101d54891c0b1c52891656b"
+        }
+      },
+      "recorded_epochs": 60,
+      "artifacts": {
+        "wega_demucs_lr0_001_ic96_sisdr3_s42_epoch0058_val_loss11_2743_pt": {
+          "path": "artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_001_ic96_sisdr3_s42/epoch0058_val_loss11.2743.pt",
+          "source": "output/run8_fetched/wegapod/grids/wega/demucs/lr0.001_ic96_sisdr3_s42/grid_demucs_lr0.001_ic96_sisdr3_s42_20260913_021137/checkpoints/epoch0058_val_loss11.2743.pt",
+          "owner": "wega_demucs_lr0_001_ic96_sisdr3_s42",
+          "kind": "checkpoint",
+          "role": "evaluated",
+          "bytes": 447270267,
+          "availability": "local",
+          "identity": "explicit_source_reference",
+          "sha256": "76a36d48540ab5974aebc94fcd26dd34225718819f11837dc35ea32aebf2fcc7"
+        }
+      },
+      "commands": {
+        "prepare_training": "uv run python -m masterthesis_guide.reproduce config wega_demucs_lr0_001_ic96_sisdr3_s42 --data-root /path/to/thesis-data --output-dir /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr3_s42 --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr3_s42.yaml --device cpu",
+        "train": "uv run facet-train fit --config /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr3_s42.yaml",
+        "pipeline": "uv run python -m masterthesis_guide.examples.run_model wega_demucs_lr0_001_ic96_sisdr3_s42 --edf /path/to/NiazyFMRI.edf --out /path/to/new-results/wega_demucs_lr0_001_ic96_sisdr3_s42_raw.fif"
+      }
+    }
+  ]
+}
