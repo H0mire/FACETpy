@@ -37,3 +37,6 @@ The original Figure 34 is retained in the evidence index. Its caption says
 Use the narrower scope shown in the figure. The original spectral estimator
 settings were not recovered, so the image alone cannot establish exact numerical
 reproduction of that spectrum.
+
+For inputs, commands and output checks, see
+:doc:`../masterthesis_guide/phase_3_execution`.

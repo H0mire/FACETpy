@@ -5,6 +5,7 @@ Recorded results for ``denoise_mamba``.
 These files summarize existing records. No training or evaluation was rerun.
 Each experiment keeps its own phase, dataset, objective and verification status.
 A recorded curve does not establish successful correction. Missing curves stay missing.
+See :doc:`/masterthesis_guide/reading_results` for metrics, status fields and source limits.
 
 :download:`Manifest and source associations </../../src/facet/models/masterthesis/denoise_mamba/results/manifest.json>`.
 

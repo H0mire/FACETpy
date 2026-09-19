@@ -1,6 +1,11 @@
 Reproduce recorded results
 ==========================
 
+Follow :doc:`legacy_execution`, :doc:`phase_1_execution`,
+:doc:`phase_2_execution` or :doc:`phase_3_execution` for phase-specific steps.
+Use :doc:`reading_results`, :doc:`checkpoint_selection` and
+:doc:`run_environment` to interpret and record a replay.
+
 Choose a scope
 --------------
 

@@ -23,3 +23,6 @@ DenoiseMamba's original CPU path loads a Python model from its state dictionary.
 
 See :doc:`../masterthesis_guide/reproduce_results` and
 :doc:`../masterthesis_guide/catalog` for commands and the saved split.
+
+For inputs, commands and output checks, see
+:doc:`../masterthesis_guide/phase_1_execution`.

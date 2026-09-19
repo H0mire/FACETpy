@@ -38,3 +38,6 @@ CPU replay of all thirteen available primary deployment models on the 166 saved
 holdout windows is stored as ``phase2_holdout_replay``. It uses global clean-signal
 SNR improvement. This replay is labelled separately and does not replace the
 missing original CSV or prove its exact values.
+
+For inputs, commands and output checks, see
+:doc:`../masterthesis_guide/phase_2_execution`.

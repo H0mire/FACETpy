@@ -240,6 +240,7 @@ def rst_index(model_id: str, runs: list[dict], directory: Path, root: Path) -> s
         "These files summarize existing records. No training or evaluation was rerun.",
         "Each experiment keeps its own phase, dataset, objective and verification status.",
         "A recorded curve does not establish successful correction. Missing curves stay missing.",
+        "See :doc:`/masterthesis_guide/reading_results` for metrics, status fields and source limits.",
         "",
         download(directory / "manifest.json", "Manifest and source associations") + ".",
         "",

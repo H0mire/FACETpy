@@ -11,6 +11,12 @@ one catalog. Start with a small functional example before loading a full recordi
    quickstart
    reproduce_results
    legacy_execution
+   phase_1_execution
+   phase_2_execution
+   phase_3_execution
+   reading_results
+   checkpoint_selection
+   run_environment
    troubleshooting
    catalog
 

@@ -5,6 +5,7 @@ Recorded results for ``ic_unet_paper_accurate_edition``.
 These files summarize existing records. No training or evaluation was rerun.
 Each experiment keeps its own phase, dataset, objective and verification status.
 A recorded curve does not establish successful correction. Missing curves stay missing.
+See :doc:`/masterthesis_guide/reading_results` for metrics, status fields and source limits.
 
 :download:`Manifest and source associations </../../src/facet/models/experimental/paper_accurate/ic_unet/results/manifest.json>`.
 
