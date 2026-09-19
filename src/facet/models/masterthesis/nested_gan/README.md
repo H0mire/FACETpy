@@ -1,12 +1,18 @@
-# Nested GAN
+# Nested-GAN
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Spectral generator followed by temporal refinement. A spectral generator and temporal residual refiner predict the centre artifact from neighbouring epochs. This variant uses a generator-only recipe, without the paper's full nested adversarial training.
 
-The Python factory is `facet.models.masterthesis.nested_gan.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/nested_gan.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal; image-restoration building blocks.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Yang2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#yang2025) · [Zamir2022](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#zamir2022).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/nested_gan.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.nested_gan.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

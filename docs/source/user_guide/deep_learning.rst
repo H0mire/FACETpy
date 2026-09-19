@@ -6,6 +6,14 @@ configuration selects a dataset factory, model factory, objective and optimizer.
 A trained model or exported artifact then enters the normal processor pipeline
 through ``DeepLearningCorrection``.
 
+Choosing a model
+----------------
+
+Start with the :doc:`family and variant overview <../thesis_reference/selected_variants>`.
+The :doc:`family pages <../thesis_reference/models/index>` explain each model's
+origin, input, output and FACETpy adaptations. The
+:doc:`diagram gallery <../model_diagrams>` shows the implemented signal paths.
+
 Installed-library inference
 ---------------------------
 
@@ -65,6 +73,19 @@ checkout workflow, not an installed-package dependency. See
 :doc:`../masterthesis_guide/quickstart` and
 :doc:`../thesis_reference/selected_variants` for the exact data, input packing
 and checkpoint associations.
+
+Context CNN teaching example
+----------------------------
+
+``facet.models.experimental.examples.demo01`` contains a small convolutional
+neural network (CNN) for synthetic spike-artifact examples. It combines the
+epoch and channel axes as input features. Three convolution blocks process the
+context; a final convolution predicts the centre artifact for each channel.
+
+This model was developed within FACETpy and has no assigned source paper. It
+illustrates the dataset, factory and correction interfaces. It is separate from
+the fully connected Context DAE used in the thesis. See
+:ref:`diagram-experimental-examples-demo01` for its two diagrams and source files.
 
 Verification scope
 ------------------

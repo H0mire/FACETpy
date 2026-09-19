@@ -1,10 +1,18 @@
 # Legacy Cascaded DAE
 
-The Phase-0 two-stage fully connected autoencoder, with an explicit checkpoint path.
-The current pipeline adapter changes epoch segmentation and resampling; it does not
-claim to repeat the original FACETpy 0.1.0 pipeline.
+Fully connected denoising autoencoder. Migrated Phase-0 adapter: two fully connected autoencoders receive the same flattened multichannel epoch, and their predictions are added. The adapter changes segmentation and resampling; it does not reproduce the original FACETpy 0.1.0 environment.
 
-See the Sphinx thesis guide for the original and adapted execution contracts.
+## Origin and role
+
+Origin: FACETpy baseline.
+
+Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) explains the family, adaptations and limits.
+
+[Phase-0 execution guide](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/legacy_execution.html) distinguishes the original evidence from the migrated adapter.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

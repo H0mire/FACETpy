@@ -1,12 +1,12 @@
-"""Training factories for the DenoiseMamba (ConvSSD) gradient artifact denoiser.
+"""Training factories for the thesis DenoiseMamba adaptation.
 
-DenoiseMamba is a Section 6.2 architecture from
-``docs/source/thesis_reference/models/denoise_mamba.rst``. It stacks ConvSSD blocks that
-combine a local 1D convolution with a Mamba-style selective state space layer.
-The selective scan is implemented in pure PyTorch so the model is portable to
-CPU for tests and trains on the GPU fleet without depending on the
-``mamba-ssm`` CUDA package. See ``documentation/research_notes.md`` for the
-underlying motivation and references.
+This is a flat stack of local convolutions and Mamba-1-style selective scans.
+It predicts artifacts for one EEG channel. The scan uses pure PyTorch.
+It differs from the source paper's U-shaped ConvSSD architecture and from the
+experimental ``paper_accurate.denoise_mamba`` package.
+
+See ``docs/source/thesis_reference/models/denoise_mamba.rst`` for the family,
+source paper and variant differences.
 """
 
 from __future__ import annotations

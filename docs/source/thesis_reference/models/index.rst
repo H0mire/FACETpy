@@ -1,6 +1,10 @@
 Model reference pages
 =====================
 
+Start with :doc:`../selected_variants` to compare families and variants. Each
+page explains the model idea, origin, FACETpy changes and retained evidence.
+:doc:`../model_references` holds the full literature records.
+
 These page titles and locations preserve the references cited by the thesis.
 
 .. toctree::

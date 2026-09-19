@@ -1,12 +1,18 @@
-# Context DAE
+# Cascaded Context DAE
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Fully connected context autoencoder. Two fully connected stages read seven epochs from one channel and predict the centre artifact. The second stage reads context with the first centre estimate removed.
 
-The Python factory is `facet.models.masterthesis.cascaded_context_dae.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/context_dae.html) describes the input/output contract and phase-specific limits.
+Origin: FACETpy extension of Cascaded DAE.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/context_dae.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.cascaded_context_dae.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

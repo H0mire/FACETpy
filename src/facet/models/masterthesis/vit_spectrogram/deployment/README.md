@@ -1,12 +1,18 @@
-# ViT-Spectrogram
+# ViT Spectrogram — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Spectrogram Transformer with masked reconstruction. This deployment variant replaces magnitude-only prediction with a complex spectrogram mask. It can change phase and magnitude, reconstructs a waveform, and returns the centre artifact in input units. It trains against recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.vit_spectrogram.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/vit_spectrogram.html) describes the input/output contract and phase-specific limits.
+Origin: Image recognition and masked image reconstruction.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Dosovitskiy2021](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#dosovitskiy2021) · [He2022](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#he2022).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/vit_spectrogram.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.vit_spectrogram.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

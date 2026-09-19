@@ -18,7 +18,7 @@
     },
     {
       "title": "Prediction",
-      "description": "Decoder and artifact waveform"
+      "description": "Clean EEG or configured artifact"
     }
   ],
   "nodes": [
@@ -70,7 +70,8 @@
       "title": "Projection head",
       "description": [
         "Length-preserving decoder output plus pooled projection head.",
-        "Crop padding; return batch x 1 x samples."
+        "Crop padding; return batch x 1 x samples.",
+        "Clean EEG by default; artifact target is configurable."
       ],
       "row": 5
     }

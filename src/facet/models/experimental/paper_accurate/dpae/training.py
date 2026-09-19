@@ -2,8 +2,8 @@
 
 This edition is a more faithful re-implementation of
 
-    H. Xiong, Y. Ma, and Y. Li, "A general dual-pathway network for EEG
-    denoising," Frontiers in Neuroscience, vol. 17, art. 1258024, 2023.
+    W. Xiong, L. Ma, and H. Li, "A general dual-pathway network for EEG
+    denoising," Frontiers in Neuroscience, vol. 17, art. 1258024, published 2024.
     doi:10.3389/fnins.2023.1258024.
 
 vs. the original ``facet.models.masterthesis.dpae`` package. DPAE is a lightweight,

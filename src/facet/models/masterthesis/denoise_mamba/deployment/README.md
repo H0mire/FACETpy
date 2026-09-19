@@ -1,12 +1,18 @@
-# DenoiseMamba
+# DenoiseMamba — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Convolutional and state-space model. A flat stack of local convolution and Mamba-1-style selective state-space blocks predicts a single-channel artifact. This is the thesis reconstruction, not the full published ConvSSD architecture. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.denoise_mamba.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/denoise_mamba.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Chen2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#chen2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/denoise_mamba.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.denoise_mamba.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

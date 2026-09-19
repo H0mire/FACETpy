@@ -1,12 +1,20 @@
-# D4PM
+# D4PM — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Conditional diffusion model. This experimental variant adds continuous noise-level and artifact-class conditioning. An optional clean branch supports joint posterior sampling; enable it explicitly in the configuration.
 
-The Python factory is `facet.models.experimental.paper_accurate.d4pm.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/d4pm.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Shao2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#shao2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/d4pm.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.d4pm.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

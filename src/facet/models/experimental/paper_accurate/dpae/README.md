@@ -1,12 +1,20 @@
-# DPAE
+# DPAE — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Dual-pathway convolutional autoencoder. This experimental variant adds a compression-and-expansion fusion module with a residual connection. It changes path strides and normalization, and predicts clean EEG by default.
 
-The Python factory is `facet.models.experimental.paper_accurate.dpae.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dpae.html) describes the input/output contract and phase-specific limits.
+Origin: EEG denoising.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Xiong2024](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#xiong2024).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dpae.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.dpae.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

@@ -1,12 +1,18 @@
-# Cascaded DAE
+# Cascaded DAE — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Fully connected denoising autoencoder. Two fully connected stages predict an artifact from one channel and one epoch. Stage two receives the signal after the first estimate is subtracted. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.cascaded_dae.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) describes the input/output contract and phase-specific limits.
+Origin: FACETpy baseline.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.cascaded_dae.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

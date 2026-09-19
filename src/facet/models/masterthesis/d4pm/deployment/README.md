@@ -1,12 +1,18 @@
-# D4PM
+# D4PM — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Conditional diffusion model. This deployment variant normalizes the training pair and adds a recovered-waveform objective at configured diffusion timesteps. Inference still requires an iterative sampler. The retained record contains no completed Phase-2 pipeline result.
 
-The Python factory is `facet.models.masterthesis.d4pm.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/d4pm.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Shao2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#shao2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/d4pm.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.d4pm.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

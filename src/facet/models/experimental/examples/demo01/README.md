@@ -1,10 +1,20 @@
-# Demo01
+# Context CNN demo
 
-Experimental implementation; no thesis-result equivalence is implied.
+A small context convolution network for synthetic spike-artifact examples. It stacks epochs as features and predicts the centre artifact. It is a teaching example, separate from the fully connected Context DAE and the thesis result models.
 
-The Python factory is `facet.models.experimental.examples.demo01.training`.
+## Origin and role
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Origin: FACETpy teaching example.
+
+Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/user_guide/deep_learning.html) explains this teaching model and its training interface.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.examples.demo01.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

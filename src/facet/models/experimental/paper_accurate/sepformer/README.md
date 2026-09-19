@@ -1,12 +1,20 @@
-# SepFormer
+# SepFormer — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Dual-path attention source separator. This experimental variant revises the mask network and residual connections around the attention stacks. It keeps a compact, single-target EEG configuration rather than the original speech experiment.
 
-The Python factory is `facet.models.experimental.paper_accurate.sepformer.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/sepformer.html) describes the input/output contract and phase-specific limits.
+Origin: Speech separation.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Subakan2021](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#subakan2021).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/sepformer.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.sepformer.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

@@ -1,12 +1,20 @@
-# Demucs Mc
+# Multichannel Demucs
 
-Experimental implementation; no thesis-result equivalence is implied.
+Waveform encoder-decoder with electrode attention. This experimental Demucs extension combines a target electrode and its neighbours through electrode attention, then predicts the target-channel centre artifact.
 
-The Python factory is `facet.models.experimental.v2.demucs_mc.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/multichannel_demucs.html) describes the input/output contract and phase-specific limits.
+Origin: FACETpy extension of Demucs.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Defossez2019](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#defossez2019).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/multichannel_demucs.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.v2.demucs_mc.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

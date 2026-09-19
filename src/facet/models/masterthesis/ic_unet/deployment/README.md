@@ -1,12 +1,18 @@
-# IC-U-Net
+# IC-U-Net — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Multichannel U-Net denoising autoencoder. A multichannel U-Net operates between frozen ICA and inverse-ICA transforms and predicts the centre-epoch artifact. The in-model ICA transforms are a FACETpy adaptation. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.ic_unet.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/ic_unet.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal using ICA-derived training pairs.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Chuang2022](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#chuang2022).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/ic_unet.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.ic_unet.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

@@ -1,12 +1,18 @@
-# Demucs
+# Demucs — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Waveform encoder-decoder with recurrent processing. A convolutional encoder, bidirectional recurrent bottleneck and skip decoder predict the artifact across concatenated EEG epochs. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.demucs.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/demucs.html) describes the input/output contract and phase-specific limits.
+Origin: Music source separation.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Defossez2019](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#defossez2019).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/demucs.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.demucs.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

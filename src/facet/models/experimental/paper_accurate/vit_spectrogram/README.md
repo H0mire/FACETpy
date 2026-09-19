@@ -1,12 +1,20 @@
-# ViT-Spectrogram
+# ViT Spectrogram — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Spectrogram Transformer with masked reconstruction. This experimental variant encodes visible patches and reconstructs masked patches with a separate MAE decoder. It retains magnitude prediction and noisy phase for waveform reconstruction.
 
-The Python factory is `facet.models.experimental.paper_accurate.vit_spectrogram.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/vit_spectrogram.html) describes the input/output contract and phase-specific limits.
+Origin: Image recognition and masked image reconstruction.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Dosovitskiy2021](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#dosovitskiy2021) · [He2022](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#he2022).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/vit_spectrogram.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.vit_spectrogram.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

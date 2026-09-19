@@ -1,12 +1,18 @@
-# DHCT-GAN
+# DHCT-GAN strict
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Dual-branch convolution and attention model. Independent CNN/Transformer branches return clean, noise and fused outputs for adversarial training. An optional electrode-attention bridge and configurable decoder extend the source design; identify both in any reported result.
 
-The Python factory is `facet.models.masterthesis.dhct_gan.strict.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dhct_gan.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Cai2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#cai2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dhct_gan.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.dhct_gan.strict.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

@@ -14,5 +14,8 @@ one catalog. Start with a small functional example before loading a full recordi
    troubleshooting
    catalog
 
+For architecture, origins and variant differences, see
+:doc:`../thesis_reference/selected_variants` and the linked family pages.
+
 The scientific interpretation belongs in :doc:`../thesis_reference/index`.
 This guide explains acquisition and execution. It does not repeat the result tables.

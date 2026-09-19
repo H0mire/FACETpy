@@ -1,12 +1,20 @@
-# Conv-TasNet
+# Conv-TasNet — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Convolutional source separator. This experimental variant uses a linear encoder with sigmoid masks and a separate skip-channel width. Its default loss scores ordered EEG and artifact targets; it does not reproduce the speech training protocol.
 
-The Python factory is `facet.models.experimental.paper_accurate.conv_tasnet.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/conv_tasnet.html) describes the input/output contract and phase-specific limits.
+Origin: Speech separation.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Luo2019](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#luo2019).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/conv_tasnet.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.conv_tasnet.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

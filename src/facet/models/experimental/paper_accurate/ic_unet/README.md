@@ -1,12 +1,20 @@
-# IC-U-Net
+# IC-U-Net — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Multichannel U-Net denoising autoencoder. This experimental variant defaults to a sensor-space U-Net with clean-EEG output and a learned upsampling decoder. Frozen ICA is optional rather than part of the default inference path.
 
-The Python factory is `facet.models.experimental.paper_accurate.ic_unet.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/ic_unet.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal using ICA-derived training pairs.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Chuang2022](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#chuang2022).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/ic_unet.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.ic_unet.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

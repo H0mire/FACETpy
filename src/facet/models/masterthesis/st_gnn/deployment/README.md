@@ -1,12 +1,18 @@
-# ST-GNN
+# ST-GNN — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Spatiotemporal graph convolution network. Temporal convolutions and graph filters predict multichannel artifacts on a fixed electrode graph. Channel order and montage belong to the trained model contract. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.st_gnn.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/st_gnn.html) describes the input/output contract and phase-specific limits.
+Origin: Traffic forecasting and EEG graph modelling.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Yu2018](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#yu2018) · [Defferrard2016](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#defferrard2016) · [Wagh2020](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#wagh2020).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/st_gnn.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.st_gnn.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

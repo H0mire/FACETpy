@@ -1,12 +1,18 @@
-# DHCT-GAN
+# DHCT-GAN v2
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Dual-branch convolution and attention model. This thesis V2 variant stacks seven epochs as features for one electrode. A shared encoder and dual decoders predict the centre artifact. It differs from both the single-epoch base and the experimental paper_accurate V2 edition.
 
-The Python factory is `facet.models.masterthesis.dhct_gan.v2.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dhct_gan.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Cai2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#cai2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dhct_gan.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.dhct_gan.v2.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

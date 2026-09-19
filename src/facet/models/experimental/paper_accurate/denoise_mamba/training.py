@@ -9,7 +9,7 @@ Source paper
 ------------
 Chen, Li, Zheng, Shi, "DenoiseMamba: An Innovative Approach for EEG Artifact
 Removal Leveraging Mamba and CNN", IEEE Journal of Biomedical and Health
-Informatics, vol. 29, no. 9, Sept. 2025, pp. 6551-6562. (IEEE Xplore 11012652,
+Informatics, vol. 29, no. 9, Sept. 2025, pp. 6551-6564. (IEEE Xplore 11012652,
 PMID 40408214.)
 
 What this edition implements faithfully (vs the original flat stack)

@@ -1,12 +1,18 @@
-# DPAE
+# DPAE — deployment
 
-Deployment variant with the recorded input packing, recovered-clean objective and output reconstruction. Its network is shared with the family implementation.
+Dual-pathway convolutional autoencoder. Two convolutional pathways combine fine and coarse temporal features to predict a single-channel artifact. The deployment wrapper normalizes input, restores output units and can remove the predicted epoch mean. Its objective scores recovered clean EEG.
 
-The Python factory is `facet.models.masterthesis.dpae.deployment.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dpae.html) describes the input/output contract and phase-specific limits.
+Origin: EEG denoising.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Xiong2024](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#xiong2024).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/dpae.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.dpae.deployment.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

@@ -1,6 +1,6 @@
 """Training factories for the Dual-Pathway Autoencoder (DPAE).
 
-The architecture follows Xiong et al. 2023 (Frontiers in Neuroscience,
+The architecture follows Xiong et al. 2024 (Frontiers in Neuroscience,
 "A general dual-pathway network for EEG denoising"). We use the 1D-CNN
 variant. Each training item is a single-channel ``(1, samples)`` window so the
 exported checkpoint stays independent of the EEG channel count of the target

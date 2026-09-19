@@ -1,12 +1,18 @@
 # Conv-TasNet
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Convolutional source separator. A learned waveform encoder, temporal convolution network and decoder separate ordered clean-EEG and artifact targets.
 
-The Python factory is `facet.models.masterthesis.conv_tasnet.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/conv_tasnet.html) describes the input/output contract and phase-specific limits.
+Origin: Speech separation.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Luo2019](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#luo2019).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/conv_tasnet.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.conv_tasnet.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

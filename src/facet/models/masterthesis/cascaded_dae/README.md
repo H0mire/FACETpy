@@ -1,12 +1,18 @@
 # Cascaded DAE
 
-A retained implementation used by the thesis experiments. Select the exact variant and configuration through the experiment catalog.
+Fully connected denoising autoencoder. Two fully connected stages predict an artifact from one channel and one epoch. Stage two receives the signal after the first estimate is subtracted.
 
-The Python factory is `facet.models.masterthesis.cascaded_dae.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) describes the input/output contract and phase-specific limits.
+Origin: FACETpy baseline.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) explains the family, adaptations and limits.
+
+Factories: `facet.models.masterthesis.cascaded_dae.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

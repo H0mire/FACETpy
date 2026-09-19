@@ -1,12 +1,20 @@
-# DenoiseMamba
+# DenoiseMamba — experimental paper_accurate variant
 
-Experimental implementation; no thesis-result equivalence is implied.
+Convolutional and state-space model. This experimental variant uses a U-shaped ConvSSD encoder-decoder and Mamba-2-style state-space processing. It predicts clean EEG by default and can be configured to predict artifacts.
 
-The Python factory is `facet.models.experimental.paper_accurate.denoise_mamba.training`.
+## Origin and role
 
-[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/denoise_mamba.html) describes the input/output contract and phase-specific limits.
+Origin: EEG artifact removal.
 
-See the repository `masterthesis_guide/INDEX.rst` for configurations, data and artifact associations. Large weights are fetched separately through Git LFS.
+Sources: [Chen2025](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#chen2025).
+
+[Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/denoise_mamba.html) explains the family, adaptations and limits.
+
+This package is experimental. Its name does not establish paper fidelity or equivalence to a thesis result.
+
+Factories: `facet.models.experimental.paper_accurate.denoise_mamba.training`.
+
+Select the configuration, preprocessing, output type and checkpoint together in the [experiment catalog](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/catalog.html). Large weights are retrieved through Git LFS.
 
 ## Architecture diagrams
 

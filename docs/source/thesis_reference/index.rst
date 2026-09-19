@@ -17,3 +17,4 @@ remain unchanged in the linked experiment records and comparison tables.
    legacy_metrics
    code_provenance
    models/index
+   model_references
