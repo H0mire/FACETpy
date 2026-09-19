@@ -1,8 +1,17 @@
 Where in FACETpy: code provenance
 =================================
 
-The source snapshot for this integration is local Git commit
-``21d689da73eb93cdc3af8b48babed76b7271cc4e``. Model families retain their original
+The published thesis snapshot is Git commit
+`7a160bd002430adf30d71994326efef154eedc54
+<https://github.com/H0mire/FACETpy/commit/7a160bd002430adf30d71994326efef154eedc54>`_.
+The annotated ``masterwork`` tag fixes this revision. The ``masterwork`` branch
+was created at the same commit. Use the tag to retrieve the recorded snapshot:
+
+.. code-block:: console
+
+   git checkout --detach refs/tags/masterwork
+
+Model families retain their original
 module identity in the catalog alongside the migrated Python module. Original
 resolved configurations and compact run records remain unchanged under
 ``provenance``; executable configurations contain the migrated imports.
