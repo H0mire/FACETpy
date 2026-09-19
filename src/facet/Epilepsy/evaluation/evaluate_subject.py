@@ -11,6 +11,7 @@ Produces (under ``src/facet/Epilepsy/evaluation/results/``):
   results/{subject}/fig_{subject}_template.png
   results/{subject}/fig_{subject}_ica_topomaps.png
   results/{subject}/fig_{subject}_grouiller_map.png
+  results/{subject}/fig_{subject}_fused_map.png
 
 Usage:
     python -m facet.Epilepsy.evaluation.evaluate_subject                    # DA00100T.mat
@@ -32,11 +33,10 @@ import argparse
 from dataclasses import dataclass, field
 from typing import Optional
 
-import mne
 import numpy as np
 import pandas as pd
 
-from facet.Epilepsy.pipeline import run_combined_pipeline
+from facet.Epilepsy.pipeline import run_fused_pipeline
 from facet.Epilepsy.helpers.preprocessing import prepare_eeg_data
 from facet.Epilepsy.evaluation.plots import (
     plot_acceptance_summary, plot_window_corr_distribution,
@@ -46,13 +46,8 @@ from facet.Epilepsy.evaluation.plots import (
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-SFREQ = 500.0
-TR = 2.5
-TH_RAW = 0.85
-HALF_WIN_S = 0.15
-MAT_DIR = os.path.join(project_root, "examples", "datasets", "MAT_Files")
-RESULTS_DIR = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "results")
+from facet.Epilepsy.evaluation.config import (
+    SFREQ, TR, TH_RAW, HALF_WIN_S, MATCH_TOL_S, MAT_DIR, RESULTS_DIR,
 )
 
 
@@ -74,23 +69,34 @@ class SubjectRecord:
     regressor_grouiller: Optional[np.ndarray] = None
     epileptic_map: Optional[np.ndarray] = None
     channel_names: list = field(default_factory=list)
+    fused_epileptic_map: Optional[np.ndarray] = None
     detection: object = None
+    # Spatial-validation summary; ``None`` only when no components were accepted.
+    spatial_gate: Optional[dict] = None
 
 
 # ── Collection ───────────────────────────────────────────────────────────────
 
 def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
-    """Run the combined pipeline on one .mat file and return a SubjectRecord."""
+    """Run the combined pipeline on one .mat file and return a SubjectRecord.
+
+    Spatial validation is applied after temporal TCCC acceptance, so the
+    returned record's accepted components, TCCC/fused maps and regressor reflect
+    the spatially-validated set.
+    """
     subject = os.path.splitext(os.path.basename(mat_path))[0]
     _, _, spike_sec_raw = prepare_eeg_data(mat_path, sfreq=SFREQ)
 
-    result = run_combined_pipeline(
+    result = run_fused_pipeline(
         mat_path=mat_path, sfreq=SFREQ, half_win_s=HALF_WIN_S,
-        th_raw=TH_RAW, has_fmri=True, tr=TR, visualize=False,
+        th_raw=TH_RAW, match_tol_s=MATCH_TOL_S, has_fmri=True, tr=TR,
+        visualize=False,
     )
 
     detection = result.get("detection")
     grouiller = result.get("regressor_grouiller", {})
+    fused = result.get("fused") or {}
+    spatial_gate = result.get("spatial_gate")
 
     channel_names = _eeg_channel_names(detection)
 
@@ -99,16 +105,22 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
             subject=subject, mat_path=mat_path,
             n_spikes_annotated=len(spike_sec_raw),
             n_spikes_augmented=0, n_accepted_components=0,
+            spatial_gate=spatial_gate,
         )
+
+    n_annotated = (
+        len(detection.original_spike_sec)
+        if detection.original_spike_sec else len(spike_sec_raw)
+    )
+    # Only the spikes ADDED by template augmentation; 0 when no augmentation
+    # occurred (refined set equals the annotated set).
+    n_added = max(0, len(detection.refined_times) - n_annotated)
 
     return SubjectRecord(
         subject=subject,
         mat_path=mat_path,
-        n_spikes_annotated=(
-            len(detection.original_spike_sec)
-            if detection.original_spike_sec else len(spike_sec_raw)
-        ),
-        n_spikes_augmented=len(detection.refined_times),
+        n_spikes_annotated=n_annotated,
+        n_spikes_augmented=n_added,
         n_accepted_components=len(detection.accepted_components),
         accepted_indices=detection.accepted_components,
         template_z=detection.template_z,
@@ -118,54 +130,21 @@ def run_pipeline_for_subject(mat_path: str) -> SubjectRecord:
         regressor_grouiller=grouiller.get("regressor_hrf"),
         epileptic_map=grouiller.get("epileptic_map"),
         channel_names=channel_names,
+        fused_epileptic_map=fused.get("epileptic_map"),
         detection=detection,
+        spatial_gate=spatial_gate,
     )
 
 
-def _eeg_channel_names(detection) -> list:
-    """EEG channel names (in epileptic-map order) from the detection's raw."""
-    raw = getattr(detection, "raw", None) if detection is not None else None
-    if raw is None:
-        return []
-    eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude="bads")
-    return [raw.ch_names[i] for i in eeg_picks]
+from facet.Epilepsy.evaluation.evaluation_helpers import (
+    _eeg_channel_names,
+    template_channel_info,
+    grouiller_peak_channel,
+    grouiller_focality,
+    spike_field_consistency,
+    summarize_cross_method_concordance,
+)
 
-
-def template_channel_info(rec: "SubjectRecord") -> tuple[Optional[str], Optional[str]]:
-    """Name and MNE type of the channel the IED template was built from.
-
-    The type lets us confirm the template came from a scalp EEG channel (not an
-    ECG/EMG/ear electrode).
-    """
-    det = rec.detection
-    raw = getattr(det, "raw", None) if det is not None else None
-    idx = rec.ica_selection_stats.get("template_channel")
-    if raw is None or idx is None or not (0 <= idx < len(raw.ch_names)):
-        return None, None
-    name = raw.ch_names[idx]
-    ch_type = raw.get_channel_types(picks=[idx])[0]
-    return name, ch_type
-
-
-def grouiller_peak_channel(rec: "SubjectRecord") -> Optional[str]:
-    """Channel with the largest |value| in the epileptic map."""
-    emap = rec.epileptic_map
-    if emap is None or len(emap) == 0 or not rec.channel_names:
-        return None
-    peak_idx = int(np.argmax(np.abs(emap)))
-    if peak_idx < len(rec.channel_names):
-        return rec.channel_names[peak_idx]
-    return None
-
-
-def grouiller_focality(rec: "SubjectRecord") -> float:
-    """Focality = max(|map|) / median(|map|).  Higher = more focal."""
-    emap = rec.epileptic_map
-    if emap is None or len(emap) == 0:
-        return np.nan
-    a = np.abs(emap)
-    med = float(np.median(a))
-    return float(np.max(a) / med) if med > 0 else np.nan
 
 # ── DataFrames ───────────────────────────────────────────────────────────────
 
@@ -195,15 +174,60 @@ def build_summary_dataframe(rec: SubjectRecord) -> pd.DataFrame:
         "accepted_indices": ";".join(str(i) for i in rec.accepted_indices),
         "fallback_used": bool(rec.ica_selection_stats.get("fallback_used", False)),
         "median_corr_at_IEDs": ";".join(median_corrs),
-        "n_ica_runs": int(rec.ica_selection_stats.get("n_runs", 0)),
         "grouiller_peak_channel": grouiller_peak_channel(rec),
         "grouiller_focality": grouiller_focality(rec),
         "template_length_samples": (
             len(rec.template_z) if rec.template_z is not None else 0
         ),
-        "has_grouiller_regressor": rec.regressor_grouiller is not None,
-        "has_ebrahimzadeh_regressor": rec.regressor_ebrahimzadeh is not None,
+        "max_template_spikes_used": rec.ica_selection_stats.get(
+            "max_template_spikes_used"
+        ),
     }
+    # ── Non-circular EEG-level spatial validation (inter-spike topographic
+    #    consistency: do the annotated spikes share one focal generator?) ──
+    row.update(spike_field_consistency(rec))
+    # ── Cross-method concordance (do the independently-derived foci agree?) ──
+    row.update(summarize_cross_method_concordance(rec))
+    # ── Optional experimental spatial-gate summary (only in spatial mode) ──
+    if rec.spatial_gate is not None:
+        sg = rec.spatial_gate
+        row.update({
+            "spatial_abs_corr_threshold": sg.get("spatial_abs_corr_threshold"),
+            # TCCC and FUSED both use the spatially-validated set
+            # (final_tccc_accepted_components); temporally_accepted_candidates is
+            # the full pre-gate temporal set, retained for transparency.
+            "temporally_accepted_candidates": ";".join(
+                str(i) for i in sg.get("temporally_accepted_candidates",
+                                       sg.get("baseline_accepted_components", []))),
+            "final_tccc_accepted_components": ";".join(
+                str(i) for i in sg.get("final_tccc_accepted_components", [])),
+            "baseline_accepted_components": ";".join(
+                str(i) for i in sg.get("baseline_accepted_components", [])),
+            # Strict spatial survivors with |r| >= threshold (empty if none pass).
+            "spatial_accepted_components": ";".join(
+                str(i) for i in sg.get("spatial_accepted_components", [])),
+            "spatial_rejected_indices": ";".join(
+                str(i) for i in sg.get("spatial_rejected_indices", [])),
+            "spatial_error_indices": ";".join(
+                str(i) for i in sg.get("spatial_error_indices", [])),
+            # Highest-|r| survivor, used for single-map TCCC reporting.
+            "spatial_tccc_representative_component": sg.get(
+                "spatial_tccc_representative_component"),
+            "fused_representative_component": sg.get(
+                "fused_representative_component",
+                sg.get("spatial_tccc_representative_component")),
+            "spatial_representative_is_accepted": bool(
+                sg.get("spatial_representative_is_accepted", False)),
+            "n_temporally_accepted": sg.get("n_temporally_accepted"),
+            "n_spatially_accepted": sg.get("n_spatially_accepted"),
+            "n_spatially_rejected": sg.get("n_spatially_rejected"),
+            "spatial_gate_zero_pass": bool(sg.get("spatial_gate_zero_pass", False)),
+            "spatial_gate_fallback_used": bool(
+                sg.get("spatial_gate_fallback_used", False)),
+            "ied_reference_peak_channel": sg.get("ied_reference_peak_channel"),
+        })
+        if sg.get("spatial_gate_error"):
+            row["spatial_gate_error"] = sg.get("spatial_gate_error")
     return pd.DataFrame([row])
 
 
@@ -231,7 +255,7 @@ def build_component_detail_dataframe(rec: SubjectRecord) -> pd.DataFrame:
 # ── Validation ───────────────────────────────────────────────────────────────
 
 def validate_outputs(rec: SubjectRecord) -> list[str]:
-    """Sanity checks V1–V8.  Returns list of warning strings (empty = all OK)."""
+    """Sanity checks V1–V7.  Returns list of warning strings (empty = all OK)."""
     errors: list[str] = []
     det = rec.detection
     s = rec.subject
@@ -272,18 +296,11 @@ def validate_outputs(rec: SubjectRecord) -> list[str]:
                 f"{s}: comp {idx} median corr {np.median(wc):.4f} < {TH_RAW}"
             )
 
-    # V5: Augmented >= annotated
-    if rec.n_spikes_augmented < rec.n_spikes_annotated:
-        errors.append(
-            f"{s}: augmented ({rec.n_spikes_augmented}) "
-            f"< annotated ({rec.n_spikes_annotated})"
-        )
-
-    # V6: Accepted <= 3
+    # V5: Accepted <= 3
     if rec.n_accepted_components > 3:
         errors.append(f"{s}: {rec.n_accepted_components} accepted > 3")
 
-    # V7: Template length
+    # V6: Template length
     if rec.template_z is not None:
         expected_len = int(2 * HALF_WIN_S * SFREQ)
         if len(rec.template_z) != expected_len:
@@ -292,13 +309,37 @@ def validate_outputs(rec: SubjectRecord) -> list[str]:
                 f"!= expected {expected_len}"
             )
 
-    # V8: Epileptic map length = 19 EEG channels
+    # V7: Epileptic map length = 19 EEG channels
     if rec.epileptic_map is not None and len(rec.epileptic_map) != 19:
         errors.append(
             f"{s}: epileptic map length {len(rec.epileptic_map)} != 19"
         )
 
     return errors
+
+
+def _safe_to_csv(df: pd.DataFrame, path: str, **kwargs) -> str:
+    """Save ``df`` to ``path``, falling back to a timestamped name if locked.
+
+    Prevents a locked file (e.g. the CSV is open in Excel) from crashing the
+    whole evaluation after the expensive pipeline has already run — losing
+    that compute would otherwise force a full re-run just to get the CSV
+    saved. Returns the path actually written to.
+    """
+    try:
+        df.to_csv(path, **kwargs)
+        print(f"  Saved {path}")
+        return path
+    except PermissionError:
+        import datetime
+        stem, ext = os.path.splitext(path)
+        fallback = f"{stem}_{datetime.datetime.now():%Y%m%d_%H%M%S}{ext}"
+        df.to_csv(fallback, **kwargs)
+        print(
+            f"  ⚠ {path} is locked (open in another program?) — "
+            f"saved to {fallback} instead."
+        )
+        return fallback
 
 
 # ── Main orchestrator ────────────────────────────────────────────────────────
@@ -318,6 +359,15 @@ def run_evaluation(mat_path: str):
     print(f"  → annotated={rec.n_spikes_annotated}, "
           f"augmented={rec.n_spikes_augmented}, "
           f"accepted={rec.n_accepted_components}")
+    if rec.spatial_gate is not None:
+        sg = rec.spatial_gate
+        print(
+            f"  TCCC temporal={sg.get('baseline_accepted_components')} "
+            f"-> spatial survivors={sg.get('spatial_accepted_components')} "
+            f"| TCCC/FUSED final={sg.get('final_tccc_accepted_components')} "
+            f"(rep={sg.get('spatial_tccc_representative_component')}, "
+            f"fallback={sg.get('spatial_gate_fallback_used')})"
+        )
 
     # ── Validation (V1–V8) ──────────────────────────────────────────────
     print("\n--- Validation checks ---")
@@ -333,13 +383,62 @@ def run_evaluation(mat_path: str):
     print("\n--- Generating CSVs ---")
     df_sum = build_summary_dataframe(rec)
     csv1 = os.path.join(out_dir, f"results_{subject}_summary.csv")
-    df_sum.to_csv(csv1, index=False)
-    print(f"  Saved {csv1}")
+    _safe_to_csv(df_sum, csv1, index=False)
 
     df_cd = build_component_detail_dataframe(rec)
     csv2 = os.path.join(out_dir, f"results_{subject}_component_detail.csv")
-    df_cd.to_csv(csv2, index=False)
-    print(f"  Saved {csv2}")
+    _safe_to_csv(df_cd, csv2, index=False)
+
+    # ── Per-candidate spatial-gate log (spatial mode only) ──────────────
+    if rec.spatial_gate is not None:
+        clog = rec.spatial_gate.get("candidate_log", [])
+        if clog:
+            df_sg = pd.DataFrame(clog)
+            df_sg.insert(0, "subject", subject)
+            csv3 = os.path.join(
+                out_dir, f"results_{subject}_spatial_gate_detail.csv")
+            _safe_to_csv(df_sg, csv3, index=False)
+
+    # ── EEG-level spatial validation (non-circular) ────────────────
+    sv = spike_field_consistency(rec)
+    if sv["spatial_n_spikes_used"] >= 2:
+        print(
+            f"  Spatial validation (n={sv['spatial_n_spikes_used']} spikes): "
+            f"topo-consistency mean={sv['spatial_topo_consistency_mean']:.3f}, "
+            f"median={sv['spatial_topo_consistency_median']:.3f}, "
+            f"min={sv['spatial_topo_consistency_min']:.3f}, "
+            f"mean-map focality={sv['spatial_mean_map_focality']:.2f}"
+        )
+
+    # ── Cross-method concordance (do independent foci agree on a location?) ──
+    cc = summarize_cross_method_concordance(rec)
+    print(
+        f"  Concordance: "
+        f"grouiller={cc['grouiller_region']}({cc['grouiller_peak_channel']}), "
+        f"ica={cc['ica_region']}({cc['ica_peak_channel']}), "
+        f"fused={cc['fused_region']}({cc['fused_peak_channel']}) "
+        f"→ {cc['n_methods_agreeing']} agree"
+        + ("  ✓ all agree" if cc["concordance_all_agree"] else "")
+    )
+    print(
+        f"  Concordance (clinical lobe): "
+        f"grouiller={cc['grouiller_lobe']}, ica={cc['ica_lobe']}, "
+        f"fused={cc['fused_lobe']} → {cc['n_methods_agreeing_lobe']} agree"
+        + ("  ✓ all agree" if cc["concordance_all_agree_lobe"] else "")
+    )
+    mc = cc.get("map_corr_mean")
+    if mc is not None:
+        def _f(x):
+            return f"{x:.2f}" if x is not None else "n/a"
+        print(
+            f"  Map correlation |r|: "
+            f"grouiller-fused={_f(cc['map_corr_grouiller_fused'])}, "
+            f"grouiller-ica={_f(cc['map_corr_grouiller_ica'])}, "
+            f"fused-ica={_f(cc['map_corr_fused_ica'])} "
+            f"(mean={mc:.2f})"
+            + ("  [ica corr n/a: single accepted component → fused≡ica]"
+               if cc.get("map_corr_ica_degenerate") else "")
+        )
 
     # ── Arrays (for group-level aggregation) ────────────────────────────
     npz_path = os.path.join(out_dir, f"arrays_{subject}.npz")
@@ -374,6 +473,9 @@ def run_evaluation(mat_path: str):
         rec, os.path.join(out_dir, f"fig_{subject}_ica_topomaps.png"))
     plot_grouiller_map(
         rec, os.path.join(out_dir, f"fig_{subject}_grouiller_map.png"))
+    plot_grouiller_map(
+        rec, os.path.join(out_dir, f"fig_{subject}_fused_map.png"),
+        emap=rec.fused_epileptic_map, title="Fused Epileptic Map")
 
     print(f"\n✓ Single-subject evaluation complete for {subject}.")
     print(f"  Outputs in: {os.path.abspath(out_dir)}")
@@ -383,36 +485,112 @@ def run_evaluation(mat_path: str):
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 def _resolve_mat_path(arg: str) -> str:
-    """Turn a filename or absolute path into a resolved absolute path."""
+    """Turn a subject id, filename, or absolute path into a resolved .mat path."""
     if os.path.isabs(arg) or os.path.isfile(arg):
         return os.path.abspath(arg)
-    # Treat as filename inside the default MAT_DIR
-    candidate = os.path.join(MAT_DIR, arg)
-    if os.path.isfile(candidate):
-        return candidate
+    # Treat as filename (with or without .mat) inside the default MAT_DIR
+    candidates = [arg] if arg.lower().endswith(".mat") else [arg, f"{arg}.mat"]
+    for name in candidates:
+        candidate = os.path.join(MAT_DIR, name)
+        if os.path.isfile(candidate):
+            return candidate
     raise FileNotFoundError(
         f"Cannot find '{arg}' — tried as absolute path and in {MAT_DIR}"
     )
 
 
+def _evaluate_one_worker(path: str) -> tuple[str, bool, str]:
+    """Process-pool worker: run one subject and return a picklable status.
+
+    Only side effects (the CSV/NPZ/PNG files written under the results root)
+    matter, so nothing from the heavy ``SubjectRecord`` is returned across the
+    process boundary. Returns ``(subject, ok, error_message)``.
+    """
+    subject = os.path.splitext(os.path.basename(path))[0]
+    try:
+        run_evaluation(path)
+        return subject, True, ""
+    except Exception as e:  # noqa: BLE001 — keep the batch alive
+        return subject, False, str(e)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Single-subject statistical evaluation "
-                    "(1 .mat file = 1 subject)"
+                    "(1 .mat file = 1 subject). Accepts one or more "
+                    "--mat-file values to run several subjects in a row."
     )
     parser.add_argument(
-        "--mat-file", "-m", default=None,
-        help="Filename or full path to the .mat file to evaluate ",
+        "--mat-file", "-m", nargs="+", default=None,
+        help="One or more filenames or full paths to .mat files to evaluate.",
+    )
+    parser.add_argument(
+        "--subjects-file", default=None,
+        help="Path to a text file with one subject id / filename per line.",
+    )
+    parser.add_argument(
+        "--jobs", "-j", type=int, default=1,
+        help="Number of subjects to evaluate in parallel processes. Each "
+             "subject is fully independent (fixed ICA seeds, its own output "
+             "folder), so results are identical to sequential runs. Use -1 for "
+             "all CPU cores. Default 1 (sequential).",
     )
     args = parser.parse_args()
 
-    file_name = "DA00103K.mat"
-    if args.mat_file:
-        mat_file_path = _resolve_mat_path(args.mat_file)
+    if args.subjects_file:
+        with open(args.subjects_file) as f:
+            names = [ln.strip() for ln in f if ln.strip()]
+    elif args.mat_file:
+        names = args.mat_file
     else:
-        mat_file_path = os.path.join(MAT_DIR, file_name)
+        names = ["DA00100S.mat"]
 
-    run_evaluation(mat_file_path)
+    mat_paths = [_resolve_mat_path(n) for n in names]
+
+    if len(mat_paths) == 1:
+        run_evaluation(mat_paths[0])
+        return
+
+    failed: list[tuple[str, str]] = []
+
+    n_jobs = args.jobs
+    if n_jobs == -1:
+        n_jobs = os.cpu_count() or 1
+    n_jobs = max(1, min(n_jobs, len(mat_paths)))
+
+    if n_jobs > 1:
+        from concurrent.futures import ProcessPoolExecutor, as_completed
+
+        print(f"Running {len(mat_paths)} subjects across {n_jobs} parallel "
+              f"processes ...")
+        done = 0
+        with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+            futures = {
+                executor.submit(
+                    _evaluate_one_worker, path): path
+                for path in mat_paths
+            }
+            for future in as_completed(futures):
+                subject, ok, err = future.result()
+                done += 1
+                if ok:
+                    print(f"[{done}/{len(mat_paths)}] ✓ {subject}")
+                else:
+                    print(f"[{done}/{len(mat_paths)}] ✗ {subject} failed: {err}")
+                    failed.append((subject, err))
+    else:
+        for i, path in enumerate(mat_paths, 1):
+            subject = os.path.splitext(os.path.basename(path))[0]
+            print(f"\n[{i}/{len(mat_paths)}] === {subject} ===")
+            try:
+                run_evaluation(path)
+            except Exception as e:  # noqa: BLE001 — keep batch going
+                print(f"  ✗ {subject} failed: {e}")
+                failed.append((subject, str(e)))
+
+    print(f"\nBatch complete: {len(mat_paths) - len(failed)}/{len(mat_paths)} succeeded.")
+    for s, e in failed:
+        print(f"  • {s}: {e}")
 
 
 if __name__ == "__main__":

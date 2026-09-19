@@ -76,7 +76,29 @@ def plot_window_corr_distribution(rec, out_path: str):
     for patch in bp["boxes"]:
         patch.set_facecolor("#4c72b0")
         patch.set_alpha(0.6)
-    ax.axhline(TH_RAW, color="red", ls="--", lw=1, label=f"Threshold ({TH_RAW})")
+
+    # Marker = actual 90th percentile used by the TCCC acceptance decision.
+    p90_vals = [float(np.percentile(wc, 90)) for wc in data]
+    x_pos = np.arange(1, len(p90_vals) + 1)
+    ax.scatter(
+        x_pos,
+        p90_vals,
+        marker="D",
+        s=40,
+        c="#f28e2b",
+        edgecolors="black",
+        linewidths=0.6,
+        zorder=3,
+        label="90th percentile per component",
+    )
+
+    ax.axhline(
+        TH_RAW,
+        color="red",
+        ls="--",
+        lw=1,
+        label="TCCC acceptance threshold (90th-percentile score = 0.85)",
+    )
     ax.set_ylabel("max |r| per IED window")
     ax.set_title(f"Per-Window Correlation — {rec.subject}")
     ax.legend(fontsize=8)
@@ -121,11 +143,43 @@ def plot_ica_topomaps(rec, out_path: str):
         print("  Skipped ica_topomaps — no montage (channel positions) set.")
         return
 
-    fig = ica.plot_components(picks=rec.accepted_indices, show=False)
+    # Plot ALL temporally TCCC-selected components. In spatial-gated mode
+    # ``rec.accepted_indices`` has been reduced to the spatially-accepted
+    # survivors (used downstream for the fused map / regions), but this figure
+    # is meant to review every component TCCC accepted temporally, so pull the
+    # full pre-gate temporal set from the gate summary when available.
+    sg = getattr(rec, "spatial_gate", None)
+    if sg is not None:
+        picks = sg.get("temporally_accepted_candidates") or sg.get(
+            "baseline_accepted_components") or rec.accepted_indices
+    else:
+        picks = rec.accepted_indices
+    if not picks:
+        print("  Skipped ica_topomaps — no accepted components.")
+        return
+
+    fig = ica.plot_components(picks=picks, show=False)
     figs = fig if isinstance(fig, list) else [fig]
+    # The full temporal set is shown for review; the note flags the
+    # spatially-validated survivors that TCCC/FUSED actually use (and the
+    # highest-|r| representative).
+    spatial_note = ""
+    if sg is not None:
+        thr = sg.get("spatial_abs_corr_threshold", 0.5)
+        rep = sg.get("fused_representative_component",
+                     sg.get("spatial_tccc_representative_component"))
+        survivors = sg.get("final_tccc_accepted_components", [])
+        if sg.get("spatial_gate_fallback_used"):
+            spatial_note = (
+                f" [temporal set shown; TCCC/FUSED = fallback {rep} "
+                f"(none passed |r|>={thr:g})]")
+        else:
+            spatial_note = (
+                f" [temporal set shown; TCCC/FUSED = {survivors} "
+                f"(|r|>={thr:g}), rep {rep}]")
     figs[0].suptitle(
         f"Accepted ICA Topographies (TCCC) — {rec.subject}"
-        f"{_fallback_note(rec)}"
+        f"{_fallback_note(rec)}{spatial_note}"
     )
     figs[0].savefig(out_path, dpi=150)
     for f in figs:
@@ -133,29 +187,35 @@ def plot_ica_topomaps(rec, out_path: str):
     print(f"  Saved {out_path}")
 
 
-def plot_grouiller_map(rec, out_path: str):
-    """F8: Topographic map of the Grouiller epileptic voltage map."""
+def plot_grouiller_map(rec, out_path: str, emap=None, title: str = "Grouiller Epileptic Map"):
+    """F8: Topographic map of an epileptic voltage map.
+
+    Defaults to the Grouiller map (``rec.epileptic_map``); pass ``emap`` and a
+    ``title`` to render another map (e.g. the fused pipeline's map) with the
+    same styling.
+    """
     import mne
 
-    emap = rec.epileptic_map
+    if emap is None:
+        emap = rec.epileptic_map
     if emap is None or len(emap) == 0:
-        print("  Skipped grouiller_map — no epileptic map available.")
+        print(f"  Skipped {title} — no epileptic map available.")
         return
 
     det = rec.detection
     raw = getattr(det, "raw", None) if det is not None else None
     if raw is None:
-        print("  Skipped grouiller_map — no raw for channel positions.")
+        print(f"  Skipped {title} — no raw for channel positions.")
         return
 
     eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude="bads")
     if len(eeg_picks) != len(emap):
-        print("  Skipped grouiller_map — channel/map length mismatch.")
+        print(f"  Skipped {title} — channel/map length mismatch.")
         return
 
     info = mne.pick_info(raw.info, eeg_picks)
     if info.get_montage() is None:
-        print("  Skipped grouiller_map — no montage (channel positions) set.")
+        print(f"  Skipped {title} — no montage (channel positions) set.")
         return
 
     emap = np.asarray(emap, dtype=float)
@@ -168,7 +228,7 @@ def plot_grouiller_map(rec, out_path: str):
         emap, info, axes=ax, show=False, cmap="RdBu_r", contours=6)
     fig.colorbar(im, ax=ax, shrink=0.7, label="Voltage (a.u.)")
     ax.set_title(
-        f"Grouiller Epileptic Map — {rec.subject}\n"
+        f"{title} — {rec.subject}\n"
         f"focality = {focality:.2f}"
     )
     fig.tight_layout()
@@ -189,6 +249,26 @@ def plot_group_acceptance(df, out_path: str):
     ax.set_ylabel("# accepted ICA components")
     ax.set_title("Accepted Components per Subject")
     ax.set_xticklabels(df["subject"], rotation=45, ha="right", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=150)
+    plt.close(fig)
+    print(f"  Saved {out_path}")
+
+
+def plot_group_template_channel_distribution(df, out_path: str):
+    """G2: Bar chart of how often each channel was picked as the IED template source."""
+    if df.empty or "template_channel" not in df.columns:
+        print("  Skipped group_template_channel_distribution — no data.")
+        return
+    counts = df["template_channel"].value_counts(dropna=False)
+    if counts.empty:
+        print("  Skipped group_template_channel_distribution — no data.")
+        return
+    fig, ax = plt.subplots(figsize=(max(6, len(counts) * 0.5), 4))
+    ax.bar(counts.index.astype(str), counts.values, color="#55a868")
+    ax.set_ylabel("# subjects")
+    ax.set_title("Template Channel Selection Distribution")
+    ax.set_xticklabels(counts.index.astype(str), rotation=45, ha="right", fontsize=8)
     fig.tight_layout()
     fig.savefig(out_path, dpi=150)
     plt.close(fig)

@@ -4,7 +4,8 @@ import mne
 from scipy.signal import detrend
 
 def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
-                   smooth=False, return_refined=False, visualize=True):
+                   smooth=False, return_refined=False, visualize=True,
+                   max_spikes=None, return_segments=False):
     """
     Builds a peak-aligned, polarity-standardised template.
     Any annotation lag is removed automatically by re-centering each
@@ -26,6 +27,22 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
         Whether to return refined spike times.
     visualize : bool
         Whether to plot the template.
+    max_spikes : int | None
+        If set and more than ``max_spikes`` valid segments are available,
+        only the ``max_spikes`` segments most correlated with a
+        leave-one-out grand-average (i.e. each segment is scored against
+        the average of every OTHER segment, never against itself) are kept
+        for the final template. This automates the "hand-select the best
+        10-20 spikes" step some IED-template protocols specify, using
+        template correlation as the objective proxy for waveform quality
+        instead of visual review. ``None`` (default) keeps every valid
+        segment, matching prior behaviour.
+    return_segments : bool
+        If True, also return the aligned/polarity-standardised/baseline-
+        corrected individual epochs (in physical signal units) and their
+        pre-z-score mean ``T``. Opt-in and off by default; it exposes the
+        intermediate template stages for diagnostics/plotting without
+        changing any pipeline behaviour.
 
     Returns
     -------
@@ -37,6 +54,12 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
         Shift applied (0 since already centered).
     refined_times : list, optional
         Refined spike times if return_refined=True.
+    segments : ndarray, optional
+        Aligned per-spike epochs (n_kept, n_samples), physical units, if
+        return_segments=True.
+    template_phys : ndarray, optional
+        Pre-z-score average template (physical units) if
+        return_segments=True.
     """
     sf = raw.info['sfreq']
     hw = int(round(half_win_s * sf))
@@ -91,6 +114,34 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
     if len(segs) < 5:
         raise ValueError("Not enough spike segments to build a stable template.")
 
+    # Optional quality selection: keep only the ``max_spikes`` segments most
+    # correlated with a LEAVE-ONE-OUT grand-average, discarding the rest
+    # before the final average is computed. Segments/refined_times stay in
+    # sync.
+    #
+    # Each segment is scored against the average of every OTHER segment
+    # (never against itself). Scoring against the average of ALL segments
+    # (including itself) is circular: a segment always pulls its own
+    # reference toward itself, so noisy-but-similar segments can inflate
+    # their own score and get kept. Excluding the segment being scored
+    # removes that self-inclusion bias.
+    if max_spikes is not None and len(segs) > max_spikes:
+        segs_arr = np.stack(segs)  # (n_spikes, n_samples)
+        n = segs_arr.shape[0]
+        total = segs_arr.sum(axis=0)
+        scores = np.empty(n)
+        for i in range(n):
+            loo_mean = (total - segs_arr[i]) / (n - 1)
+            seg = segs_arr[i]
+            if np.std(seg) > 0 and np.std(loo_mean) > 0:
+                scores[i] = np.corrcoef(seg, loo_mean)[0, 1]
+            else:
+                scores[i] = -np.inf
+        keep = np.argsort(scores)[::-1][:max_spikes]
+        keep = np.sort(keep)  # preserve chronological order
+        segs = [segs[i] for i in keep]
+        refined_times = [refined_times[i] for i in keep]
+
     T = np.mean(segs, axis=0)
 
     # Optional smoothing
@@ -112,7 +163,9 @@ def build_template(raw, spike_sec, half_win_s=0.15, baseline_ms=(-120, -20),
         plt.show()
 
     shift = 0  # Already centered
+    out = [best_ch, template_z, shift]
     if return_refined:
-        return best_ch, template_z, shift, refined_times
-    else:
-        return best_ch, template_z, shift
+        out.append(refined_times)
+    if return_segments:
+        out.extend([np.stack(segs), T])
+    return tuple(out)

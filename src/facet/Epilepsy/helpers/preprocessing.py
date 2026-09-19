@@ -2,6 +2,35 @@ import mne
 from scipy.io import loadmat
 import numpy as np
 
+from facet.core import ProcessingContext
+from facet.preprocessing import BandPassFilter, NotchFilter
+
+
+def apply_facet_filters(raw, processors):
+    """Run FACETpy preprocessing processors on a standalone Raw object.
+
+    Bridges the Epilepsy helpers with the main FACETpy framework so filtering
+    reuses the shared, validated processors (e.g. :class:`NotchFilter`,
+    :class:`BandPassFilter`) instead of calling MNE directly. The input ``raw``
+    is left unmodified; a new filtered Raw object is returned.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        EEG data to filter.
+    processors : sequence
+        Instantiated FACETpy processors to apply in order.
+
+    Returns
+    -------
+    mne.io.Raw
+        The filtered Raw object.
+    """
+    ctx = ProcessingContext(raw)
+    for processor in processors:
+        ctx = processor(ctx)
+    return ctx.get_raw()
+
 
 def _infer_ch_types(ch_names):
     """Infer MNE channel types from electrode names.
@@ -147,6 +176,10 @@ def filter_eeg(raw):
     """
     Apply notch and band-pass filtering to EEG data.
 
+    Reuses the main FACETpy preprocessing processors (:class:`NotchFilter`,
+    :class:`BandPassFilter`) so Epilepsy filtering stays consistent with the
+    rest of the framework.
+
     Parameters
     ----------
     raw : mne.io.Raw
@@ -157,11 +190,14 @@ def filter_eeg(raw):
     raw : mne.io.Raw
         Filtered MNE Raw object.
     """
-    # Notch + band-pass
-    raw.notch_filter([50, 100], picks="eeg", verbose=False)
-    raw.filter(1.0, 70.0, picks="eeg", verbose=False)
-
-    return raw
+    # Notch + paper-aligned band-pass for epilepsy workflows.
+    return apply_facet_filters(
+        raw,
+        [
+            NotchFilter(freqs=[50, 100], picks="eeg"),
+            BandPassFilter(l_freq=1.0, h_freq=30.0, picks="eeg"),
+        ],
+    )
 
 
 def parse_spike_times(mat_or_path, label_marker="!", markers_alt=None, debug=False):
@@ -252,15 +288,15 @@ def prepare_eeg_data(mat_path, sfreq=500.0):
     Returns
     -------
     raw : mne.io.Raw
-        Standard filtered raw object (1-70Hz).
+        Standard filtered raw object (1-30Hz).
     raw_ica : mne.io.Raw
-        ICA filtered raw object (1-100Hz).
+        Filtered raw object used for ICA (1-30Hz, same band as ``raw``).
     spike_sec : list
         List of spike times in seconds.
     """
     raw, mat = load_mat_to_mne(mat_path, sfreq=sfreq)
     raw = filter_eeg(raw)
-    raw_ica = raw.copy().filter(1., 100., picks='eeg', verbose=False)
+    raw_ica = apply_facet_filters(raw, [BandPassFilter(l_freq=1.0, h_freq=30.0, picks="eeg")])
 
     spike_sec = parse_spike_times(mat, label_marker="!")
 

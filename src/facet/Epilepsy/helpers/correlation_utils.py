@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from mne.io import Raw
@@ -7,47 +9,38 @@ import mne
 from scipy.signal import correlate
 from facet.Epilepsy.helpers.shared_utils import build_template
 from mne.filter import filter_data
-from scipy.stats import kurtosis  # used by legacy build_ica_composite
 from facet.Epilepsy.Models.pipeline_results import TemplateICADetection
 from facet.Epilepsy.helpers.regressors import generate_hrf_regressors
-from facet.Epilepsy.helpers.diagnostic_utils import plot_ica_components_timecourses
-
-# ======================= ICA composite (Ebrahimzadeh) =======================
-def build_ica_composite(raw, template_z, band_ica=(1., 40.), band_comp=(3., 25.),
-                        kurtosis_min=3.0, max_keep=3, random_state=97):
-    """Fit ICA, select peaky components, sum, band-pass, correlate with template."""
-    sf = raw.info['sfreq']
-    n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
-    ica = ICA(n_components=min(20, n_eeg),
-              random_state=random_state, method='fastica', max_iter='auto')
-    ica.fit(raw.copy().filter(*band_ica, picks='eeg'))
-    S = ica.get_sources(raw).get_data()  # (n_comp, n_times)
-    k = kurtosis(S, axis=1, fisher=False)
-    keep = np.where(k >= kurtosis_min)[0]
-    if keep.size == 0:
-        keep = np.array([int(np.argmax(k))])
-    keep = keep[:max_keep]
-    comp = S[keep].sum(axis=0)
-    comp_bp = filter_data(comp, sf, band_comp[0], band_comp[1], verbose=False)
-    r = sliding_template_correlation(normalize_signal(comp_bp), template_z)
-    return keep.tolist(), comp_bp, np.abs(r)
 
 
 # ======================= Main component selection (Ebrahimzadeh) =======================
-def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1., 30.), th_raw=0.85, match_tol_s=0.1, visualize=False):
+def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1., 30.), th_raw=0.85, match_tol_s=0.1, visualize=False, max_template_spikes=None, template_raw=None):
     """Select ICA components that correlate with the IED template (Ebrahimzadeh 2021).
 
     Each candidate component is accepted if a high quantile of its single-trial
     cross-correlation with the template at the IED times reaches ``th_raw``
     (paper-faithful Template Component Cross-Correlation).
+
+    Parameters
+    ----------
+    max_template_spikes : int | None
+        Forwarded to ``build_template``: if set, only the this many
+        best-correlated spike segments are averaged into the template
+        (see ``build_template`` for details). ``None`` uses every spike.
+    template_raw : mne.io.Raw | None
+        Optional pre-filtered signal used only for template construction and
+        template-augmentation correlation pass. If ``None``, ``raw`` is used
+        for all steps.
     """
     from loguru import logger
     sf = raw.info['sfreq']
+    raw_for_template = template_raw if template_raw is not None else raw
     best_ch, template_z, _, refined = build_template(
-        raw, spike_sec, half_win_s=half_win_s, return_refined=True, visualize=visualize)
+        raw_for_template, spike_sec, half_win_s=half_win_s, return_refined=True,
+        visualize=visualize, max_spikes=max_template_spikes)
 
     # Augment template if small set
-    augmented_spikes = augment_template(raw, spike_sec, template_z, best_ch)
+    augmented_spikes = augment_template(raw_for_template, spike_sec, template_z, best_ch)
     logger.info(f"Augmented spikes: {len(augmented_spikes)} (original: {len(spike_sec)})")
 
     # Multi-run ICA: cluster components across runs and return cluster centroids
@@ -62,7 +55,7 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1
     n_eeg = len(mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads'))
     ica = ICA(n_components=min(20, n_eeg),  # Reduced for speed
               random_state=97, method='infomax', max_iter='auto')
-    ica.fit(raw.copy())  # Raw is already filtered to 1-100
+    ica.fit(raw.copy())  # Raw is already filtered upstream for this workflow.
     S = ica.get_sources(raw).get_data()
 
     stable_indices = match_clusters_to_ica(cluster_centroids, ica)
@@ -123,6 +116,15 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1
         )
         accepted = [best_idx]
         fallback_used = True
+
+    # Order accepted components by descending median window correlation so the
+    # first entry is the ICA best matching the IED template. Lobe assignment
+    # downstream uses the leading component, so this makes it pick the ICA with
+    # the highest median window correlation.
+    accepted.sort(
+        key=lambda i: np.median(all_data[i][1]) if all_data[i][1] else -np.inf,
+        reverse=True,
+    )
     logger.info(f"Accepted components: {accepted} (fallback={fallback_used})")
 
     # Build outputs for the accepted (or fallback) components
@@ -161,6 +163,8 @@ def select_components_template_ica(raw, spike_sec, half_win_s=0.15, band_comp=(1
             'fallback_used': fallback_used,
             'threshold': th_raw,
             'template_channel': int(best_ch),
+            'max_template_spikes_used': max_template_spikes,
+            'template_spikes_used': int(len(refined)),
             'artifact_ics': artifact_ics,
             'n_runs': n_ica_runs,
         },
@@ -190,18 +194,6 @@ def detect_peaks(r_trace, threshold, min_distance_samples):
     peaks, _ = find_peaks(r_trace, height=threshold, distance=min_distance_samples)
     return peaks
 
-def match_annotations(peaks, ann_times_s, sfreq, tol_s):
-    """Match detected peaks to annotated times within ±tol_s."""
-    tol = int(round(tol_s * sfreq))
-    caught, missed = [], []
-    for t in ann_times_s:
-        samp = int(round(t * sfreq))
-        if np.any(np.abs(peaks - samp) <= tol):
-            caught.append(t)
-        else:
-            missed.append(t)
-    return caught, missed
-
 def normalize_signal(x, eps=1e-12):
     return (x - x.mean()) / (x.std() + eps)
 
@@ -224,8 +216,10 @@ def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3,
     ---------------------------------------
     ICA decompositions are permutation- and sign-invariant, so raw component
     indices are not comparable across runs. We cluster all (n_runs ×
-    n_components) mixing vectors by absolute Pearson correlation of unit-norm
-    columns. Each resulting cluster represents one source seen across runs.
+    n_components) mixing vectors by absolute cosine similarity of unit-norm
+    columns (equivalent to |Pearson correlation| only if the columns also
+    happen to be zero-mean, which is not guaranteed here). Each resulting
+    cluster represents one source seen across runs.
     Clusters are ranked by the number of distinct runs they appear in
     (frequency, paper's "most often" criterion) and then by mean λ. The top
     ``max_keep`` cluster centroids are returned and can be matched to the
@@ -240,8 +234,8 @@ def multi_run_ica(raw, n_runs=10, band_ica=(1., 100.), max_keep=3,
     max_keep : int
         Number of stable clusters to return (paper: 3).
     cluster_threshold : float
-        Minimum |correlation| of mixing vectors for two components to be
-        grouped into the same cluster.
+        Minimum absolute cosine similarity of mixing vectors for two
+        components to be grouped into the same cluster.
 
     Returns
     -------
@@ -402,8 +396,21 @@ def augment_template(raw, spike_sec, template_z, best_ch, high_r_min=0.96, high_
     min_dist = int(round(refractory_s * sf))
     peaks = detect_peaks(r, th_high, min_dist)
     new_times = peaks / sf
-    # Filter to high_r_max if needed, but for now add all >= min
-    augmented = list(spike_sec) + [t for t in new_times if t not in spike_sec]
+
+    # A candidate is a "new" detection only if it falls outside a refractory
+    # window around every existing annotation. Exact-equality would almost
+    # never match here: candidate times are quantized to multiples of 1/sf,
+    # while annotation times keep their own source precision, so a detection
+    # landing on (or very near) an already-annotated spike would otherwise be
+    # added again as a near-duplicate, biasing the averaged template/map.
+    spike_arr = np.asarray(spike_sec, dtype=float)
+    if spike_arr.size:
+        is_new = np.array([
+            np.min(np.abs(spike_arr - t)) > refractory_s for t in new_times
+        ])
+    else:
+        is_new = np.ones(len(new_times), dtype=bool)
+    augmented = list(spike_sec) + [t for t, keep in zip(new_times, is_new) if keep]
     return sorted(augmented)
 
 # ======================= Artifact IC detection =======================
@@ -500,4 +507,132 @@ def check_component_acceptance(component_tc, template_z, spike_times, sfreq,
         f"threshold {min_corr})"
     )
     return score >= min_corr, per_window_corr, score
+
+
+def plot_ica_components_timecourses(raw, ica=None, S=None, component_indices=None,
+                                     template_z=None, spike_times=None, max_plot_seconds=30,
+                                     save_figs=False, outdir=None, show_figs=True, manual_spike_times=None):
+    """Plot ICA component continuous timecourses and averaged epochs.
+
+    Parameters
+    ----------
+    raw : mne.io.Raw
+        Raw EEG object (for sfreq and times).
+    ica : mne.preprocessing.ICA, optional
+        Fitted MNE ICA object. If provided, `S` may be omitted.
+    S : ndarray, shape (n_components, n_times), optional
+        Precomputed ICA source matrix. Used if `ica` is not provided.
+    component_indices : list[int]
+        Indices of components to plot.
+    template_z : ndarray, optional
+        Z-scored spike template to overlay on averaged epochs.
+    spike_times : list[float], optional
+        Spike annotation times (seconds) used to compute average epochs.
+    max_plot_seconds : int
+        Number of seconds from the start to display for continuous plot.
+    manual_spike_times : list[float], optional
+        Manual spike annotation times (seconds) to plot as a reference.
+    """
+    if component_indices is None or len(component_indices) == 0:
+        return
+
+    sf = raw.info['sfreq']
+    times = raw.times
+
+    if S is None:
+        if ica is None:
+            raise ValueError('Either ica or S must be provided')
+        S = ica.get_sources(raw).get_data()
+
+    n_times = S.shape[1]
+    
+    # Determine plot range: if manual spikes exist, center around the first one
+    start_samp = 0
+    if manual_spike_times and len(manual_spike_times) > 0:
+        first_spike = manual_spike_times[0]
+        # Try to center the 30s window around the first spike
+        # e.g. start 10s before it
+        start_sec = max(0, first_spike - 10)
+        start_samp = int(start_sec * sf)
+    
+    end_samp = int(min(n_times, start_samp + max_plot_seconds * sf))
+    
+    # If the window is too short (end of file), shift back
+    if end_samp - start_samp < max_plot_seconds * sf and n_times > max_plot_seconds * sf:
+        start_samp = int(n_times - max_plot_seconds * sf)
+        end_samp = n_times
+
+    for idx in component_indices:
+        comp = S[idx]
+        fig, axes = plt.subplots(2, 1, figsize=(12, 6), constrained_layout=True)
+
+        # Continuous segment
+        t_seg = times[start_samp:end_samp]
+        axes[0].plot(t_seg, comp[start_samp:end_samp], color='C0', linewidth=0.8)
+        axes[0].set_title(f'ICA component {idx} — continuous ({max_plot_seconds}s window)')
+        axes[0].set_xlabel('Time (s)')
+        axes[0].set_ylabel('Amplitude (a.u.)')
+
+        # Mark manual spike times within the segment
+        if manual_spike_times is not None:
+            for s in manual_spike_times:
+                if t_seg[0] <= s <= t_seg[-1]:
+                    axes[0].axvline(s, color='g', linestyle='-', alpha=0.8, label='Manual' if 'Manual' not in [l.get_label() for l in axes[0].lines] else "")
+
+        # Mark refined spike times within the segment
+        if spike_times is not None:
+            for s in spike_times:
+                if t_seg[0] <= s <= t_seg[-1]:
+                    axes[0].axvline(s, color='r', linestyle='--', alpha=0.6, label='Refined' if 'Refined' not in [l.get_label() for l in axes[0].lines] else "")
+        
+        if manual_spike_times is not None or spike_times is not None:
+            axes[0].legend(loc='upper right')
+
+        # Average epoch around spikes
+        if spike_times is not None and template_z is not None:
+            L = len(template_z)
+            half = L // 2
+            epochs = []
+            for s in spike_times:
+                samp = int(round(s * sf))
+                start = samp - half
+                end = start + L
+                if start < 0 or end > len(comp):
+                    continue
+                epochs.append(comp[start:end])
+            if len(epochs) > 0:
+                epochs = np.vstack(epochs)
+                mean_epoch = epochs.mean(axis=0)
+                t_epoch = (np.arange(len(mean_epoch)) - half) / sf
+                axes[1].plot(t_epoch, mean_epoch, label='Component mean', color='C1')
+                # overlay scaled template
+                tpl = template_z.copy()
+                if np.std(tpl) > 0:
+                    tpl = (tpl - tpl.mean()) / (tpl.std() + 1e-12)
+                    tpl = tpl * (np.std(mean_epoch) * 0.8)
+                axes[1].plot(t_epoch, tpl, label='Template (scaled)', color='k', linestyle='--')
+                axes[1].axvline(0, color='r', linestyle=':', label='Spike')
+                axes[1].set_title(f'ICA component {idx} — averaged epoch (n={len(epochs)})')
+                axes[1].set_xlabel('Time (s)')
+                axes[1].legend()
+            else:
+                axes[1].text(0.5, 0.5, 'No full epochs available for averaging', ha='center')
+                axes[1].set_title(f'ICA component {idx} — averaged epoch (n=0)')
+        else:
+            axes[1].text(0.5, 0.5, 'Template or spike times not provided', ha='center')
+            axes[1].set_title(f'ICA component {idx} — averaged epoch')
+
+        # Save or show
+        if save_figs:
+            if outdir is None:
+                outdir = os.path.join(os.getcwd(), 'results', 'figures')
+            os.makedirs(outdir, exist_ok=True)
+            fname = f"ica_component_{idx}.png"
+            path = os.path.join(outdir, fname)
+            fig.savefig(path, dpi=150)
+            plt.close(fig)
+        elif show_figs:
+            plt.show()
+        else:
+            plt.close(fig)
 

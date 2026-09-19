@@ -2,6 +2,9 @@ import numpy as np
 from scipy.signal import resample, fftconvolve
 from mne.filter import filter_data
 
+from facet.preprocessing import BandPassFilter
+from facet.Epilepsy.helpers.preprocessing import apply_facet_filters
+
 
 def _double_gamma_hrf(t, peak_time=6.0, undershoot=16.0, ratio=6.0):
     """Double-gamma HRF (canonical, peaking at ~6s)."""
@@ -46,8 +49,8 @@ def _build_epileptic_map(raw, spike_sec, half_win_s=0.15, band=(1., 30.)):
     hw = int(round(half_win_s * sf))
     eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads')
 
-    # Band-pass filter a copy to 1–30 Hz (paper spec)
-    raw_filt = raw.copy().filter(band[0], band[1], picks='eeg', verbose=False)
+    # Band-pass filter a copy to 1–30 Hz (paper spec) via the shared FACETpy processor
+    raw_filt = apply_facet_filters(raw, [BandPassFilter(l_freq=band[0], h_freq=band[1], picks="eeg")])
     data = raw_filt.get_data(picks=eeg_picks)  # (n_ch, n_times)
 
     # Epoch and average
@@ -61,11 +64,21 @@ def _build_epileptic_map(raw, spike_sec, half_win_s=0.15, band=(1., 30.)):
     if len(epochs) < 3:
         raise ValueError(f"Only {len(epochs)} valid spike epochs — need ≥3 for a stable map.")
 
+    epochs = np.asarray(epochs)  # (n_epochs, n_ch, win_len)
+
+    # Baseline-correct each epoch by its pre-spike window mean so slow drifts /
+    # DC offsets don't survive averaging and inflate a broad artefact gradient.
+    epochs = epochs - epochs[:, :, :hw].mean(axis=2, keepdims=True)
+
     avg = np.mean(epochs, axis=0)  # (n_ch, win_len)
 
-    # GFP at each time point: spatial std across channels
+    # GFP at each time point: spatial std across channels. Restrict the peak
+    # search to a small window around the spike mark (index ``hw``) so the map
+    # is the spike's field, not the largest-GFP artefact frame in the epoch.
     gfp = np.std(avg, axis=0)
-    peak_idx = np.argmax(gfp)
+    search_hw = int(round(0.04 * sf))
+    lo, hi = max(0, hw - search_hw), min(len(gfp), hw + search_hw + 1)
+    peak_idx = lo + int(np.argmax(gfp[lo:hi]))
 
     # Epileptic map = voltage vector at GFP peak, normalised by its GFP
     epileptic_map = avg[:, peak_idx]
@@ -107,7 +120,7 @@ def _compute_spatial_correlation_timecourse(raw, epileptic_map, band=(1., 30.)):
 
     eeg_picks = mne.pick_types(raw.info, eeg=True, meg=False, exclude='bads')
 
-    raw_filt = raw.copy().filter(band[0], band[1], picks='eeg', verbose=False)
+    raw_filt = apply_facet_filters(raw, [BandPassFilter(l_freq=band[0], h_freq=band[1], picks="eeg")])
     data = raw_filt.get_data(picks=eeg_picks)  # (n_ch, n_times)
 
     n_ch, n_times = data.shape
@@ -177,6 +190,11 @@ def build_grouiller_regressor(raw, spike_sec, half_win_s=0.15, tr=2.5, band=(1.,
         Regressor time course sampled at TR.
     epileptic_map : ndarray
         The epileptic voltage map used (for diagnostics / plotting).
+    corr_sq : ndarray
+        The pre-HRF, EEG-rate squared spatial-correlation time course (the
+        continuous "epileptic-map presence" signal, one value per EEG sample).
+        Exposed so downstream code can compare method timing at EEG resolution
+        instead of the HRF-blurred, TR-downsampled regressor.
     """
     sf = raw.info['sfreq']
     total_duration = raw.n_times / sf
@@ -199,7 +217,7 @@ def build_grouiller_regressor(raw, spike_sec, half_win_s=0.15, tr=2.5, band=(1.,
     tr_times = np.arange(n_tr) * tr
     regressor = np.interp(tr_times, t_eeg, convolved)
 
-    return regressor, epileptic_map
+    return regressor, epileptic_map, corr_sq
 
 # Ebrahimzadeh et al. 2021 HRF regressor generation
 # ======================= HRF convolution =======================
@@ -229,7 +247,14 @@ def generate_hrf_regressors(component_tc, sfreq, peaks_s=[3, 5, 7, 9], tr=2.5):
 def compute_and_attach_ica_regressors(detection, sfreq, tr):
     """
     Compute ICA regressors and attach them to the detection object.
-    
+
+    ``regressor_ica`` / ``regressors_ica_all`` are HRF (fMRI) regressors and
+    require a TR. When ``tr is None`` no valid regressor can be produced, so any
+    pre-existing (e.g. pre-spatial-gate) values are cleared rather than retained.
+    When ``tr`` is given, the regressor is (re)generated from the FINAL leading
+    accepted component — ``component_timecourses[0]`` — which after the spatial
+    gate is the representative TCCC component.
+
     Parameters
     ----------
     detection : TemplateICADetection
@@ -244,9 +269,15 @@ def compute_and_attach_ica_regressors(detection, sfreq, tr):
     detection : TemplateICADetection
         Updated detection object with regressors attached.
     """
-    if tr is not None and len(detection.accepted_components) > 0:
-        # Use the first accepted component
-        # detection.component_timecourses contains the timecourses of accepted components in order
+    if tr is None:
+        # No fMRI TR -> no valid regressor; drop any stale pre-gate regressor.
+        detection.regressor_ica = None
+        detection.regressors_ica_all = None
+        return detection
+
+    if len(detection.accepted_components) > 0:
+        # Use the leading accepted component (the representative after the gate);
+        # detection.component_timecourses is aligned to accepted_components order.
         if detection.component_timecourses and len(detection.component_timecourses) > 0:
             ica_source = detection.component_timecourses[0]
             
