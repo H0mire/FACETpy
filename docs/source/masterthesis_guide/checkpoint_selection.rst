@@ -48,6 +48,11 @@ objects, inspect a selection from the checkout root:
    print(artifact_id, path)
    print(record["sha256"], record["role"], record.get("identity"))
 
+For the three ``spike_aware_*`` comparisons, ``comparison_baseline_artifact``
+names the earlier model used as the reference arm. It remains separate from
+``inference_artifact``, which selects the retrained checkpoint. Both inputs are
+retained in LFS and match the hashes in the original comparison reports.
+
 What a hash proves
 ------------------
 

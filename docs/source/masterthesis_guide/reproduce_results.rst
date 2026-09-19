@@ -127,7 +127,9 @@ Phase-1 signal panels use fourteen original ``predicted_artifact.npy`` arrays.
 These were tracked in the preserved source snapshot, so they are not necessarily
 present in the ignored-file ZIP. The catalog records their Git source, SHA-256,
 size and relative destination. Restore them to an external prediction root,
-then pass that root as ``--prediction-root``. For one array:
+then pass that root as ``--prediction-root``. The restoration command requires
+the source snapshot in the local Git object database; a fresh clone may not
+contain it. Keep access to the retained source checkout. For one array:
 
 .. code-block:: console
 

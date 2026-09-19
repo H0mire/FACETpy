@@ -134,7 +134,7 @@ See :doc:`/masterthesis_guide/reading_results` for metrics, status fields and so
      - :download:`Hyperparameters </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42/hyperparameters.yaml>`; :download:`Evaluation </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42/evaluation.json>`; :download:`Training curve (SVG) </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/run8_vit_spectrogram_lr0_001_dim288_sisdr3_s42/training_curve.svg>`
      - Outcome: ``valid``; verification: ``not_run``. Parameters: ``original_resolved``. Evaluation: ``recorded_evidence``.
    * - ``spike_aware_vit_spectrogram``
-     - Phase 3; training: ``weg_a_v10_locked_1ch``; evaluation: ``weg_a_v10_locked``
+     - Phase 3; training: ``weg_a_v10_locked_1ch``; evaluation: ``weg_a_v10_locked_1ch``
      - :download:`Hyperparameters </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/spike_aware_vit_spectrogram/hyperparameters.yaml>`; :download:`Evaluation </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/spike_aware_vit_spectrogram/evaluation.json>`; :download:`Training curve (SVG) </../../src/facet/models/masterthesis/vit_spectrogram/deployment/results/spike_aware_vit_spectrogram/training_curve.svg>`
      - Outcome: ``valid``; verification: ``not_run``. Parameters: ``original_resolved``. Evaluation: ``recorded_evidence``.
    * - ``wega_vit_spectrogram_lr0_00015_dim120_sisdr0_s42``

@@ -2790,6 +2790,36 @@ artifacts:
     availability: local
     identity: explicit_pipeline_output_path
     sha256: 979d6285e6ddfa8da995aa1ce878d9999546cf933e0a6dbc347a40df6f15d365
+  spike_aware_demucs_comparison_baseline_ts:
+    path: artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/comparison_baseline.ts
+    source: output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic64_sisdr0_s42.ts
+    owner: spike_aware_demucs
+    kind: export
+    role: comparison_baseline
+    bytes: 66368963
+    availability: local
+    identity: matched_recorded_comparison_hash
+    sha256: f4a64ab3ca5817f2568456b42a18c3f0c9ffc36cb903f5d80520f6f9f9ba0f46
+  spike_aware_nested_gan_comparison_baseline_ts:
+    path: artifacts/exports/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/comparison_baseline.ts
+    source: output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch48_sisdr1_s42.ts
+    owner: spike_aware_nested_gan
+    kind: export
+    role: comparison_baseline
+    bytes: 4855570
+    availability: local
+    identity: matched_recorded_comparison_hash
+    sha256: 75baf7ae66b933e8a4b83d1cb0756b855806a9ec9281a640355b9805272e922c
+  spike_aware_vit_spectrogram_comparison_baseline_ts:
+    path: artifacts/exports/masterthesis/phase_3/vit_spectrogram_deployment_edition/spike_aware_vit_spectrogram/comparison_baseline.ts
+    source: output/run8_fetched/gridpod2/grids/run8/vit_spectrogram/lr0.001_dim192_sisdr1_s42.ts
+    owner: spike_aware_vit_spectrogram
+    kind: export
+    role: comparison_baseline
+    bytes: 11021106
+    availability: local
+    identity: matched_recorded_comparison_hash
+    sha256: 00a8800084420079ae70b3a0857bb45df72a17f898ff631f6b0e62adaa64916d
 experiments:
   legacy_fc_dae:
     phase: 0
@@ -8946,10 +8976,12 @@ experiments:
     dataset: weg_a_v10_locked_1ch
     outcome: valid
     verification: not_run
+    comparison_baseline_artifact: spike_aware_demucs_comparison_baseline_ts
     artifacts:
     - spike_aware_demucs_epoch0002_val_loss13_2668_pt
     - spike_aware_demucs_best_checkpoint_cuda_ts
     - spike_aware_demucs_best_checkpoint_cpu_ts
+    - spike_aware_demucs_comparison_baseline_ts
     evidence:
     - masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/VERIFIED.json
     - masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/summary.json
@@ -8979,13 +9011,15 @@ experiments:
   spike_aware_nested_gan:
     phase: 3
     model: nested_gan_deployment_edition
-    dataset: weg_a_v10_locked
+    dataset: weg_a_v10_locked_1ch
     outcome: valid
     verification: not_run
+    comparison_baseline_artifact: spike_aware_nested_gan_comparison_baseline_ts
     artifacts:
     - spike_aware_nested_gan_epoch0079_val_loss1_5766_pt
     - spike_aware_nested_gan_best_checkpoint_cuda_ts
     - spike_aware_nested_gan_best_checkpoint_cpu_ts
+    - spike_aware_nested_gan_comparison_baseline_ts
     evidence:
     - masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/VERIFIED.json
     - masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/summary.json
@@ -9015,13 +9049,15 @@ experiments:
   spike_aware_vit_spectrogram:
     phase: 3
     model: vit_spectrogram_deployment_edition
-    dataset: weg_a_v10_locked
+    dataset: weg_a_v10_locked_1ch
     outcome: valid
     verification: not_run
+    comparison_baseline_artifact: spike_aware_vit_spectrogram_comparison_baseline_ts
     artifacts:
     - spike_aware_vit_spectrogram_epoch0058_val_loss4_2328_pt
     - spike_aware_vit_spectrogram_best_checkpoint_cuda_ts
     - spike_aware_vit_spectrogram_best_checkpoint_cpu_ts
+    - spike_aware_vit_spectrogram_comparison_baseline_ts
     evidence:
     - masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/VERIFIED.json
     - masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/summary.json

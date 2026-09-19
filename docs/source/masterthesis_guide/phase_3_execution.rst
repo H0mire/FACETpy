@@ -50,7 +50,9 @@ The dry run writes planned settings without training or scoring them. Inspect
 those settings before removing ``--dry-run``. The full search can take substantial
 time; a limited trial is useful for checking execution but cannot stand for the
 completed grid. Use the tool's ``--help`` for confirmation seeds and trial limits.
-Record all attempted settings, including failures.
+Record all attempted settings, including failures. Inspect the output JSON
+``zeilen`` entries: the grid command can exit successfully even when every trial
+failed. A zero exit code alone does not establish a completed search.
 
 The retained proof-fit search contains complete grids for three families and
 only two incomplete DHCT-GAN trials. Running the current grid generator does not
@@ -65,21 +67,26 @@ proof-fit configuration into a Weg-A configuration. Selection uses its selection
 split. Keep the locked holdout out of model selection.
 
 For the later checkpoint comparison, the retained evaluator takes an explicit
-baseline TorchScript export and a retrained source checkpoint:
+baseline TorchScript export and a retrained source checkpoint. For Demucs,
+resolve ``spike_aware_demucs`` with the configuration command above, writing
+``/path/to/replay/weg-a-resolved.yaml``. Materialize both LFS inputs below.
+The baseline is recorded as ``comparison_baseline_artifact``; the retrained
+checkpoint is ``inference_artifact``. Both match the hashes in the original
+comparison report.
 
 .. code-block:: console
 
    uv run python tools/evaluation/compare_phase3_spike_aware.py \
      --config /path/to/replay/weg-a-resolved.yaml \
      --dataset /path/to/locked-weg-a.npz \
-     --baseline /path/to/recorded-baseline.ts \
-     --checkpoint /path/to/recorded-retrained.pt \
+     --baseline artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/comparison_baseline.ts \
+     --checkpoint artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/epoch0002_val_loss13.2668.pt \
      --output-dir /path/to/replay/phase3/locked-holdout --device cpu
 
-Choose the exact paired artifacts and packing from the corresponding catalog
-records. These paths are placeholders, not interchangeable model files. The
-script evaluates ``example_split == 2`` and reports the full holdout and labelled
-spike cases separately. Both training data and objective changed between these
+Use the original ``weg_a_v10_locked_1ch`` bundle for this Demucs example.
+For another family, use its paired artifact IDs, dataset and configuration from
+the catalog. The script evaluates ``example_split == 2`` and reports the full
+holdout and labelled spike cases separately. Both training data and objective changed between these
 models; this comparison cannot isolate the effect of the spike-loss weight.
 
 Pipeline spike preservation

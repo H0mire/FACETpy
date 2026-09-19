@@ -2077,7 +2077,7 @@ Phase 3 experiments
   :download:`Record 9 <../../../masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/phase3_spike_aware_comparison/demucs/pipeline/spike_aware/residual_metrics.csv>`.
   :download:`Record 10 <../../../masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/phase3_spike_aware_comparison/demucs/pipeline/spike_aware/residual_metrics.meta.json>`.
   :download:`Record 11 <../../../masterthesis_guide/experiments/phase_3/spike_aware_demucs/provenance/phase3_spike_aware_comparison/demucs/pipeline/spike_aware/spike_preservation.csv>`.
-  Artifacts: ``spike_aware_demucs_epoch0002_val_loss13_2668_pt``, ``spike_aware_demucs_best_checkpoint_cuda_ts``, ``spike_aware_demucs_best_checkpoint_cpu_ts``.
+  Artifacts: ``spike_aware_demucs_epoch0002_val_loss13_2668_pt``, ``spike_aware_demucs_best_checkpoint_cuda_ts``, ``spike_aware_demucs_best_checkpoint_cpu_ts``, ``spike_aware_demucs_comparison_baseline_ts``.
 
 * ``spike_aware_nested_gan``: nested_gan_deployment_edition; outcome **valid**; verification ``not_run``.
   :download:`config <../../../masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/config.yaml>`.
@@ -2093,7 +2093,7 @@ Phase 3 experiments
   :download:`Record 9 <../../../masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/phase3_spike_aware_comparison/nested_gan/pipeline/spike_aware/residual_metrics.csv>`.
   :download:`Record 10 <../../../masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/phase3_spike_aware_comparison/nested_gan/pipeline/spike_aware/residual_metrics.meta.json>`.
   :download:`Record 11 <../../../masterthesis_guide/experiments/phase_3/spike_aware_nested_gan/provenance/phase3_spike_aware_comparison/nested_gan/pipeline/spike_aware/spike_preservation.csv>`.
-  Artifacts: ``spike_aware_nested_gan_epoch0079_val_loss1_5766_pt``, ``spike_aware_nested_gan_best_checkpoint_cuda_ts``, ``spike_aware_nested_gan_best_checkpoint_cpu_ts``.
+  Artifacts: ``spike_aware_nested_gan_epoch0079_val_loss1_5766_pt``, ``spike_aware_nested_gan_best_checkpoint_cuda_ts``, ``spike_aware_nested_gan_best_checkpoint_cpu_ts``, ``spike_aware_nested_gan_comparison_baseline_ts``.
 
 * ``spike_aware_vit_spectrogram``: vit_spectrogram_deployment_edition; outcome **valid**; verification ``not_run``.
   :download:`config <../../../masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/config.yaml>`.
@@ -2109,7 +2109,7 @@ Phase 3 experiments
   :download:`Record 9 <../../../masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.csv>`.
   :download:`Record 10 <../../../masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/residual_metrics.meta.json>`.
   :download:`Record 11 <../../../masterthesis_guide/experiments/phase_3/spike_aware_vit_spectrogram/provenance/phase3_spike_aware_comparison/vit_spectrogram/pipeline/spike_aware/spike_preservation.csv>`.
-  Artifacts: ``spike_aware_vit_spectrogram_epoch0058_val_loss4_2328_pt``, ``spike_aware_vit_spectrogram_best_checkpoint_cuda_ts``, ``spike_aware_vit_spectrogram_best_checkpoint_cpu_ts``.
+  Artifacts: ``spike_aware_vit_spectrogram_epoch0058_val_loss4_2328_pt``, ``spike_aware_vit_spectrogram_best_checkpoint_cuda_ts``, ``spike_aware_vit_spectrogram_best_checkpoint_cpu_ts``, ``spike_aware_vit_spectrogram_comparison_baseline_ts``.
 
 Reproduction tools
 ------------------

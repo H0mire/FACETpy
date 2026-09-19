@@ -18,6 +18,7 @@ one catalog. Start with a small functional example before loading a full recordi
    checkpoint_selection
    run_environment
    troubleshooting
+   validation
    catalog
 
 For architecture, origins and variant differences, see

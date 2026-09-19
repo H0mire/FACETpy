@@ -2,7 +2,7 @@
   "experiment": "spike_aware_nested_gan",
   "model": "nested_gan_deployment_edition",
   "phase": 3,
-  "dataset": "weg_a_v10_locked",
+  "dataset": "weg_a_v10_locked_1ch",
   "training_dataset": "weg_a_v10_locked_1ch",
   "protocol": {
     "description": "Matched injected/no-injection pipeline arms; four identical synthetic injections on all EEG channels, measured on Fp1; separate from the labelled holdout.",

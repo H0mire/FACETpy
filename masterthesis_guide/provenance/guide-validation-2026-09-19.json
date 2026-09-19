@@ -1,0 +1,1253 @@
+{
+  "date": "2026-09-19",
+  "scope": "Thesis-guide instructions, examples and referenced reproduction entry points on a local CPU checkout.",
+  "base_commit": "9eafe58",
+  "changes_tested": "External-path fixes, retained comparison baselines, corrected single-channel comparison associations and guide prerequisites.",
+  "environment": {
+    "python": "3.13.11",
+    "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+    "machine": "arm64",
+    "packages": {
+      "torch": "2.11.0",
+      "numpy": "2.1.3",
+      "scipy": "1.17.1",
+      "mne": "1.10.2",
+      "pytest": "8.4.2",
+      "sphinx": "7.4.7"
+    },
+    "cpu": "Apple M4 Pro",
+    "memory_gib": 48,
+    "device": "cpu",
+    "threads": "OMP/MKL capped at 2 for examples; locked-holdout evaluator explicitly sets 4 PyTorch threads."
+  },
+  "inputs": {
+    "datasets": {
+      "proof_fit": {
+        "path": "${DATA_ROOT}/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+        "sha256": "5ba609289301643a61ef61813dbbcee63860245c2333510324f34590decc2774",
+        "matches": true
+      },
+      "weg_a_v7": {
+        "path": "${DATA_ROOT}/output/weg_a_farm_v7_k6_512/weg_a_spatiotemporal_dataset.npz",
+        "sha256": "85acc1dc8ce5216a14fb83a2bfce2ccaa80ffef8d9ccedb7da2d59896dfdafec",
+        "matches": true
+      },
+      "weg_a_v10_locked": {
+        "path": "${DATA_ROOT}/output/weg_a_farm_v10_locked_512/weg_a_spatiotemporal_dataset.npz",
+        "sha256": "f96bc3a6e4f8ebbd6ab3d268c9684514ccb90f229c4aa4c8ddb4aa84739b4882",
+        "matches": true
+      },
+      "weg_a_v10_locked_1ch": {
+        "path": "${DATA_ROOT}/output/weg_a_farm_v10_locked_1ch/weg_a_spatiotemporal_dataset.npz",
+        "sha256": "4c3dc8a5861d71db5c8ddb1a4c8545b2fbe9bf6b1dc5bfe79b087b55b4a44357",
+        "matches": true
+      },
+      "artifact_farm_pca4": {
+        "path": "${DATA_ROOT}/output/artifact_libraries/niazy_farm_pca4_direct/niazy_aas_pca4_artifact.npz",
+        "sha256": "11296645a43f5da9e67b92ac52f8792ef077a3784f79f619a6bdcb01a1c79e13",
+        "matches": true
+      },
+      "artifact_aas_direct": {
+        "path": "${DATA_ROOT}/output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz",
+        "sha256": "761d8265ca9b2a4bce67b897888b4ab0bb890816f50cf133229e773006b1173e",
+        "matches": true
+      },
+      "niazy_recording": {
+        "path": "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "sha256": "d99470e94750a251536038fb986530f45e5fd5e9c406c623bfc5866c2a59c876",
+        "matches": true
+      }
+    },
+    "training_configs_resolved_and_factories_imported": 210,
+    "all_resolved_data_paths_exist": true,
+    "artifact_hashes_verified": 211,
+    "inference_selections_verified": 198,
+    "original_prediction_arrays_restored_and_verified": 14
+  },
+  "core_execution": [
+    {
+      "name": "phase1_demucs",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "masterthesis_guide.examples.evaluate_model",
+        "holdout_demucs",
+        "--data-root",
+        "${DATA_ROOT}",
+        "--device",
+        "cpu",
+        "--out",
+        "${VALIDATION_OUTPUT}/phase1/demucs.json"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 146.29,
+      "log": "${VALIDATION_OUTPUT}/phase1_demucs.log"
+    },
+    {
+      "name": "phase2_arms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/run_arms.py",
+        "--experiment",
+        "deployment_demucs",
+        "--baseline",
+        "farm",
+        "--baseline",
+        "uncorrected",
+        "--edf",
+        "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/phase2/arms",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 574.87,
+      "log": "${VALIDATION_OUTPUT}/phase2_arms.log"
+    },
+    {
+      "name": "phase2_measure",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/measure_arms.py",
+        "--arm-dir",
+        "${VALIDATION_OUTPUT}/phase2/arms",
+        "--out",
+        "${VALIDATION_OUTPUT}/phase2/residual_metrics.csv"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 2.34,
+      "log": "${VALIDATION_OUTPUT}/phase2_measure.log"
+    },
+    {
+      "name": "phase0_adapted",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "masterthesis_guide.examples.reproduce_phase0",
+        "--checkpoint",
+        "${REPO}/artifacts/checkpoints/masterthesis/phase_0/legacy_cascaded_dae/legacy_fc_dae/legacy_dl_cascade.pt",
+        "--edf",
+        "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "--out",
+        "${VALIDATION_OUTPUT}/phase0/adapted_raw.fif",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 90.95,
+      "log": "${VALIDATION_OUTPUT}/phase0_adapted.log"
+    },
+    {
+      "name": "quickstart_run_model",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "masterthesis_guide.examples.run_model",
+        "deployment_demucs",
+        "--edf",
+        "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "--out",
+        "${VALIDATION_OUTPUT}/quickstart/demucs_raw.fif",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 582.86,
+      "log": "${VALIDATION_OUTPUT}/quickstart_run_model.log"
+    },
+    {
+      "name": "compare_farm",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "-m",
+        "masterthesis_guide.examples.compare_with_farm",
+        "deployment_demucs",
+        "--edf",
+        "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/compare",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 603.16,
+      "log": "${VALIDATION_OUTPUT}/compare_farm.log"
+    },
+    {
+      "name": "injected_arms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/run_arms.py",
+        "--experiment",
+        "deployment_demucs",
+        "--baseline",
+        "farm",
+        "--baseline",
+        "uncorrected",
+        "--edf",
+        "${VALIDATION_OUTPUT}/spikes/NiazyFMRI_spikes.edf",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/spikes/arms",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 656.59,
+      "log": "${VALIDATION_OUTPUT}/injected_arms.log"
+    },
+    {
+      "name": "spike_measure",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/measure_spike_preservation.py",
+        "--with-dir",
+        "${VALIDATION_OUTPUT}/spikes/arms",
+        "--without-dir",
+        "${VALIDATION_OUTPUT}/phase2/arms",
+        "--truth",
+        "${VALIDATION_OUTPUT}/spikes/NiazyFMRI_spikes.truth.json",
+        "--out",
+        "${VALIDATION_OUTPUT}/spikes/preservation.csv"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.77,
+      "log": "${VALIDATION_OUTPUT}/spike_measure.log"
+    },
+    {
+      "name": "phase3_arms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/run_arms.py",
+        "--experiment",
+        "run8_demucs_lr0_001_ic64_sisdr0_s42",
+        "--baseline",
+        "farm",
+        "--baseline",
+        "uncorrected",
+        "--edf",
+        "${DATA_ROOT}/examples/datasets/NiazyFMRI.edf",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/phase3/arms",
+        "--device",
+        "cpu"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 627.16,
+      "log": "${VALIDATION_OUTPUT}/phase3_arms.log"
+    },
+    {
+      "name": "phase3_measure",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/measure_arms.py",
+        "--arm-dir",
+        "${VALIDATION_OUTPUT}/phase3/arms",
+        "--out",
+        "${VALIDATION_OUTPUT}/phase3/residual_metrics.csv"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 2.18,
+      "log": "${VALIDATION_OUTPUT}/phase3_measure.log"
+    }
+  ],
+  "other_entry_points": [
+    {
+      "name": "help_build_spatiotemporal_reference_dataset",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/build_spatiotemporal_reference_dataset.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.48,
+      "log": "${VALIDATION_OUTPUT}/help_build_spatiotemporal_reference_dataset.log"
+    },
+    {
+      "name": "help_derive_single_channel_weg_a",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/derive_single_channel_weg_a.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_derive_single_channel_weg_a.log"
+    },
+    {
+      "name": "help_edf_to_external_clean",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/edf_to_external_clean.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.13,
+      "log": "${VALIDATION_OUTPUT}/help_edf_to_external_clean.log"
+    },
+    {
+      "name": "help_export_channel_subset",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/export_channel_subset.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_export_channel_subset.log"
+    },
+    {
+      "name": "help_extract_niazy_aas_pca4_artifact",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/extract_niazy_aas_pca4_artifact.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.28,
+      "log": "${VALIDATION_OUTPUT}/help_extract_niazy_aas_pca4_artifact.log"
+    },
+    {
+      "name": "help_lock_holdout_split",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/dataset_building/lock_holdout_split.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_lock_holdout_split.log"
+    },
+    {
+      "name": "help_check_torch",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/gpu_fleet/check_torch.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.05,
+      "log": "${VALIDATION_OUTPUT}/help_check_torch.log"
+    },
+    {
+      "name": "help_fleet",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/gpu_fleet/fleet.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_fleet.log"
+    },
+    {
+      "name": "syntax_fetch_runpod_results",
+      "command": [
+        "bash",
+        "-n",
+        "tools/gpu_fleet/fetch_runpod_results.sh"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/syntax_fetch_runpod_results.log"
+    },
+    {
+      "name": "help_fetch_runpod_results",
+      "command": [
+        "bash",
+        "tools/gpu_fleet/fetch_runpod_results.sh",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/help_fetch_runpod_results.log"
+    },
+    {
+      "name": "syntax_run_remote_training",
+      "command": [
+        "bash",
+        "-n",
+        "tools/gpu_fleet/run_remote_training.sh"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/syntax_run_remote_training.log"
+    },
+    {
+      "name": "help_run_remote_training",
+      "command": [
+        "bash",
+        "tools/gpu_fleet/run_remote_training.sh",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/help_run_remote_training.log"
+    },
+    {
+      "name": "syntax_sync_worktree_to_runpod",
+      "command": [
+        "bash",
+        "-n",
+        "tools/gpu_fleet/sync_worktree_to_runpod.sh"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/syntax_sync_worktree_to_runpod.log"
+    },
+    {
+      "name": "help_sync_worktree_to_runpod",
+      "command": [
+        "bash",
+        "tools/gpu_fleet/sync_worktree_to_runpod.sh",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.01,
+      "log": "${VALIDATION_OUTPUT}/help_sync_worktree_to_runpod.log"
+    },
+    {
+      "name": "help_benchmark_legacy_vs_v2",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/refactoring_comparison/benchmark_legacy_vs_v2.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.09,
+      "log": "${VALIDATION_OUTPUT}/help_benchmark_legacy_vs_v2.log"
+    },
+    {
+      "name": "help_engineering_indicators",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/refactoring_comparison/engineering_indicators.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_engineering_indicators.log"
+    },
+    {
+      "name": "help_benchmark_models",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/refactoring_comparison/benchmark_models.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_benchmark_models.log"
+    },
+    {
+      "name": "help_grid_search_run7",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/training/grid_search_run7.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_grid_search_run7.log"
+    },
+    {
+      "name": "help_derive_wega_loss_weights",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/training/derive_wega_loss_weights.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.97,
+      "log": "${VALIDATION_OUTPUT}/help_derive_wega_loss_weights.log"
+    },
+    {
+      "name": "help_compare_phase3_spike_aware",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/evaluation/compare_phase3_spike_aware.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.86,
+      "log": "${VALIDATION_OUTPUT}/help_compare_phase3_spike_aware.log"
+    },
+    {
+      "name": "help_eval_run6_spike_preservation",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/evaluation/eval_run6_spike_preservation.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.85,
+      "log": "${VALIDATION_OUTPUT}/help_eval_run6_spike_preservation.log"
+    },
+    {
+      "name": "help_paired_spike_comparison",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/evaluation/paired_spike_comparison.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.09,
+      "log": "${VALIDATION_OUTPUT}/help_paired_spike_comparison.log"
+    },
+    {
+      "name": "help_inject_spikes",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/inject_spikes.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.28,
+      "log": "${VALIDATION_OUTPUT}/help_inject_spikes.log"
+    },
+    {
+      "name": "help_measure_arms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/measure_arms.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.25,
+      "log": "${VALIDATION_OUTPUT}/help_measure_arms.log"
+    },
+    {
+      "name": "help_measure_spike_preservation",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/measure_spike_preservation.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/help_measure_spike_preservation.log"
+    },
+    {
+      "name": "help_run_arms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/pipeline_demo/run_arms.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.25,
+      "log": "${VALIDATION_OUTPUT}/help_run_arms.log"
+    },
+    {
+      "name": "help_artifact_amplitude",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/artifact_amplitude.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.26,
+      "log": "${VALIDATION_OUTPUT}/help_artifact_amplitude.log"
+    },
+    {
+      "name": "help_plot_phase0_signal_comparison",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase0_signal_comparison.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.26,
+      "log": "${VALIDATION_OUTPUT}/help_plot_phase0_signal_comparison.log"
+    },
+    {
+      "name": "help_plot_phase1_holdout_signal_comparison",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase1_holdout_signal_comparison.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.26,
+      "log": "${VALIDATION_OUTPUT}/help_plot_phase1_holdout_signal_comparison.log"
+    },
+    {
+      "name": "help_plot_phase2_family_artifact_window_fast",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase2_family_artifact_window_fast.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.29,
+      "log": "${VALIDATION_OUTPUT}/help_plot_phase2_family_artifact_window_fast.log"
+    },
+    {
+      "name": "help_plot_phase2_pipeline_signal_comparison",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase2_pipeline_signal_comparison.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.25,
+      "log": "${VALIDATION_OUTPUT}/help_plot_phase2_pipeline_signal_comparison.log"
+    },
+    {
+      "name": "help_spike_waveforms",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/spike_waveforms.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.26,
+      "log": "${VALIDATION_OUTPUT}/help_spike_waveforms.log"
+    },
+    {
+      "name": "help_thesis_figures",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/thesis_figures.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.26,
+      "log": "${VALIDATION_OUTPUT}/help_thesis_figures.log"
+    },
+    {
+      "name": "help_training_histories",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/training_histories.py",
+        "--help"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.3,
+      "log": "${VALIDATION_OUTPUT}/help_training_histories.log"
+    },
+    {
+      "name": "build_selected_variants",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/diagrams/build_selected_variants.py"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 3.91,
+      "log": "${VALIDATION_OUTPUT}/build_selected_variants.log"
+    },
+    {
+      "name": "build_facetpy_clean_reference_dataset",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/diagrams/build_facetpy_clean_reference_dataset.py"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.07,
+      "log": "${VALIDATION_OUTPUT}/build_facetpy_clean_reference_dataset.log"
+    },
+    {
+      "name": "build_facetpy_dl_framework",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/diagrams/build_facetpy_dl_framework.py"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.93,
+      "log": "${VALIDATION_OUTPUT}/build_facetpy_dl_framework.log"
+    },
+    {
+      "name": "build_facetpy_proof_fit_dataset",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/diagrams/build_facetpy_proof_fit_dataset.py"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.36,
+      "log": "${VALIDATION_OUTPUT}/build_facetpy_proof_fit_dataset.log"
+    },
+    {
+      "name": "build_facetpy_training_to_deployment",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/diagrams/build_facetpy_training_to_deployment.py"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.71,
+      "log": "${VALIDATION_OUTPUT}/build_facetpy_training_to_deployment.log"
+    },
+    {
+      "name": "docs_python_syntax",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "scripts/docs_snippet_smoke.py",
+        "${REPO}/docs/source/api/core.rst",
+        "${REPO}/docs/source/api/correction.rst",
+        "${REPO}/docs/source/api/evaluation.rst",
+        "${REPO}/docs/source/api/io.rst",
+        "${REPO}/docs/source/api/preprocessing.rst",
+        "${REPO}/docs/source/api/top_level.rst",
+        "${REPO}/docs/source/development/ai_agents_processors.rst",
+        "${REPO}/docs/source/development/changelog.rst",
+        "${REPO}/docs/source/development/contributing.rst",
+        "${REPO}/docs/source/development/documentation_policy.rst",
+        "${REPO}/docs/source/development/releasing.rst",
+        "${REPO}/docs/source/development/roadmap.rst",
+        "${REPO}/docs/source/getting_started/examples.rst",
+        "${REPO}/docs/source/getting_started/installation.rst",
+        "${REPO}/docs/source/getting_started/quickstart.rst",
+        "${REPO}/docs/source/getting_started/tutorial.rst",
+        "${REPO}/docs/source/index.rst",
+        "${REPO}/docs/source/masterthesis_guide/catalog.rst",
+        "${REPO}/docs/source/masterthesis_guide/checkpoint_selection.rst",
+        "${REPO}/docs/source/masterthesis_guide/index.rst",
+        "${REPO}/docs/source/masterthesis_guide/legacy_execution.rst",
+        "${REPO}/docs/source/masterthesis_guide/phase_1_execution.rst",
+        "${REPO}/docs/source/masterthesis_guide/phase_2_execution.rst",
+        "${REPO}/docs/source/masterthesis_guide/phase_3_execution.rst",
+        "${REPO}/docs/source/masterthesis_guide/quickstart.rst",
+        "${REPO}/docs/source/masterthesis_guide/reading_results.rst",
+        "${REPO}/docs/source/masterthesis_guide/reproduce_results.rst",
+        "${REPO}/docs/source/masterthesis_guide/run_environment.rst",
+        "${REPO}/docs/source/masterthesis_guide/troubleshooting.rst",
+        "${REPO}/docs/source/project_overview.rst",
+        "${REPO}/docs/source/thesis_reference/code_provenance.rst",
+        "${REPO}/docs/source/thesis_reference/datasets_evaluation.rst",
+        "${REPO}/docs/source/thesis_reference/index.rst",
+        "${REPO}/docs/source/thesis_reference/legacy_metrics.rst",
+        "${REPO}/docs/source/thesis_reference/model_references.rst",
+        "${REPO}/docs/source/thesis_reference/models/cascaded_dae.rst",
+        "${REPO}/docs/source/thesis_reference/models/context_dae.rst",
+        "${REPO}/docs/source/thesis_reference/models/conv_tasnet.rst",
+        "${REPO}/docs/source/thesis_reference/models/d4pm.rst",
+        "${REPO}/docs/source/thesis_reference/models/demucs.rst",
+        "${REPO}/docs/source/thesis_reference/models/denoise_mamba.rst",
+        "${REPO}/docs/source/thesis_reference/models/dhct_gan.rst",
+        "${REPO}/docs/source/thesis_reference/models/dpae.rst",
+        "${REPO}/docs/source/thesis_reference/models/ic_unet.rst",
+        "${REPO}/docs/source/thesis_reference/models/index.rst",
+        "${REPO}/docs/source/thesis_reference/models/multichannel_demucs.rst",
+        "${REPO}/docs/source/thesis_reference/models/nested_gan.rst",
+        "${REPO}/docs/source/thesis_reference/models/sepformer.rst",
+        "${REPO}/docs/source/thesis_reference/models/st_gnn.rst",
+        "${REPO}/docs/source/thesis_reference/models/vit_spectrogram.rst",
+        "${REPO}/docs/source/thesis_reference/phase_0_legacy.rst",
+        "${REPO}/docs/source/thesis_reference/phase_1_unified_holdout.rst",
+        "${REPO}/docs/source/thesis_reference/phase_2_pipeline_deployment.rst",
+        "${REPO}/docs/source/thesis_reference/phase_3_grid_search.rst",
+        "${REPO}/docs/source/thesis_reference/selected_variants.rst",
+        "${REPO}/docs/source/user_guide/architecture.rst",
+        "${REPO}/docs/source/user_guide/configuration.rst",
+        "${REPO}/docs/source/user_guide/custom_processors.rst",
+        "${REPO}/docs/source/user_guide/deep_learning.rst",
+        "${REPO}/docs/source/user_guide/helper_cookbook.rst",
+        "${REPO}/docs/source/user_guide/mne_integration.rst",
+        "${REPO}/docs/source/user_guide/parallel_processing.rst",
+        "${REPO}/docs/source/user_guide/pipelines.rst",
+        "${REPO}/docs/source/user_guide/processors.rst",
+        "${REPO}/docs/source/user_guide/use_cases.rst"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.08,
+      "log": "${VALIDATION_OUTPUT}/docs_python_syntax.log"
+    },
+    {
+      "name": "plot_training_1",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/training_histories.py",
+        "--phase",
+        "1",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/training1.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.06,
+      "log": "${VALIDATION_OUTPUT}/plot_training_1.log"
+    },
+    {
+      "name": "plot_training_2",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/training_histories.py",
+        "--phase",
+        "2",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/training2.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.01,
+      "log": "${VALIDATION_OUTPUT}/plot_training_2.log"
+    },
+    {
+      "name": "plot_ranking",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/thesis_figures.py",
+        "ranking",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/ranking.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.59,
+      "log": "${VALIDATION_OUTPUT}/plot_ranking.log"
+    },
+    {
+      "name": "plot_grid",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/thesis_figures.py",
+        "grid",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/grid.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.77,
+      "log": "${VALIDATION_OUTPUT}/plot_grid.log"
+    },
+    {
+      "name": "plot_before_after",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/thesis_figures.py",
+        "before_after",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/before_after.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.6,
+      "log": "${VALIDATION_OUTPUT}/plot_before_after.log"
+    },
+    {
+      "name": "plot_wega_grid",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/thesis_figures.py",
+        "wega_grid",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/wega_grid.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 0.83,
+      "log": "${VALIDATION_OUTPUT}/plot_wega_grid.log"
+    },
+    {
+      "name": "plot_amplitude",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/artifact_amplitude.py",
+        "--dataset",
+        "${DATA_ROOT}/output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/amplitude.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 4.67,
+      "log": "${VALIDATION_OUTPUT}/plot_amplitude.log"
+    },
+    {
+      "name": "plot_phase0",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase0_signal_comparison.py",
+        "--data-root",
+        "${DATA_ROOT}",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/figures/phase0"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 1.54,
+      "log": "${VALIDATION_OUTPUT}/plot_phase0.log"
+    },
+    {
+      "name": "plot_spikes",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/spike_waveforms.py",
+        "--data-root",
+        "${DATA_ROOT}",
+        "--out",
+        "${VALIDATION_OUTPUT}/figures/spikes.png"
+      ],
+      "status": "passed",
+      "returncode": 0,
+      "elapsed_seconds": 2.79,
+      "log": "${VALIDATION_OUTPUT}/plot_spikes.log"
+    },
+    {
+      "name": "plot_phase1",
+      "status": "passed",
+      "command": [
+        "uv",
+        "run",
+        "python",
+        "tools/plotting/plot_phase1_holdout_signal_comparison.py",
+        "--data-root",
+        "${DATA_ROOT}",
+        "--prediction-root",
+        "${VALIDATION_OUTPUT}/predictions",
+        "--out-dir",
+        "${VALIDATION_OUTPUT}/figures/phase1"
+      ],
+      "note": "All 14 prediction arrays restored from the recorded Git snapshot and checked by size and hash."
+    }
+  ],
+  "additional_execution": {
+    "setup": "uv sync succeeded. The native build passed with DEVELOPER_DIR=/Library/Developer/CommandLineTools; the default selected Xcode required license setup.",
+    "docs": "uv run --extra docs sphinx-build -W -b html docs/source docs/build/html passed. Plain uv sync does not install Sphinx.",
+    "checkpoint_snippet": "Executed the Python block from checkpoint_selection.rst; selected CPU artifact size and hash verified.",
+    "environment_sidecar": "YAML block parsed; FACETPY_ARTIFACT_DIR resolution exercised.",
+    "training": "One epoch on 60 real proof-fit channel examples, with training and validation subsets; checkpoint, history, summary and TorchScript export written. Short functional run, not historical retraining.",
+    "grid": "27 proof-fit and 108 Weg-A settings generated in dry runs; confirmation dry run used the retained Demucs screen. One proof-fit setting trained, exported and scored on the full recording.",
+    "loss_weights": "All four configurations evaluated with --n 2 and adjusted copies written. This checks execution, not reproduction of the recorded 256-example scaling.",
+    "fleet": "Local submit, pending status and cancel passed with an isolated queue; shell syntax and help checked. No remote dispatch.",
+    "plots": "15 PNG outputs decoded and checked as nonblank; every referenced figure-generator entry point executed, including 13 single-window model corrections.",
+    "dataset_tools": "CLI entry points checked; synthetic dataset tests and an external-path single-channel derivation regression passed. Full datasets were not rebuilt."
+  },
+  "measurements": {
+    "phase1_demucs": {
+      "n_examples": 166,
+      "snr_improvement_db": 31.29543113708496,
+      "compared_metric_fields": 20,
+      "max_absolute_metric_difference": 1.2811973704174306e-12
+    },
+    "phase2_demucs": {
+      "csv_fields_equal_to_recorded_table": [
+        "rms_uv",
+        "ga_rest_uv",
+        "naht_ratio",
+        "median_sample_step_uv",
+        "n_harmonics",
+        "epoch_rate_hz",
+        "x_reference"
+      ],
+      "result": {
+        "arm": "deployment_demucs",
+        "rms_uv": "29.703",
+        "ga_rest_uv": "3.819",
+        "naht_ratio": "1.367",
+        "median_sample_step_uv": "0.5472",
+        "step_channel": "Fp1",
+        "n_harmonics": "9",
+        "epoch_rate_hz": "7.0137",
+        "x_reference": "15.4",
+        "hinweis": ""
+      }
+    },
+    "phase3_locked_demucs": {
+      "n_examples": 4110,
+      "input_hashes_match_recorded_comparison": true,
+      "rmse_uv": {
+        "phase3": {
+          "cpu_replay": 575.0244140625,
+          "recorded": 575.0244599767029,
+          "difference": -4.591420292854309e-05
+        },
+        "spike_aware": {
+          "cpu_replay": 58.149295806884766,
+          "recorded": 58.14723772346042,
+          "difference": 0.002058083424344659
+        },
+        "uncorrected": {
+          "cpu_replay": 1958.2742919921875,
+          "recorded": 1958.274282515049,
+          "difference": 9.47713851928711e-06
+        }
+      },
+      "interpretation": "Execution passed. CPU and recorded CUDA results are not bit-identical; no historical verification status was changed."
+    },
+    "one_epoch_grid": {
+      "scientific_status": "verworfen",
+      "ga_rest_uv": 36.6996,
+      "naht_ratio": 6.7018,
+      "interpretation": "The undertrained trial was rejected for discontinuous seams. Successful tool execution does not imply a valid model result."
+    },
+    "phase2_tensor_holdout_demucs": {
+      "n_examples": 166,
+      "snr_improvement_db": 28.37904167175293,
+      "matches_retained_cpu_replay_snr": true
+    },
+    "phase3_pipeline_demucs": {
+      "arm": "run8_demucs_lr0_001_ic64_sisdr0_s42",
+      "rms_uv": "27.796",
+      "ga_rest_uv": "1.89",
+      "naht_ratio": "1.452",
+      "median_sample_step_uv": "0.553",
+      "step_channel": "Fp1",
+      "n_harmonics": "9",
+      "epoch_rate_hz": "7.0137",
+      "x_reference": "7.62",
+      "hinweis": ""
+    },
+    "paired_pipeline_spikes": [
+      {
+        "arm": "uncorrected",
+        "spike_30s_uv": "106.06",
+        "spike_31.5s_uv": "106.14",
+        "spike_33s_uv": "106.01",
+        "spike_34.5s_uv": "106.08",
+        "mittel_uv": "106.07",
+        "erhalt_pct": "106.1",
+        "erhalt_vs_uncorrected_pct": "100.0"
+      },
+      {
+        "arm": "farm",
+        "spike_30s_uv": "102.92",
+        "spike_31.5s_uv": "97.01",
+        "spike_33s_uv": "103.88",
+        "spike_34.5s_uv": "96.25",
+        "mittel_uv": "100.02",
+        "erhalt_pct": "100.0",
+        "erhalt_vs_uncorrected_pct": "94.3"
+      },
+      {
+        "arm": "deployment_demucs",
+        "spike_30s_uv": "100.23",
+        "spike_31.5s_uv": "77.24",
+        "spike_33s_uv": "99.08",
+        "spike_34.5s_uv": "80.72",
+        "mittel_uv": "89.32",
+        "erhalt_pct": "89.3",
+        "erhalt_vs_uncorrected_pct": "84.2"
+      }
+    ]
+  },
+  "regressions": {
+    "suite_passed": 1028,
+    "suite_skipped": 2,
+    "skipped_tests_repeated_with_external_original_data": {
+      "passed": 2,
+      "names": [
+        "test_against_the_stored_run6_diagnosis",
+        "test_context_dataset_extras_are_opt_in_and_aligned"
+      ]
+    },
+    "new_regression_cases": 6
+  },
+  "not_executed": [
+    "Original Phase-0 environment replay: its exact environment and runner remain unresolved. Current adapted execution was run.",
+    "Complete historical retraining and full screening/confirmation grids: configurations were resolved; only one short training trial was run.",
+    "Full dataset reconstruction from source recordings and VEPISET annotations: retained dataset hashes and builder tests were checked instead.",
+    "Remote GPU training, synchronization, result retrieval and network Git/LFS acquisition: only local operations were exercised.",
+    "CUDA/MPS numerical equivalence and execution of every catalogued model on every experiment. The named examples and entry points above define coverage."
+  ],
+  "source_hashes": {
+    "masterthesis_guide/catalog.yaml": "391439da187aab65473867164d16527399fdbe3033bfbeb1d3c63718e79934de",
+    "masterthesis_guide/reproduce.py": "2514b70d7a5052801e3b6928b1edfb46a3e9c150dd0c33d423a71f029ed98b85",
+    "tools/pipeline_demo/inject_spikes.py": "322a1f5c8ccfa1e55c72673823731e26508d33b6cfabfbe5d8b8c6480716eb0f",
+    "tools/dataset_building/derive_single_channel_weg_a.py": "5d3eacdffc396dd14fadf97c99000187a42de90aaa92842faf58882e64f920ea",
+    "tests/test_guide_external_paths.py": "1412dffad9cc2f6230365f75a9dd64525f5092dc3bd3ff4f64438c59d4e9dc26",
+    "tests/test_thesis_catalog.py": "a2662b2eaa2c20e18098db685482e9534cd860fc706858880662f9673e0ec9dc"
+  },
+  "output_checks": {
+    "quickstart/demucs_raw.fif": {
+      "total_channels": 31,
+      "eeg_channels": 30,
+      "sfreq_hz": 2048.0,
+      "n_samples": 331777,
+      "finite": true
+    },
+    "compare/farm_raw.fif": {
+      "total_channels": 31,
+      "eeg_channels": 30,
+      "sfreq_hz": 2048.0,
+      "n_samples": 331777,
+      "finite": true
+    },
+    "compare/deployment_demucs_raw.fif": {
+      "total_channels": 31,
+      "eeg_channels": 30,
+      "sfreq_hz": 2048.0,
+      "n_samples": 331777,
+      "finite": true
+    },
+    "phase0/adapted_raw.fif": {
+      "total_channels": 31,
+      "eeg_channels": 30,
+      "sfreq_hz": 2048.0,
+      "n_samples": 331777,
+      "finite": true
+    },
+    "quickstart_vs_comparison_max_difference_v": 0.0
+  },
+  "documentation_checks": {
+    "model_profiles": 44,
+    "model_diagram_svgs": 88,
+    "model_result_views": 44,
+    "assigned_experiments": 213,
+    "epoch_curves": 210,
+    "python_snippets_compiled": 213,
+    "html_links": {
+      "built_pages": 31,
+      "internal_links_checked": 25497,
+      "readme_doc_links_checked": 144,
+      "protected_page_titles": "unchanged",
+      "model_runtime_code": "unchanged"
+    },
+    "rst_files_checked_for_python_syntax": 66
+  }
+}

@@ -1149,6 +1149,17 @@
           "availability": "local",
           "identity": "explicit_pipeline_output_path",
           "sha256": "e509591c6991035905c6293dbd50ea523f6d0efe53d3d556385fef3e2eee6444"
+        },
+        "spike_aware_demucs_comparison_baseline_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/demucs_deployment_edition/spike_aware_demucs/comparison_baseline.ts",
+          "source": "output/run8_fetched/gridpod4/grids/run8/demucs/lr0.001_ic64_sisdr0_s42.ts",
+          "owner": "spike_aware_demucs",
+          "kind": "export",
+          "role": "comparison_baseline",
+          "bytes": 66368963,
+          "availability": "local",
+          "identity": "matched_recorded_comparison_hash",
+          "sha256": "f4a64ab3ca5817f2568456b42a18c3f0c9ffc36cb903f5d80520f6f9f9ba0f46"
         }
       },
       "commands": {

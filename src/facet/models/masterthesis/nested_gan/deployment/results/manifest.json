@@ -1098,7 +1098,7 @@
       "experiment": "spike_aware_nested_gan",
       "model": "nested_gan_deployment_edition",
       "phase": 3,
-      "dataset": "weg_a_v10_locked",
+      "dataset": "weg_a_v10_locked_1ch",
       "training_dataset": "weg_a_v10_locked_1ch",
       "protocol": "spike_comparison",
       "outcome": "valid",
@@ -1146,6 +1146,17 @@
           "availability": "local",
           "identity": "explicit_pipeline_output_path",
           "sha256": "132287f0ae6fb6bd0d13d58ea52b7ed1cb6ad68bf02a4dc6003086477740485b"
+        },
+        "spike_aware_nested_gan_comparison_baseline_ts": {
+          "path": "artifacts/exports/masterthesis/phase_3/nested_gan_deployment_edition/spike_aware_nested_gan/comparison_baseline.ts",
+          "source": "output/run8_fetched/gridpod1/grids/run8/nested_gan/lr0.00015_ch48_sisdr1_s42.ts",
+          "owner": "spike_aware_nested_gan",
+          "kind": "export",
+          "role": "comparison_baseline",
+          "bytes": 4855570,
+          "availability": "local",
+          "identity": "matched_recorded_comparison_hash",
+          "sha256": "75baf7ae66b933e8a4b83d1cb0756b855806a9ec9281a640355b9805272e922c"
         }
       },
       "commands": {

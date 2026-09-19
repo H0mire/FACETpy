@@ -134,7 +134,7 @@ See :doc:`/masterthesis_guide/reading_results` for metrics, status fields and so
      - :download:`Hyperparameters </../../src/facet/models/masterthesis/nested_gan/deployment/results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42/hyperparameters.yaml>`; :download:`Evaluation </../../src/facet/models/masterthesis/nested_gan/deployment/results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42/evaluation.json>`; :download:`Training curve (SVG) </../../src/facet/models/masterthesis/nested_gan/deployment/results/run8_nested_gan_lr0_0015_ch72_sisdr3_s42/training_curve.svg>`
      - Outcome: ``valid``; verification: ``not_run``. Parameters: ``original_resolved``. Evaluation: ``recorded_evidence``.
    * - ``spike_aware_nested_gan``
-     - Phase 3; training: ``weg_a_v10_locked_1ch``; evaluation: ``weg_a_v10_locked``
+     - Phase 3; training: ``weg_a_v10_locked_1ch``; evaluation: ``weg_a_v10_locked_1ch``
      - :download:`Hyperparameters </../../src/facet/models/masterthesis/nested_gan/deployment/results/spike_aware_nested_gan/hyperparameters.yaml>`; :download:`Evaluation </../../src/facet/models/masterthesis/nested_gan/deployment/results/spike_aware_nested_gan/evaluation.json>`; :download:`Training curve (SVG) </../../src/facet/models/masterthesis/nested_gan/deployment/results/spike_aware_nested_gan/training_curve.svg>`
      - Outcome: ``valid``; verification: ``not_run``. Parameters: ``original_resolved``. Evaluation: ``recorded_evidence``.
    * - ``wega_nested_gan_lr0_00015_ch32_sisdr0_s42``

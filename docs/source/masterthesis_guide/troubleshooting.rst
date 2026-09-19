@@ -1,6 +1,21 @@
 Troubleshooting
 ===============
 
+macOS compiler selection
+------------------------
+
+If ``build-fastranc`` fails because the selected Xcode installation requires
+license setup, an existing Command Line Tools installation can provide the
+compiler. When ``/Library/Developer/CommandLineTools`` is installed, select it for
+this command:
+
+.. code-block:: console
+
+   DEVELOPER_DIR=/Library/Developer/CommandLineTools uv run build-fastranc
+
+This sets the toolchain for one invocation. It does not accept an Xcode license
+or change the system-wide developer-directory setting.
+
 Missing model artifact
 ----------------------
 
@@ -46,6 +61,8 @@ Index or documentation is stale
 
    uv run python -m masterthesis_guide.reproduce index
    uv run python -m masterthesis_guide.reproduce index --check
-   uv run sphinx-build -W -b html docs/source docs/build
+   uv run --extra docs sphinx-build -W -b html docs/source docs/build/html
 
 The documentation build and ordinary tests do not download weights or recordings.
+The ``docs`` extra installs Sphinx and its theme; plain ``uv sync`` does not include
+them. Open ``docs/build/html/index.html`` after the build.

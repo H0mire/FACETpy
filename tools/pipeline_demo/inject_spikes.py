@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import mne
@@ -55,7 +56,7 @@ def main() -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     mne.export.export_raw(str(args.out), raw, fmt="edf", overwrite=True, verbose=False)
     truth = {
-        "input": str(args.input.relative_to(REPO)),
+        "input": os.path.relpath(args.input.resolve(), REPO),
         "sfreq_hz": sfreq,
         "n_channels_injected": len(picks),
         "amplitude_uv": args.amplitude,

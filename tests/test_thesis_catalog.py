@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -90,3 +91,24 @@ def test_lfs_pointer_fails_before_model_loading(tmp_path):
     pointer.write_text("version https://git-lfs.github.com/spec/v1\noid sha256:" + "0" * 64 + "\nsize 10\n")
     with pytest.raises(FileNotFoundError, match="Git LFS pointer"):
         require_artifact(pointer)
+
+
+@pytest.mark.parametrize("family", ["demucs", "nested_gan", "vit_spectrogram"])
+def test_comparison_inputs_match_the_recorded_hashes(family):
+    catalog = reproduce.load_catalog()
+    experiment = catalog["experiments"][f"spike_aware_{family}"]
+    source = next(path for path in experiment["evidence"] if path.endswith(f"/{family}/comparison.json"))
+    comparison = json.loads((ROOT / source).read_text())
+    baseline = experiment["comparison_baseline_artifact"]
+    checkpoint = experiment["inference_artifact"]
+    assert baseline != checkpoint
+    assert catalog["artifacts"][baseline]["sha256"] == comparison["baseline_sha256"]
+    assert catalog["artifacts"][checkpoint]["sha256"] == comparison["checkpoint_sha256"]
+    assert catalog["datasets"][experiment["dataset"]]["sha256"] == comparison["dataset_sha256"]
+
+
+def test_comparison_baseline_requires_a_distinct_inference_selection():
+    catalog = copy.deepcopy(reproduce.load_catalog())
+    experiment = catalog["experiments"]["spike_aware_demucs"]
+    experiment["inference_artifact"] = experiment["comparison_baseline_artifact"]
+    assert any("separate explicit inference artifact" in error for error in reproduce.validate(catalog))

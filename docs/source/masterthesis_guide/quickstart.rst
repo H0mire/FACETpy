@@ -19,6 +19,13 @@ compile the native correction extension where required.
    uv run build-fastranc
    uv run python -m masterthesis_guide.reproduce validate
 
+If the compiler fails on macOS, see :doc:`troubleshooting`. To build the local
+documentation, request the optional documentation dependencies explicitly:
+
+.. code-block:: console
+
+   uv run --extra docs sphinx-build -W -b html docs/source docs/build/html
+
 Data and weights
 ----------------
 

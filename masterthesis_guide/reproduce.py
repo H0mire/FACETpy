@@ -228,6 +228,11 @@ def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
             "artifacts", []
         ):
             errors.append(f"{eid}: selected inference artifact is not associated with this experiment")
+        if baseline := experiment.get("comparison_baseline_artifact"):
+            if baseline not in experiment.get("artifacts", []) or baseline not in catalog["artifacts"]:
+                errors.append(f"{eid}: comparison baseline is not associated with this experiment")
+            if not experiment.get("inference_artifact") or baseline == experiment["inference_artifact"]:
+                errors.append(f"{eid}: comparison baseline needs a separate explicit inference artifact")
         for aid in experiment.get("artifacts", []):
             if aid not in catalog["artifacts"]:
                 errors.append(f"{eid}: unknown artifact {aid}")

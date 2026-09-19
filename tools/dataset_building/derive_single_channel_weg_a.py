@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -87,7 +88,7 @@ def main() -> int:
         m["k_neighbors"] = 0
         if "input_shape" in m:
             m["input_shape"] = [m["input_shape"][0], 1, m["input_shape"][2]]
-        m["derived_from"] = str(args.input.relative_to(REPO))
+        m["derived_from"] = os.path.relpath(args.input.resolve(), REPO)
         m["derivation"] = (
             "Nachbarachse abgeschnitten (Spalte 0 = Zielelektrode). "
             "Beispiele, Split, Spikes und Fehlermodi sind bitgleich zur Quelle."
