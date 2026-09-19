@@ -36,7 +36,10 @@ relationships and variant-specific behavior; it can grow vertically.
 
 Read the renderer's profile schema and an existing architecture.json when adding
 a model. Keep the profile next to its model, link both SVGs from the model README,
-and use the Sphinx model diagram gallery for project explanations.
+and embed each pair in the owning Sphinx model page. The renderer uses the
+README's Model reference link to find that page and replaces only the region
+between its `model-diagrams-start` and `model-diagrams-end` comments. Do not add
+a separate diagram gallery or navigation category.
 
 ## Rendering and review
 

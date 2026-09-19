@@ -4,9 +4,9 @@ Fully connected context autoencoder. Two fully connected stages read seven epoch
 
 ## Origin and role
 
-Origin: FACETpy extension of Cascaded DAE.
+Origin: FACETpy context extension of the Cascaded DAE family from Duffy et al. (2020).
 
-Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+Source: [Duffy et al. (2020)](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#duffy2020). The family reference explains the FACETpy adaptations.
 
 [Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/context_dae.html) explains the family, adaptations and limits.
 

@@ -83,3 +83,8 @@ the linked arXiv record may show an earlier submission year.
    CVPR 2022.
    `Publication or author manuscript <https://arxiv.org/abs/2111.06377>`__.
 
+.. [Duffy2020] Duffy, B. A., Toga, A. W., and Kim, H. (2020).
+   *Gradient Artifact Correction for Simultaneous EEG-fMRI using Denoising Autoencoders.*
+   2020 IEEE 17th International Symposium on Biomedical Imaging (ISBI), 1–4.
+   `Publication <https://doi.org/10.1109/ISBI45749.2020.9098447>`__.
+

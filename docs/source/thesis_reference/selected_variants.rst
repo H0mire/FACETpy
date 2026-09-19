@@ -15,11 +15,11 @@ The family pages below describe the design and its sources.
      - Main distinction
    * - :doc:`models/cascaded_dae`
      - Fully connected denoising autoencoder
-     - FACETpy baseline
+     - Duffy et al.; EEG-fMRI gradient artifact correction
      - Single-epoch residual cascade; keep the parallel Phase-0 model separate.
    * - :doc:`models/context_dae`
      - Fully connected context autoencoder
-     - FACETpy extension of Cascaded DAE
+     - FACETpy context extension of the Duffy et al. family
      - Seven-epoch context; centre artifact output.
    * - :doc:`models/conv_tasnet`
      - Convolutional source separator

@@ -4,9 +4,9 @@ Fully connected denoising autoencoder. Two fully connected stages predict an art
 
 ## Origin and role
 
-Origin: FACETpy baseline.
+Origin: Duffy et al. (2020), gradient artifact correction in simultaneous EEG-fMRI; adapted in FACETpy.
 
-Developed within FACETpy; no dedicated source paper is assigned to this implementation.
+Source: [Duffy et al. (2020)](https://facetpy.readthedocs.io/en/latest/thesis_reference/model_references.html#duffy2020). The family reference explains the FACETpy adaptations.
 
 [Model reference](https://facetpy.readthedocs.io/en/latest/thesis_reference/models/cascaded_dae.html) explains the family, adaptations and limits.
 

@@ -29,7 +29,7 @@ Diagram sources and skill
 
 Each model package owns two generated SVGs and their editable JSON architecture
 profile in ``diagrams/``. The overview fits within half an A4 page; the detailed
-view can grow vertically. The model diagram gallery is generated from the same
+view can grow vertically. The diagram sections on the model pages are generated from the same
 profiles. The canonical FACETpy diagram skill lives in
 ``.agents/skills/facetpy-diagram``; the Claude skill path links to it. Skill Markdown
 is an implementation-instruction exception, not a second documentation tree.
