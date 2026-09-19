@@ -345,7 +345,7 @@ Find a thesis figure or table
   Datasets: ``proof_fit``.
   `Reference <../docs/source/thesis_reference/phase_1_unified_holdout.rst>`_.
   Generator: `source <../tools/plotting/plot_phase1_holdout_signal_comparison.py>`_.
-  Command: ``uv run python tools/plotting/plot_phase1_holdout_signal_comparison.py --data-root <data-root> --prediction-root <prediction-root> --out-dir <output>``.
+  Command: ``uv run python tools/plotting/plot_phase1_holdout_signal_comparison.py --data-root <data-root> --out-dir <output>``.
 
 .. _ma-caption-0494:
 
@@ -489,6 +489,26 @@ Datasets and saved splits
 * ``artifact_aas_direct``: external ``output/artifact_libraries/niazy_aas_2x_direct/niazy_aas_direct_artifact.npz``.
   `metadata <datasets/artifact_aas_direct/metadata.json>`_.
 * ``niazy_recording``: external ``examples/datasets/NiazyFMRI.edf``.
+
+Original Phase-1 predictions
+----------------------------
+
+These arrays are retained in Git LFS and verified against the catalog before plotting.
+
+* ``holdout_cascaded_context_dae``: ``artifacts/predictions/phase_1/cascaded_context_dae/predicted_artifact.npy``.
+* ``holdout_cascaded_dae``: ``artifacts/predictions/phase_1/cascaded_dae/predicted_artifact.npy``.
+* ``holdout_conv_tasnet``: ``artifacts/predictions/phase_1/conv_tasnet/predicted_artifact.npy``.
+* ``holdout_d4pm``: ``artifacts/predictions/phase_1/d4pm/predicted_artifact.npy``.
+* ``holdout_demucs``: ``artifacts/predictions/phase_1/demucs/predicted_artifact.npy``.
+* ``holdout_denoise_mamba``: ``artifacts/predictions/phase_1/denoise_mamba/predicted_artifact.npy``.
+* ``holdout_dhct_gan``: ``artifacts/predictions/phase_1/dhct_gan/predicted_artifact.npy``.
+* ``holdout_dhct_gan_v2``: ``artifacts/predictions/phase_1/dhct_gan_v2/predicted_artifact.npy``.
+* ``holdout_dpae``: ``artifacts/predictions/phase_1/dpae/predicted_artifact.npy``.
+* ``holdout_ic_unet``: ``artifacts/predictions/phase_1/ic_unet/predicted_artifact.npy``.
+* ``holdout_nested_gan``: ``artifacts/predictions/phase_1/nested_gan/predicted_artifact.npy``.
+* ``holdout_sepformer``: ``artifacts/predictions/phase_1/sepformer/predicted_artifact.npy``.
+* ``holdout_st_gnn``: ``artifacts/predictions/phase_1/st_gnn/predicted_artifact.npy``.
+* ``holdout_vit_spectrogram``: ``artifacts/predictions/phase_1/vit_spectrogram/predicted_artifact.npy``.
 
 Recorded comparison tables
 --------------------------

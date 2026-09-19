@@ -105,3 +105,18 @@ contains commands, input hashes, measurements and source hashes. Its path tokens
 ``${REPO}``, ``${DATA_ROOT}`` and ``${VALIDATION_OUTPUT}`` name the checkout, external
 data root and separate test-output directory. New test outputs did not replace
 historical evidence.
+
+Prediction archival follow-up (20 September 2026)
+-------------------------------------------------
+
+The fourteen original Phase-1 prediction arrays are now retained under
+``artifacts/predictions/phase_1/`` through Git LFS. Each array matches the size and
+SHA-256 already recorded in the catalog. Each contains 166 holdout windows, 30
+channels and 512 samples, with finite values throughout.
+
+The Phase-1 signal figure was generated from a separate copy of the current
+source files and predictions without a ``.git`` directory. The proof-fit dataset
+remained an explicit external input. No historical commit or prediction folder
+was used. Regression tests cover absent files, LFS pointers, changed prediction
+bytes and incomplete catalog associations. Generated review figures remain
+outside the versioned evidence.

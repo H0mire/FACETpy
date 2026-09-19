@@ -227,10 +227,43 @@ def executable_config(experiment_id: str, catalog=None, *, data_root=None, outpu
     return config
 
 
+def prediction_path(experiment_id: str, catalog=None, *, root=ROOT) -> Path:
+    """Resolve and verify an original prediction array from the current checkout."""
+    catalog = catalog or load_catalog()
+    record = next((r for r in catalog["predictions"] if r["experiment"] == experiment_id), None)
+    if record is None:
+        raise ValueError(f"No recorded predictions for experiment {experiment_id!r}")
+    path = repository_path(record["path"], root)
+    from facet.models.masterthesis.adapters import require_artifact
+
+    try:
+        require_artifact(path)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Original predictions for {experiment_id!r} are not downloaded.\n"
+            "Install Git LFS from https://git-lfs.com, then run in the repository root:\n"
+            "  git lfs install\n"
+            f'  git lfs pull --include={shlex.quote(record["path"])} --exclude=""'
+        ) from None
+    if path.stat().st_size != record["bytes"] or sha256(path) != record["sha256"]:
+        raise ValueError(f"Original prediction bytes do not match the catalog: {path}")
+    return path
+
+
 def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
     """Validate identities, associations and files; weight bytes are optional for CI."""
     errors = []
-    required = {"models", "datasets", "artifacts", "experiments", "results", "thesis_items", "protocols", "tools"}
+    required = {
+        "models",
+        "datasets",
+        "artifacts",
+        "predictions",
+        "experiments",
+        "results",
+        "thesis_items",
+        "protocols",
+        "tools",
+    }
     missing = required - catalog.keys()
     if missing:
         return [f"Missing catalog sections: {sorted(missing)}"]
@@ -246,6 +279,27 @@ def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
         except ValueError as exc:
             errors.append(f"{owner}: {exc}")
             return None
+
+    def lfs_file(record, owner):
+        if not isinstance(record.get("bytes"), int) or record["bytes"] <= 0:
+            errors.append(f"{owner}: invalid artifact size")
+        if not re.fullmatch(r"[0-9a-f]{64}", record.get("sha256", "")):
+            errors.append(f"{owner}: invalid SHA-256")
+        path = file(record["path"], owner)
+        if path and path.is_file() and path.stat().st_size < 1024:
+            pointer = path.read_text(errors="replace")
+            expected = (
+                f"version https://git-lfs.github.com/spec/v1\noid sha256:{record['sha256']}\nsize {record['bytes']}\n"
+            )
+            if pointer != expected:
+                errors.append(f"{owner}: invalid LFS pointer")
+        if (
+            hashes
+            and path
+            and path.is_file()
+            and (path.stat().st_size != record["bytes"] or sha256(path) != record.get("sha256"))
+        ):
+            errors.append(f"{owner}: binary size or SHA-256 does not match")
 
     for eid, experiment in catalog["experiments"].items():
         if experiment.get("phase") not in (0, 1, 2, 3):
@@ -288,26 +342,7 @@ def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
         paths.add(record["path"])
         if record["owner"] not in catalog["experiments"]:
             errors.append(f"{aid}: unknown owning experiment")
-        if not isinstance(record.get("bytes"), int) or record["bytes"] <= 0:
-            errors.append(f"{aid}: invalid artifact size")
-
-        if not re.fullmatch(r"[0-9a-f]{64}", record.get("sha256", "")):
-            errors.append(f"{aid}: invalid SHA-256")
-        path = file(record["path"], aid)
-        if path and path.is_file() and path.stat().st_size < 1024:
-            pointer = path.read_text(errors="replace")
-            expected = (
-                f"version https://git-lfs.github.com/spec/v1\noid sha256:{record['sha256']}\nsize {record['bytes']}\n"
-            )
-            if pointer != expected:
-                errors.append(f"{aid}: invalid LFS pointer")
-        if (
-            hashes
-            and path
-            and path.is_file()
-            and (path.stat().st_size != record["bytes"] or sha256(path) != record.get("sha256"))
-        ):
-            errors.append(f"{aid}: binary size or SHA-256 does not match")
+        lfs_file(record, aid)
     for mid, record in catalog["models"].items():
         if "readme" in record:
             file(record["readme"], mid)
@@ -326,11 +361,15 @@ def validate(catalog: dict, *, root=ROOT, hashes=False) -> list[str]:
             errors.append(f"{tid}: missing reproduction role")
     for record in catalog.get("verification_records", []):
         file(record["path"], "verification record")
-    for record in catalog.get("external_predictions", []):
+    prediction_owners = set()
+    for record in catalog["predictions"]:
         if record["experiment"] not in catalog["experiments"]:
             errors.append("Prediction record refers to an unknown experiment")
-        if not re.fullmatch(r"[0-9a-f]{64}", record.get("sha256", "")):
-            errors.append("Prediction record lacks a valid SHA-256")
+        if record["experiment"] in prediction_owners or record["path"] in paths:
+            errors.append("Duplicate prediction experiment or path")
+        prediction_owners.add(record["experiment"])
+        paths.add(record["path"])
+        lfs_file(record, record["experiment"])
     item_ids = set()
     for item in catalog.get("thesis_items", []):
         if item["id"] in item_ids:
@@ -398,6 +437,10 @@ def index_text(catalog: dict, *, sphinx=False) -> str:
         for field in ("metadata", "split"):
             if field in record:
                 lines += ["  " + link(record[field], field) + "."]
+    lines += ["", "Original Phase-1 predictions", "----------------------------", ""]
+    lines += ["These arrays are retained in Git LFS and verified against the catalog before plotting.", ""]
+    for record in catalog["predictions"]:
+        lines += [f"* ``{record['experiment']}``: ``{record['path']}``."]
     lines += ["", "Recorded comparison tables", "--------------------------", ""]
     for rid, record in catalog["results"].items():
         lines += [

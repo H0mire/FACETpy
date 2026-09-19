@@ -123,20 +123,22 @@ PNG previews require ``rsvg-convert`` from librsvg. Table-based plots read the
 canonical CSV files. Generated outputs stay outside versioned evidence until
 reviewed as a distinct new result.
 
-Phase-1 signal panels use fourteen original ``predicted_artifact.npy`` arrays.
-These were tracked in the preserved source snapshot, so they are not necessarily
-present in the ignored-file ZIP. The catalog records their Git source, SHA-256,
-size and relative destination. Restore them to an external prediction root,
-then pass that root as ``--prediction-root``. The restoration command requires
-the source snapshot in the local Git object database; a fresh clone may not
-contain it. Keep access to the retained source checkout. For one array:
+Phase-1 signal panels use fourteen original ``predicted_artifact.npy`` arrays,
+retained in Git LFS under ``artifacts/predictions/phase_1/<model>/``. The catalog
+records each array's current path, SHA-256 and size. Fetch them from the current
+checkout and run the plot with the external proof-fit dataset:
 
 .. code-block:: console
 
-   mkdir -p /path/to/predictions/output/model_evaluations/demucs/holdout_v1
-   git show 21d689da73eb93cdc3af8b48babed76b7271cc4e:output/model_evaluations/demucs/holdout_v1/predicted_artifact.npy > /path/to/predictions/output/model_evaluations/demucs/holdout_v1/predicted_artifact.npy
+   git lfs install
+   git lfs pull --include="artifacts/predictions/phase_1/**" --exclude=""
+   uv run python tools/plotting/plot_phase1_holdout_signal_comparison.py \
+     --data-root /path/to/thesis-data --out-dir /path/to/figures
 
 The plotting command checks these bytes against the catalog before drawing them.
+It reads the predictions directly from this checkout; no historical Git commit
+or separate prediction folder is needed. The source commit and original paths
+remain in the catalog as provenance only.
 Original embedded images are retained where an editable generator was not
 recovered. The index states those limits and distinguishes a new replay from
 an original measurement.

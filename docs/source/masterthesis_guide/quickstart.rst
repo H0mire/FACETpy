@@ -41,6 +41,10 @@ Selected checkpoints and exports live under ``artifacts/`` through Git LFS. A
 pointer file is not a model. The resolver reports a missing binary before model
 loading. Selected retrieval avoids downloading the complete thesis artifact set.
 
+The original Phase-1 prediction arrays also live in Git LFS, under
+``artifacts/predictions/phase_1/``. See :doc:`reproduce_results` for the targeted
+download and plotting command. These predictions require no old source checkout.
+
 For a separately published checkout, ``GIT_LFS_SKIP_SMUDGE=1 git clone ...`` skips
 automatic materialization. Then request only the paths needed by the chosen
 experiment with ``git lfs pull --include="<catalogued artifact path>" --exclude=""``.

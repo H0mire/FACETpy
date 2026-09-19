@@ -1,14 +1,14 @@
 Where in FACETpy: code provenance
 =================================
 
-The published thesis snapshot is Git commit
-`7a160bd002430adf30d71994326efef154eedc54
-<https://github.com/H0mire/FACETpy/commit/7a160bd002430adf30d71994326efef154eedc54>`_.
-The annotated ``masterwork`` tag fixes this revision. The ``masterwork`` branch
-was created at the same commit. Use the tag to retrieve the recorded snapshot:
+The published thesis snapshot is identified by the annotated
+`masterwork tag <https://github.com/H0mire/FACETpy/tree/refs/tags/masterwork>`_.
+The ``masterwork`` branch also provides this thesis collection. Resolve the tag
+to its full commit hash and check out the recorded snapshot:
 
 .. code-block:: console
 
+   git rev-parse 'refs/tags/masterwork^{commit}'
    git checkout --detach refs/tags/masterwork
 
 Model families retain their original
@@ -38,6 +38,11 @@ ownership, scientific outcome, verification state, required reasons, LFS pointer
 contents and protected original figure hashes. ``validate --hashes`` also checks
 all materialized weight bytes. Normal CI accepts valid LFS pointers and does not
 fetch weights.
+
+Original Phase-1 prediction arrays are also retained in Git LFS. Their catalog
+records preserve the source paths and commit as provenance. Plotting reads the
+current repository paths and verifies the recorded bytes; it does not need the
+historical source checkout.
 
 The verification records distinguish fixed-input model relocation, two real
 Phase-1 holdout windows, synthetic complete adapter correction, and the new full

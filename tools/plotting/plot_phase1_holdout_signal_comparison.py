@@ -22,10 +22,9 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from masterthesis_guide.reproduce import load_catalog  # noqa: E402
+from masterthesis_guide.reproduce import load_catalog, prediction_path  # noqa: E402
 
 DATASET = ROOT / "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-EVAL = ROOT / "output/model_evaluations"
 OUT = ROOT / "output/thesis_results_by_phase/phase_1_unified_holdout"
 
 MODELS = [
@@ -58,21 +57,17 @@ def metric(model_id: str) -> float:
 def main() -> None:
     import argparse
 
-    global DATASET, EVAL, OUT
+    global DATASET, OUT
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-root", type=Path, required=True)
-    parser.add_argument(
-        "--prediction-root",
-        type=Path,
-        help="Separate root containing original output/model_evaluations prediction arrays",
-    )
     parser.add_argument("--out-dir", type=Path, required=True)
     args = parser.parse_args()
     DATASET = args.data_root / "output/niazy_proof_fit_context_512/niazy_proof_fit_context_dataset.npz"
-    EVAL = (args.prediction_root or args.data_root) / "output/model_evaluations"
     OUT = args.out_dir
     OUT.mkdir(parents=True, exist_ok=True)
-    indices = np.array(json.loads((ROOT / load_catalog()["datasets"]["proof_fit"]["split"]).read_text())["indices"])
+    catalog = load_catalog()
+    predictions = {model_id: prediction_path("holdout_" + model_id, catalog) for model_id, _ in MODELS}
+    indices = np.array(json.loads((ROOT / catalog["datasets"]["proof_fit"]["split"]).read_text())["indices"])
     with np.load(DATASET, allow_pickle=True) as ds:
         noisy = ds["noisy_center"][indices]
         clean = ds["clean_center"][indices]
@@ -90,13 +85,7 @@ def main() -> None:
     fig, axes = plt.subplots(4, 4, figsize=(13.2, 9.4), sharex=True, sharey=True)
     axes = axes.ravel()
     for ax, (model_id, label) in zip(axes, MODELS, strict=False):
-        path = EVAL / model_id / "holdout_v1" / "predicted_artifact.npy"
-        from masterthesis_guide.reproduce import sha256
-
-        record = next(r for r in load_catalog()["external_predictions"] if r["experiment"] == "holdout_" + model_id)
-        if path.stat().st_size != record["bytes"] or sha256(path) != record["sha256"]:
-            raise ValueError(f"Original prediction bytes do not match: {path}")
-        pred = np.load(path, mmap_mode="r")
+        pred = np.load(predictions[model_id], mmap_mode="r", allow_pickle=False)
         corrected = noisy[example, channel] - pred[example, channel]
         ax.plot(time_ms, noisy[example, channel] * 1e6, color="#a9a9a9", lw=0.65, label="Noisy input")
         ax.plot(time_ms, clean[example, channel] * 1e6, color="#249d68", lw=0.75, ls="--", label="AAS-derived target")

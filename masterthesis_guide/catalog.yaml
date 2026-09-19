@@ -11199,7 +11199,7 @@ thesis_items:
   reproduction:
     generator: tools/plotting/plot_phase1_holdout_signal_comparison.py
     command: uv run python tools/plotting/plot_phase1_holdout_signal_comparison.py
-      --data-root <data-root> --prediction-root <prediction-root> --out-dir <output>
+      --data-root <data-root> --out-dir <output>
     scope: Regenerate from the linked records/configurations; current English rendering
       is not a byte-identical reconstruction of the embedded thesis image.
 - id: ma_caption_0494
@@ -11784,100 +11784,114 @@ verification_records:
     guide files.
 - path: masterthesis_guide/provenance/lfs-verification.json
   scope: All 208 selected staged Git LFS pointers and local binary objects match their catalog SHA-256 and byte counts; no remote upload.
-external_predictions:
+predictions:
 - experiment: holdout_cascaded_context_dae
-  external_path: output/model_evaluations/cascaded_context_dae/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/cascaded_context_dae/predicted_artifact.npy
+  source_path: output/model_evaluations/cascaded_context_dae/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: a8e204c13605e5cac6c31647304315f7d23819fba1ef72452a223e4aebcefffa
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_cascaded_dae
-  external_path: output/model_evaluations/cascaded_dae/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/cascaded_dae/predicted_artifact.npy
+  source_path: output/model_evaluations/cascaded_dae/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: e77d0b18d9d69987923e811b8386241e4d5a22e2e8f3f894a2bc0088ef588914
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_conv_tasnet
-  external_path: output/model_evaluations/conv_tasnet/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/conv_tasnet/predicted_artifact.npy
+  source_path: output/model_evaluations/conv_tasnet/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: b8ff11df176ce4ad1b2fc17f58867a5b05c5eaea7a5472550136f8d1fbd37de0
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_d4pm
-  external_path: output/model_evaluations/d4pm/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/d4pm/predicted_artifact.npy
+  source_path: output/model_evaluations/d4pm/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 4adc79c2b1d2b2e64e399ae324f7012eebd2ae9645395affe45a23c7a0c7d8c5
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_demucs
-  external_path: output/model_evaluations/demucs/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/demucs/predicted_artifact.npy
+  source_path: output/model_evaluations/demucs/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 1579cd123ebdcce556153b16996f8b1c12c83d45d21125c8472c5809500a0c17
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_denoise_mamba
-  external_path: output/model_evaluations/denoise_mamba/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/denoise_mamba/predicted_artifact.npy
+  source_path: output/model_evaluations/denoise_mamba/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 908f81625ad94ea2a2bc19cb0a03254c24632a031a23a0141dcf5d6152a480a5
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_dhct_gan
-  external_path: output/model_evaluations/dhct_gan/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/dhct_gan/predicted_artifact.npy
+  source_path: output/model_evaluations/dhct_gan/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 046704687838f192a237ba369e1030f29e19953e3f1e7c026242af0faf76bdf1
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_dhct_gan_v2
-  external_path: output/model_evaluations/dhct_gan_v2/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/dhct_gan_v2/predicted_artifact.npy
+  source_path: output/model_evaluations/dhct_gan_v2/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: f9bef83225b2bc3a7539e36f196e4665bfb7e9646f548012db6c0956c19c1a96
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_dpae
-  external_path: output/model_evaluations/dpae/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/dpae/predicted_artifact.npy
+  source_path: output/model_evaluations/dpae/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 474f8134ceb5be3f085dd1a5f1d34a67691a9b99eb25fea9098414102923ac24
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_ic_unet
-  external_path: output/model_evaluations/ic_unet/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/ic_unet/predicted_artifact.npy
+  source_path: output/model_evaluations/ic_unet/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 98ba2267eb5e1d0907ad05abcd46ab40dcb04d630668a3f24b9d8ce5d2cbaecf
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_nested_gan
-  external_path: output/model_evaluations/nested_gan/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/nested_gan/predicted_artifact.npy
+  source_path: output/model_evaluations/nested_gan/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: b12e331a23718b9133186362335d1106afb645dcf30c5d855c60c8db18b18458
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_sepformer
-  external_path: output/model_evaluations/sepformer/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/sepformer/predicted_artifact.npy
+  source_path: output/model_evaluations/sepformer/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 400826301eb1bdc73edb7c76e3c8d5864cdb59987b6bd14682c04f2b858cde31
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_st_gnn
-  external_path: output/model_evaluations/st_gnn/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/st_gnn/predicted_artifact.npy
+  source_path: output/model_evaluations/st_gnn/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 53c4c91729817ef3ad768a88c7b7ef761a1793b4a4dd3e08befe28e255d7cde2
   bytes: 10199168
   role: Original unified-holdout predicted artifact array, in volts, in saved split
     order.
 - experiment: holdout_vit_spectrogram
-  external_path: output/model_evaluations/vit_spectrogram/holdout_v1/predicted_artifact.npy
+  path: artifacts/predictions/phase_1/vit_spectrogram/predicted_artifact.npy
+  source_path: output/model_evaluations/vit_spectrogram/holdout_v1/predicted_artifact.npy
   source_snapshot: 21d689da73eb93cdc3af8b48babed76b7271cc4e
   sha256: 0fc527cae32d87f1d0132272f68711bf1f578cc4bdebe5b7781e52bd24003ef0
   bytes: 10199168
