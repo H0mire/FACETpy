@@ -30,6 +30,7 @@ Built on [MNE-Python](https://mne.tools), FACETpy provides a modular pipeline ar
 
 - Load EEG from EDF, GDF, and BIDS formats
 - Artifact correction: AAS, PCA, Adaptive Noise Cancellation (ANC)
+- Deep-learning correction through `DeepLearningCorrection`, with recorded thesis models and checkpoints
 - Full evaluation suite: SNR, RMS, Median Artifact, FFT-based metrics
 - Batch processing across subjects/sessions with `Pipeline.map()`
 - Generate synthetic EEG for algorithm testing
@@ -99,6 +100,57 @@ result = pipeline.run()
 result.print_summary()   # Done in 4.2s  snr=18.3  rms_ratio=0.14
 ```
 
+
+## Deep learning
+
+Use trained models as pipeline steps with `DeepLearningCorrection`. The repository
+includes Demucs, Nested GAN, Cascaded DAE, and other thesis model families. See the
+[deep-learning guide](https://facetpy.readthedocs.io/en/latest/user_guide/deep_learning.html)
+for the model interface and the
+[thesis guide](https://facetpy.readthedocs.io/en/latest/masterthesis_guide/index.html)
+for experiment configurations, checkpoint selection, and results.
+
+The [Demucs Phase 3 Weg-A example](examples/complete_pipeline_example_demucs_wega.py)
+uses the selected epoch-53 checkpoint. Its repository helper resolves the experiment
+ID, model configuration, and local weights:
+
+```python
+from facet import DeepLearningCorrection
+from masterthesis_guide.reproduce import adapter
+
+correction = DeepLearningCorrection(
+    model=adapter("wega_demucs_lr0_0001_ic96_sisdr3_s42", device="cpu")
+)
+```
+
+This helper belongs to the repository guide. It does not download weights or train
+a model. The example checks for missing weights and reports the Git LFS command
+needed to retrieve them. It runs with `channel_sequential=False`, as required by
+the current thesis adapter.
+
+### Run the Demucs example
+
+Install [Git LFS](https://git-lfs.com) before cloning. Git LFS normally downloads
+the large files during checkout. To fetch only this example's checkpoint and EEG
+recording, skip that automatic download and request the two files explicitly:
+
+```bash
+git lfs install
+GIT_LFS_SKIP_SMUDGE=1 git clone https://github.com/H0mire/FACETpy.git
+cd FACETpy
+git lfs pull --include="artifacts/checkpoints/masterthesis/phase_3/demucs_deployment_edition/wega_demucs_lr0_0001_ic96_sisdr3_s42/epoch0053_val_loss1.5065.pt,examples/datasets/NiazyFMRI.edf" --exclude=""
+uv sync
+uv run python -m examples.complete_pipeline_example_demucs_wega
+```
+
+For an existing checkout, run the commands from `git lfs pull` onward in its root
+directory. Retrieval requires the LFS files to be available on the remote and
+accessible to your account. A small LFS pointer file is not the checkpoint itself.
+
+The example uses a −5 ms artifact-to-trigger offset, without trigger alignment or
+resampling. It prints metrics and opens a plot of Fp1 from 28 to 32 seconds. Close
+the plot to finish. No corrected recording or figure is saved. Edit the constants
+at the top of the example to choose another input path or plot interval.
 
 ## Installation
 

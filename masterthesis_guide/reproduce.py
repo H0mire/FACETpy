@@ -7,6 +7,8 @@ import copy
 import hashlib
 import os
 import re
+import shlex
+from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
@@ -87,10 +89,18 @@ def load_holdout(dataset_path: Path, indices):
         }
 
 
-def selected_artifact(experiment_id: str, catalog=None, *, device="cpu") -> tuple[str, Path]:
-    """Select a recorded artifact; prefer an explicit CPU export on non-CUDA devices."""
+def _artifact_record(experiment_id: str, catalog=None, *, device="cpu") -> tuple[str, dict]:
+    """Select the recorded artifact without reading its local file."""
     catalog = catalog or load_catalog()
-    experiment = catalog["experiments"][experiment_id]
+    experiments = catalog["experiments"]
+    if not isinstance(experiment_id, str) or experiment_id not in experiments:
+        matches = get_close_matches(experiment_id, experiments, n=3) if isinstance(experiment_id, str) else []
+        suggestion = "\nDid you mean:\n" + "\n".join(f"  {match}" for match in matches) if matches else ""
+        raise ValueError(
+            f"Unknown experiment ID: {experiment_id!r}.{suggestion}\n"
+            "Choose an ID from the 'experiments' section in masterthesis_guide/catalog.yaml."
+        )
+    experiment = experiments[experiment_id]
     selected = experiment.get("inference_artifact")
     candidates = [(aid, catalog["artifacts"][aid]) for aid in ([selected] if selected else experiment["artifacts"])]
     if not candidates:
@@ -106,7 +116,34 @@ def selected_artifact(experiment_id: str, catalog=None, *, device="cpu") -> tupl
         cpu = item["role"] == "cpu_export" and not device.startswith("cuda")
         return (not cpu, item["kind"] != "export", item["role"] != "evaluated")
 
-    aid, record = sorted(candidates, key=priority)[0]
+    return sorted(candidates, key=priority)[0]
+
+
+def check_downloaded(experiment_id: str, *, device="cpu") -> None:
+    """Check local weights and explain how to fetch them when missing; download nothing."""
+    _, record = _artifact_record(experiment_id, device=device)
+    from facet.models.masterthesis.adapters import require_artifact
+
+    path = repository_path(record["path"])
+    try:
+        require_artifact(path)
+    except FileNotFoundError:
+        include = shlex.quote(record["path"])
+        raise FileNotFoundError(
+            f"The model weights for '{experiment_id}' have not been downloaded.\n"
+            f"Required file: {record['path']}\n\n"
+            "Install Git LFS from https://git-lfs.com, then run these commands\n"
+            "in the repository root:\n\n"
+            "  git lfs install\n"
+            f'  git lfs pull --include={include} --exclude=""\n\n'
+            "Then run the example again. The download requires the file to be\n"
+            "available on the remote and your account to have access."
+        ) from None
+
+
+def selected_artifact(experiment_id: str, catalog=None, *, device="cpu") -> tuple[str, Path]:
+    """Select a recorded artifact; prefer an explicit CPU export on non-CUDA devices."""
+    aid, record = _artifact_record(experiment_id, catalog, device=device)
     from facet.models.masterthesis.adapters import require_artifact
 
     path = require_artifact(repository_path(record["path"]))
@@ -120,8 +157,8 @@ def selected_artifact(experiment_id: str, catalog=None, *, device="cpu") -> tupl
 def adapter(experiment_id: str, catalog=None, *, device="cpu"):
     """Build the installed-library adapter with explicit model inputs."""
     catalog = catalog or load_catalog()
-    experiment = catalog["experiments"][experiment_id]
     _, path = selected_artifact(experiment_id, catalog, device=device)
+    experiment = catalog["experiments"][experiment_id]
     if experiment["model"] == "legacy_cascaded_dae":
         from facet.models.masterthesis.legacy_cascaded_dae import LegacyDLAdapter
 

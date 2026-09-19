@@ -8,6 +8,7 @@ examples/
 ├── README.md                          ← you are here
 ├── quickstart.py                       Minimal hello-world entry point
 ├── complete_pipeline_example.py        Full AAS correction pipeline (recommended start)
+├── complete_pipeline_example_demucs_wega.py  Phase 3 Weg-A Demucs inference
 ├── complete_pipeline_example_bcg.py    Same plus BCG correction
 ├── complete_pipeline_example_large_dataset.py
 ├── complete_pipeline_example_large_dataset_bcg.py
@@ -39,6 +40,20 @@ uv run python examples/quickstart.py
 uv run python examples/complete_pipeline_example.py
 uv run python examples/pipelines/evaluation.py
 ```
+
+The Demucs example uses the selected Phase 3 Weg-A checkpoint (epoch 53).
+It reads that run's model configuration and requires the checkpoint's Git LFS content.
+Fetch the weights and recording with Git LFS as described in the
+[deep-learning setup](../README.md#deep-learning). Adjust the constants at the top
+of the script, including `INPUT_FILE` if you use another local copy of the recording.
+Run it from the repository root:
+
+```bash
+uv run python -m examples.complete_pipeline_example_demucs_wega
+```
+
+It corrects all EEG channels, prints the metrics, and displays Fp1 from 28 to 32
+seconds. Close the plot window to finish. It saves no recording or figure.
 
 ## See also
 

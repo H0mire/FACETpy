@@ -93,6 +93,57 @@ def test_lfs_pointer_fails_before_model_loading(tmp_path):
         require_artifact(pointer)
 
 
+@pytest.mark.parametrize("state", ["missing", "pointer", "downloaded", "empty"])
+def test_download_check_for_selected_wega_checkpoint(tmp_path, monkeypatch, state):
+    experiment = "wega_demucs_lr0_0001_ic96_sisdr3_s42"
+    catalog = reproduce.load_catalog()
+    aid, record = reproduce._artifact_record(experiment, catalog)
+    assert aid == f"{experiment}_epoch0053_val_loss1_5065_pt"
+    checkpoint = tmp_path / record["path"]
+    checkpoint.parent.mkdir(parents=True)
+    if state == "pointer":
+        checkpoint.write_text("version https://git-lfs.github.com/spec/v1\n")
+    elif state == "downloaded":
+        checkpoint.write_bytes(b"local weights; the adapter checks size and hash")
+    elif state == "empty":
+        checkpoint.touch()
+    monkeypatch.setattr(reproduce, "repository_path", lambda path: tmp_path / path)
+    if state in {"missing", "pointer"}:
+        with pytest.raises(FileNotFoundError) as error:
+            reproduce.check_downloaded(experiment)
+        message = str(error.value)
+        assert "https://git-lfs.com" in message
+        assert "git lfs install" in message
+        assert f'git lfs pull --include={record["path"]} --exclude=""' in message
+        assert "repository root" in message
+        assert checkpoint.exists() == (state == "pointer")
+    elif state == "empty":
+        with pytest.raises(ValueError, match="empty"):
+            reproduce.check_downloaded(experiment)
+    else:
+        assert reproduce.check_downloaded(experiment) is None
+
+
+@pytest.mark.parametrize("resolve", [reproduce.check_downloaded, reproduce.adapter])
+@pytest.mark.parametrize("experiment", ["deployment_demuc", "blödsinn", "", None, []])
+def test_unknown_experiment_has_actionable_error(resolve, experiment, monkeypatch):
+    def unexpected_artifact_access(path):
+        pytest.fail("An unknown experiment must fail before accessing model files")
+
+    monkeypatch.setattr(reproduce, "repository_path", unexpected_artifact_access)
+    with pytest.raises(ValueError) as error:
+        resolve(experiment)
+    message = str(error.value)
+    assert f"Unknown experiment ID: {experiment!r}" in message
+    assert "masterthesis_guide/catalog.yaml" in message
+    assert "git lfs pull" not in message
+    if experiment == "deployment_demuc":
+        assert "Did you mean:" in message
+        assert "  deployment_demucs" in message
+    else:
+        assert "Did you mean:" not in message
+
+
 @pytest.mark.parametrize("family", ["demucs", "nested_gan", "vit_spectrogram"])
 def test_comparison_inputs_match_the_recorded_hashes(family):
     catalog = reproduce.load_catalog()
